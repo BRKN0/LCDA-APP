@@ -1,0 +1,43 @@
+<div class="flex justify-center items-center bg-blue-500 w-screen h-screen">
+  <div
+    class="min-w-[280px] max-w-[350px] w-[80%] bg-white/30 rounded-lg shadow-lg p-4"
+  >
+    <div class="text-4xl font-bold text-center mb-8">LCDA</div>
+
+    <div class="flex flex-col gap-2" [formGroup]="form">
+      <div class="flex flex-col gap-1">
+        <div>Email</div>
+        <input
+          formControlName="email"
+          placeholder="Email"
+          class="p-2 w-full bg-white rounded-lg"
+        />
+      </div>
+      <div class="flex flex-col gap-1">
+        <div>Contraseña</div>
+        <input
+          formControlName="password"
+          placeholder="Contraseña"
+          type="password"
+          class="p-2 w-full bg-white rounded-lg"
+        />
+      </div>
+
+      <button
+        (click)="login()"
+        class="bg-blue-700 p-2 w-full rounded-lg mt-4 text-white"
+      >
+        INGRESAR
+      </button>
+
+      <button
+        (click)="signUp()"
+        class="border-blue-700 border-2 p-1 w-full rounded-lg mt-4 text-blue-800"
+      >
+        Registrarse
+      </button>
+
+      {{ message }}
+    </div>
+  </div>
+</div>

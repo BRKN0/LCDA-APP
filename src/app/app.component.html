@@ -1,0 +1,29 @@
+<router-outlet></router-outlet>
+
+<button
+  *ngIf="isLoggedIn$ | async"
+  class="p-2 text-white bg-blue-700 rounded-lg shadow-lg"
+  (click)="signOut()"
+>
+  Cerrar sesión
+</button>
+
+<div *ngIf="message">{{ message }}</div>
+
+<div class="grid grid-cols-3">
+  <div>Nombre</div>
+  <div>Tipo doc</div>
+  <div>Doc</div>
+
+  <ng-container *ngFor="let client of clients">
+    <div>
+      {{ client.name }}
+    </div>
+    <div>
+      {{ client.document_type }}
+    </div>
+    <div>
+      {{ client.document_number }}
+    </div>
+  </ng-container>
+</div>
