@@ -1,43 +1,44 @@
-<div class="flex justify-center items-center bg-blue-500 w-screen h-screen">
-  <div
-    class="min-w-[280px] max-w-[350px] w-[80%] bg-white/30 rounded-lg shadow-lg p-4"
-  >
-    <div class="text-4xl font-bold text-center mb-8">LCDA</div>
+<div class="login-container flex justify-center items-center">
+  <div class="login-box min-w-[280px] max-w-[350px] w-[80%] bg-white/80 backdrop-blur-md rounded-lg shadow-lg p-6">
+    <div class="logo text-4xl font-bold text-center text-red-700 mb-8">
+      La Casa Del Acrílico
+    </div>
 
-    <div class="flex flex-col gap-2" [formGroup]="form">
+    <div class="flex flex-col gap-4" [formGroup]="form">
       <div class="flex flex-col gap-1">
-        <div>Email</div>
+        <div class="font-bold">Correo Electrónico</div>
         <input
           formControlName="email"
-          placeholder="Email"
-          class="p-2 w-full bg-white rounded-lg"
+          placeholder="Ingresa tu correo"
+          class="input-field p-2 w-full rounded-md"
         />
       </div>
       <div class="flex flex-col gap-1">
-        <div>Contraseña</div>
+        <div class="font-bold">Contraseña</div>
         <input
           formControlName="password"
-          placeholder="Contraseña"
+          placeholder="Ingresa tu contraseña"
           type="password"
-          class="p-2 w-full bg-white rounded-lg"
+          class="input-field p-2 w-full rounded-md"
         />
       </div>
 
       <button
         (click)="login()"
-        class="bg-blue-700 p-2 w-full rounded-lg mt-4 text-white"
+        class="btn-login border-2 border-red-600 text-red-600 hover:text-white hover:bg-red-600 font-semibold p-2 w-full rounded-md transition"
       >
-        INGRESAR
+        Ingresar
       </button>
 
       <button
         (click)="signUp()"
-        class="border-blue-700 border-2 p-1 w-full rounded-lg mt-4 text-blue-800"
+        class="btn-register border-2 border-red-600 text-red-600 hover:text-white hover:bg-red-600 font-semibold p-2 w-full rounded-md transition"
       >
         Registrarse
       </button>
-
-      {{ message }}
     </div>
   </div>
 </div>
+
+
+
