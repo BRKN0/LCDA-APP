@@ -73,12 +73,12 @@ export class AppComponent implements OnInit {
       console.log('Session: ', session);
 
       if (session) {
-        this.getClients();
+        //this.getClients();
       }
     });
   }
 
-  async getClients() {
+  /** async getClients() {
     const { error, data } = await this.supabase
       .from('clients')
       .select<any, Client>('*');
@@ -89,4 +89,5 @@ export class AppComponent implements OnInit {
 
     this.clients = data;
   }
+  **/
 }

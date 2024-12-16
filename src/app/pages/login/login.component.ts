@@ -35,7 +35,7 @@ export class LoginComponent implements OnInit {
       next: (session) => {
         if (!session) return;
 
-        this.router.navigate(['/']);
+        this.router.navigate(['/home']);
       },
     });
   }
