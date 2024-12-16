@@ -35,7 +35,10 @@ export class LoginComponent implements OnInit {
       next: (session) => {
         if (!session) return;
 
-        this.router.navigate(['/home']);
+        this.router.navigate(['/home'], {
+          queryParams: {},
+          replaceUrl: true,
+        });
       },
     });
   }

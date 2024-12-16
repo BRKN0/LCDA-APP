@@ -44,13 +44,16 @@ export class MainBannerComponent {
       this.router.navigate(['/inventory']); // Redirect to inventory route
     }
     signOut() {
-      this.supabase.signOut().then(() => this.router.navigate(['/login']));
+      this.supabase.signOut().then(() => this.router.navigate(['/login'], {
+        queryParams: {},
+        replaceUrl: true,
+      }));
     }
   
     async ngOnInit(): Promise<void> {
       const type = this.route.snapshot.queryParamMap.get('type');
       const token = this.route.snapshot.queryParamMap.get('token');
-  
+      
       // Check if it's a signup confirmation
       if (type === 'signup' && token) {
         // You'll need the email used during signup.
