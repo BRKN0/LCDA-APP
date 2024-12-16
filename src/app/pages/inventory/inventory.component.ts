@@ -1,17 +1,18 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { MainBannerComponent } from '../main-banner/main-banner.component';
 
 @Component({
   selector: 'app-inventory',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, MainBannerComponent],
   templateUrl: './inventory.component.html',
   styleUrls: ['./inventory.component.scss']
 })
 export class InventoryComponent {
 
-  constructor(private router: Router) {}
+  constructor(private readonly router: Router) {}
 
   goToHome() {
     this.router.navigate(['/']); // Redirect to root route
