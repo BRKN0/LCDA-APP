@@ -1,15 +1,42 @@
 <router-outlet></router-outlet>
 <div class="banner bg-red-600 text-white py-4 text-center">
-    <h1 class="text-3xl font-bold">La Casa del Acrílico</h1>
-  </div>
-  
-  <div class="container mx-auto px-4">
-    <!-- Navigation -->
-    <div class="navigation flex justify-around py-4 border-b">
-      <div class="nav-item cursor-pointer" (click)="goToHome()">
-        <i class="fas fa-home"></i>
-        <span>Inicio</span>
-      </div>
+  <h1 class="text-3xl font-bold">La Casa del Acrílico</h1>
+</div>
+<div class="container mx-auto px-4">
+  <!-- Navigation -->
+  <div class="navigation flex justify-around py-4 border-b">
+    <div class="nav-item cursor-pointer" (click)="goToHome()">
+      <i class="fas fa-home"></i>
+      <span>Inicio</span>
+    </div>
+    <div class="nav-item">
+      <i class="fas fa-users"></i>
+      <span>Consulta de Pedido</span>
+    </div>
+    <ng-template
+      [ngIf]="isLoggedIn$ | async"
+      [ngIfThen]="signOutButton"
+      [ngIfElse]="loginButton"
+    >
+    </ng-template>
+    <!-- Usuario Visitante  -->
+    <ng-template #loginButton>
+      <button
+        class="p-1 text-white bg-blue-700 rounded-lg shadow-lg"
+        (click)="goToLogin()"
+      >
+        Iniciar sesión
+      </button>
+
+      <!-- Usuario -->
+    </ng-template>
+    <ng-template #signOutButton>
+      <button
+        class="p-1 text-white bg-blue-700 rounded-lg shadow-lg"
+        (click)="signOut()"
+      >
+        Cerrar sesión
+      </button>
       <div class="nav-item">
         <i class="fas fa-dollar-sign"></i>
         <span>Financiamiento</span>
@@ -28,34 +55,8 @@
       </div>
       <div class="nav-item">
         <i class="fas fa-users"></i>
-        <span>Cortes</span>
+        <span>Pedidos</span>
       </div>
-      <div class="nav-item">
-        <i class="fas fa-users"></i>
-        <span>Impresiones</span>
-      </div>
-      <ng-template 
-      [ngIf]="isLoggedIn$ | async" 
-      [ngIfThen]="signOutButton"
-      [ngIfElse]="loginButton"
-      >
-      </ng-template>
-      <ng-template #loginButton>
-        <button
-        class="p-1 text-white bg-blue-700 rounded-lg shadow-lg"
-        (click)="goToLogin()"
-        >
-        Iniciar sesión
-        </button> 
-      </ng-template>
-      <ng-template #signOutButton>
-        <button
-        class="p-1 text-white bg-blue-700 rounded-lg shadow-lg"
-        (click)="signOut()"
-        >
-        Cerrar sesión
-        </button> 
-      </ng-template>
-    </div>
+    </ng-template>
   </div>
-  
+</div>
