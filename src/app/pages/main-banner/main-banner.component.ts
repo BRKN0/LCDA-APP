@@ -20,11 +20,11 @@ interface Client {
   styleUrl: './main-banner.component.scss'
 })
 export class MainBannerComponent {
-  
+
     isLoggedIn$;
     message: string | null = null;
     //clients: Client[] = [];
-  
+
     constructor(
       private readonly supabase: SupabaseService,
       private readonly route: ActivatedRoute,
@@ -43,29 +43,32 @@ export class MainBannerComponent {
     goToInventory() {
       this.router.navigate(['/inventory']); // Redirect to inventory route
     }
+    goToClients() {
+      this.router.navigate(['/clients']); // Redirect to clients route
+    }
     signOut() {
       this.supabase.signOut().then(() => this.router.navigate(['/login'], {
         queryParams: {},
         replaceUrl: true,
       }));
     }
-  
+
     async ngOnInit(): Promise<void> {
       const type = this.route.snapshot.queryParamMap.get('type');
       const token = this.route.snapshot.queryParamMap.get('token');
-      
+
       // Check if it's a signup confirmation
       if (type === 'signup' && token) {
         // You'll need the email used during signup.
         // If you didn't store it anywhere, you might ask the user or store it in localStorage during signup.
         const userEmail = localStorage.getItem('pendingSignupEmail') || '';
-  
+
         const { data, error } = await this.supabase['supabase'].auth.verifyOtp({
           type: 'signup',
           token,
           email: userEmail,
         });
-  
+
         if (error) {
           console.error('Error verifying signup:', error);
           this.message = 'There was an issue confirming your email.';
@@ -73,32 +76,32 @@ export class MainBannerComponent {
           this.message =
             'Your email has been successfully confirmed! You can now log in.';
         }
-  
+
         // Remove query params from the URL
         this.router.navigate([], {
           queryParams: {},
           replaceUrl: true,
         });
       }
-  
+
       this.supabase.authChanges((_, session) => {
         console.log('Session: ', session);
-  
+
         if (session) {
           //this.getClients();
         }
       });
     }
-  
+
     /** async getClients() {
       const { error, data } = await this.supabase
         .from('clients')
         .select<any, Client>('*');
-  
+
       if (error) {
         return;
       }
-  
+
       this.clients = data;
     }
     **/
