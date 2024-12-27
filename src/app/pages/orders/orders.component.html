@@ -1,0 +1,32 @@
+<app-main-banner></app-main-banner>
+
+<table class="table-auto w-full border-collapse">
+  <thead>
+    <tr class="bg-gray-100">
+      <th class="p-3 border">Codigo</th>
+      <th class="p-3 border">Cliente</th>
+      <th class="p-3 border">Tipo de pedido</th>
+      <th class="p-3 border">Descripción del pedido</th>
+      <th class="p-3 border">Estado</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr
+      *ngFor="let order of orders"
+      (click)="toggleDetails(order)"
+      class="cursor-pointer hover:bg-gray-200 border"
+    >
+      <td class="p-3 border">{{ order.codigo }}</td>
+      <td class="p-3 border">{{ order.nombre }}</td>
+      <td class="p-3 border">{{ order.tipo_pedido }}</td>
+      <td class="p-3 border">{{ order.descripcion }}</td>
+      <td
+        class="p-3 border"
+        [class.text-green-600]="order.estado === 'Completo'"
+        [class.text-red-600]="order.estado === 'Pendiente'"
+      >
+        {{ order.estado }}
+      </td>
+    </tr>
+  </tbody>
+</table>
