@@ -3,6 +3,7 @@ import { LoginComponent } from './pages/login/login.component';
 import { InventoryComponent } from './pages/inventory/inventory.component';
 import { HomeComponent } from './pages/home/home.component';
 import { ClientsComponent } from './pages/clients/clients.component';
+import { OrdersComponent } from './pages/orders/orders.component';
 
 
 export const routes: Routes = [
@@ -21,5 +22,9 @@ export const routes: Routes = [
   {
     path: 'clients',
     loadComponent: () => ClientsComponent,
+  },
+  {
+    path: 'orders',
+    loadComponent: () => OrdersComponent,
   }
 ];

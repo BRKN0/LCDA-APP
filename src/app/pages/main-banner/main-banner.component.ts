@@ -46,6 +46,9 @@ export class MainBannerComponent {
     goToClients() {
       this.router.navigate(['/clients']); // Redirect to clients route
     }
+    goToOrders() {
+      this.router.navigate(['/orders']); // Redirect to orders route
+    }
     signOut() {
       this.supabase.signOut().then(() => this.router.navigate(['/login'], {
         queryParams: {},
