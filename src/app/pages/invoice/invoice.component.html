@@ -1,0 +1,200 @@
+<app-main-banner></app-main-banner>
+
+<!-- Filter checkboxes -->
+<div class="mt-4">
+  <label class="inline-flex items-center mr-4">
+    <input
+      type="checkbox"
+      [(ngModel)]="showPrints"
+      class="form-checkbox"
+      (change)="updateFilteredInvoices()"
+    />
+    <span class="ml-2">Impresiones</span>
+  </label>
+  <label class="inline-flex items-center">
+    <input
+      type="checkbox"
+      [(ngModel)]="showCuts"
+      class="form-checkbox"
+      (change)="updateFilteredInvoices()"
+    />
+    <span class="ml-2">Cortes</span>
+  </label>
+</div>
+
+<!-- Render all invoices -->
+<div class="mt-4">
+  <h2 class="text-xl font-bold">Facturas</h2>
+  <ul class="mt-2">
+    <table class="table-auto border-collapse border border-gray-400 w-full">
+      <thead>
+        <tr>
+          <th class="border border-gray-300 px-4 py-2 bg-gray-200">
+            N. de Factura
+          </th>
+          <th class="border border-gray-300 px-4 py-2 bg-gray-200">
+            Nombre/Empresa
+          </th>
+          <th class="border border-gray-300 px-4 py-2 bg-gray-200">Fecha</th>
+          <th class="border border-gray-300 px-4 py-2 bg-gray-200">Importe</th>
+          <th class="border border-gray-300 px-4 py-2 bg-gray-200">Estado</th>
+          <th class="border border-gray-300 px-4 py-2 bg-gray-200">Acción</th>
+          <!-- New Action column -->
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Invoice for Prints -->
+        <ng-container *ngIf="showPrints">
+          <tr *ngFor="let invoice of filteredInvoices()">
+            <ng-container *ngIf="invoice.type === 'Impresiones'">
+              <td class="border border-gray-300 px-4 py-2">
+                {{ invoice.invoice_id }}
+              </td>
+              <td class="border border-gray-300 px-4 py-2">
+                {{ invoice.name || invoice.company_name }}
+              </td>
+              <td class="border border-gray-300 px-4 py-2">
+                {{ invoice.date }}
+              </td>
+              <td class="border border-gray-300 px-4 py-2">
+                {{ invoice.amount }}
+              </td>
+              <td class="border border-gray-300 px-4 py-2">
+                {{ invoice.status }}
+              </td>
+              <td class="border border-gray-300 px-4 py-2">
+                <button
+                  class="bg-blue-500 text-white py-1 px-3 rounded"
+                  (click)="selectInvoice(invoice)"
+                >
+                  Ver Detalles
+                </button>
+              </td>
+            </ng-container>
+          </tr>
+        </ng-container>
+
+        <!-- Invoice for Cuts -->
+        <ng-container *ngIf="showCuts">
+          <tr *ngFor="let invoice of filteredInvoices()">
+            <ng-container *ngIf="invoice.type === 'Cortes'">
+              <td class="border border-gray-300 px-4 py-2">
+                {{ invoice.invoice_id }}
+              </td>
+              <td class="border border-gray-300 px-4 py-2">
+                {{ invoice.name || invoice.company_name }}
+              </td>
+              <td class="border border-gray-300 px-4 py-2">
+                {{ invoice.date }}
+              </td>
+              <td class="border border-gray-300 px-4 py-2">
+                {{ invoice.amount }}
+              </td>
+              <td class="border border-gray-300 px-4 py-2">
+                {{ invoice.status }}
+              </td>
+              <td class="border border-gray-300 px-4 py-2">
+                <button
+                  class="bg-blue-500 text-white py-1 px-3 rounded"
+                  (click)="selectInvoice(invoice)"
+                >
+                  Ver Detalles
+                </button>
+              </td>
+            </ng-container>
+          </tr>
+        </ng-container>
+      </tbody>
+    </table>
+  </ul>
+</div>
+
+<!-- Show details of the selected invoice -->
+<div
+  *ngIf="selectedInvoiceDetails && selectedInvoiceDetails.length > 0"
+  class="mt-4"
+>
+  <h2 class="text-xl font-bold">Detalles de Factura</h2>
+
+  <!-- Printable Invoice Layout -->
+  <div class="p-4 border border-gray-300 bg-white invoice-details">
+    <div class="flex justify-between mb-4">
+      <div>
+        <h3 class="font-semibold text-lg">
+          Factura N°: {{ selectedInvoiceDetails[0].invoice_id }}
+        </h3>
+        <p><strong>Fecha:</strong> {{ selectedInvoiceDetails[0].date }}</p>
+        <p><strong>Estado:</strong> {{ selectedInvoiceDetails[0].status }}</p>
+      </div>
+      <div class="text-right">
+        <p>
+          <strong>De:</strong>
+          {{
+            selectedInvoiceDetails[0].company_name ||
+              selectedInvoiceDetails[0].name
+          }}
+        </p>
+        <p>{{ selectedInvoiceDetails[0].address }}</p>
+        <p>
+          {{ selectedInvoiceDetails[0].city }},
+          {{ selectedInvoiceDetails[0].province }}
+          {{ selectedInvoiceDetails[0].postal_code }}
+        </p>
+        <p>{{ selectedInvoiceDetails[0].email }}</p>
+        <p>{{ selectedInvoiceDetails[0].phone_number }}</p>
+      </div>
+    </div>
+
+    <!-- Itemized Invoice List -->
+    <div class="my-6">
+      <h4 class="font-semibold"></h4>
+      <ul class="list-none">
+        <li>
+          <p>
+            <strong>Descripción:</strong>
+            {{ selectedInvoiceDetails[0].description }}
+          </p>
+          <p>
+            <strong>Cantidad:</strong> {{ selectedInvoiceDetails[0].quantity }}
+          </p>
+          <p>
+            <strong>Valor Unitario:</strong>
+            {{ selectedInvoiceDetails[0].unitary_value }}
+          </p>
+          <p>
+            <strong>Subtotal:</strong>
+            {{ selectedInvoiceDetails[0].subtotal }}
+          </p>
+          <p *ngIf="selectedInvoiceDetails[0].iva">
+            <strong>IVA:</strong>
+            {{ selectedInvoiceDetails[0].iva }}
+          </p>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Totals Section -->
+    <div class="border-t pt-4 mt-4">
+      <div class="flex justify-between">
+        <p><strong>Subtotal:</strong></p>
+        <p>{{ selectedInvoiceDetails[0].subtotal }}</p>
+      </div>
+      <div class="flex justify-between">
+        <p *ngIf="selectedInvoiceDetails[0].iva"><strong>IVA:</strong></p>
+        <p>{{ selectedInvoiceDetails[0].iva }}</p>
+      </div>
+      <div class="flex justify-between">
+        <p><strong>Total:</strong></p>
+        <p class="font-bold">
+          {{ selectedInvoiceDetails[0].total }}
+        </p>
+      </div>
+    </div>
+    <button
+      class="bg-green-500 text-white py-2 px-4 mt-4 rounded"
+      (click)="generatePdf()"
+    >
+      Descargar PDF
+    </button>
+  </div>
+</div>
