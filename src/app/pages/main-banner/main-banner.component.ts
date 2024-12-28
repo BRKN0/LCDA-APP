@@ -49,6 +49,9 @@ export class MainBannerComponent {
     goToOrders() {
       this.router.navigate(['/orders']); // Redirect to orders route
     }
+    goToInvoices() {
+      this.router.navigate(['/invoice']); // Redirect to invoice route
+    }
     signOut() {
       this.supabase.signOut().then(() => this.router.navigate(['/login'], {
         queryParams: {},
