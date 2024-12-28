@@ -20,7 +20,13 @@
       <td class="p-3 border">{{ client.nombre }}</td>
       <td class="p-3 border">{{ client.nit }}</td>
       <td class="p-3 border">{{ client.empresa }}</td>
-      <td class="p-3 border">{{ client.estado }}</td>
+      <td
+        class="p-3 border"
+        [class.text-green-600]="client.estado === 'Al Día'"
+        [class.text-red-600]="client.estado === 'En Mora'"
+      >
+        {{ client.estado }}
+      </td>
     </tr>
     <tr *ngIf="selectedClient">
       <td colspan="4" class="p-4 bg-gray-50">
@@ -70,5 +76,6 @@
     </tr>
   </tbody>
 </table>
+
 
 

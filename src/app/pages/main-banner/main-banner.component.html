@@ -31,12 +31,6 @@
       <!-- Usuario -->
     </ng-template>
     <ng-template #signOutButton>
-      <button
-        class="p-1 text-white bg-blue-700 rounded-lg shadow-lg"
-        (click)="signOut()"
-      >
-        Cerrar sesión
-      </button>
       <div class="nav-item">
         <i class="fas fa-dollar-sign"></i>
         <span>Financiamiento</span>
@@ -57,6 +51,12 @@
         <i class="fas fa-users"></i>
         <span>Pedidos</span>
       </div>
+      <button
+        class="p-1 text-white bg-blue-700 rounded-lg shadow-lg"
+        (click)="signOut()"
+      >
+        Cerrar sesión
+      </button>
     </ng-template>
   </div>
 </div>
