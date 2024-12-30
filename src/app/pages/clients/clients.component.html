@@ -1,81 +1,89 @@
 <app-main-banner></app-main-banner>
 
-<table class="table-auto w-full border-collapse">
-  <thead>
-    <tr class="bg-gray-100">
-      <th class="p-3 border">Nombre</th>
-      <th class="p-3 border">NIT</th>
-      <th class="p-3 border">Empresa</th>
-      <th class="p-3 border">Estado</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr
-      *ngFor="let client of clients"
-      (click)="toggleDetails(client)"
-      [class.border-red-500]="client.estado === 'En Mora'"
-      [class.border-green-500]="client.estado === 'Al Día'"
-      class="cursor-pointer hover:bg-gray-200 border"
-    >
-      <td class="p-3 border">{{ client.nombre }}</td>
-      <td class="p-3 border">{{ client.nit }}</td>
-      <td class="p-3 border">{{ client.empresa }}</td>
-      <td
-        class="p-3 border"
-        [class.text-green-600]="client.estado === 'Al Día'"
-        [class.text-red-600]="client.estado === 'En Mora'"
+<!-- Loading Indicator -->
+<div *ngIf="loading" class="p-4 text-center text-gray-600">
+  <p>Cargando clientes...</p>
+</div>
+
+<div *ngIf="!loading">
+  <table class="table-auto w-full border-collapse">
+    <thead>
+      <tr class="bg-gray-100">
+        <th class="p-3 border">Nombre</th>
+        <th class="p-3 border">NIT</th>
+        <th class="p-3 border">Empresa</th>
+        <th class="p-3 border">Estado</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr
+        *ngFor="let client of clients"
+        (click)="toggleDetails(client)"
+        [class.border-red-500]="client.status === 'En Mora'"
+        [class.border-green-500]="client.status === 'Al Día'"
+        class="cursor-pointer hover:bg-gray-200 border"
       >
-        {{ client.estado }}
-      </td>
-    </tr>
-    <tr *ngIf="selectedClient">
-      <td colspan="4" class="p-4 bg-gray-50">
-        <div class="details">
-          <p><strong>Teléfono:</strong> {{ selectedClient.telefono }}</p>
-          <p><strong>Dirección:</strong> {{ selectedClient.direccion }}</p>
-          <p>
-            <strong>Deuda:</strong>
-            <span
-              [class.text-green-600]="selectedClient.deuda === 0"
-              [class.text-red-600]="selectedClient.deuda > 0"
+        <td class="p-3 border">{{ client.name }}</td>
+        <td class="p-3 border">{{ client.nit }}</td>
+        <td class="p-3 border">{{ client.company_name }}</td>
+        <td
+          class="p-3 border"
+          [class.text-green-600]="client.status === 'Al Día'"
+          [class.text-red-600]="client.status === 'En Mora'"
+        >
+          {{ client.status }}
+        </td>
+      </tr>
+      <tr *ngIf="selectedClient">
+        <td colspan="4" class="p-4 bg-gray-50">
+          <div class="details">
+            <p><strong>Teléfono:</strong> {{ selectedClient.cellphone }}</p>
+            <p><strong>Dirección:</strong> {{ selectedClient.address }}</p>
+            <p>
+              <strong>Deuda:</strong>
+              <span
+                [class.text-green-600]="selectedClient.debt === 0"
+                [class.text-red-600]="selectedClient.debt > 0"
+              >
+                {{
+                  selectedClient.debt > 0
+                    ? "$" + selectedClient.debt
+                    : "Sin Deuda"
+                }}
+              </span>
+            </p>
+            <button
+              (click)="toggleOrders(selectedClient)"
+              class="mt-4 bg-red-500 text-white p-2 rounded-md"
             >
-              {{ selectedClient.deuda > 0 ? '$' + selectedClient.deuda : 'Sin Deuda' }}
-            </span>
-          </p>
-          <button
-            (click)="togglePedidos(selectedClient)"
-            class="mt-4 bg-red-500 text-white p-2 rounded-md"
-          >
-            Mostrar Pedidos
-          </button>
-          <table *ngIf="showPedidos" class="w-full mt-4 border-collapse">
-            <thead>
-              <tr class="bg-gray-100">
-                <th class="p-3 border">Código</th>
-                <th class="p-3 border">Tipo</th>
-                <th class="p-3 border">Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let pedido of selectedClient.pedidos">
-                <td class="p-3 border">{{ pedido.codigo }}</td>
-                <td class="p-3 border">{{ pedido.tipo }}</td>
-                <td
-                  class="p-3 border"
-                  [class.text-green-600]="pedido.estado === 'Pago'"
-                  [class.text-red-600]="pedido.estado === 'En Mora'"
-                  [class.text-yellow-500]="pedido.estado === 'No Pago'"
-                >
-                  {{ pedido.estado }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </td>
-    </tr>
-  </tbody>
-</table>
-
-
-
+              Mostrar Pedidos
+            </button>
+            <table *ngIf="showOrders" class="w-full mt-4 border-collapse">
+              <thead>
+                <tr class="bg-gray-100">
+                  <th class="p-3 border">Código</th>
+                  <th class="p-3 border">Tipo</th>
+                  <th class="p-3 border">Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let orders of selectedClient.orders">
+                  <td class="p-3 border">{{ orders.id_order }}</td>
+                  <td class="p-3 border">{{ orders.order_type }}</td>
+                  <td
+                    class="p-3 border"
+                    [class.text-green-600]="orders.order_status === 'Pago'"
+                    [class.text-red-600]="orders.order_status === 'En Mora'"
+                    [class.text-yellow-500]="orders.order_status === 'No Pago'"
+                  >
+                    {{ orders.order_status }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>

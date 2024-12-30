@@ -4,14 +4,7 @@ import { SupabaseService } from '../../services/supabase.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { map } from 'rxjs';
 import { CommonModule } from '@angular/common';
-/**
-interface Client {
-  id: string;
-  name: string;
-  document_type: string;
-  document_number: string;
-}
-**/
+
 @Component({
   selector: 'app-main-banner',
   standalone: true,
@@ -19,11 +12,10 @@ interface Client {
   templateUrl: './main-banner.component.html',
   styleUrl: './main-banner.component.scss'
 })
-export class MainBannerComponent {
+export class MainBannerComponent implements OnInit {
 
     isLoggedIn$;
     message: string | null = null;
-    //clients: Client[] = [];
 
     constructor(
       private readonly supabase: SupabaseService,
@@ -89,26 +81,5 @@ export class MainBannerComponent {
           replaceUrl: true,
         });
       }
-
-      this.supabase.authChanges((_, session) => {
-        console.log('Session: ', session);
-
-        if (session) {
-          //this.getClients();
-        }
-      });
     }
-
-    /** async getClients() {
-      const { error, data } = await this.supabase
-        .from('clients')
-        .select<any, Client>('*');
-
-      if (error) {
-        return;
-      }
-
-      this.clients = data;
-    }
-    **/
 }
