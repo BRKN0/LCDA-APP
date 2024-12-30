@@ -125,7 +125,7 @@ export class InvoiceComponent implements OnInit {
       description:
         'Impresión UV sobre acrílico (5mm) para cartel de presentación de producto',
       quantity: '7',
-      unitary_value: '500,000',
+      unitary_value: '500000',
       amount: '3500000',
       subtotal: '3500000',
       iva: '665000',
