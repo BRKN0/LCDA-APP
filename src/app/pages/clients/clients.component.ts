@@ -80,7 +80,6 @@ export class ClientsComponent implements OnInit {
       ...client,
       orders: Array.isArray(client.orders) ? client.orders : client.orders ? [client.orders] : [] // Normalize orders
     })) as Client[];
-    console.log(this.clients)
     this.loading = false;
   }
 
