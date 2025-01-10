@@ -25,8 +25,8 @@ interface Client {
   document_type: string;
   document_number: string;
   cellphone: string;
-  nit: string;
-  company_name: string;
+  nit?: string | null;
+  company_name?: string | null;
   email: string;
   status: string;
   debt: number;
