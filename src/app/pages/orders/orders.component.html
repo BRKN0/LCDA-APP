@@ -1,5 +1,36 @@
 <app-main-banner></app-main-banner>
 
+<!-- Filter checkboxes -->
+<div class="mt-4">
+  <label class="inline-flex items-center mr-4">
+    <input
+      type="checkbox"
+      [(ngModel)]="showPrints"
+      class="form-checkbox"
+      (change)="updateFilteredOrders()"
+    />
+    <span class="ml-2">Impresiones</span>
+  </label>
+  <label class="inline-flex items-center mr-4">
+    <input
+      type="checkbox"
+      [(ngModel)]="showCuts"
+      class="form-checkbox"
+      (change)="updateFilteredOrders()"
+    />
+    <span class="ml-2">Cortes</span>
+  </label>
+  <label class="inline-flex items-center">
+    <input
+      type="checkbox"
+      [(ngModel)]="showSales"
+      class="form-checkbox"
+      (change)="updateFilteredOrders()"
+    />
+    <span class="ml-2">Ventas</span>
+  </label>
+</div>
+
 <table class="table-auto w-full border-collapse">
   <thead>
     <tr class="bg-gray-100">
@@ -12,7 +43,7 @@
   </thead>
   <tbody>
     <tr
-      *ngFor="let order of orders"
+      *ngFor="let order of filteredOrders()"
       (click)="toggleDetails(order)"
       class="cursor-pointer hover:bg-gray-200 border"
     >
