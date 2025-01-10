@@ -1,50 +1,66 @@
-<!-- inventory.component.html -->
 <app-main-banner></app-main-banner>
-  
-    <!-- Sidebar and Content -->
-    <div class="flex mt-4">
-      <!-- Sidebar -->
-      <div class="sidebar w-1/4 border-r pr-4 border border-gray-300">
-        <h2 class="font-bold">Materiales</h2>
-        <ul class="mt-2">
-          <li
-            *ngFor="let material of materials"
-            class="cursor-pointer hover:underline border border-gray-300"
-            (click)="selectMaterial(material)"
+
+<!-- Loading Indicator -->
+<div *ngIf="loading" class="p-4 text-center text-gray-600">
+  <p>Cargando inventario...</p>
+</div>
+
+<!-- Mensaje si no hay datos -->
+<div *ngIf="!loading && inventory.length === 0" class="p-4 text-center text-gray-600">
+  <p>No hay datos disponibles en el inventario.</p>
+</div>
+
+<!-- Tabla de inventario -->
+<div *ngIf="!loading && inventory.length > 0">
+  <table class="table-auto w-full border-collapse">
+    <thead>
+      <tr class="bg-gray-100">
+        <th class="p-3 border">ID Material</th>
+        <th class="p-3 border">Categoría</th>
+        <th class="p-3 border">Tipo</th>
+        <th class="p-3 border">Calibre</th>
+        <th class="p-3 border">Cantidad</th>
+        <th class="p-3 border">Color</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Cada material como una fila -->
+      <ng-container *ngFor="let item of inventory">
+        <tr
+          (click)="toggleDetails(item)"
+          class="cursor-pointer hover:bg-gray-200 border"
+        >
+          <td class="p-3 border">{{ item.id_material }}</td>
+          <td class="p-3 border">{{ item.category || 'Sin Categoría' }}</td>
+          <td class="p-3 border">{{ item.type || 'Sin Tipo' }}</td>
+          <td class="p-3 border">{{ item.caliber || 'Sin Calibre' }}</td>
+          <td
+            class="p-3 border"
+            [class.text-green-600]="item.material_quantity > 10"
+            [class.text-red-600]="item.material_quantity <= 10"
           >
-            {{ material }}
-          </li>
-        </ul>
-      </div>
-  
-      <!-- Main Content -->
-      <div class="content w-3/4 pl-4">
-        <h2 class="text-xl font-bold mb-4">Detalles de Materiales</h2>
-  
-        <!-- Show a message if a material is not selected-->
-        <p *ngIf="!selectedMaterialDetails">Selecciona un material para ver más detalles.</p>
-  
-        <!-- Render details in table format -->
-        <div *ngIf="selectedMaterialDetails">
-          <table class="table-auto border-collapse border border-gray-400 w-full">
-            <thead>
-              <tr>
-                <th class="border border-gray-300 px-4 py-2 bg-gray-200">Tipo</th>
-                <th class="border border-gray-300 px-4 py-2 bg-gray-200">Cantidad</th>
-                <th class="border border-gray-300 px-4 py-2 bg-gray-200">Precio</th>
-                <th class="border border-gray-300 px-4 py-2 bg-gray-200">Color</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let detail of selectedMaterialDetails">
-                <td class="border border-gray-300 px-4 py-2">{{ detail.tipo }}</td>
-                <td class="border border-gray-300 px-4 py-2">{{ detail.cantidad }} mts</td>
-                <td class="border border-gray-300 px-4 py-2">${{ detail.precio }}</td>
-                <td class="border border-gray-300 px-4 py-2">{{ detail.color }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-  </div>
-  
+            {{ item.material_quantity || 0 }}
+          </td>
+          <td class="p-3 border">{{ item.color || 'Sin Color' }}</td>
+        </tr>
+
+        <!-- Detalles del material seleccionado -->
+        <tr *ngIf="selectedItem === item">
+          <td colspan="6" class="p-4 bg-gray-50">
+            <h3 class="font-bold mb-2">Detalles del Material</h3>
+            <p><strong>ID Material:</strong> {{ item.id_material }}</p>
+            <p><strong>Categoría:</strong> {{ item.category }}</p>
+            <p><strong>Tipo:</strong> {{ item.type }}</p>
+            <p><strong>Calibre:</strong> {{ item.caliber }}</p>
+            <p><strong>Cantidad:</strong> {{ item.material_quantity }}</p>
+            <p><strong>Color:</strong> {{ item.color }}</p>
+          </td>
+        </tr>
+      </ng-container>
+    </tbody>
+  </table>
+</div>
+
+
+
+
