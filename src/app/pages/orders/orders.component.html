@@ -1,63 +1,51 @@
 <app-main-banner></app-main-banner>
 
-<!-- Filter checkboxes -->
-<div class="mt-4">
-  <label class="inline-flex items-center mr-4">
-    <input
-      type="checkbox"
-      [(ngModel)]="showPrints"
-      class="form-checkbox"
-      (change)="updateFilteredOrders()"
-    />
-    <span class="ml-2">Impresiones</span>
-  </label>
-  <label class="inline-flex items-center mr-4">
-    <input
-      type="checkbox"
-      [(ngModel)]="showCuts"
-      class="form-checkbox"
-      (change)="updateFilteredOrders()"
-    />
-    <span class="ml-2">Cortes</span>
-  </label>
-  <label class="inline-flex items-center">
-    <input
-      type="checkbox"
-      [(ngModel)]="showSales"
-      class="form-checkbox"
-      (change)="updateFilteredOrders()"
-    />
-    <span class="ml-2">Ventas</span>
-  </label>
+<!-- Indicador de carga -->
+<div *ngIf="loading" class="p-4 text-center text-gray-600">
+  <p>Cargando pedidos...</p>
 </div>
 
-<table class="table-auto w-full border-collapse">
-  <thead>
-    <tr class="bg-gray-100">
-      <th class="p-3 border">Codigo</th>
-      <th class="p-3 border">Cliente</th>
-      <th class="p-3 border">Tipo de pedido</th>
-      <th class="p-3 border">Descripción del pedido</th>
-      <th class="p-3 border">Estado</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr
-      *ngFor="let order of filteredOrders()"
-      (click)="toggleDetails(order)"
-      class="cursor-pointer hover:bg-gray-200 border"
-    >
-      <td class="p-3 border">{{ order.codigo }}</td>
-      <td class="p-3 border">{{ order.nombre }}</td>
-      <td class="p-3 border">{{ order.tipo_pedido }}</td>
-      <td class="p-3 border">{{ order.descripcion }}</td>
-      <td
-        class="p-3 border"
-        [class.text-green-600]="order.estado === 'Completo'"
-        [class.text-red-600]="order.estado === 'Pendiente'"
+<!-- Tabla de pedidos -->
+<div *ngIf="!loading">
+  <div class="mb-4">
+    <label>
+      <input type="checkbox" [(ngModel)]="showPrints" (change)="updateFilteredOrders()" />
+      Impresiones
+    </label>
+    <label>
+      <input type="checkbox" [(ngModel)]="showCuts" (change)="updateFilteredOrders()" />
+      Cortes
+    </label>
+    <label>
+      <input type="checkbox" [(ngModel)]="showSales" (change)="updateFilteredOrders()" />
+      Ventas
+    </label>
+  </div>
+
+  <table class="table-auto w-full border-collapse">
+    <thead>
+      <tr>
+        <th class="p-3 border">Código</th>
+        <th class="p-3 border">Tipo</th>
+        <th class="p-3 border">Cliente</th>
+        <th class="p-3 border">Estado</th>
+        <th class="p-3 border">Fecha</th>
+        <th class="p-3 border">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr
+        *ngFor="let order of filteredOrdersList"
+        class="cursor-pointer hover:bg-gray-200"
+        (click)="toggleDetails(order)"
       >
-        {{ order.estado }}
-      </td>
-    </tr>
-  </tbody>
-</table>
+        <td class="p-3 border">{{ order.id_order }}</td>
+        <td class="p-3 border">{{ order.order_type }}</td>
+        <td class="p-3 border">{{ order.name }}</td>
+        <td class="p-3 border">{{ order.order_status }}</td>
+        <td class="p-3 border">{{ order.created_at }}</td>
+        <td class="p-3 border">{{ order.total }}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
