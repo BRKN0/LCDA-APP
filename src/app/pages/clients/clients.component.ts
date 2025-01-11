@@ -25,8 +25,8 @@ interface Client {
   document_type: string;
   document_number: string;
   cellphone: string;
-  nit: string;
-  company_name: string;
+  nit?: string | null;
+  company_name?: string | null;
   email: string;
   status: string;
   debt: number;
@@ -66,19 +66,35 @@ export class ClientsComponent implements OnInit {
   }
   async getClients() {
     this.loading = true;
-    const { error, data } = await this.supabase
-      .from('clients')
-      .select(
-        '*, orders(id_order, order_type, name, description, order_status, created_at, order_quantity, unitary_value, iva, subtotal, total, amount, id_client)'
-      );
+    const { error, data } = await this.supabase.from('clients').select(
+      `*,
+        orders(
+        id_order,
+        order_type,
+        name,
+        description,
+        order_status,
+        created_at,
+        order_quantity,
+        unitary_value,
+        iva,
+        subtotal,
+        total,
+        amount,
+        id_client)`
+    );
 
     if (error) {
       return;
     }
 
-    this.clients = [...data].map(client => ({
+    this.clients = [...data].map((client) => ({
       ...client,
-      orders: Array.isArray(client.orders) ? client.orders : client.orders ? [client.orders] : [] // Normalize orders
+      orders: Array.isArray(client.orders)
+        ? client.orders
+        : client.orders
+        ? [client.orders]
+        : [], // Normalize orders
     })) as Client[];
     this.loading = false;
   }

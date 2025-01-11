@@ -39,28 +39,27 @@
           <th class="border border-gray-300 px-4 py-2 bg-gray-200">Importe</th>
           <th class="border border-gray-300 px-4 py-2 bg-gray-200">Estado</th>
           <th class="border border-gray-300 px-4 py-2 bg-gray-200">Acción</th>
-          <!-- New Action column -->
         </tr>
       </thead>
       <tbody>
         <!-- Invoice for Prints -->
         <ng-container *ngIf="showPrints">
           <tr *ngFor="let invoice of filteredInvoices()">
-            <ng-container *ngIf="invoice.type === 'Impresiones'">
+            <ng-container *ngIf="invoice.order.order_type === 'print'">
               <td class="border border-gray-300 px-4 py-2">
-                {{ invoice.invoice_id }}
+                {{ invoice.id_invoice }}
               </td>
               <td class="border border-gray-300 px-4 py-2">
-                {{ invoice.name || invoice.company_name }}
+                {{ invoice.order.client.company_name ?? invoice.order.client.name }}
               </td>
               <td class="border border-gray-300 px-4 py-2">
-                {{ invoice.date }}
+                {{ invoice.created_at | date: 'dd-MM-yyyy' }}
               </td>
               <td class="border border-gray-300 px-4 py-2">
-                {{ invoice.amount }}
+                {{ invoice.order.amount }}
               </td>
               <td class="border border-gray-300 px-4 py-2">
-                {{ invoice.status }}
+                {{ invoice.invoice_status }}
               </td>
               <td class="border border-gray-300 px-4 py-2">
                 <button
@@ -77,21 +76,21 @@
         <!-- Invoice for Cuts -->
         <ng-container *ngIf="showCuts">
           <tr *ngFor="let invoice of filteredInvoices()">
-            <ng-container *ngIf="invoice.type === 'Cortes'">
+            <ng-container *ngIf="invoice.order.order_type === 'laser'">
               <td class="border border-gray-300 px-4 py-2">
-                {{ invoice.invoice_id }}
+                {{ invoice.id_invoice }}
               </td>
               <td class="border border-gray-300 px-4 py-2">
-                {{ invoice.name || invoice.company_name }}
+                {{ invoice.order.client.company_name ?? invoice.order.client.name }}
               </td>
               <td class="border border-gray-300 px-4 py-2">
-                {{ invoice.date }}
+                {{ invoice.created_at | date: 'dd-MM-yyyy' }}
               </td>
               <td class="border border-gray-300 px-4 py-2">
-                {{ invoice.amount }}
+                {{ invoice.order.amount }}
               </td>
               <td class="border border-gray-300 px-4 py-2">
-                {{ invoice.status }}
+                {{ invoice.invoice_status }}
               </td>
               <td class="border border-gray-300 px-4 py-2">
                 <button
@@ -121,27 +120,27 @@
     <div class="flex justify-between mb-4">
       <div>
         <h3 class="font-semibold text-lg">
-          Factura N°: {{ selectedInvoiceDetails[0].invoice_id }}
+          Factura N°: {{ selectedInvoiceDetails[0].id_invoice }}
         </h3>
-        <p><strong>Fecha:</strong> {{ selectedInvoiceDetails[0].date }}</p>
-        <p><strong>Estado:</strong> {{ selectedInvoiceDetails[0].status }}</p>
+        <p><strong>Fecha:</strong> {{ selectedInvoiceDetails[0].created_at }}</p>
+        <p><strong>Estado:</strong> {{ selectedInvoiceDetails[0].invoice_status }}</p>
       </div>
       <div class="text-right">
         <p>
           <strong>De:</strong>
           {{
-            selectedInvoiceDetails[0].company_name ||
-              selectedInvoiceDetails[0].name
+            selectedInvoiceDetails[0].order.client.company_name ||
+              selectedInvoiceDetails[0].order.client.name
           }}
         </p>
-        <p>{{ selectedInvoiceDetails[0].address }}</p>
+        <p>{{ selectedInvoiceDetails[0].order.client.address }}</p>
         <p>
-          {{ selectedInvoiceDetails[0].city }},
-          {{ selectedInvoiceDetails[0].province }}
-          {{ selectedInvoiceDetails[0].postal_code }}
+          {{ selectedInvoiceDetails[0].order.client.city }},
+          {{ selectedInvoiceDetails[0].order.client.province }}
+          {{ selectedInvoiceDetails[0].order.client.postal_code }}
         </p>
-        <p>{{ selectedInvoiceDetails[0].email }}</p>
-        <p>{{ selectedInvoiceDetails[0].phone_number }}</p>
+        <p>{{ selectedInvoiceDetails[0].order.client.email }}</p>
+        <p>{{ selectedInvoiceDetails[0].order.client.cellphone }}</p>
       </div>
     </div>
 
@@ -152,22 +151,22 @@
         <li>
           <p>
             <strong>Descripción:</strong>
-            {{ selectedInvoiceDetails[0].description }}
+            {{ selectedInvoiceDetails[0].order.description }}
           </p>
           <p>
-            <strong>Cantidad:</strong> {{ selectedInvoiceDetails[0].quantity }}
+            <strong>Cantidad:</strong> {{ selectedInvoiceDetails[0].order.order_quantity }}
           </p>
           <p>
             <strong>Valor Unitario:</strong>
-            {{ selectedInvoiceDetails[0].unitary_value }}
+            {{ selectedInvoiceDetails[0].order.unitary_value }}
           </p>
           <p>
             <strong>Subtotal:</strong>
-            {{ selectedInvoiceDetails[0].subtotal }}
+            {{ selectedInvoiceDetails[0].order.subtotal }}
           </p>
-          <p *ngIf="selectedInvoiceDetails[0].iva">
+          <p *ngIf="selectedInvoiceDetails[0].order.iva">
             <strong>IVA:</strong>
-            {{ selectedInvoiceDetails[0].iva }}
+            {{ selectedInvoiceDetails[0].order.iva }}
           </p>
         </li>
       </ul>
@@ -177,16 +176,16 @@
     <div class="border-t pt-4 mt-4">
       <div class="flex justify-between">
         <p><strong>Subtotal:</strong></p>
-        <p>{{ selectedInvoiceDetails[0].subtotal }}</p>
+        <p>{{ selectedInvoiceDetails[0].order.subtotal }}</p>
       </div>
       <div class="flex justify-between">
-        <p *ngIf="selectedInvoiceDetails[0].iva"><strong>IVA:</strong></p>
-        <p>{{ selectedInvoiceDetails[0].iva }}</p>
+        <p *ngIf="selectedInvoiceDetails[0].order.iva"><strong>IVA:</strong></p>
+        <p>{{ selectedInvoiceDetails[0].order.iva }}</p>
       </div>
       <div class="flex justify-between">
         <p><strong>Total:</strong></p>
         <p class="font-bold">
-          {{ selectedInvoiceDetails[0].total }}
+          {{ selectedInvoiceDetails[0].order.total }}
         </p>
       </div>
     </div>
