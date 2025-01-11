@@ -10,7 +10,7 @@
     <thead>
       <tr class="bg-gray-100">
         <th class="p-3 border">Nombre</th>
-        <th class="p-3 border">NIT</th>
+        <th class="p-3 border">NIT / CC</th>
         <th class="p-3 border">Empresa</th>
         <th class="p-3 border">Estado</th>
       </tr>
@@ -24,8 +24,13 @@
         class="cursor-pointer hover:bg-gray-200 border"
       >
         <td class="p-3 border">{{ client.name }}</td>
-        <td class="p-3 border">{{ client.nit }}</td>
-        <td class="p-3 border">{{ client.company_name }}</td>
+        <td class="p-3 border">
+          {{ client.nit ?? client.document_number }}
+        </td>
+        <td class="p-3 border">
+          {{ client.company_name ?? 'N/A' }}
+        </td>
+
         <td
           class="p-3 border"
           [class.text-green-600]="client.status === 'Al Día'"

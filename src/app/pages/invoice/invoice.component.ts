@@ -1,9 +1,51 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, NgZone } from '@angular/core';
 import { MainBannerComponent } from '../main-banner/main-banner.component';
 import { FormsModule } from '@angular/forms';
 import { jsPDF } from 'jspdf';
+import { SupabaseService } from '../../services/supabase.service';
 
+interface Invoice {
+  id_invoice: string;
+  created_at: string;
+  invoice_status: string;
+  id_order: string;
+  order: Orders;
+}
+
+interface Orders {
+  id_order: string;
+  order_type: string;
+  name: string;
+  description: string;
+  order_status: string;
+  created_at: string;
+  order_quantity: string;
+  unitary_value: string;
+  iva: string;
+  subtotal: string;
+  total: string;
+  amount: string;
+  id_client: string;
+  client: Client;
+}
+
+interface Client {
+  id_client: string;
+  name: string;
+  document_type: string;
+  document_number: string;
+  cellphone: string;
+  nit: string;
+  company_name: string;
+  email: string;
+  status: string;
+  debt: number;
+  address: string;
+  city: string;
+  province: string;
+  postal_code: string;
+}
 @Component({
   selector: 'app-invoice',
   standalone: true,
@@ -12,154 +54,78 @@ import { jsPDF } from 'jspdf';
   styleUrls: ['./invoice.component.scss'],
 })
 export class InvoiceComponent implements OnInit {
+  invoices: Invoice[] = [];
   showPrints = true;
   showCuts = true;
+  selectedInvoiceDetails: Invoice[] | null = null;
+  loading = true;
 
-  constructor() {}
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly zone: NgZone
+  ) {}
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
     this.updateFilteredInvoices();
+    this.supabase.authChanges((_, session) => {
+      if (session) {
+        this.zone.run(() => {
+          this.getInvoices();
+        });
+      }
+    });
   }
-  invoices = [
-    {
-      invoice_id: '1',
-      name: 'Jose Carlos Ochoa',
-      nit: null,
-      company_name: null,
-      address: 'Cra 43 #57-122',
-      city: 'Cartagena',
-      province: 'Bolivar',
-      postal_code: '13010',
-      email: 'JCO2342@gmail.com',
-      phone_number: '3013348721',
-      date: '11/07/24',
-      description: 'Corte estándar de acrílico (3mm) para division de oficina',
-      quantity: '5',
-      unitary_value: '250000',
-      amount: '1250000',
-      subtotal: '1250000',
-      iva: '237500',
-      total: '1487500',
-      status: 'Pago',
-      type: 'Cortes',
-    },
-    {
-      invoice_id: '3',
-      name: 'Vicente Lopez Perez',
-      nit: null,
-      company_name: null,
-      address: 'Cra 33 #17-111',
-      city: 'Cartagena',
-      province: 'Bolivar',
-      postal_code: '13222',
-      email: 'VicenteLP@gmail.com',
-      phone_number: '3143211652',
-      date: '12/01/24',
-      description: 'Corte de acrílico (5mm) para vitrina',
-      quantity: '10',
-      unitary_value: '180000',
-      amount: '1800000',
-      subtotal: '1800000',
-      iva: null,
-      total: '1800000',
-      status: 'Esperando pago',
-      type: 'Cortes',
-    },
-    {
-      invoice_id: '2',
-      name: 'Manuel Hernando Cabarcas',
-      nit: '731434221-1',
-      company_name: 'Example inc.',
-      address: 'Cra 16 #27-102',
-      city: 'Cartagena',
-      province: 'Bolivar',
-      postal_code: '13011',
-      email: 'exampleinc@hotmail.com',
-      phone_number: '3221148721',
-      date: '13/01/24',
-      description: 'Letras de acrílico (10mm) para señalización de oficina',
-      quantity: '3',
-      unitary_value: '350000',
-      amount: '1050000',
-      subtotal: '1050000',
-      iva: '199500',
-      total: '1249500',
-      status: 'En mora',
-      type: 'Cortes',
-    },
-    {
-      invoice_id: '101',
-      name: 'Alan Montes Gomez',
-      nit: null,
-      company_name: null,
-      address: 'Av. El Lago #50-33',
-      city: 'Cartagena',
-      province: 'Bolivar',
-      postal_code: '13012',
-      email: 'alan.montes.gomez@gmail.com',
-      phone_number: '3105567890',
-      date: '11/10/24',
-      description:
-        'Impresión en acrílico (3mm) de fotografía para decoración de oficina',
-      quantity: '3',
-      unitary_value: '450000',
-      amount: '1350000',
-      subtotal: '1350000',
-      iva: '256500',
-      total: '1606500',
-      status: 'Pago',
-      type: 'Impresiones',
-    },
-    {
-      invoice_id: '102',
-      name: 'Carlos Alberto Herrera',
-      nit: null,
-      company_name: null,
-      address: 'Calle 32 #12-50',
-      city: 'Cartagena',
-      province: 'Bolivar',
-      postal_code: '13013',
-      email: 'carlos_herrera@email.com',
-      phone_number: '3144567891',
-      date: '15/10/24',
-      description:
-        'Impresión UV sobre acrílico (5mm) para cartel de presentación de producto',
-      quantity: '7',
-      unitary_value: '500000',
-      amount: '3500000',
-      subtotal: '3500000',
-      iva: '665000',
-      total: '4165000',
-      status: 'Pago',
-      type: 'Impresiones',
-    },
-    {
-      invoice_id: '103',
-      name: 'Felipe Ramos',
-      nit: '4456341223-2',
-      company_name: 'Ramos Design Ltda.',
-      address: 'Carrera 10 #20-15',
-      city: 'Barranquilla',
-      province: 'Atlantico',
-      postal_code: '08001',
-      email: 'feliperamos@ramosdesign.com',
-      phone_number: '3181234567',
-      date: '20/10/24',
-      description:
-        'Impresión en acrílico (10mm) con diseño corporativo para oficina',
-      quantity: '5',
-      unitary_value: '800,000',
-      amount: '4000000',
-      subtotal: '4000000',
-      iva: '760000',
-      total: '4760000',
-      status: 'Pago',
-      type: 'Impresiones',
-    },
-  ];
+  async getInvoices() {
+    this.loading = true;
+    const { data, error } = await this.supabase
+    .from('invoice')
+    .select(`
+      *,
+      orders(
+        id_order,
+        order_type,
+        name,
+        description,
+        order_status,
+        created_at,
+        order_quantity,
+        unitary_value,
+        iva,
+        subtotal,
+        total,
+        amount,
+        id_client,
+        clients(
+          id_client,
+          name,
+          document_type,
+          document_number,
+          cellphone,
+          company_name,
+          nit,
+          email,
+          address,
+          status,
+          debt,
+          city,
+          province,
+          postal_code
+        )
+      )
+    `);
+    if (error) {
+      return;
+    }
 
-  selectedInvoiceDetails: any[] | null = null;
-
+    this.invoices = [...data].map((invoice) => ({
+      ...invoice,
+      order: {
+        ...invoice.orders,
+        client: invoice.orders?.clients || null
+      }
+    })) as Invoice[];
+    this.loading = false;
+  }
   filteredInvoices(): any[] {
     // Load all invoices by default
     if (!this.showPrints && !this.showCuts) {
@@ -168,20 +134,20 @@ export class InvoiceComponent implements OnInit {
 
     // Apply filtering logic based on checkbox state
     return this.invoices.filter((invoice) => {
-      if (this.showPrints && invoice.type === 'Impresiones') {
+      if (this.showPrints && invoice.order.order_type === 'print') {
         return true;
       }
-      if (this.showCuts && invoice.type === 'Cortes') {
+      if (this.showCuts && invoice.order.order_type === 'laser') {
         return true;
       }
       return false;
     });
   }
 
-  selectInvoice(invoice: any) {
+  selectInvoice(invoice: Invoice) {
     this.selectedInvoiceDetails = [invoice];
   }
-  filteredInvoicesList: any[] = []; // array for filtered invoices
+  filteredInvoicesList: Invoice[] = []; // array for filtered invoices
 
   updateFilteredInvoices(): void {
     // Create a new array for filtered invoices
@@ -194,8 +160,8 @@ export class InvoiceComponent implements OnInit {
       // Otherwise, filter the invoices based on the checkbox states
       filtered = this.invoices.filter((invoice) => {
         return (
-          (this.showPrints && invoice.type === 'Impresiones') ||
-          (this.showCuts && invoice.type === 'Cortes')
+          (this.showPrints && invoice.order.order_type === 'print') ||
+          (this.showCuts && invoice.order.order_type === 'laser')
         );
       });
     }
@@ -209,96 +175,116 @@ export class InvoiceComponent implements OnInit {
       alert('Por favor, selecciona una factura primero.');
       return;
     }
-  
+
     const invoice = this.selectedInvoiceDetails[0];
     const doc = new jsPDF();
-  
+
     // Header Section
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.text('La Casa del Acrilico', 10, 10); // Left text
-  
+
     const logoUrl = 'Untitled.jpg';
     const logo = await this.loadImage(logoUrl);
     doc.addImage(logo, 'JPEG', 90, 5, 30, 20); // Center logo
-  
+
     doc.setTextColor(200);
     doc.setFontSize(30);
     doc.text('FACTURA', 190, 10, { align: 'right' }); // Right text in light gray
     doc.setTextColor(0); // Reset text color
-  
+
     // Address and Invoice Info
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
     doc.text('Barrio Blas de Lezo Cl. 21A Mz. 11A - Lt. 12', 10, 30);
-    doc.text(`Fecha: ${invoice.date}`, 190, 30, { align: 'right' });
-  
+    doc.text(`Fecha: ${invoice.created_at}`, 190, 30, { align: 'right' });
+
     doc.text('Cartagena de Indias, Colombia', 10, 40);
-    doc.text(`Factura N°: ${invoice.invoice_id}`, 190, 40, { align: 'right' });
-  
+    doc.text(`Factura N°: ${invoice.id_invoice}`, 190, 40, { align: 'right' });
+
     doc.text('3004947020', 10, 50);
-    if (invoice.nit) {
-      doc.text(`NIT: ${invoice.nit}`, 10, 60);
+    if (invoice.order.client.nit) {
+      doc.text(`NIT: ${invoice.order.client.nit}`, 10, 60);
     }
-  
+
     // Add Subtitle
     doc.setFont('helvetica', 'bold');
     doc.text('Facturar a:', 10, 70);
     doc.setFont('helvetica', 'normal');
-  
+
     // Customer Details
-    doc.text(`Nombre: ${invoice.name}`, 10, 80);
-    if (invoice.nit) {
-      doc.text(`NIT: ${invoice.nit}`, 10, 90);
+    doc.text(`Nombre: ${invoice.order.client.name}`, 10, 80);
+    if (invoice.order.client.nit) {
+      doc.text(`NIT: ${invoice.order.client.nit}`, 10, 90);
     }
-    doc.text(`Nombre de la empresa: ${invoice.company_name || 'N/A'}`, 10, 100);
-    doc.text(`Dirección: ${invoice.address}`, 10, 110);
-    doc.text(`Ciudad: ${invoice.city}`, 10, 120);
-    doc.text(`Provincia: ${invoice.province}`, 10, 130);
-    doc.text(`Código Postal: ${invoice.postal_code}`, 10, 140);
-    doc.text(`E-mail: ${invoice.email}`, 10, 150);
-    doc.text(`Teléfono: ${invoice.phone_number}`, 10, 160);
-  
+    doc.text(`Nombre de la empresa: ${invoice.order.client.company_name || 'N/A'}`, 10, 100);
+    doc.text(`Dirección: ${invoice.order.client.address}`, 10, 110);
+    doc.text(`Ciudad: ${invoice.order.client.city}`, 10, 120);
+    doc.text(`Provincia: ${invoice.order.client.province}`, 10, 130);
+    doc.text(`Código Postal: ${invoice.order.client.postal_code}`, 10, 140);
+    doc.text(`E-mail: ${invoice.order.client.email}`, 10, 150);
+    doc.text(`Teléfono: ${invoice.order.client.cellphone}`, 10, 160);
+
     // Description Section
     doc.setFont('helvetica', 'bold');
     doc.text('DESCRIPCIÓN:', 10, 170);
     doc.setFont('helvetica', 'normal');
-    const descriptionLines = this.wrapText(doc, invoice.description, 180); // Use a maximum width
+    const descriptionLines = this.wrapText(doc, invoice.order.description, 180); // Use a maximum width
     let currentY = 180;
     descriptionLines.forEach((line) => {
       doc.text(line, 10, currentY);
       currentY += 10;
     });
-  
+
     // Table Headers
     const startY = currentY + 10;
     const rowHeight = 10;
     const headerXPositions = [10, 40, 120, 170]; // Calculate positions based on column widths
-  
+
     doc.setFont('helvetica', 'bold');
     doc.text('CANTIDAD', headerXPositions[0], startY);
     doc.text('VALOR UNITARIO', headerXPositions[1], startY);
     doc.text('IMPORTE', headerXPositions[2], startY, { align: 'right' });
-  
+
     // Table Rows
     currentY = startY + rowHeight;
     doc.setFont('helvetica', 'normal');
-    doc.text(`${invoice.quantity}`, headerXPositions[0], currentY);
-    doc.text(`$${invoice.unitary_value}`, headerXPositions[1], currentY);
-    doc.text(`$${invoice.amount}`, headerXPositions[2], currentY, { align: 'right' });
-  
+    doc.text(`${invoice.order.order_quantity}`, headerXPositions[0], currentY);
+    doc.text(`$${invoice.order.unitary_value}`, headerXPositions[1], currentY);
+    doc.text(`$${invoice.order.amount}`, headerXPositions[2], currentY, {
+      align: 'right',
+    });
+
     // Summary Section
     const summaryStartY = currentY + 20;
     doc.setFont('helvetica', 'bold');
-    doc.text('SUBTOTAL:', headerXPositions[1], summaryStartY, { align: 'right' });
-    doc.text(`$${invoice.subtotal}`, headerXPositions[2], summaryStartY, { align: 'right' });
-  
-    doc.text('IVA 19%:', headerXPositions[1], summaryStartY + rowHeight, { align: 'right' });
-    doc.text(`$${invoice.iva || '0.00'}`, headerXPositions[2], summaryStartY + rowHeight, { align: 'right' });
-  
-    doc.text('TOTAL:', headerXPositions[1], summaryStartY + rowHeight * 2, { align: 'right' });
-    doc.text(`$${invoice.total}`, headerXPositions[2], summaryStartY + rowHeight * 2, { align: 'right' });
-  
+    doc.text('SUBTOTAL:', headerXPositions[1], summaryStartY, {
+      align: 'right',
+    });
+    doc.text(`$${invoice.order.subtotal}`, headerXPositions[2], summaryStartY, {
+      align: 'right',
+    });
+
+    doc.text('IVA 19%:', headerXPositions[1], summaryStartY + rowHeight, {
+      align: 'right',
+    });
+    doc.text(
+      `$${invoice.order.iva || '0.00'}`,
+      headerXPositions[2],
+      summaryStartY + rowHeight,
+      { align: 'right' }
+    );
+
+    doc.text('TOTAL:', headerXPositions[1], summaryStartY + rowHeight * 2, {
+      align: 'right',
+    });
+    doc.text(
+      `$${invoice.order.total}`,
+      headerXPositions[2],
+      summaryStartY + rowHeight * 2,
+      { align: 'right' }
+    );
+
     // Footer Section
     const footerStartY = summaryStartY + rowHeight * 4;
     doc.setFontSize(10);
@@ -315,17 +301,17 @@ export class InvoiceComponent implements OnInit {
     );
     doc.setFont('helvetica', 'bold');
     doc.text('GRACIAS POR SU CONFIANZA', 10, footerStartY + 20);
-  
+
     // Save the PDF
-    doc.save(`Factura-${invoice.invoice_id}.pdf`);
+    doc.save(`Factura-${invoice.id_invoice}.pdf`);
   }
-  
+
   // Helper function to wrap text
   private wrapText(doc: jsPDF, text: string, maxWidth: number): string[] {
     const words = text.split(' ');
     const lines: string[] = [];
     let currentLine = '';
-  
+
     words.forEach((word) => {
       const testLine = currentLine ? `${currentLine} ${word}` : word;
       const testWidth = doc.getTextWidth(testLine);
@@ -336,11 +322,11 @@ export class InvoiceComponent implements OnInit {
         currentLine = testLine;
       }
     });
-  
+
     if (currentLine) {
       lines.push(currentLine);
     }
-  
+
     return lines;
   }
 
