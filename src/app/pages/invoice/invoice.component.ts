@@ -7,7 +7,7 @@ import { SupabaseService } from '../../services/supabase.service';
 
 interface Invoice {
   id_invoice: string;
-  created_at: string;
+  created_at: Date;
   invoice_status: string;
   id_order: string;
   order: Orders;
@@ -19,7 +19,7 @@ interface Orders {
   name: string;
   description: string;
   order_status: string;
-  created_at: string;
+  created_at: Date;
   order_quantity: string;
   unitary_value: string;
   iva: string;
@@ -77,9 +77,7 @@ export class InvoiceComponent implements OnInit {
   }
   async getInvoices() {
     this.loading = true;
-    const { data, error } = await this.supabase
-    .from('invoice')
-    .select(`
+    const { data, error } = await this.supabase.from('invoice').select(`
       *,
       orders(
         id_order,
@@ -121,8 +119,8 @@ export class InvoiceComponent implements OnInit {
       ...invoice,
       order: {
         ...invoice.orders,
-        client: invoice.orders?.clients || null
-      }
+        client: invoice.orders?.clients || null,
+      },
     })) as Invoice[];
     this.loading = false;
   }
@@ -178,6 +176,11 @@ export class InvoiceComponent implements OnInit {
 
     const invoice = this.selectedInvoiceDetails[0];
     const doc = new jsPDF();
+    // Date Formatting
+    const invoice_date = new Date(invoice.created_at);
+    const year = invoice_date.getFullYear();
+    const month = invoice_date.getMonth() + 1; // Month is zero-based
+    const day = invoice_date.getDate();
 
     // Header Section
     doc.setFontSize(16);
@@ -197,7 +200,7 @@ export class InvoiceComponent implements OnInit {
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
     doc.text('Barrio Blas de Lezo Cl. 21A Mz. 11A - Lt. 12', 10, 30);
-    doc.text(`Fecha: ${invoice.created_at}`, 190, 30, { align: 'right' });
+    doc.text(`Fecha: ${day}-${month}-${year}`, 190, 30, { align: 'right' });
 
     doc.text('Cartagena de Indias, Colombia', 10, 40);
     doc.text(`Factura N°: ${invoice.id_invoice}`, 190, 40, { align: 'right' });
@@ -217,7 +220,11 @@ export class InvoiceComponent implements OnInit {
     if (invoice.order.client.nit) {
       doc.text(`NIT: ${invoice.order.client.nit}`, 10, 90);
     }
-    doc.text(`Nombre de la empresa: ${invoice.order.client.company_name || 'N/A'}`, 10, 100);
+    doc.text(
+      `Nombre de la empresa: ${invoice.order.client.company_name || 'N/A'}`,
+      10,
+      100
+    );
     doc.text(`Dirección: ${invoice.order.client.address}`, 10, 110);
     doc.text(`Ciudad: ${invoice.order.client.city}`, 10, 120);
     doc.text(`Provincia: ${invoice.order.client.province}`, 10, 130);

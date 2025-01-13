@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { SupabaseService } from './services/supabase.service';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Router } from '@angular/router';
 import { map } from 'rxjs';
 import { CommonModule } from '@angular/common';
 
@@ -13,17 +13,22 @@ import { CommonModule } from '@angular/common';
   styleUrls: ['./app.component.scss'],
 })
 export class AppComponent implements OnInit {
-
+  isLoggedIn$;
   constructor(
+    private readonly supabase: SupabaseService,
     private readonly router: Router
   ) {
+    this.isLoggedIn$ = this.supabase
+      .authChanges$()
+      .pipe(map((session) => !!session));
   }
-
+  // Check if the user is logged in and redirect to login otherwise don't
   async ngOnInit(): Promise<void> {
-    this.router.navigate(['/login'], {
-      queryParams: {},
-      replaceUrl: true,
-    });
-
+    if (!this.isLoggedIn$) {
+      this.router.navigate(['/login'], {
+        queryParams: {},
+        replaceUrl: true,
+      });
+    }
   }
 }
