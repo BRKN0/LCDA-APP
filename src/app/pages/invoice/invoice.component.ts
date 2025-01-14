@@ -55,10 +55,12 @@ interface Client {
 })
 export class InvoiceComponent implements OnInit {
   invoices: Invoice[] = [];
+  invoice: Invoice | null = null;
   showPrints = true;
   showCuts = true;
   selectedInvoiceDetails: Invoice[] | null = null;
   loading = true;
+  searchQuery: string = '';
 
   constructor(
     private readonly supabase: SupabaseService,
@@ -74,6 +76,75 @@ export class InvoiceComponent implements OnInit {
         });
       }
     });
+  }
+  async onSearch(): Promise<void> {
+    if (!this.searchQuery.trim()) {
+      alert('Por favor, ingrese un número de factura.');
+      return;
+    }
+
+    this.loading = true;
+
+    const { data, error } = await this.supabase
+      .from('invoice')
+      .select(
+        `
+        *,
+        orders(
+          id_order,
+          order_type,
+          name,
+          description,
+          order_status,
+          created_at,
+          order_quantity,
+          unitary_value,
+          iva,
+          subtotal,
+          total,
+          amount,
+          id_client,
+          clients(
+            id_client,
+            name,
+            document_type,
+            document_number,
+            cellphone,
+            company_name,
+            nit,
+            email,
+            address,
+            status,
+            debt,
+            city,
+            province,
+            postal_code
+          )
+        )
+      `
+      )
+      .eq('id_invoice', this.searchQuery.trim());
+    this.loading = false;
+    if (error) {
+      console.error('Error fetching invoice:', error);
+      alert('Error al buscar la factura.');
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      alert('Factura no encontrada.');
+      return;
+    }
+    // Select the first matching invoice
+    this.invoice = { 
+      ...data[0],
+      order: {
+        ...data[0].orders,
+        client: data[0].orders?.clients || null,
+      },
+    } as Invoice;
+
+    this.selectInvoice(this.invoice);
   }
   async getInvoices() {
     this.loading = true;
