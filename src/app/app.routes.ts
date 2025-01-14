@@ -32,5 +32,7 @@ export const routes: Routes = [
     path: 'orders',
     loadComponent: () => OrdersComponent,
   },
-  { path: 'invoice', loadComponent: () => InvoiceComponent },
+  { path: 'invoice',
+    loadComponent: () => InvoiceComponent,
+  },
 ];
