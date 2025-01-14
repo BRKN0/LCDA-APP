@@ -8,6 +8,11 @@ import { InvoiceComponent } from './pages/invoice/invoice.component';
 
 export const routes: Routes = [
   {
+    path: '',
+    loadComponent: () => LoginComponent,
+    pathMatch: 'full',
+  },
+  {
     path: 'login',
     loadComponent: () => LoginComponent,
   },
@@ -27,8 +32,5 @@ export const routes: Routes = [
     path: 'orders',
     loadComponent: () => OrdersComponent,
   },
-  {path: 'invoice',
-    loadComponent: () => InvoiceComponent,
-  }
+  { path: 'invoice', loadComponent: () => InvoiceComponent },
 ];
-
