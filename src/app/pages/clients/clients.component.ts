@@ -1,4 +1,5 @@
 import { Component, OnInit, NgZone } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { MainBannerComponent } from '../main-banner/main-banner.component';
 import { SupabaseService } from '../../services/supabase.service';
@@ -40,15 +41,19 @@ interface Client {
 @Component({
   selector: 'app-clients',
   standalone: true,
-  imports: [CommonModule, MainBannerComponent],
+  imports: [CommonModule, MainBannerComponent, FormsModule],
   templateUrl: './clients.component.html',
   styleUrls: ['./clients.component.scss'],
 })
 export class ClientsComponent implements OnInit {
   clients: Client[] = [];
+  filteredClients: Client[] = [];
   selectedClient: Client | null = null;
   showOrders = false;
   loading = true;
+  searchQuery: string = '';
+  filterDebt: boolean = false;
+  noResultsFound: boolean = false;
 
   constructor(
     private readonly supabase: SupabaseService,
@@ -64,6 +69,7 @@ export class ClientsComponent implements OnInit {
       }
     });
   }
+
   async getClients() {
     this.loading = true;
     const { error, data } = await this.supabase.from('clients').select(
@@ -94,15 +100,31 @@ export class ClientsComponent implements OnInit {
         ? client.orders
         : client.orders
         ? [client.orders]
-        : [], // Normalize orders
+        : [], // Normalize the orders array
     })) as Client[];
+
+    this.filteredClients = this.clients; // Initialize the filtered clients list
     this.loading = false;
   }
 
+  searchClient() {
+    // Filt the names and debs of the clients
+    this.filteredClients = this.clients.filter((client) => {
+      const matchesSearchQuery = client.name
+        .toLowerCase()
+        .includes(this.searchQuery.toLowerCase());
+      const matchesDebtFilter = !this.filterDebt || client.debt > 0;
+
+      return matchesSearchQuery && matchesDebtFilter;
+    });
+
+
+    this.noResultsFound = this.filteredClients.length === 0;
+  }
+
   toggleDetails(client: Client) {
-    // Alterna entre mostrar y ocultar detalles
     this.selectedClient = this.selectedClient === client ? null : client;
-    this.showOrders = false; // Restablece el estado de los pedidos al cambiar de cliente
+    this.showOrders = false; // Reset the orders view
   }
 
   toggleOrders(client: Client) {
@@ -112,7 +134,6 @@ export class ClientsComponent implements OnInit {
         return;
       }
 
-      // Toggle the `showOrders` state
       this.showOrders = !this.showOrders;
     } else {
       console.error('Selected client mismatch or orders not found.');

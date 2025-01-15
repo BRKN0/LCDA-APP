@@ -1,22 +1,48 @@
 <app-main-banner></app-main-banner>
 
-<!-- Loading Indicator -->
 <div *ngIf="loading" class="p-4 text-center text-gray-600">
   <p>Cargando inventario...</p>
 </div>
 
-<!-- Mensaje si no hay datos -->
-<div *ngIf="!loading && inventory.length === 0" class="p-4 text-center text-gray-600">
+<!-- Filter checkboxes -->
+<div *ngIf="!loading" class="mb-4">
+  <label>
+    <input type="checkbox" [(ngModel)]="showVinyls" (change)="updateFilteredInventory()" />
+    Vinilos
+  </label>
+  <label>
+    <input type="checkbox" [(ngModel)]="showCutVinyls" (change)="updateFilteredInventory()" />
+    Vinilos de corte
+  </label>
+  <label>
+    <input type="checkbox" [(ngModel)]="showAcrylic" (change)="updateFilteredInventory()" />
+    Acrilico
+  </label>
+  <label>
+    <input type="checkbox" [(ngModel)]="showPolystyrene" (change)="updateFilteredInventory()" />
+    Poliestireno
+  </label>
+  <label>
+    <input type="checkbox" [(ngModel)]="showDieCut" (change)="updateFilteredInventory()" />
+    Troquelado
+  </label>
+  <label>
+    <input type="checkbox" [(ngModel)]="showMDF" (change)="updateFilteredInventory()" />
+    MDF
+  </label>
+</div>
+
+<div *ngIf="!loading && filteredInventory.length === 0" class="p-4 text-center text-gray-600">
   <p>No hay datos disponibles en el inventario.</p>
 </div>
 
-<!-- Tabla de inventario -->
-<div *ngIf="!loading && inventory.length > 0">
+<!-- Inventory table -->
+<div *ngIf="!loading && filteredInventory.length > 0">
   <table class="table-auto w-full border-collapse">
     <thead>
       <tr class="bg-gray-100">
         <th class="p-3 border">ID Material</th>
-        <th class="p-3 border">Categoría</th>
+        <th class="p-3 border">Categoria</th>
         <th class="p-3 border">Tipo</th>
         <th class="p-3 border">Calibre</th>
         <th class="p-3 border">Cantidad</th>
@@ -24,14 +50,13 @@
       </tr>
     </thead>
     <tbody>
-      <!-- Cada material como una fila -->
-      <ng-container *ngFor="let item of inventory">
+      <ng-container *ngFor="let item of filteredInventory">
         <tr
           (click)="toggleDetails(item)"
           class="cursor-pointer hover:bg-gray-200 border"
         >
           <td class="p-3 border">{{ item.id_material }}</td>
-          <td class="p-3 border">{{ item.category || 'Sin Categoría' }}</td>
+          <td class="p-3 border">{{ item.category || 'Sin Categoria' }}</td>
           <td class="p-3 border">{{ item.type || 'Sin Tipo' }}</td>
           <td class="p-3 border">{{ item.caliber || 'Sin Calibre' }}</td>
           <td
@@ -44,12 +69,12 @@
           <td class="p-3 border">{{ item.color || 'Sin Color' }}</td>
         </tr>
 
-        <!-- Detalles del material seleccionado -->
+        <!-- Materials details -->
         <tr *ngIf="selectedItem === item">
           <td colspan="6" class="p-4 bg-gray-50">
             <h3 class="font-bold mb-2">Detalles del Material</h3>
             <p><strong>ID Material:</strong> {{ item.id_material }}</p>
-            <p><strong>Categoría:</strong> {{ item.category }}</p>
+            <p><strong>Categoria:</strong> {{ item.category }}</p>
             <p><strong>Tipo:</strong> {{ item.type }}</p>
             <p><strong>Calibre:</strong> {{ item.caliber }}</p>
             <p><strong>Cantidad:</strong> {{ item.material_quantity }}</p>
@@ -60,6 +85,7 @@
     </tbody>
   </table>
 </div>
+
 
 
 
