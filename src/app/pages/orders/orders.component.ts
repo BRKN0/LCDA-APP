@@ -29,9 +29,11 @@ interface Orders {
 })
 export class OrdersComponent implements OnInit {
   orders: Orders[] = [];
+  order: Orders | null = null;
   filteredOrdersList: Orders[] = []; // Lista filtrada de pedidos
-  selectedOrder: Orders | null = null;
+  selectedOrderDetails: Orders[] | null = null;
   loading = true;
+  searchQuery: string = '';
 
   // Estados para checkboxes
   showPrints = true;
@@ -82,7 +84,36 @@ export class OrdersComponent implements OnInit {
       this.loading = false;
     }
   }
+  async onSearch(): Promise<void> {
+    if (!this.searchQuery.trim()) {
+      alert('Por favor, ingrese un número de factura.');
+      return;
+    }
+    this.loading = true;
 
+    const { data, error } = await this.supabase
+      .from('orders')
+      .select('*')
+      .eq('id_order', this.searchQuery.trim());
+    this.loading = false;
+    if (error) {
+      console.error('Error fetching order:', error);
+      alert('Error al buscar la factura.');
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      alert('Factura no encontrada.');
+      return;
+    }
+
+    this.order = {
+      ...data[0]//,
+      //client: data[0].client,
+    } as Orders;
+
+    this.selectOrder(this.order);
+  }
   /**
    * Actualiza la lista filtrada de pedidos según los checkboxes seleccionados
    */
@@ -103,11 +134,7 @@ export class OrdersComponent implements OnInit {
     });
   }
 
-  /**
-   * Alterna entre mostrar y ocultar detalles de un pedido
-   */
-  toggleDetails(order: Orders): void {
-    this.selectedOrder = this.selectedOrder === order ? null : order;
+  selectOrder(order: Orders) {
+    this.selectedOrderDetails = [order];
   }
 }
-
