@@ -4,7 +4,22 @@
 <div *ngIf="loading" class="p-4 text-center text-gray-600">
   <p>Cargando pedidos...</p>
 </div>
-
+<div class="flex items-center justify-center py-4">
+  <div class="w-full max-w-md relative">
+    <input
+      type="text"
+      placeholder="Buscar pedido por número..."
+      [(ngModel)]="searchQuery"
+      class="w-full py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
+    />
+    <button
+      class="absolute right-0 top-1/2 transform -translate-y-1/2 bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-700 w-auto"
+      (click)="onSearch()"
+    >
+      Buscar
+    </button>
+  </div>
+</div>
 <!-- Tabla de pedidos -->
 <div *ngIf="!loading">
   <div class="mb-4">
@@ -25,27 +40,150 @@
   <table class="table-auto w-full border-collapse">
     <thead>
       <tr>
-        <th class="p-3 border">Código</th>
-        <th class="p-3 border">Tipo</th>
-        <th class="p-3 border">Cliente</th>
-        <th class="p-3 border">Estado</th>
-        <th class="p-3 border">Fecha</th>
-        <th class="p-3 border">Total</th>
+        <th class="border border-gray-300 px-4 py-2 bg-gray-200">Código</th>
+        <th class="border border-gray-300 px-4 py-2 bg-gray-200">Tipo</th>
+        <th class="border border-gray-300 px-4 py-2 bg-gray-200">Cliente</th>
+        <th class="border border-gray-300 px-4 py-2 bg-gray-200">Estado</th>
+        <th class="border border-gray-300 px-4 py-2 bg-gray-200">Fecha</th>
+        <th class="border border-gray-300 px-4 py-2 bg-gray-200">Total</th>
+        <th class="border border-gray-300 px-4 py-2 bg-gray-200">Acción</th>
       </tr>
     </thead>
     <tbody>
       <tr
         *ngFor="let order of filteredOrdersList"
         class="cursor-pointer hover:bg-gray-200"
-        (click)="toggleDetails(order)"
       >
         <td class="p-3 border">{{ order.id_order }}</td>
-        <td class="p-3 border">{{ order.order_type }}</td>
+        <td class="p-3 border">
+          {{ 
+            order.order_type === "laser"
+            ? "Corte Laser"
+            : order.order_type === "print"
+            ? "Impresion"
+            : "Otro"
+            }}</td>
         <td class="p-3 border">{{ order.name }}</td>
-        <td class="p-3 border">{{ order.order_status }}</td>
+        <td class="p-3 border">{{ 
+        order.order_status === "overdue"
+        ? "En mora"
+        : order.order_status === "upToDate"
+        ? "Al dia"
+        : "No especificado"
+        }}</td>
         <td class="p-3 border">{{ order.created_at }}</td>
         <td class="p-3 border">{{ order.total }}</td>
+        <td class="border border-gray-300 px-4 py-2">
+          <button
+            class="bg-red-500 text-white py-1 px-3 rounded"
+            (click)="selectOrder(order)"
+          >
+            Ver Detalles
+          </button>
+        </td>
       </tr>
     </tbody>
   </table>
+</div>
+
+<!-- Show details of the selected invoice -->
+<div
+  *ngIf="selectedOrderDetails && selectedOrderDetails.length > 0"
+  class="mt-4"
+>
+  <h2 class="text-xl font-bold">Detalles de Factura</h2>
+
+  <!-- Printable Invoice Layout -->
+  <div class="p-4 border border-gray-300 bg-white invoice-details">
+    <div class="flex justify-between mb-4">
+      <div>
+        <h3 class="font-semibold text-lg">
+          Factura N°: {{ selectedOrderDetails[0].id_order }}
+        </h3>
+        <p>
+          <strong>Fecha:</strong>
+          {{ selectedOrderDetails[0].created_at | date : "dd-MM-yyyy" }}
+        </p>
+        <p>
+          <strong>Estado:</strong>
+          {{ 
+            selectedOrderDetails[0].order_status === "overdue"
+            ? "En mora"
+            : selectedOrderDetails[0].order_status === "upToDate"
+            ? "Al dia"
+            : "No especificado"
+            }}
+        </p>
+        <p>
+          <strong>Tipo:</strong>
+          {{ 
+            selectedOrderDetails[0].order_type === "laser"
+            ? "Corte Laser"
+            : selectedOrderDetails[0].order_type === "print"
+            ? "Impresion"
+            : "Otro"
+            }}
+        </p>
+      </div>
+      <div class="text-right">
+        <p>
+          <strong>De:</strong>
+          {{
+            selectedOrderDetails[0].name
+          }}
+        </p>
+      </div>
+    </div>
+
+    <!-- Itemized Invoice List -->
+    <div class="my-6">
+      <h4 class="font-semibold"></h4>
+      <ul class="list-none">
+        <li>
+          <p>
+            <strong>Descripción:</strong>
+            {{ selectedOrderDetails[0].description }}
+          </p>
+          <p>
+            <strong>Cantidad:</strong>
+            {{ selectedOrderDetails[0].order_quantity }}
+          </p>
+          <p>
+            <strong>Valor Unitario:</strong>
+            {{ selectedOrderDetails[0].unitary_value }}
+          </p>
+          <p *ngIf="selectedOrderDetails[0].iva">
+            <strong>IVA:</strong>
+            {{ selectedOrderDetails[0].iva }}
+          </p>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Totals Section -->
+    <div class="border-t pt-4 mt-4">
+      <div class="flex justify-between">
+        <p><strong>Subtotal:</strong></p>
+        <p>{{ selectedOrderDetails[0].subtotal }}</p>
+      </div>
+      <div class="flex justify-between">
+        <p *ngIf="selectedOrderDetails[0].iva"><strong>IVA:</strong></p>
+        <p>{{ selectedOrderDetails[0].iva }}</p>
+      </div>
+      <div class="flex justify-between">
+        <p><strong>Total:</strong></p>
+        <p class="font-bold">
+          {{ selectedOrderDetails[0].total }}
+        </p>
+      </div>
+    </div>
+<!-- TODO 
+    <button
+    class="bg-green-500 text-white py-2 px-4 mt-4 rounded"
+    (click)="CheckoutClient(id_client)"
+  >
+    Ver Detalles del Cliente
+  </button>
+-->
+  </div>
 </div>

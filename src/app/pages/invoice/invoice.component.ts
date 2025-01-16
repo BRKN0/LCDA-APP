@@ -61,6 +61,7 @@ export class InvoiceComponent implements OnInit {
   selectedInvoiceDetails: Invoice[] | null = null;
   loading = true;
   searchQuery: string = '';
+  filteredInvoicesList: Invoice[] = [];
 
   constructor(
     private readonly supabase: SupabaseService,
@@ -216,7 +217,7 @@ export class InvoiceComponent implements OnInit {
   selectInvoice(invoice: Invoice) {
     this.selectedInvoiceDetails = [invoice];
   }
-  filteredInvoicesList: Invoice[] = []; // array for filtered invoices
+  
 
   updateFilteredInvoices(): void {
     // Create a new array for filtered invoices
