@@ -95,7 +95,7 @@ export class OrdersComponent implements OnInit {
     const { data, error } = await this.supabase
       .from('orders')
       .select('*')
-      .eq('id_order', this.searchQuery.trim());
+      .eq('code', this.searchQuery.trim());
     this.loading = false;
     if (error) {
       console.error('Error fetching order:', error);
