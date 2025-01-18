@@ -66,7 +66,7 @@
         *ngFor="let order of filteredOrdersList"
         class="cursor-pointer hover:bg-gray-200"
       >
-        <td class="p-3 border">{{ order.id_order }}</td>
+        <td class="p-3 border">{{ order.code }}</td>
         <td class="p-3 border">
           {{
             order.order_type === "laser"
@@ -113,7 +113,7 @@
     <div class="flex justify-between mb-4">
       <div>
         <h3 class="font-semibold text-lg">
-          Factura N°: {{ selectedOrderDetails[0].id_order }}
+          Factura N°: {{ selectedOrderDetails[0].code }}
         </h3>
         <p>
           <strong>Fecha:</strong>
