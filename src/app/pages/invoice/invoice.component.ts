@@ -125,7 +125,7 @@ export class InvoiceComponent implements OnInit {
         )
       `
       )
-      .eq('id_invoice', this.searchQuery.trim());
+      .eq('code', this.searchQuery.trim());
     this.loading = false;
     if (error) {
       console.error('Error fetching invoice:', error);
