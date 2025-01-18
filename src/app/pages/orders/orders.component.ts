@@ -30,6 +30,7 @@ interface Orders {
 export class OrdersComponent implements OnInit {
   orders: Orders[] = [];
   filteredOrdersList: Orders[] = []; // Lista filtrada de pedidos
+  clients: { id_client: string; name: string }[] = []; // Lista de clientes
   selectedOrder: Orders | null = null;
   loading = true;
 
@@ -37,6 +38,24 @@ export class OrdersComponent implements OnInit {
   showPrints = true;
   showCuts = true;
   showSales = true;
+
+  // Para añadir pedidos
+  newOrder: Partial<Orders> = {
+    id_order: '',
+    order_type: '',
+    name: '',
+    description: '',
+    order_status: 'overdue',
+    created_at: new Date().toISOString(),
+    order_quantity: '',
+    unitary_value: '',
+    iva: '',
+    subtotal: '',
+    total: '',
+    amount: '',
+    id_client: '',
+  };
+  showAddOrderForm = false;
 
   constructor(
     private readonly supabase: SupabaseService,
@@ -48,6 +67,7 @@ export class OrdersComponent implements OnInit {
       if (session) {
         this.zone.run(() => {
           this.getOrders(); // Cargar los pedidos al autenticarse
+          this.getClients(); //Cargar clientes
         });
       } else {
         console.error('Usuario no autenticado.');
@@ -98,7 +118,7 @@ export class OrdersComponent implements OnInit {
       return (
         (this.showPrints && order.order_type === 'print') ||
         (this.showCuts && order.order_type === 'laser') ||
-        (this.showSales && order.order_type === 'Ventas')
+        (this.showSales && order.order_type === 'sales')
       );
     });
   }
@@ -109,5 +129,84 @@ export class OrdersComponent implements OnInit {
   toggleDetails(order: Orders): void {
     this.selectedOrder = this.selectedOrder === order ? null : order;
   }
-}
 
+  async getClients(): Promise<void> {
+    try {
+      const { data, error } = await this.supabase
+        .from('clients') // Tabla de clientes
+        .select('id_client, name'); // Solo selecciona el ID y el nombre
+  
+      if (error) {
+        console.error('Error al obtener los clientes:', error);
+        return;
+      }
+  
+      this.clients = data || []; // Asigna la lista de clientes
+    } catch (error) {
+      console.error('Error inesperado al obtener clientes:', error);
+    }
+  }
+
+  /**
+   * Añadir nueva orden
+   */
+  toggleAddOrderForm(): void {
+    if (!this.showAddOrderForm) {
+      // Reinicia el formulario al abrir la ventana modal
+      this.newOrder = {
+        id_order: '',
+        order_type: '',
+        name: '',
+        description: '',
+        order_status: 'overdue',
+        order_quantity: '',
+        unitary_value: '',
+        iva: '',
+        subtotal: '',
+        total: '',
+        amount: '',
+        id_client: '',
+      };
+    }
+    this.showAddOrderForm = !this.showAddOrderForm;
+  }
+
+  async addOrder(newOrder: Partial<Orders>): Promise<void> {
+    // Obtener el nombre del cliente basado en el id_client
+    const selectedClient = this.clients.find(client => client.id_client === newOrder.id_client);
+    newOrder.name = selectedClient ? selectedClient.name : '';
+
+    const orderToInsert = {
+      order_type: newOrder.order_type,
+      name: newOrder.name,
+      description: newOrder.description,
+      order_status: newOrder.order_status || 'overdue',
+      created_at: newOrder.created_at || new Date().toISOString(),
+      order_quantity: newOrder.order_quantity,
+      unitary_value: newOrder.unitary_value || 0, // Valor predeterminado si no se proporciona
+      iva: newOrder.iva || 0,
+      subtotal: newOrder.subtotal || 0,
+      total: newOrder.total || 0,
+      amount: newOrder.amount || 0,
+      id_client: newOrder.id_client,
+    };
+
+    try {
+      const { error } = await this.supabase
+        .from('orders')
+        .insert([orderToInsert]); // Inserta el nuevo pedido en Supabase
+  
+      if (error) {
+        console.error('Error al añadir el pedido:', error);
+        return;
+      }
+  
+      console.log('Pedido añadido exitosamente:', newOrder);
+      this.getOrders(); // Actualiza la lista de pedidos después de añadir uno nuevo
+      this.toggleAddOrderForm(); // Cierra el formulario
+    } catch (error) {
+      console.error('Error inesperado al añadir pedido:', error);
+    }
+  }
+
+}

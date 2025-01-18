@@ -20,6 +20,12 @@
       <input type="checkbox" [(ngModel)]="showSales" (change)="updateFilteredOrders()" />
       Ventas
     </label>
+    <button
+    class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+    (click)="toggleAddOrderForm()"
+    >   
+      Añadir Pedido
+    </button>
   </div>
 
   <table class="table-auto w-full border-collapse">
@@ -40,12 +46,111 @@
         (click)="toggleDetails(order)"
       >
         <td class="p-3 border">{{ order.id_order }}</td>
-        <td class="p-3 border">{{ order.order_type }}</td>
+        <td class="p-3 border">
+          {{ 
+            order.order_type === 'print'
+            ? 'Impresiones'
+            : order.order_type === 'laser'
+            ? 'Cortes'
+            :order.order_type === 'sales'
+            ? 'Ventas'
+            : 'Desconocido'
+          }}
+        </td>
         <td class="p-3 border">{{ order.name }}</td>
-        <td class="p-3 border">{{ order.order_status }}</td>
+        <td class="p-3 border">
+          {{ 
+            order.order_status === 'upToDate'
+            ? 'Al dia'
+            : order.order_status === 'overdue'
+            ? 'Pendiente'
+            : 'Desconocido'
+          }}
+          </td>
         <td class="p-3 border">{{ order.created_at }}</td>
         <td class="p-3 border">{{ order.total }}</td>
       </tr>
     </tbody>
   </table>
+  <!-- Formulario para añadir pedido -->
+  <div
+    *ngIf="showAddOrderForm"
+    class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
+  >
+  <div class="bg-white modal-width rounded-lg shadow-lg p-6">
+    <h3 class="text-lg font-bold mb-4">Añadir Nuevo Pedido</h3>
+    <form (ngSubmit)="addOrder(newOrder)">
+      <div class="mb-4">
+        <label class="block text-gray-700">Tipo de Pedido</label>
+        <select
+          [(ngModel)]="newOrder.order_type"
+          name="order_type"
+          class="form-select mt-1 block w-full"
+          required
+        >
+          <!--<option value="" disabled selected>Seleccione un tipo</option>-->
+          <option value="print">Impresiones</option>
+          <option value="laser">Cortes</option>
+          <option value="sales">Ventas</option>
+        </select>
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Cliente</label>
+        <select
+          [(ngModel)]="newOrder.id_client"
+          name="id_client"
+          class="form-select mt-1 block w-full"
+          required
+        >
+          <option value="" disabled selected>Seleccione un cliente</option>
+          <option *ngFor="let client of clients" [value]="client.id_client">
+            {{ client.name }}
+          </option>
+        </select>
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Descripción</label>
+        <textarea
+          [(ngModel)]="newOrder.description"
+          name="description"
+          class="form-textarea mt-1 block w-full"
+        ></textarea>
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Cantidad</label>
+        <input
+          type="number"
+          [(ngModel)]="newOrder.order_quantity"
+          name="order_quantity"
+          class="form-input mt-1 block w-full"
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Total</label>
+        <input
+          type="number"
+          [(ngModel)]="newOrder.total"
+          name="total"
+          class="form-input mt-1 block w-full"
+          required
+        />
+      </div>
+      <div class="flex justify-end">
+        <button
+          type="button"
+          class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md mr-2"
+          (click)="toggleAddOrderForm()"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          style="background-color: red; color: white; border: 1px solid black; padding: 10px;"
+          class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
+        >
+          Guardar Pedido
+        </button>
+      </div>
+    </form>
+  </div>
 </div>

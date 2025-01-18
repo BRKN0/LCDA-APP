@@ -1,1 +1,22 @@
-@use "../../../styles.scss" 
+.fixed {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 50;
+  }
+  
+  /* Estilo para el modal */
+  .bg-opacity-50 {
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+  
+  .shadow-lg {
+    box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.25);
+  }
+  
+  /* Clase para el ancho del modal */
+  .modal-width {
+    width: 50%;
+  }
