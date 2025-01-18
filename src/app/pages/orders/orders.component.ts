@@ -8,6 +8,7 @@ interface Orders {
   id_order: string;
   order_type: string;
   name: string;
+  code: number;
   description: string;
   order_status: string;
   created_at: string;

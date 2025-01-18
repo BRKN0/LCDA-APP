@@ -10,6 +10,7 @@ interface Invoice {
   created_at: Date;
   invoice_status: string;
   id_order: string;
+  code: number;
   order: Orders;
 }
 
@@ -87,7 +88,7 @@ export class InvoiceComponent implements OnInit {
     this.loading = true;
 
     const { data, error } = await this.supabase
-      .from('invoice')
+      .from('invoices')
       .select(
         `
         *,
@@ -149,7 +150,7 @@ export class InvoiceComponent implements OnInit {
   }
   async getInvoices() {
     this.loading = true;
-    const { data, error } = await this.supabase.from('invoice').select(`
+    const { data, error } = await this.supabase.from('invoices').select(`
       *,
       orders(
         id_order,
@@ -275,7 +276,7 @@ export class InvoiceComponent implements OnInit {
     doc.text(`Fecha: ${day}-${month}-${year}`, 190, 30, { align: 'right' });
 
     doc.text('Cartagena de Indias, Colombia', 10, 40);
-    doc.text(`Factura N°: ${invoice.id_invoice}`, 190, 40, { align: 'right' });
+    doc.text(`Factura N°: ${invoice.code}`, 190, 40, { align: 'right' });
 
     doc.text('3004947020', 10, 50);
     if (invoice.order.client.nit) {
@@ -382,7 +383,7 @@ export class InvoiceComponent implements OnInit {
     doc.text('GRACIAS POR SU CONFIANZA', 10, footerStartY + 20);
 
     // Save the PDF
-    doc.save(`Factura-${invoice.id_invoice}.pdf`);
+    doc.save(`Factura-${invoice.code}.pdf`);
   }
 
   // Helper function to wrap text
