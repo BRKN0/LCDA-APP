@@ -9,15 +9,27 @@
 <div *ngIf="!loading">
   <div class="mb-4">
     <label>
-      <input type="checkbox" [(ngModel)]="showPrints" (change)="updateFilteredOrders()" />
+      <input
+        type="checkbox"
+        [(ngModel)]="showPrints"
+        (change)="updateFilteredOrders()"
+      />
       Impresiones
     </label>
     <label>
-      <input type="checkbox" [(ngModel)]="showCuts" (change)="updateFilteredOrders()" />
+      <input
+        type="checkbox"
+        [(ngModel)]="showCuts"
+        (change)="updateFilteredOrders()"
+      />
       Cortes
     </label>
     <label>
-      <input type="checkbox" [(ngModel)]="showSales" (change)="updateFilteredOrders()" />
+      <input
+        type="checkbox"
+        [(ngModel)]="showSales"
+        (change)="updateFilteredOrders()"
+      />
       Ventas
     </label>
     <button
@@ -27,23 +39,38 @@
       Añadir Pedido
     </button>
   </div>
-
+  <div class="flex items-center justify-center py-4">
+    <div class="w-full max-w-md relative">
+      <input
+        type="text"
+        placeholder="Buscar pedido por número..."
+        [(ngModel)]="searchQuery"
+        class="w-full py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
+      />
+      <button
+        class="absolute right-0 top-1/2 transform -translate-y-1/2 bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-700 w-auto"
+        (click)="onSearch()"
+      >
+        Buscar
+      </button>
+    </div>
+  </div>
   <table class="table-auto w-full border-collapse">
     <thead>
       <tr>
-        <th class="p-3 border">Código</th>
-        <th class="p-3 border">Tipo</th>
-        <th class="p-3 border">Cliente</th>
-        <th class="p-3 border">Estado</th>
-        <th class="p-3 border">Fecha</th>
-        <th class="p-3 border">Total</th>
+        <th class="border border-gray-300 px-4 py-2 bg-gray-200">Código</th>
+        <th class="border border-gray-300 px-4 py-2 bg-gray-200">Tipo</th>
+        <th class="border border-gray-300 px-4 py-2 bg-gray-200">Cliente</th>
+        <th class="border border-gray-300 px-4 py-2 bg-gray-200">Estado</th>
+        <th class="border border-gray-300 px-4 py-2 bg-gray-200">Fecha</th>
+        <th class="border border-gray-300 px-4 py-2 bg-gray-200">Total</th>
+        <th class="border border-gray-300 px-4 py-2 bg-gray-200">Acción</th>
       </tr>
     </thead>
     <tbody>
       <tr
         *ngFor="let order of filteredOrdersList"
         class="cursor-pointer hover:bg-gray-200"
-        (click)="toggleDetails(order)"
       >
         <td class="p-3 border">{{ order.id_order }}</td>
         <td class="p-3 border">
@@ -69,6 +96,14 @@
           </td>
         <td class="p-3 border">{{ order.created_at }}</td>
         <td class="p-3 border">{{ order.total }}</td>
+        <td class="border border-gray-300 px-4 py-2">
+          <button
+            class="bg-red-500 text-white py-1 px-3 rounded"
+            (click)="selectOrder(order)"
+          >
+            Ver Detalles
+          </button>
+        </td>
       </tr>
     </tbody>
   </table>
