@@ -33,9 +33,9 @@
       Ventas
     </label>
     <button
-    class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
-    (click)="toggleAddOrderForm()"
-    >   
+      class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+      (click)="toggleAddOrderForm()"
+    >
       Añadir Pedido
     </button>
   </div>
@@ -74,26 +74,26 @@
       >
         <td class="p-3 border">{{ order.code }}</td>
         <td class="p-3 border">
-          {{ 
-            order.order_type === 'print'
-            ? 'Impresiones'
-            : order.order_type === 'laser'
-            ? 'Cortes'
-            :order.order_type === 'sales'
-            ? 'Ventas'
-            : 'Desconocido'
+          {{
+            order.order_type === "print"
+              ? "Impresiones"
+              : order.order_type === "laser"
+              ? "Cortes"
+              : order.order_type === "sales"
+              ? "Ventas"
+              : "Desconocido"
           }}
         </td>
         <td class="p-3 border">{{ order.name }}</td>
         <td class="p-3 border">
-          {{ 
-            order.order_status === 'upToDate'
-            ? 'Al dia'
-            : order.order_status === 'overdue'
-            ? 'Pendiente'
-            : 'Desconocido'
+          {{
+            order.order_status === "upToDate"
+              ? "Al dia"
+              : order.order_status === "overdue"
+              ? "Pendiente"
+              : "Desconocido"
           }}
-          </td>
+        </td>
         <td class="p-3 border">{{ order.created_at }}</td>
         <td class="p-3 border">{{ order.total }}</td>
         <td class="border border-gray-300 px-4 py-2">
@@ -107,85 +107,192 @@
       </tr>
     </tbody>
   </table>
+
+  <!-- Show details of the selected order -->
+  <div
+    *ngIf="selectedOrderDetails && selectedOrderDetails.length > 0"
+    class="mt-4"
+  >
+    <h2 class="text-xl font-bold">Detalles de Pedido</h2>
+
+    <!-- Printable Invoice Layout -->
+    <div class="p-4 border border-gray-300 bg-white invoice-details">
+      <div class="flex justify-between mb-4">
+        <div>
+          <h3 class="font-semibold text-lg">
+            Factura N°: {{ selectedOrderDetails[0].code }}
+          </h3>
+          <p>
+            <strong>Fecha:</strong>
+            {{ selectedOrderDetails[0].created_at | date : "dd-MM-yyyy" }}
+          </p>
+          <p>
+            <strong>Estado:</strong>
+            {{
+              selectedOrderDetails[0].order_status === "overdue"
+                ? "Pendiente"
+                : selectedOrderDetails[0].order_status === "upToDate"
+                ? "Al dia"
+                : "No especificado"
+            }}
+          </p>
+          <p>
+            <strong>Tipo:</strong>
+            {{
+              selectedOrderDetails[0].order_type === "laser"
+                ? "Corte Laser"
+                : selectedOrderDetails[0].order_type === "print"
+                ? "Impresion"
+                : "Otro"
+            }}
+          </p>
+        </div>
+        <div class="text-right">
+          <p>
+            <strong>De:</strong>
+            {{ selectedOrderDetails[0].name }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Itemized Invoice List -->
+      <div class="my-6">
+        <h4 class="font-semibold"></h4>
+        <ul class="list-none">
+          <li>
+            <p>
+              <strong>Descripción:</strong>
+              {{ selectedOrderDetails[0].description }}
+            </p>
+            <p>
+              <strong>Cantidad:</strong>
+              {{ selectedOrderDetails[0].order_quantity }}
+            </p>
+            <p>
+              <strong>Valor Unitario:</strong>
+              {{ selectedOrderDetails[0].unitary_value }}
+            </p>
+            <p *ngIf="selectedOrderDetails[0].iva">
+              <strong>IVA:</strong>
+              {{ selectedOrderDetails[0].iva }}
+            </p>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Totals Section -->
+      <div class="border-t pt-4 mt-4">
+        <div class="flex justify-between">
+          <p><strong>Subtotal:</strong></p>
+          <p>{{ selectedOrderDetails[0].subtotal }}</p>
+        </div>
+        <div class="flex justify-between">
+          <p *ngIf="selectedOrderDetails[0].iva"><strong>IVA:</strong></p>
+          <p>{{ selectedOrderDetails[0].iva }}</p>
+        </div>
+        <div class="flex justify-between">
+          <p><strong>Total:</strong></p>
+          <p class="font-bold">
+            {{ selectedOrderDetails[0].total }}
+          </p>
+        </div>
+      </div>
+      <!-- TODO 
+    <button
+    class="bg-green-500 text-white py-2 px-4 mt-4 rounded"
+    (click)="CheckoutClient(id_client)"
+  >
+    Ver Detalles del Cliente
+  </button>
+-->
+    </div>
+  </div>
+
   <!-- Formulario para añadir pedido -->
   <div
     *ngIf="showAddOrderForm"
     class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
   >
-  <div class="bg-white modal-width rounded-lg shadow-lg p-6">
-    <h3 class="text-lg font-bold mb-4">Añadir Nuevo Pedido</h3>
-    <form (ngSubmit)="addOrder(newOrder)">
-      <div class="mb-4">
-        <label class="block text-gray-700">Tipo de Pedido</label>
-        <select
-          [(ngModel)]="newOrder.order_type"
-          name="order_type"
-          class="form-select mt-1 block w-full"
-          required
-        >
-          <!--<option value="" disabled selected>Seleccione un tipo</option>-->
-          <option value="print">Impresiones</option>
-          <option value="laser">Cortes</option>
-          <option value="sales">Ventas</option>
-        </select>
-      </div>
-      <div class="mb-4">
-        <label class="block text-gray-700">Cliente</label>
-        <select
-          [(ngModel)]="newOrder.id_client"
-          name="id_client"
-          class="form-select mt-1 block w-full"
-          required
-        >
-          <option value="" disabled selected>Seleccione un cliente</option>
-          <option *ngFor="let client of clients" [value]="client.id_client">
-            {{ client.name }}
-          </option>
-        </select>
-      </div>
-      <div class="mb-4">
-        <label class="block text-gray-700">Descripción</label>
-        <textarea
-          [(ngModel)]="newOrder.description"
-          name="description"
-          class="form-textarea mt-1 block w-full"
-        ></textarea>
-      </div>
-      <div class="mb-4">
-        <label class="block text-gray-700">Cantidad</label>
-        <input
-          type="number"
-          [(ngModel)]="newOrder.order_quantity"
-          name="order_quantity"
-          class="form-input mt-1 block w-full"
-        />
-      </div>
-      <div class="mb-4">
-        <label class="block text-gray-700">Total</label>
-        <input
-          type="number"
-          [(ngModel)]="newOrder.total"
-          name="total"
-          class="form-input mt-1 block w-full"
-          required
-        />
-      </div>
-      <div class="flex justify-end">
-        <button
-          type="button"
-          class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md mr-2"
-          (click)="toggleAddOrderForm()"
-        >
-          Cancelar
-        </button>
-        <button
-          type="submit"
-          style="background-color: red; color: white; border: 1px solid black; padding: 10px;"
-          class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
-        >
-          Guardar Pedido
-        </button>
-      </div>
-    </form>
+    <div class="bg-white modal-width rounded-lg shadow-lg p-6">
+      <h3 class="text-lg font-bold mb-4">Añadir Nuevo Pedido</h3>
+      <form (ngSubmit)="addOrder(newOrder)">
+        <div class="mb-4">
+          <label class="block text-gray-700">Tipo de Pedido</label>
+          <select
+            [(ngModel)]="newOrder.order_type"
+            name="order_type"
+            class="form-select mt-1 block w-full"
+            required
+          >
+            <!--<option value="" disabled selected>Seleccione un tipo</option>-->
+            <option value="print">Impresiones</option>
+            <option value="laser">Cortes</option>
+            <option value="sales">Ventas</option>
+          </select>
+        </div>
+        <div class="mb-4">
+          <label class="block text-gray-700">Cliente</label>
+          <select
+            [(ngModel)]="newOrder.id_client"
+            name="id_client"
+            class="form-select mt-1 block w-full"
+            required
+          >
+            <option value="" disabled selected>Seleccione un cliente</option>
+            <option *ngFor="let client of clients" [value]="client.id_client">
+              {{ client.name }}
+            </option>
+          </select>
+        </div>
+        <div class="mb-4">
+          <label class="block text-gray-700">Descripción</label>
+          <textarea
+            [(ngModel)]="newOrder.description"
+            name="description"
+            class="form-textarea mt-1 block w-full"
+          ></textarea>
+        </div>
+        <div class="mb-4">
+          <label class="block text-gray-700">Cantidad</label>
+          <input
+            type="number"
+            [(ngModel)]="newOrder.order_quantity"
+            name="order_quantity"
+            class="form-input mt-1 block w-full"
+          />
+        </div>
+        <div class="mb-4">
+          <label class="block text-gray-700">Total</label>
+          <input
+            type="number"
+            [(ngModel)]="newOrder.total"
+            name="total"
+            class="form-input mt-1 block w-full"
+            required
+          />
+        </div>
+        <div class="flex justify-end">
+          <button
+            type="button"
+            class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md mr-2"
+            (click)="toggleAddOrderForm()"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            style="
+              background-color: red;
+              color: white;
+              border: 1px solid black;
+              padding: 10px;
+            "
+            class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
+          >
+            Guardar Pedido
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>

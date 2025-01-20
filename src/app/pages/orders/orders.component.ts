@@ -135,6 +135,7 @@ export class OrdersComponent implements OnInit {
     } as Orders;
 
     this.selectOrder(this.order);
+    console.log(this.order)
   }
   /**
    * Actualiza la lista filtrada de pedidos según los checkboxes seleccionados
