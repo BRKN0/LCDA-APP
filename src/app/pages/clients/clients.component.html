@@ -5,7 +5,42 @@
   <p>Cargando clientes...</p>
 </div>
 
-<div *ngIf="!loading">
+<!-- Search bar and filter by debt -->
+<div class="flex items-center justify-center py-4">
+  <div class="w-full max-w-md relative">
+    <input
+      type="text"
+      placeholder="Buscar cliente por nombre..."
+      [(ngModel)]="searchQuery"
+      (ngModelChange)="searchClient()"
+      class="w-full py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
+    />
+    <button
+      class="absolute right-0 top-1/2 transform -translate-y-1/2 bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-700 w-auto"
+      (click)="searchClient()"
+    >
+      Buscar
+    </button>
+  </div>
+</div>
+
+<div class="p-4">
+  <label>
+    <input
+      type="checkbox"
+      [(ngModel)]="filterDebt"
+      (change)="searchClient()"
+    />
+    Mostrar solo clientes con deuda
+  </label>
+</div>
+
+<!-- No clients found -->
+<div *ngIf="noResultsFound" class="p-4 text-center text-red-500">
+  <p>No se encontró ningún cliente con ese nombre.</p>
+</div>
+
+<div *ngIf="!loading && !noResultsFound">
   <table class="table-auto w-full border-collapse">
     <thead>
       <tr class="bg-gray-100">
@@ -17,7 +52,7 @@
     </thead>
     <tbody>
       <tr
-        *ngFor="let client of clients"
+        *ngFor="let client of filteredClients"
         (click)="toggleDetails(client)"
         [class.border-red-500]="client.status === 'En Mora'"
         [class.border-green-500]="client.status === 'Al Día'"
@@ -30,7 +65,6 @@
         <td class="p-3 border">
           {{ client.company_name ?? 'N/A' }}
         </td>
-
         <td
           class="p-3 border"
           [class.text-green-600]="client.status === 'Al Día'"
@@ -92,3 +126,7 @@
     </tbody>
   </table>
 </div>
+
+
+
+
