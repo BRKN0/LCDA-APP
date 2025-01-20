@@ -248,7 +248,7 @@ export class InvoiceComponent implements OnInit {
     }
 
     const invoice = this.selectedInvoiceDetails[0];
-    const doc = new jsPDF();
+    const doc = new jsPDF(); // = new jsPDF ({format: 'a6'}); TODO: change the format to a6 and prevent somehow make the text fit
     // Date Formatting
     const invoice_date = new Date(invoice.created_at);
     const year = invoice_date.getFullYear();

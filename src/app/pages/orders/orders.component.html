@@ -72,7 +72,7 @@
         *ngFor="let order of filteredOrdersList"
         class="cursor-pointer hover:bg-gray-200"
       >
-        <td class="p-3 border">{{ order.id_order }}</td>
+        <td class="p-3 border">{{ order.code }}</td>
         <td class="p-3 border">
           {{ 
             order.order_type === 'print'
