@@ -11,6 +11,7 @@ interface InventoryItem {
   caliber: string;
   material_quantity: number;
   color: string;
+  code: number;
 }
 
 @Component({
