@@ -41,7 +41,7 @@
   <table class="table-auto w-full border-collapse">
     <thead>
       <tr class="bg-gray-100">
-        <th class="p-3 border">ID Material</th>
+        <th class="p-3 border">Codigo</th>
         <th class="p-3 border">Categoria</th>
         <th class="p-3 border">Tipo</th>
         <th class="p-3 border">Calibre</th>
@@ -55,7 +55,7 @@
           (click)="toggleDetails(item)"
           class="cursor-pointer hover:bg-gray-200 border"
         >
-          <td class="p-3 border">{{ item.id_material }}</td>
+          <td class="p-3 border">{{ item.code }}</td>
           <td class="p-3 border">{{ item.category || 'Sin Categoria' }}</td>
           <td class="p-3 border">{{ item.type || 'Sin Tipo' }}</td>
           <td class="p-3 border">{{ item.caliber || 'Sin Calibre' }}</td>
@@ -73,7 +73,7 @@
         <tr *ngIf="selectedItem === item">
           <td colspan="6" class="p-4 bg-gray-50">
             <h3 class="font-bold mb-2">Detalles del Material</h3>
-            <p><strong>ID Material:</strong> {{ item.id_material }}</p>
+            <p><strong>Codigo:</strong> {{ item.code }}</p>
             <p><strong>Categoria:</strong> {{ item.category }}</p>
             <p><strong>Tipo:</strong> {{ item.type }}</p>
             <p><strong>Calibre:</strong> {{ item.caliber }}</p>
