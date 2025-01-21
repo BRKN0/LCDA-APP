@@ -12,6 +12,8 @@ interface InventoryItem {
   material_quantity: number;
   color: string;
   code: number;
+  cost: number;
+  sale_price: number;
 }
 
 @Component({

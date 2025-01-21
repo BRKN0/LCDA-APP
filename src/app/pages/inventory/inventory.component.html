@@ -47,6 +47,8 @@
         <th class="p-3 border">Calibre</th>
         <th class="p-3 border">Cantidad</th>
         <th class="p-3 border">Color</th>
+        <th class="p-3 border">Costo</th>
+        <th class="p-3 border">Precio de venta</th>
       </tr>
     </thead>
     <tbody>
@@ -67,6 +69,8 @@
             {{ item.material_quantity || 0 }}
           </td>
           <td class="p-3 border">{{ item.color || 'Sin Color' }}</td>
+          <td class="p-3 border">{{ item.cost | currency }}</td>
+          <td class="p-3 border">{{ item.sale_price | currency }}</td>
         </tr>
 
         <!-- Materials details -->
@@ -77,9 +81,21 @@
             <p><strong>Categoria:</strong> {{ item.category }}</p>
             <p><strong>Tipo:</strong> {{ item.type }}</p>
             <p><strong>Calibre:</strong> {{ item.caliber }}</p>
-            <p><strong>Cantidad:</strong> {{ item.material_quantity }}</p>
+            <p><strong>Descripcion:</strong> <span
+              [class.text-green-600]="item.material_quantity > 10"
+              [class.text-red-600]="item.material_quantity <= 10"
+            >
+            {{
+              item.material_quantity > 10
+                    ? "Todavia quedan bastantes unidades"
+                    : "Pocas unidades"
+                }}
+            </span>
+            </p>
             <p><strong>Color:</strong> {{ item.color }}</p>
-          </td>
+            <p><strong>Costo:</strong> {{ item.cost }}</p>
+            <p><strong>Precio de venta:</strong> {{ item.sale_price }}</p>
+         </td>
         </tr>
       </ng-container>
     </tbody>
