@@ -36,73 +36,172 @@
   <p>No hay datos disponibles en el inventario.</p>
 </div>
 
+<!-- Action buttons -->
+<div class="action-buttons mb-4">
+  <button class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600" (click)="generateKardex()">
+    Generar Kardex
+  </button>
+  <button class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600" (click)="openComparisonModal()">
+    Comparar Archivos
+  </button>
+  <button class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600" (click)="addNewItem()">
+    Agregar Artículo
+  </button>
+</div>
+
+<!-- Search bars -->
+<div class="flex items-center justify-center py-4">
+  <div class="w-full max-w-md relative mr-4">
+    <input
+      type="text"
+      placeholder="Buscar por código..."
+      [(ngModel)]="searchCode"
+      (ngModelChange)="filterInventory()"
+      class="w-full py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
+    />
+  </div>
+  <div class="w-full max-w-md relative">
+    <input
+      type="text"
+      placeholder="Buscar por categoría..."
+      [(ngModel)]="searchCategory"
+      (ngModelChange)="filterInventory()"
+      class="w-full py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
+    />
+  </div>
+</div>
+
+<!-- Modal para comparación -->
+<div *ngIf="showModal && isComparing" class="modal">
+  <div class="modal-content">
+    <h2>Comparar Inventario</h2>
+    <div class="file-inputs">
+      <div class="file-input">
+        <label for="file1">Archivo 1:</label>
+        <input id="file1" type="file" accept=".csv" />
+      </div>
+      <div class="file-input">
+        <label for="file2">Archivo 2:</label>
+        <input id="file2" type="file" accept=".csv" />
+      </div>
+    </div>
+    <div class="buttons">
+      <button (click)="compareCSV()">Iniciar Comparación</button>
+      <button (click)="clearComparison()">Limpiar</button>
+      <button (click)="closeComparisonModal()">Cerrar</button>
+    </div>
+    <div *ngIf="comparisonResult.length > 0" class="results">
+      <h3>Resultados de la Comparación</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Cambio</th>
+            <th>Detalle</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let result of comparisonResult">
+            <td>{{ result.product }}</td>
+            <td [style.color]="getDetailColor(result.change)">{{ result.change }}</td>
+            <td>{{ result.detail }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para agregar/editar -->
+<div *ngIf="showModal && !isComparing" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
+  <div class="bg-white modal-width rounded-lg shadow-lg p-6">
+    <h3 class="text-lg font-bold mb-4">{{ isEditing ? 'Editar Artículo' : 'Agregar Artículo' }}</h3>
+    <form (ngSubmit)="saveItem()">
+      <div class="mb-4">
+        <label class="block text-gray-700">Código</label>
+        <input type="number" [(ngModel)]="selectedItem.code" name="code" class="form-input mt-1 block w-full" required />
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Categoría</label>
+        <input type="text" [(ngModel)]="selectedItem.category" name="category" class="form-input mt-1 block w-full" required />
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Tipo</label>
+        <input type="text" [(ngModel)]="selectedItem.type" name="type" class="form-input mt-1 block w-full" required />
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Calibre</label>
+        <input type="text" [(ngModel)]="selectedItem.caliber" name="caliber" class="form-input mt-1 block w-full" required />
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Cantidad</label>
+        <input type="number" [(ngModel)]="selectedItem.material_quantity" name="quantity" class="form-input mt-1 block w-full" required />
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Color</label>
+        <input type="text" [(ngModel)]="selectedItem.color" name="color" class="form-input mt-1 block w-full" />
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Costo</label>
+        <input type="number" [(ngModel)]="selectedItem.cost" name="cost" class="form-input mt-1 block w-full" required />
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Precio de venta</label>
+        <input type="number" [(ngModel)]="selectedItem.sale_price" name="sale_price" class="form-input mt-1 block w-full" required />
+      </div>
+      <div class="flex justify-end">
+        <button type="button" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md mr-2" (click)="closeModal()">
+          Cancelar
+        </button>
+        <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600">
+          {{ isEditing ? 'Actualizar Artículo' : 'Agregar Artículo' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- Inventory table -->
 <div *ngIf="!loading && filteredInventory.length > 0">
   <table class="table-auto w-full border-collapse">
     <thead>
       <tr class="bg-gray-100">
-        <th class="p-3 border">Codigo</th>
-        <th class="p-3 border">Categoria</th>
+        <th class="p-3 border">Código</th>
+        <th class="p-3 border">Categoría</th>
         <th class="p-3 border">Tipo</th>
         <th class="p-3 border">Calibre</th>
         <th class="p-3 border">Cantidad</th>
         <th class="p-3 border">Color</th>
         <th class="p-3 border">Costo</th>
         <th class="p-3 border">Precio de venta</th>
+        <th class="p-3 border">Acciones</th>
       </tr>
     </thead>
     <tbody>
       <ng-container *ngFor="let item of filteredInventory">
-        <tr
-          (click)="toggleDetails(item)"
-          class="cursor-pointer hover:bg-gray-200 border"
-        >
+        <tr (click)="toggleDetails(item)" class="cursor-pointer hover:bg-gray-200 border">
           <td class="p-3 border">{{ item.code }}</td>
           <td class="p-3 border">{{ item.category || 'Sin Categoria' }}</td>
           <td class="p-3 border">{{ item.type || 'Sin Tipo' }}</td>
           <td class="p-3 border">{{ item.caliber || 'Sin Calibre' }}</td>
-          <td
-            class="p-3 border"
-            [class.text-green-600]="item.material_quantity > 10"
-            [class.text-red-600]="item.material_quantity <= 10"
-          >
+          <td class="p-3 border" [class.text-green-600]="item.material_quantity > 10" [class.text-red-600]="item.material_quantity <= 10">
             {{ item.material_quantity || 0 }}
           </td>
           <td class="p-3 border">{{ item.color || 'Sin Color' }}</td>
           <td class="p-3 border">{{ item.cost | currency }}</td>
           <td class="p-3 border">{{ item.sale_price | currency }}</td>
-        </tr>
-
-        <!-- Materials details -->
-        <tr *ngIf="selectedItem === item">
-          <td colspan="6" class="p-4 bg-gray-50">
-            <h3 class="font-bold mb-2">Detalles del Material</h3>
-            <p><strong>Codigo:</strong> {{ item.code }}</p>
-            <p><strong>Categoria:</strong> {{ item.category }}</p>
-            <p><strong>Tipo:</strong> {{ item.type }}</p>
-            <p><strong>Calibre:</strong> {{ item.caliber }}</p>
-            <p><strong>Descripcion:</strong> <span
-              [class.text-green-600]="item.material_quantity > 10"
-              [class.text-red-600]="item.material_quantity <= 10"
-            >
-            {{
-              item.material_quantity > 10
-                    ? "Todavia quedan bastantes unidades"
-                    : "Pocas unidades"
-                }}
-            </span>
-            </p>
-            <p><strong>Color:</strong> {{ item.color }}</p>
-            <p><strong>Costo:</strong> {{ item.cost }}</p>
-            <p><strong>Precio de venta:</strong> {{ item.sale_price }}</p>
-         </td>
+          <td class="p-3 border">
+            <button (click)="editItem(item)" class="px-2 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 mr-2">
+              Editar
+            </button>
+            <button (click)="deleteItem(item)" class="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600">
+              Eliminar
+            </button>
+          </td>
         </tr>
       </ng-container>
     </tbody>
   </table>
 </div>
-
-
-
 
 
