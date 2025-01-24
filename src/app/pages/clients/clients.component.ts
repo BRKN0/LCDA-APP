@@ -2,6 +2,8 @@ import { Component, OnInit, NgZone } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { MainBannerComponent } from '../main-banner/main-banner.component';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
 import { SupabaseService } from '../../services/supabase.service';
 
 interface Orders {
@@ -22,6 +24,7 @@ interface Orders {
 
 interface Client {
   id_client: string;
+  created_at: string;
   name: string;
   document_type: string;
   document_number: string;
@@ -54,6 +57,26 @@ export class ClientsComponent implements OnInit {
   searchQuery: string = '';
   filterDebt: boolean = false;
   noResultsFound: boolean = false;
+
+  // Para añadir pedidos
+  newClient: Partial<Client> = {
+    id_client: '',
+    document_type: '',
+    name: '',
+    document_number: '',
+    status: 'overdue',
+    created_at: new Date().toISOString(),
+    cellphone: '',
+    nit: '',
+    company_name: '',
+    email: '',
+    debt: 0,
+    address: '',
+    city: '',
+    province: '',
+    postal_code: '',
+  };
+  showAddClientForm = false;
 
   constructor(
     private readonly supabase: SupabaseService,
@@ -139,4 +162,96 @@ export class ClientsComponent implements OnInit {
       console.error('Selected client mismatch or orders not found.');
     }
   }
+
+  toggleAddClientForm(): void {
+    if (!this.showAddClientForm) {
+      // Reinicia el formulario al abrir la ventana modal
+      this.newClient = {
+        id_client: '',
+        document_type: '',
+        name: '',
+        document_number: '',
+        status: 'upToDate',
+        cellphone: '',
+        nit: '',
+        company_name: '',
+        email: '',
+        debt: 0,
+        address: '',
+        city: '',
+        province: '',
+        postal_code: '',
+      };
+    }
+    this.showAddClientForm = !this.showAddClientForm;
+  }
+
+  async addClient(newClient: Partial<Client>): Promise<void> {
+
+    const clientToInsert = {
+      name: newClient.name,
+      document_type: newClient.document_type,
+      document_number: newClient.document_number,
+      cellphone: newClient.cellphone,
+      status: newClient.status || 'upToDate',
+      nit: newClient.nit,
+      company_name: newClient.company_name || 'N/A', // Valor predeterminado si no se proporciona
+      email: newClient.email,
+      debt: newClient.debt || 0,
+      address: newClient.address,
+      city: newClient.city,
+      province: newClient.province,
+      postal_code: newClient.postal_code,
+    };
+
+    try {
+      const { error } = await this.supabase
+        .from('clients')
+        .insert([clientToInsert]); // Inserta el nuevo pedido en Supabase
+  
+      if (error) {
+        console.error('Error al añadir al cliente:', error);
+        return;
+      }
+  
+      console.log('Cliente añadido exitosamente:', newClient);
+      this.getClients(); // Actualiza la lista de pedidos después de añadir uno nuevo
+      this.toggleAddClientForm(); // Cierra el formulario
+    } catch (error) {
+      console.error('Error inesperado al añadir cliente:', error);
+    }
+  }
+
+  // Method to generate PDF
+  generatePDF(): void {
+    if(!this.selectedClient || !this.selectedClient.orders){
+      console.error("No hay datos de pedidos para exportar")
+      return;
+    }
+
+    const doc = new jsPDF();
+
+    //Add tittle
+    doc.setFontSize(16);
+    doc.text(`Extracto de Cliente: ${this.selectedClient.name}`, 10, 10);
+
+    //client details 
+    const orders = this.selectedClient.orders.map((order: any) => [
+      order.id_order,
+      order.created_at,
+      order.description,
+      `$${order.total}`,
+      order.order_status === 'upToDate' ? 'Al Día' : 'En Mora',
+    ]);
+
+    (doc as any).autoTable({
+      head: [['#', 'Fecha', 'Detalles', 'Total', 'Estado']],
+      body: orders,
+      startY: 40,
+    });
+
+    //Save pdf
+    doc.save(`Extracto-${this.selectedClient.name}`);
+  }
+
 }

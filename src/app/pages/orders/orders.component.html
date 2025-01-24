@@ -5,7 +5,7 @@
   <p>Cargando pedidos...</p>
 </div>
 
-<!-- Tabla de pedidos -->
+<!-- orders table -->
 <div *ngIf="!loading">
   <div class="mb-4">
     <label>
@@ -85,12 +85,17 @@
           }}
         </td>
         <td class="p-3 border">{{ order.name }}</td>
-        <td class="p-3 border">
+        <td class="p-3 border"
+          [ngClass]="{
+            'text-green-600': order.order_status === 'upToDate',
+            'text-red-600': order.order_status === 'overdue'
+          }"
+        >
           {{
             order.order_status === "upToDate"
-              ? "Al dia"
+              ? "Al Día"
               : order.order_status === "overdue"
-              ? "Pendiente"
+              ? "En Mora"
               : "Desconocido"
           }}
         </td>
@@ -130,9 +135,9 @@
             <strong>Estado:</strong>
             {{
               selectedOrderDetails[0].order_status === "overdue"
-                ? "Pendiente"
+                ? "En Mora"
                 : selectedOrderDetails[0].order_status === "upToDate"
-                ? "Al dia"
+                ? "Al Día"
                 : "No especificado"
             }}
           </p>
@@ -143,6 +148,8 @@
                 ? "Corte Laser"
                 : selectedOrderDetails[0].order_type === "print"
                 ? "Impresion"
+                : selectedOrderDetails[0].order_type === "sales"
+                ? "Ventas"
                 : "Otro"
             }}
           </p>
@@ -208,7 +215,7 @@
     </div>
   </div>
 
-  <!-- Formulario para añadir pedido -->
+  <!-- Form to add orders -->
   <div
     *ngIf="showAddOrderForm"
     class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"

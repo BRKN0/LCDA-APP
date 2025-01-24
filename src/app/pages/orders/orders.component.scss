@@ -20,3 +20,13 @@
   .modal-width {
     width: 50%;
   }
+
+  .form-textarea,
+  .form-input {
+    border: 1px solid #d1d5db; /* Color del borde predeterminado (gris claro) */
+    border-radius: 0.375rem; /* Bordes redondeados */
+    padding: 0.5rem; /* Espaciado interno */
+    width: 100%; /* Ocupa el ancho completo del contenedor */
+    box-sizing: border-box; /* Incluye el padding dentro del ancho */
+    transition: border-color 0.3s ease; /* Animación suave al cambiar de borde */
+  }
