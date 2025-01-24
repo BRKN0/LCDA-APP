@@ -18,6 +18,7 @@ interface Orders {
   total: string;
   amount: string;
   id_client: string;
+  code: string;
 }
 
 interface Client {
@@ -87,7 +88,8 @@ export class ClientsComponent implements OnInit {
         subtotal,
         total,
         amount,
-        id_client)`
+        id_client,
+        code)`
     );
 
     if (error) {
