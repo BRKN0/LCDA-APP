@@ -143,6 +143,8 @@
                 ? "Corte Laser"
                 : selectedOrderDetails[0].order_type === "print"
                 ? "Impresion"
+                : selectedOrderDetails[0].order_type === "sales"
+                ? "Venta"
                 : "Otro"
             }}
           </p>

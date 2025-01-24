@@ -26,11 +26,7 @@
 
 <div class="p-4">
   <label>
-    <input
-      type="checkbox"
-      [(ngModel)]="filterDebt"
-      (change)="searchClient()"
-    />
+    <input type="checkbox" [(ngModel)]="filterDebt" (change)="searchClient()" />
     Mostrar solo clientes con deuda
   </label>
 </div>
@@ -54,8 +50,8 @@
       <tr
         *ngFor="let client of filteredClients"
         (click)="toggleDetails(client)"
-        [class.border-red-500]="client.status === 'En Mora'"
-        [class.border-green-500]="client.status === 'Al Día'"
+        [class.border-red-500]="client.status === 'overdue'"
+        [class.border-green-500]="client.status === 'upToDate'"
         class="cursor-pointer hover:bg-gray-200 border"
       >
         <td class="p-3 border">{{ client.name }}</td>
@@ -63,14 +59,20 @@
           {{ client.nit ?? client.document_number }}
         </td>
         <td class="p-3 border">
-          {{ client.company_name ?? 'N/A' }}
+          {{ client.company_name ?? "N/A" }}
         </td>
         <td
           class="p-3 border"
-          [class.text-green-600]="client.status === 'Al Día'"
-          [class.text-red-600]="client.status === 'En Mora'"
+          [class.text-green-600]="client.status === 'upToDate'"
+          [class.text-red-600]="client.status === 'overdue'"
         >
-          {{ client.status }}
+          {{
+            client.status === "upToDate"
+              ? "Al Dia"
+              : client.status === "overdue"
+              ? "En mora"
+              : "Otro"
+          }}
         </td>
       </tr>
       <tr *ngIf="selectedClient">
@@ -107,15 +109,30 @@
               </thead>
               <tbody>
                 <tr *ngFor="let orders of selectedClient.orders">
-                  <td class="p-3 border">{{ orders.id_order }}</td>
-                  <td class="p-3 border">{{ orders.order_type }}</td>
+                  <td class="p-3 border">{{ orders.code }}</td>
+                  <td class="p-3 border">
+                    {{
+                      orders.order_type === "print"
+                        ? "Impresiones"
+                        : orders.order_type === "laser"
+                        ? "Cortes"
+                        : orders.order_type === "sales"
+                        ? "Ventas"
+                        : "Desconocido"
+                    }}
+                  </td>
                   <td
                     class="p-3 border"
-                    [class.text-green-600]="orders.order_status === 'Pago'"
-                    [class.text-red-600]="orders.order_status === 'En Mora'"
-                    [class.text-yellow-500]="orders.order_status === 'No Pago'"
+                    [class.text-green-600]="orders.order_status === 'upToDate'"
+                    [class.text-red-600]="orders.order_status === 'overdue'"
                   >
-                    {{ orders.order_status }}
+                    {{
+                      orders.order_status === "upToDate"
+                        ? "Al Dia"
+                        : orders.order_status === "overdue"
+                        ? "En mora"
+                        : "Otro"
+                    }}
                   </td>
                 </tr>
               </tbody>
@@ -126,7 +143,3 @@
     </tbody>
   </table>
 </div>
-
-
-
-
