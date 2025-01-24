@@ -1,0 +1,106 @@
+<app-main-banner></app-main-banner>
+
+<div *ngIf="loading" class="p-4 text-center text-gray-600">
+  <p>Cargando egresos...</p>
+</div>
+
+<div class="expenses-container">
+  <!-- Filtros -->
+  <div class="filters">
+    <label>
+      <span>Categoría:</span>
+      <select [(ngModel)]="selectedCategory" (change)="applyFilters()">
+        <option value="">Todas</option>
+        <option *ngFor="let category of uniqueCategories" [value]="category">
+          {{ category }}
+        </option>
+      </select>
+    </label>
+    <label>
+      <span>Fecha:</span>
+      <input type="date" [(ngModel)]="selectedDate" (change)="applyFilters()" />
+    </label>
+  </div>
+
+  <!-- Botón Añadir -->
+  <button class="btn-add" (click)="addNewExpense()">Añadir Nuevo Egreso</button>
+
+  <!-- Tabla -->
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Codigo</th>
+          <th>Fecha</th>
+          <th>Categoría</th>
+          <th>Tipo</th>
+          <th>Descripción</th>
+          <th>Costo</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let expense of filteredExpenses">
+          <td>{{ expense.code }} </td>
+          <td>{{ expense.payment_date | date }}</td>
+          <td>{{ expense.category }}</td>
+          <td>{{ expense.type }}</td>
+          <td>{{ expense.description }}</td>
+          <td>{{ expense.cost | currency }}</td>
+          <td>
+            <button class="btn-edit" (click)="editExpense(expense)">Editar</button>
+            <button class="btn-delete" (click)="deleteExpense(expense)">Eliminar</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div *ngIf="showModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3 class="modal-title">{{ isEditing ? 'Editar Egreso' : 'Añadir Nuevo Egreso' }}</h3>
+      <div class="form-container">
+        <form (ngSubmit)="saveExpense()">
+          <div class="form-group">
+            <label for="payment_date">Fecha</label>
+            <input id="payment_date" type="date" [(ngModel)]="selectedExpense.payment_date" name="payment_date" required />
+          </div>
+          <div class="form-group">
+            <label for="category">Categoría</label>
+            <select id="category" [(ngModel)]="selectedExpense.category" name="category" required (change)="onCategoryChange($event)">
+              <option *ngFor="let category of uniqueCategories" [value]="category">
+                {{ category }}
+              </option>
+              <option value="Otros">Otros</option> <!-- Opción para añadir una nueva categoría -->
+            </select>
+            <!-- Campo de texto para "Otros" -->
+            <div *ngIf="showOtherCategoryInput" class="form-group">
+              <label for="otherCategory">Especificar categoría:</label>
+              <input id="otherCategory" type="text" [(ngModel)]="otherCategory" name="otherCategory" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="type">Tipo</label>
+            <input id="type" type="text" [(ngModel)]="selectedExpense.type" name="type" required />
+          </div>
+          <div class="form-group">
+            <label for="description">Descripción</label>
+            <textarea id="description" [(ngModel)]="selectedExpense.description" name="description"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="cost">Costo</label>
+            <input id="cost" type="number" [(ngModel)]="selectedExpense.cost" name="cost" required />
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn-cancel" (click)="closeModal()">Cancelar</button>
+            <button type="submit" class="btn-save">
+              {{ isEditing ? 'Actualizar Egreso' : 'Añadir Egreso' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+
+
