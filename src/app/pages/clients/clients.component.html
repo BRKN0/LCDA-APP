@@ -26,11 +26,7 @@
 
 <div class="flex justify-between items-center mb-4">
   <label>
-    <input
-      type="checkbox"
-      [(ngModel)]="filterDebt"
-      (change)="searchClient()"
-    />
+    <input type="checkbox" [(ngModel)]="filterDebt" (change)="searchClient()" />
     Mostrar solo clientes con deuda
   </label>
     <button 
@@ -61,8 +57,8 @@
       <tr
         *ngFor="let client of filteredClients"
         (click)="toggleDetails(client)"
-        [class.border-red-500]="client.status === 'En Mora'"
-        [class.border-green-500]="client.status === 'Al Día'"
+        [class.border-red-500]="client.status === 'overdue'"
+        [class.border-green-500]="client.status === 'upToDate'"
         class="cursor-pointer hover:bg-gray-200 border"
       >
         <td class="p-3 border">{{ client.name }}</td>
@@ -71,7 +67,7 @@
           {{ client.nit ?? client.document_number }}
         </td>
         <td class="p-3 border">
-          {{ client.company_name ?? 'N/A' }}
+          {{ client.company_name ?? "N/A" }}
         </td>
         <td
           class="p-3 border"
@@ -262,7 +258,3 @@
     </div>
   </div>
 </div>
-
-
-
-

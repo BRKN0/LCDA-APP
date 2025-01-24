@@ -1,7 +1,7 @@
 <app-main-banner></app-main-banner>
 
 <!-- Filter checkboxes -->
-<div class="mt-4">
+<div class="ml-4">
   <label class="inline-flex items-center mr-4">
     <input
       type="checkbox"
@@ -9,20 +9,38 @@
       class="form-checkbox"
       (change)="updateFilteredInvoices()"
     />
-    <span class="ml-2">Impresiones</span>
+    <span class="ml-4">Impresiones</span>
   </label>
-  <label class="inline-flex items-center">
+  <label class="inline-flex items-center mr-4">
     <input
       type="checkbox"
       [(ngModel)]="showCuts"
       class="form-checkbox"
       (change)="updateFilteredInvoices()"
     />
-    <span class="ml-2">Cortes</span>
+    <span class="ml-4">Cortes</span>
+  </label>
+  <label class="inline-flex items-center mr-4">
+    <input
+      type="checkbox"
+      [(ngModel)]="showSales"
+      class="form-checkbox"
+      (change)="updateFilteredInvoices()"
+    />
+    <span class="ml-4">Ventas</span>
+  </label>
+  <label class="inline-flex items-center mr-4">
+    <input
+      type="checkbox"
+      [(ngModel)]="showDebt"
+      class="form-checkbox"
+      (change)="updateFilteredInvoices()"
+    />
+    <span class="ml-4">En Mora</span>
   </label>
 </div>
 <div class="flex items-center justify-center py-4">
-  <div class="w-full max-w-md relative">
+  <div class="w-full max-w-md relative mr-40">
     <input
       type="text"
       placeholder="Buscar factura por número..."
@@ -36,8 +54,24 @@
       Buscar
     </button>
   </div>
+  <div class="w-full max-w-md relative ml-40">
+    <input
+      type="text"
+      placeholder="Buscar cliente por nombre..."
+      [(ngModel)]="nameSearchQuery"
+      (ngModelChange)="searchClient()"
+      class="w-full py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
+    />
+    <button
+      class="absolute right-0 top-1/2 transform -translate-y-1/2 bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-700 w-auto"
+      (click)="searchClient()"
+    >
+      Buscar
+    </button>
+  </div>
 </div>
-<!-- Render all invoices -->
+
+<!-- Render filtered invoices in a table -->
 <div class="mt-4">
   <h2 class="text-xl font-bold">Facturas</h2>
   <ul class="mt-2">
@@ -47,6 +81,7 @@
           <th class="border border-gray-300 px-4 py-2 bg-gray-200">
             N. de Factura
           </th>
+          <th class="border border-gray-300 px-4 py-2 bg-gray-200">Tipo</th>
           <th class="border border-gray-300 px-4 py-2 bg-gray-200">
             Nombre/Empresa
           </th>
@@ -57,83 +92,50 @@
         </tr>
       </thead>
       <tbody>
-        <!-- Invoice for Prints -->
-        <ng-container *ngIf="showPrints">
-          <tr *ngFor="let invoice of filteredInvoices()">
-            <ng-container *ngIf="invoice.order.order_type === 'print'">
-              <td class="border border-gray-300 px-4 py-2">
-                {{ invoice.code }}
-              </td>
-              <td class="border border-gray-300 px-4 py-2">
-                {{
-                  invoice.order.client.company_name ?? invoice.order.client.name
-                }}
-              </td>
-              <td class="border border-gray-300 px-4 py-2">
-                {{ invoice.created_at | date : "dd-MM-yyyy" }}
-              </td>
-              <td class="border border-gray-300 px-4 py-2">
-                {{ invoice.order.amount }}
-              </td>
-              <td class="border border-gray-300 px-4 py-2">
-                {{
-                  invoice.invoice_status === "notPaid"
-                    ? "No Pago"
-                    : invoice.invoice_status === "paid"
-                    ? "Pago"
-                    : "Desconocido"
-                }}
-              </td>
-              <td class="border border-gray-300 px-4 py-2">
-                <button
-                  class="bg-red-500 text-white py-1 px-3 rounded"
-                  (click)="selectInvoice(invoice)"
-                >
-                  Ver Detalles
-                </button>
-              </td>
-            </ng-container>
-          </tr>
-        </ng-container>
-
-        <!-- Invoice for Cuts -->
-        <ng-container *ngIf="showCuts">
-          <tr *ngFor="let invoice of filteredInvoices()">
-            <ng-container *ngIf="invoice.order.order_type === 'laser'">
-              <td class="border border-gray-300 px-4 py-2">
-                {{ invoice.code }}
-              </td>
-              <td class="border border-gray-300 px-4 py-2">
-                {{
-                  invoice.order.client.company_name ?? invoice.order.client.name
-                }}
-              </td>
-              <td class="border border-gray-300 px-4 py-2">
-                {{ invoice.created_at | date : "dd-MM-yyyy" }}
-              </td>
-              <td class="border border-gray-300 px-4 py-2">
-                {{ invoice.order.amount }}
-              </td>
-              <td class="border border-gray-300 px-4 py-2">
-                {{
-                  invoice.invoice_status === "notPaid"
-                    ? "No Pago"
-                    : invoice.invoice_status === "paid"
-                    ? "Pago"
-                    : "Desconocido"
-                }}
-              </td>
-              <td class="border border-gray-300 px-4 py-2">
-                <button
-                  class="bg-red-500 text-white py-1 px-3 rounded"
-                  (click)="selectInvoice(invoice)"
-                >
-                  Ver Detalles
-                </button>
-              </td>
-            </ng-container>
-          </tr>
-        </ng-container>
+        <tr *ngFor="let invoice of filteredInvoices()">
+          <td class="border border-gray-300 px-4 py-2">{{ invoice.code }}</td>
+          <td class="border border-gray-300 px-4 py-2">
+            {{
+              invoice.order.order_type === "print"
+                ? "Impresiones"
+                : invoice.order.order_type === "laser"
+                ? "Cortes"
+                : invoice.order.order_type === "sales"
+                ? "Ventas"
+                : "Otro"
+            }}
+          </td>
+          <td class="border border-gray-300 px-4 py-2">
+            {{ invoice.order.client.company_name || invoice.order.client.name }}
+          </td>
+          <td class="border border-gray-300 px-4 py-2">
+            {{ invoice.created_at | date : "dd-MM-yyyy" }}
+          </td>
+          <td class="border border-gray-300 px-4 py-2">
+            {{ invoice.order.amount }}
+          </td>
+          <td
+            class="border border-gray-300 px-4 py-2"
+            [class.text-green-600]="invoice.invoice_status === 'upToDate'"
+            [class.text-red-600]="invoice.invoice_status === 'overdue'"
+          >
+            {{
+              invoice.invoice_status === "overdue"
+                ? "En Mora"
+                : invoice.invoice_status === "upToDate"
+                ? "Al Dia"
+                : "Desconocido"
+            }}
+          </td>
+          <td class="border border-gray-300 px-4 py-2">
+            <button
+              class="bg-red-500 text-white py-1 px-3 rounded"
+              (click)="selectInvoice(invoice)"
+            >
+              Ver Detalles
+            </button>
+          </td>
+        </tr>
       </tbody>
     </table>
   </ul>
@@ -157,13 +159,20 @@
           <strong>Fecha:</strong>
           {{ selectedInvoiceDetails[0].created_at | date : "dd-MM-yyyy" }}
         </p>
-        <p>
+        <p
+          [class.text-green-600]="
+            selectedInvoiceDetails[0].invoice_status === 'upToDate'
+          "
+          [class.text-red-600]="
+            selectedInvoiceDetails[0].invoice_status === 'overdue'
+          "
+        >
           <strong>Estado:</strong>
           {{
-            selectedInvoiceDetails[0].invoice_status === "notPaid"
-              ? "No Pago"
-              : selectedInvoiceDetails[0].invoice_status === "paid"
-              ? "Pago"
+            selectedInvoiceDetails[0].invoice_status === "overdue"
+              ? "En Mora"
+              : selectedInvoiceDetails[0].invoice_status === "upToDate"
+              ? "Al Dia"
               : "Desconocido"
           }}
         </p>

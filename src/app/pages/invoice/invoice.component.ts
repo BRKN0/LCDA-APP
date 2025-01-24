@@ -10,7 +10,7 @@ interface Invoice {
   created_at: Date;
   invoice_status: string;
   id_order: string;
-  code: number;
+  code: string;
   order: Orders;
 }
 
@@ -55,14 +55,22 @@ interface Client {
   styleUrls: ['./invoice.component.scss'],
 })
 export class InvoiceComponent implements OnInit {
+  clients: Client[] = [];
   invoices: Invoice[] = [];
   invoice: Invoice | null = null;
+  //checkbox status
   showPrints = true;
   showCuts = true;
+  showSales = true;
+  showDebt = false;
   selectedInvoiceDetails: Invoice[] | null = null;
   loading = true;
   searchQuery: string = '';
+  nameSearchQuery: string = '';
   filteredInvoicesList: Invoice[] = [];
+  filteredClients: Client[] = [];
+  filterDebt: boolean = false;
+  noResultsFound: boolean = false;
 
   constructor(
     private readonly supabase: SupabaseService,
@@ -79,6 +87,28 @@ export class InvoiceComponent implements OnInit {
       }
     });
   }
+  searchClient() {
+    // Filter clients based on name and debt status
+    this.filteredClients = this.clients.filter((client) => {
+      const matchesSearchQuery =
+        client.name
+          .toLowerCase()
+          .includes(this.nameSearchQuery.toLowerCase()) ||
+        (client.company_name &&
+          client.company_name
+            .toLowerCase()
+            .includes(this.nameSearchQuery.toLowerCase()));
+
+      // Correctly check for the debt filter
+      const matchesDebtFilter = !this.filterDebt || client.debt > 0;
+
+      return matchesSearchQuery && matchesDebtFilter;
+    });
+
+    // Handle the case when no clients are found
+    this.noResultsFound = this.filteredClients.length === 0;
+  }
+
   async onSearch(): Promise<void> {
     if (!this.searchQuery.trim()) {
       alert('Por favor, ingrese un número de factura.');
@@ -138,7 +168,7 @@ export class InvoiceComponent implements OnInit {
       return;
     }
     // Select the first matching invoice
-    this.invoice = { 
+    this.invoice = {
       ...data[0],
       order: {
         ...data[0].orders,
@@ -148,6 +178,7 @@ export class InvoiceComponent implements OnInit {
 
     this.selectInvoice(this.invoice);
   }
+
   async getInvoices() {
     this.loading = true;
     const { data, error } = await this.supabase.from('invoices').select(`
@@ -197,47 +228,87 @@ export class InvoiceComponent implements OnInit {
     })) as Invoice[];
     this.loading = false;
   }
-  filteredInvoices(): any[] {
-    // Load all invoices by default
-    if (!this.showPrints && !this.showCuts) {
+  filteredInvoices(): Invoice[] {
+    // If no filter is selected, return all invoices
+    if (
+      !this.showPrints &&
+      !this.showCuts &&
+      !this.showSales &&
+      !this.showDebt &&
+      !this.nameSearchQuery // Make sure to check nameSearchQuery too
+    ) {
       return this.invoices;
     }
 
-    // Apply filtering logic based on checkbox state
     return this.invoices.filter((invoice) => {
-      if (this.showPrints && invoice.order.order_type === 'print') {
-        return true;
-      }
-      if (this.showCuts && invoice.order.order_type === 'laser') {
-        return true;
-      }
-      return false;
+      // Check if 'showDebt' is active, and only include overdue invoices if it is
+      const isDebtFilter = this.showDebt
+        ? invoice.invoice_status === 'overdue'
+        : true;
+
+      // Apply other filters only if they are active
+      const isPrintsFilter =
+        this.showPrints && invoice.order.order_type === 'print';
+      const isCutsFilter =
+        this.showCuts && invoice.order.order_type === 'laser';
+      const isSalesFilter =
+        this.showSales && invoice.order.order_type === 'sales';
+
+      // Apply the name search filter (if there is a nameSearchQuery)
+      const matchesNameSearchQuery =
+        !this.nameSearchQuery ||
+        invoice.order.client.company_name
+          ?.toLowerCase()
+          .includes(this.nameSearchQuery.toLowerCase()) ||
+        invoice.order.client.name
+          ?.toLowerCase()
+          .includes(this.nameSearchQuery.toLowerCase());
+
+      // Combine all filters: matches debt status, other filters, and the name search query
+      const matchesFilters =
+        isDebtFilter && (isPrintsFilter || isCutsFilter || isSalesFilter);
+
+      // Return true if the invoice matches both the filters and the name search query
+      return matchesFilters && matchesNameSearchQuery;
     });
   }
 
   selectInvoice(invoice: Invoice) {
     this.selectedInvoiceDetails = [invoice];
   }
-  
 
   updateFilteredInvoices(): void {
-    // Create a new array for filtered invoices
     let filtered = [];
 
-    // If both checkboxes are unchecked, show all invoices
-    if (!this.showPrints && !this.showCuts) {
-      filtered = [...this.invoices];
+    // First, check if the debt filter is active
+    if (this.showDebt) {
+      // If the debt filter is active, only include invoices with overdue status
+      filtered = this.invoices.filter(
+        (invoice) => invoice.invoice_status === 'overdue'
+      );
     } else {
-      // Otherwise, filter the invoices based on the checkbox states
+      // If the debt filter is not active, filter based on the other criteria
       filtered = this.invoices.filter((invoice) => {
         return (
           (this.showPrints && invoice.order.order_type === 'print') ||
-          (this.showCuts && invoice.order.order_type === 'laser')
+          (this.showCuts && invoice.order.order_type === 'laser') ||
+          (this.showSales && invoice.order.order_type === 'sales')
         );
       });
     }
 
-    // Update the filteredInvoicesList in bulk
+    // Now, filter based on the other checkboxes (Prints, Cuts, Sales), but only if they are active
+    if (this.showPrints || this.showCuts || this.showSales) {
+      filtered = filtered.filter((invoice) => {
+        return (
+          (this.showPrints && invoice.order.order_type === 'print') ||
+          (this.showCuts && invoice.order.order_type === 'laser') ||
+          (this.showSales && invoice.order.order_type === 'sales')
+        );
+      });
+    }
+
+    // Update the filtered invoices list
     this.filteredInvoicesList = [...filtered];
   }
 
