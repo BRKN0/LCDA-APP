@@ -55,7 +55,7 @@
     </thead>
     <tbody>
       <tr
-        *ngFor="let client of filteredClients"
+        *ngFor="let client of paginatedClients"
         (click)="toggleDetails(client)"
         [class.border-red-500]="client.status === 'overdue'"
         [class.border-green-500]="client.status === 'upToDate'"
@@ -83,6 +83,7 @@
           }}
         </td>
       </tr>
+      
       <tr *ngIf="selectedClient">
         <td colspan="5" class="p-4 bg-gray-50">
           <div class="details">
@@ -132,7 +133,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let orders of selectedClient.orders">
+                  <tr *ngFor="let orders of paginatedOrders">
                     <td class="p-3 border">{{ orders.code }}</td>
                     <td class="p-3 border">{{ orders.created_at }}</td>
                     <td class="p-3 border">{{ orders.description }}</td>
@@ -154,6 +155,39 @@
                   </tr>
                 </tbody>
               </table>
+              <div class="flex justify-between items-center mb-4">
+                <!-- Controles de paginación para órdenes -->
+                <div class="pagination flex items-center">
+                  <button
+                    (click)="currentOrderPage = currentOrderPage - 1; updatePaginatedOrders()"
+                    [disabled]="currentOrderPage === 1"
+                    class="px-2 py-1 text-black border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+                  >
+                    &#8592;
+                  </button>
+                  <span class="mx-4 text-gray-700">Página {{ currentOrderPage }} de {{ totalOrderPages }}</span>
+                  <button
+                    (click)="currentOrderPage = currentOrderPage + 1; updatePaginatedOrders()"
+                    [disabled]="currentOrderPage === totalOrderPages"
+                    class="px-2 py-1 text-black border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+                  >
+                    &#8594;
+                  </button>
+                </div>
+              
+                <!-- Selector de elementos por página para órdenes -->
+                <div class="items-per-page flex items-center">
+                  <label for="itemsPerPageOrders" class="mr-2">Elementos por página:</label>
+                  <select
+                    id="itemsPerPageOrders"
+                    [(ngModel)]="itemsPerPage"
+                    (change)="updatePaginatedOrders()"
+                    class="border border-gray-300 rounded-md p-1"
+                  >
+                    <option *ngFor="let size of [5, 10, 15, 20]" [value]="size">{{ size }}</option>
+                  </select>
+                </div>
+              </div>
               <div class="flex justify-end mt-4">
                 <button
                   class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
@@ -169,6 +203,40 @@
       </tr>
     </tbody>
   </table>
+
+  <div class="flex justify-between items-center mb-4">
+    <!-- Controles de paginación -->
+    <div class="pagination flex items-center">
+      <button
+        (click)="currentPage = currentPage - 1; updatePaginatedClients()"
+        [disabled]="currentPage === 1"
+        class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+      >
+        &#8592;
+      </button>
+      <span class="mx-4 text-gray-700">Página {{ currentPage }} de {{ totalPages }}</span>
+      <button
+        (click)="currentPage = currentPage + 1; updatePaginatedClients()"
+        [disabled]="currentPage === totalPages"
+        class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+      >
+        &#8594;
+      </button>
+    </div>
+  
+    <!-- Selector de elementos por página -->
+    <div class="items-per-page flex items-center">
+      <label for="itemsPerPage" class="mr-2">Elementos por página:</label>
+      <select
+        id="itemsPerPage"
+        [(ngModel)]="itemsPerPage"
+        (change)="updatePaginatedClients()"
+        class="border border-gray-300 rounded-md p-1"
+      >
+        <option *ngFor="let size of [2, 10, 15, 20]" [value]="size">{{ size }}</option>
+      </select>
+    </div>
+  </div>
 
   <!-- Form to add orders -->
   <div

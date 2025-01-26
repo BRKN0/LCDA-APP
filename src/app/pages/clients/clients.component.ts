@@ -58,6 +58,14 @@ export class ClientsComponent implements OnInit {
   searchQuery: string = '';
   filterDebt: boolean = false;
   noResultsFound: boolean = false;
+  // Variables de paginación
+  currentPage: number = 1; // Página actual
+  currentOrderPage: number =1;
+  itemsPerPage: number = 10; // Elementos por página
+  totalPages: number = 0; // Total de páginas
+  totalOrderPages: number = 1;
+  paginatedClients: Client[] = []; // Lista paginada de clientes
+  paginatedOrders: Orders[] = []; // Lista paginada de pedidos
 
   // Para añadir pedidos
   newClient: Partial<Client> = {
@@ -129,6 +137,7 @@ export class ClientsComponent implements OnInit {
     })) as Client[];
 
     this.filteredClients = this.clients; // Initialize the filtered clients list
+    this.updatePaginatedClients();
     this.loading = false;
   }
 
@@ -145,6 +154,8 @@ export class ClientsComponent implements OnInit {
 
 
     this.noResultsFound = this.filteredClients.length === 0;
+    this.currentPage = 1; // Reiniciar a la primera página
+    this.updatePaginatedClients(); // Actualizar la lista paginada
   }
 
   toggleDetails(client: Client) {
@@ -160,6 +171,8 @@ export class ClientsComponent implements OnInit {
       }
       this.selectedClient = client; // Asigna el cliente seleccionado
       this.showOrders = true; // Abre la ventana modal
+      this.currentOrderPage = 1;
+      this.updatePaginatedOrders();
     } else {
       // Cierra la ventana modal y limpia el cliente seleccionado
       this.showOrders = false;
@@ -198,7 +211,7 @@ export class ClientsComponent implements OnInit {
       cellphone: newClient.cellphone,
       status: newClient.status || 'upToDate',
       nit: newClient.nit,
-      company_name: newClient.company_name || 'N/A', // Valor predeterminado si no se proporciona
+      company_name: newClient.company_name || 'N/A', 
       email: newClient.email,
       debt: newClient.debt || 0,
       address: newClient.address,
@@ -210,7 +223,7 @@ export class ClientsComponent implements OnInit {
     try {
       const { error } = await this.supabase
         .from('clients')
-        .insert([clientToInsert]); // Inserta el nuevo pedido en Supabase
+        .insert([clientToInsert]); // Insert new client
   
       if (error) {
         console.error('Error al añadir al cliente:', error);
@@ -255,6 +268,32 @@ export class ClientsComponent implements OnInit {
 
     //Save pdf
     doc.save(`Extracto-${this.selectedClient.name}`);
+  }
+
+  //Paginacion
+  paginateItems<T>(items: T[], page: number, itemsPerPage: number): T[] {
+    const startIndex = (page - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return items.slice(startIndex, endIndex);
+  }
+
+  updatePaginatedClients(): void {
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    const endIndex = startIndex + this.itemsPerPage;
+    this.paginatedClients = this.filteredClients.slice(startIndex, endIndex);
+    this.totalPages = Math.ceil(this.filteredClients.length / this.itemsPerPage);
+  }
+  
+  updatePaginatedOrders(): void {
+    if (this.selectedClient?.orders?.length) {
+      const startIndex = (this.currentOrderPage - 1) * this.itemsPerPage;
+      const endIndex = startIndex + this.itemsPerPage;
+      this.paginatedOrders = this.selectedClient?.orders.slice(startIndex, endIndex) || [];
+      this.totalOrderPages = Math.ceil((this.selectedClient?.orders.length || 0) / this.itemsPerPage);
+    } else {
+      this.totalPages = 0;
+    }
+    
   }
 
 }
