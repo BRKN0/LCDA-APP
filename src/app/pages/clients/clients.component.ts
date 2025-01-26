@@ -20,7 +20,7 @@ interface Orders {
   total: string;
   amount: string;
   id_client: string;
-  code: string;
+  code: number;
 }
 
 interface Client {
@@ -152,16 +152,17 @@ export class ClientsComponent implements OnInit {
     this.showOrders = false; // Reset the orders view
   }
 
-  toggleOrders(client: Client) {
-    if (this.selectedClient === client) {
+  toggleOrders(client: Client | null): void {
+    if (client) {
       if (!Array.isArray(client.orders)) {
         console.error('Orders is not an array:', client.orders);
         return;
       }
-
-      this.showOrders = !this.showOrders;
+      this.selectedClient = client; // Asigna el cliente seleccionado
+      this.showOrders = true; // Abre la ventana modal
     } else {
-      console.error('Selected client mismatch or orders not found.');
+      // Cierra la ventana modal y limpia el cliente seleccionado
+      this.showOrders = false;
     }
   }
 
@@ -239,7 +240,7 @@ export class ClientsComponent implements OnInit {
 
     //client details 
     const orders = this.selectedClient.orders.map((order: any) => [
-      order.id_order,
+      order.code,
       order.created_at,
       order.description,
       `$${order.total}`,
