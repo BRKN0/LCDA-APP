@@ -4,7 +4,7 @@
 </div>
 <div class="container mx-auto px-4">
   <!-- Navigation -->
-  <div class="navigation flex justify-around py-4 border-b">
+  <div class="navigation2 flex justify-around py-4 border-b">
     <div class="nav-item cursor-pointer" (click)="goToHome()">
       <i class="fas fa-home"></i>
       <span>Inicio</span>
@@ -24,12 +24,45 @@
         Iniciar sesión
       </button>
 
-      <!-- Usuario -->
+    <!-- Usuario -->
     </ng-template>
     <ng-template #signOutButton>
-      <div class="nav-item">
-        <i class="fas fa-dollar-sign"></i>
-        <span>Financiamiento</span>
+      <div class="relative nav-item2" (clickOutside)="closeFinanceDropdown()">
+        <!-- Finance Button -->
+        <div
+          class="cursor-pointer flex items-center"
+          (click)="toggleFinanceDropdown($event)"
+        >
+          <i class="fas fa-dollar-sign"></i>
+          <span>Financiamiento</span>
+          <i
+            class="ml-2 fas"
+            [ngClass]="{
+              'fa-chevron-down': !financeDropdownOpen,
+              'fa-chevron-up': financeDropdownOpen
+            }"
+          ></i>
+        </div>
+
+        <!-- Dropdown Menu -->
+        <ul
+          *ngIf="financeDropdownOpen"
+          class="absolute bg-white shadow-lg rounded-md mt-2 w-40 z-10"
+          style="left: 0"
+        >
+          <li
+            class="p-2 hover:bg-gray-200 cursor-pointer"
+            (click)="goToBanks(); closeFinanceDropdown()"
+          >
+            Bancos
+          </li>
+          <li
+            class="p-2 hover:bg-gray-200 cursor-pointer"
+            (click)="goToBanking(); closeFinanceDropdown()"
+          >
+            Transacciones
+          </li>
+        </ul>
       </div>
       <div class="nav-item cursor-pointer" (click)="goToInventory()">
         <i class="fas fa-box"></i>

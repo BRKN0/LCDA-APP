@@ -9,14 +9,16 @@ button {
   padding: 0.5rem 1rem; /* Tamaño del botón */
   border: none; /* Sin borde */
   border-radius: 5px; /* Bordes redondeados */
-  background-color: #007bff; /* Color de fondo */
   color: white; /* Color del texto */
   font-weight: bold; /* Texto en negrita */
   cursor: pointer; /* Cambiar cursor al pasar sobre el botón */
   transition: background-color 0.3s ease; /* Transición suave al pasar el ratón */
+  background-color: #e74c3c;
+  color: white;
 
   &:hover {
-    background-color: #0056b3; /* Color más oscuro al pasar el ratón */
+    background-color: #c0392b;
+    transform: scale(1.05);
   }
 }
 

@@ -29,12 +29,17 @@
         class="filter-input"
       >
         <option value="">Todos</option>
-        <option *ngFor="let bank of banks" [value]="bank.code">
+        <option *ngFor="let bank of banks" [value]="bank.id">
           {{ bank.bank }}
         </option>
       </select>
     </div>
-    <button class="banks-button" (click)="goToBanksList()">Ver Bancos</button>
+    <button
+      class="top-1/2 transform -translate-y-1/2 bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-700 w-auto"
+      (click)="goToBanksList()"
+    >
+      Ver Bancos
+    </button>
   </div>
 
   <!-- Balance Section -->
@@ -66,11 +71,11 @@
           <td class="p-3 border">
             {{ transaction.created_at | date : "yyyy-MM-dd" }}
           </td>
-          <td class="p-3 border">{{ getBankName(transaction.bank) }}</td>
+          <td class="p-3 border">{{ getBankName(transaction.id_bank) }}</td>
           <td class="p-3 border">{{ transaction.description }}</td>
           <td class="p-3 border">{{ transaction.in | currency : "COP" }}</td>
           <td class="p-3 border">{{ transaction.out | currency : "COP" }}</td>
-          <td class="p-3 border">{{ transaction.category }}</td>
+          <td class="p-3 border">{{ transaction.category === 'sales' ? 'Venta' : 'Desconocido' }}</td>
           <td class="p-3 border">
             {{ transaction.balance | currency : "COP" }}
           </td>
