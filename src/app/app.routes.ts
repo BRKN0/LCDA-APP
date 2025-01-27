@@ -6,6 +6,8 @@ import { ClientsComponent } from './pages/clients/clients.component';
 import { OrdersComponent } from './pages/orders/orders.component';
 import { InvoiceComponent } from './pages/invoice/invoice.component';
 import { ExpensesComponent } from './pages/expenses/expenses.component';
+import { BankingComponent } from './pages/banking/banking.component';
+import { NotificationsComponent } from './pages/notifications/notifications.component';
 
 export const routes: Routes = [
   {
@@ -39,5 +41,13 @@ export const routes: Routes = [
   {
     path: 'expenses',
     loadComponent: () => ExpensesComponent,
+  },
+  {
+    path: 'banking',
+    loadComponent: () => BankingComponent,
+  },
+  {
+    path: 'notifications',
+    loadComponent: () => NotificationsComponent,
   }
 ];
