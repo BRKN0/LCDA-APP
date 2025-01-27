@@ -37,3 +37,17 @@
 .printable-invoice .total p {
   margin: 0;
 }
+
+/* Estilo para el modal */
+.bg-opacity-50 {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.shadow-lg {
+  box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.25);
+}
+
+/* Clase para el ancho del modal */
+.modal-width {
+  width: 50%;
+}

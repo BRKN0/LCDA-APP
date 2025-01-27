@@ -71,6 +71,9 @@ export class InvoiceComponent implements OnInit {
   filteredClients: Client[] = [];
   filterDebt: boolean = false;
   noResultsFound: boolean = false;
+  //filter date
+  startDate: string = ''; 
+  endDate: string = ''; 
 
   constructor(
     private readonly supabase: SupabaseService,
@@ -235,7 +238,9 @@ export class InvoiceComponent implements OnInit {
       !this.showCuts &&
       !this.showSales &&
       !this.showDebt &&
-      !this.nameSearchQuery // Make sure to check nameSearchQuery too
+      !this.nameSearchQuery &&// Make sure to check nameSearchQuery too
+      !this.startDate &&
+      !this.endDate
     ) {
       return this.invoices;
     }
@@ -264,9 +269,20 @@ export class InvoiceComponent implements OnInit {
           ?.toLowerCase()
           .includes(this.nameSearchQuery.toLowerCase());
 
-      // Combine all filters: matches debt status, other filters, and the name search query
+      // Filter by date range
+      const invoiceDate = new Date(invoice.created_at);
+      const matchesStartDate = this.startDate
+        ? invoiceDate >= new Date(this.startDate)
+        : true;
+      const matchesEndDate = this.endDate
+        ? invoiceDate <= new Date(this.endDate + 'T23:59:59')
+        : true;
+
+      const matchesDateRange = matchesStartDate && matchesEndDate;
+
+      // Combine all filters: matches debt status, other filters, the name search query and the range date
       const matchesFilters =
-        isDebtFilter && (isPrintsFilter || isCutsFilter || isSalesFilter);
+        isDebtFilter && (isPrintsFilter || isCutsFilter || isSalesFilter) && matchesDateRange;
 
       // Return true if the invoice matches both the filters and the name search query
       return matchesFilters && matchesNameSearchQuery;

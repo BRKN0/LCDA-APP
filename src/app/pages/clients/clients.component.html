@@ -117,86 +117,86 @@
 
             <!-- Ventana modal flotante -->
             <div
-            *ngIf="showOrders"
-            class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
+              *ngIf="showOrders"
+              class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
             >
-            <div class="bg-white rounded-lg shadow-lg p-6 w-3/4 max-h-screen overflow-y-auto">
-              <h3 class="text-lg font-bold mb-4">Pedidos del Cliente: {{ selectedClient.name }}</h3>
-              <table class="w-full border-collapse">
-                <thead>
-                  <tr class="bg-gray-100">
-                    <th class="p-3 border">#</th>
-                    <th class="p-3 border">Fecha</th>
-                    <th class="p-3 border">Detalles</th>
-                    <th class="p-3 border">Total</th>
-                    <th class="p-3 border">Estado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let orders of paginatedOrders">
-                    <td class="p-3 border">{{ orders.code }}</td>
-                    <td class="p-3 border">{{ orders.created_at }}</td>
-                    <td class="p-3 border">{{ orders.description }}</td>
-                    <td class="p-3 border">{{ orders.total }}</td>
-                    <td
-                      class="p-3 border"
-                      [class.text-green-600]="orders.order_status === 'upToDate'"
-                      [class.text-red-600]="orders.order_status === 'overdue'"
-                      [class.text-yellow-500]="orders.order_status === 'No Pago'"
+              <div class="bg-white rounded-lg shadow-lg p-6 w-3/4 max-h-screen overflow-y-auto">
+                <h3 class="text-lg font-bold mb-4">Pedidos del Cliente: {{ selectedClient.name }}</h3>
+                <table class="w-full border-collapse">
+                  <thead>
+                    <tr class="bg-gray-100">
+                      <th class="p-3 border">#</th>
+                      <th class="p-3 border">Fecha</th>
+                      <th class="p-3 border">Detalles</th>
+                      <th class="p-3 border">Total</th>
+                      <th class="p-3 border">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let orders of paginatedOrders">
+                      <td class="p-3 border">{{ orders.code }}</td>
+                      <td class="p-3 border">{{ orders.created_at }}</td>
+                      <td class="p-3 border">{{ orders.description }}</td>
+                      <td class="p-3 border">{{ orders.total }}</td>
+                      <td
+                        class="p-3 border"
+                        [class.text-green-600]="orders.order_status === 'upToDate'"
+                        [class.text-red-600]="orders.order_status === 'overdue'"
+                        [class.text-yellow-500]="orders.order_status === 'No Pago'"
+                      >
+                        {{
+                          orders.order_status === "upToDate"
+                            ? "Al Día"
+                            : orders.order_status === "overdue"
+                            ? "En Mora"
+                            : "Desconocido"
+                        }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div class="flex justify-between items-center mb-4">
+                  <!-- Controles de paginación para órdenes -->
+                  <div class="pagination flex items-center">
+                    <button
+                      (click)="currentOrderPage = currentOrderPage - 1; updatePaginatedOrders()"
+                      [disabled]="currentOrderPage === 1"
+                      class="px-2 py-1 text-black border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
                     >
-                      {{
-                        orders.order_status === "upToDate"
-                          ? "Al Día"
-                          : orders.order_status === "overdue"
-                          ? "En Mora"
-                          : "Desconocido"
-                      }}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-              <div class="flex justify-between items-center mb-4">
-                <!-- Controles de paginación para órdenes -->
-                <div class="pagination flex items-center">
+                      &#8592;
+                    </button>
+                    <span class="mx-4 text-gray-700">Página {{ currentOrderPage }} de {{ totalOrderPages }}</span>
+                    <button
+                      (click)="currentOrderPage = currentOrderPage + 1; updatePaginatedOrders()"
+                      [disabled]="currentOrderPage === totalOrderPages"
+                      class="px-2 py-1 text-black border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+                    >
+                      &#8594;
+                    </button>
+                  </div>
+                
+                  <!-- Selector de elementos por página para órdenes -->
+                  <div class="items-per-page flex items-center">
+                    <label for="itemsPerPageOrders" class="mr-2">Elementos por página:</label>
+                    <select
+                      id="itemsPerPageOrders"
+                      [(ngModel)]="itemsPerOrderPage"
+                      (change)="updatePaginatedOrders()"
+                      class="border border-gray-300 rounded-md p-1"
+                    >
+                      <option *ngFor="let size of [5, 10, 15, 20]" [value]="size">{{ size }}</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="flex justify-end mt-4">
                   <button
-                    (click)="currentOrderPage = currentOrderPage - 1; updatePaginatedOrders()"
-                    [disabled]="currentOrderPage === 1"
-                    class="px-2 py-1 text-black border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+                    class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
+                    (click)="toggleOrders(null)"
                   >
-                    &#8592;
-                  </button>
-                  <span class="mx-4 text-gray-700">Página {{ currentOrderPage }} de {{ totalOrderPages }}</span>
-                  <button
-                    (click)="currentOrderPage = currentOrderPage + 1; updatePaginatedOrders()"
-                    [disabled]="currentOrderPage === totalOrderPages"
-                    class="px-2 py-1 text-black border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
-                  >
-                    &#8594;
+                    Cerrar
                   </button>
                 </div>
-              
-                <!-- Selector de elementos por página para órdenes -->
-                <div class="items-per-page flex items-center">
-                  <label for="itemsPerPageOrders" class="mr-2">Elementos por página:</label>
-                  <select
-                    id="itemsPerPageOrders"
-                    [(ngModel)]="itemsPerPage"
-                    (change)="updatePaginatedOrders()"
-                    class="border border-gray-300 rounded-md p-1"
-                  >
-                    <option *ngFor="let size of [5, 10, 15, 20]" [value]="size">{{ size }}</option>
-                  </select>
-                </div>
               </div>
-              <div class="flex justify-end mt-4">
-                <button
-                  class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
-                  (click)="toggleOrders(null)"
-                >
-                  Cerrar
-                </button>
-              </div>
-            </div>
             </div>
           </div>
         </td>
