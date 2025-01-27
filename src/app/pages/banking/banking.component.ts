@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, NgZone, OnInit } from '@angular/core';
 import { MainBannerComponent } from '../main-banner/main-banner.component';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -14,6 +14,7 @@ interface Transaction {
   out: number;
   category: string;
   balance: number;
+  id_bank: string;
 }
 
 interface Bank {
@@ -44,14 +45,17 @@ export class BankingComponent implements OnInit {
 
   constructor(
     private readonly router: Router,
-    private readonly supabase: SupabaseService
+    private readonly supabase: SupabaseService,
+    private readonly zone: NgZone
   ) {}
 
   async ngOnInit(): Promise<void> {
     this.supabase.authChanges((_, session) => {
       if (session) {
-        this.loadTransactions();
-        this.loadBanks();
+        this.zone.run(() => {
+          this.loadTransactions();
+          this.loadBanks();
+        });
       }
     });
   }
@@ -86,26 +90,23 @@ export class BankingComponent implements OnInit {
         (!this.dateTo ||
           new Date(transaction.created_at) <= new Date(this.dateTo));
       const isBankMatch =
-        !this.selectedBank || transaction.bank === this.selectedBank;
+        !this.selectedBank || transaction.id_bank === this.selectedBank;
 
       return isInDateRange && isBankMatch;
     });
   }
-
 
   calculateBalance() {
     if (!this.selectedBank) {
       return this.banks.reduce((sum, bank) => sum + bank.balance, 0);
     }
 
-
-    const bank = this.banks.find((b) => b.code === this.selectedBank);
+    const bank = this.banks.find((b) => b.id === this.selectedBank);
     return bank ? bank.balance : 0;
   }
 
-
   getBankName(bankCode: string): string {
-    const bank = this.banks.find((b) => b.code === bankCode);
+    const bank = this.banks.find((b) => b.id === bankCode);
     return bank ? bank.bank : 'Desconocido';
   }
 

@@ -8,6 +8,7 @@ import { InvoiceComponent } from './pages/invoice/invoice.component';
 import { ExpensesComponent } from './pages/expenses/expenses.component';
 import { BankingComponent } from './pages/banking/banking.component';
 import { NotificationsComponent } from './pages/notifications/notifications.component';
+import { BanksComponent } from './pages/banks/banks.component';
 
 export const routes: Routes = [
   {
@@ -49,5 +50,9 @@ export const routes: Routes = [
   {
     path: 'notifications',
     loadComponent: () => NotificationsComponent,
+  },
+  {
+    path: 'banks',
+    loadComponent: () => BanksComponent,
   }
 ];

@@ -1,0 +1,51 @@
+<app-main-banner></app-main-banner>
+<div class="transactions-container">
+  <div class="filters">
+    <button
+      class="top-1/2 transform -translate-y-1/2 bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-700 w-auto"
+      (click)="goToTransactionsList()"
+    >
+      Ver Transacciones
+    </button>
+  </div>
+
+  <!-- Balance Section -->
+  <div class="balance-section">
+    <h2 class="balance-title">Saldo</h2>
+    <p class="balance-amount">
+      {{ calculateBalance() | currency : "COP" }}
+    </p>
+  </div>
+
+  <!-- Transactions Table -->
+  <div class="transactions-table">
+    <table class="table-auto w-full border-collapse">
+      <thead>
+        <tr class="bg-gray-100">
+          <th class="p-3 border">Codigo</th>
+          <th class="p-3 border">Numero de cuenta</th>
+          <th class="p-3 border">Tipo de cuenta</th>
+          <th class="p-3 border">Banco</th>
+          <th class="p-3 border">Cuenta Contable</th>
+          <th class="p-3 border">Saldo</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let bank of banks">
+          <td class="p-3 border">{{ bank.code }}</td>
+          <td class="p-3 border">
+            {{ bank.account_number}}
+          </td>
+          <td class="p-3 border">
+            {{ bank.account_type === "savings" ? "Ahorro" : "Desconocido" }}
+          </td>
+          <td class="p-3 border">{{ bank.bank }}</td>
+          <td class="p-3 border">{{ bank.ledger_account }}</td>
+          <td class="p-3 border">
+            {{ bank.balance | currency : "COP" }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
