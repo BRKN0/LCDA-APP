@@ -26,6 +26,9 @@ export class MainBannerComponent implements OnInit {
         .authChanges$()
         .pipe(map((session) => !!session));
     }
+    goToNotifications() {
+      this.router.navigate(['/notifications']); // Redirect to root route
+    }
     goToHome() {
       this.router.navigate(['/home']); // Redirect to root route
     }

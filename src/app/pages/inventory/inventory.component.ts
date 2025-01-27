@@ -14,6 +14,7 @@ interface InventoryItem {
   code: number;
   cost: number;
   sale_price: number;
+  status: string;
 }
 
 @Component({
@@ -37,7 +38,8 @@ export class InventoryComponent implements OnInit {
     color: '',
     code: 0,
     cost: 0,
-    sale_price: 0
+    sale_price: 0,
+    status: '',
   };
   loading = true;
   comparisonResult: any[] = [];
@@ -111,7 +113,8 @@ export class InventoryComponent implements OnInit {
       color: '',
       code: 0,
       cost: 0,
-      sale_price: 0
+      sale_price: 0,
+      status: ''
     } : item;
   }
 
@@ -304,6 +307,7 @@ export class InventoryComponent implements OnInit {
       code: Date.now(), // Usamos timestamp como código temporal
       cost: 0,
       sale_price: 0,
+      status: ''
     };
     this.isEditing = false; // Indicar que no estamos editando
     this.showModal = true;  // Mostrar el modal
@@ -326,6 +330,7 @@ export class InventoryComponent implements OnInit {
       color: this.selectedItem.color,
       cost: this.selectedItem.cost,
       sale_price: this.selectedItem.sale_price,
+      status: this.selectedItem.status
     };
 
     if (this.selectedItem.id_material) {
