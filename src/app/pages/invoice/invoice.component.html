@@ -39,8 +39,8 @@
     <span class="ml-4">En Mora</span>
   </label>
 </div>
-<div class="flex items-center justify-center py-4">
-  <div class="w-full max-w-md relative mr-40">
+<div class="flex flex-wrap items-center justify-between py-4">
+  <div class="w-full max-w-xs relative mr-4">
     <input
       type="text"
       placeholder="Buscar factura por número..."
@@ -48,13 +48,13 @@
       class="w-full py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
     />
     <button
-      class="absolute right-0 top-1/2 transform -translate-y-1/2 bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-700 w-auto"
+      class="absolute right-0 top-1/2 transform -translate-y-1/2 bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-700"
       (click)="onSearch()"
     >
       Buscar
     </button>
   </div>
-  <div class="w-full max-w-md relative ml-40">
+  <div class="w-full max-w-xs relative mr-4">
     <input
       type="text"
       placeholder="Buscar cliente por nombre..."
@@ -63,11 +63,32 @@
       class="w-full py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
     />
     <button
-      class="absolute right-0 top-1/2 transform -translate-y-1/2 bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-700 w-auto"
+      class="absolute right-0 top-1/2 transform -translate-y-1/2 bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-700"
       (click)="searchClient()"
     >
       Buscar
     </button>
+  </div>
+  <!--Filter date range-->
+  <div class="flex items-center space-x-4">
+    <div>
+      <label for="startDate" class="mr-2 font-semibold">Desde:</label>
+      <input
+        type="date"
+        id="startDate"
+        [(ngModel)]="startDate"
+        class="border border-gray-300 rounded-md p-1"
+      />
+    </div>
+    <div>
+      <label for="endDate" class="mr-2 font-semibold">Hasta:</label>
+      <input
+        type="date"
+        id="endDate"
+        [(ngModel)]="endDate"
+        class="border border-gray-300 rounded-md p-1"
+      />
+    </div>
   </div>
 </div>
 
@@ -141,112 +162,120 @@
   </ul>
 </div>
 
-<!-- Show details of the selected invoice -->
+<!-- Show details of the selected invoice in float window-->
 <div
   *ngIf="selectedInvoiceDetails && selectedInvoiceDetails.length > 0"
-  class="mt-4"
+  class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
 >
-  <h2 class="text-xl font-bold">Detalles de Factura</h2>
-
-  <!-- Printable Invoice Layout -->
-  <div class="p-4 border border-gray-300 bg-white invoice-details">
-    <div class="flex justify-between mb-4">
-      <div>
-        <h3 class="font-semibold text-lg">
-          Factura N°: {{ selectedInvoiceDetails[0].code }}
-        </h3>
-        <p>
-          <strong>Fecha:</strong>
-          {{ selectedInvoiceDetails[0].created_at | date : "dd-MM-yyyy" }}
-        </p>
-        <p
-          [class.text-green-600]="
-            selectedInvoiceDetails[0].invoice_status === 'upToDate'
-          "
-          [class.text-red-600]="
-            selectedInvoiceDetails[0].invoice_status === 'overdue'
-          "
-        >
-          <strong>Estado:</strong>
-          {{
-            selectedInvoiceDetails[0].invoice_status === "overdue"
-              ? "En Mora"
-              : selectedInvoiceDetails[0].invoice_status === "upToDate"
-              ? "Al Dia"
-              : "Desconocido"
-          }}
-        </p>
-      </div>
-      <div class="text-right">
-        <p>
-          <strong>De:</strong>
-          {{
-            selectedInvoiceDetails[0].order.client.company_name ||
-              selectedInvoiceDetails[0].order.client.name
-          }}
-        </p>
-        <p>{{ selectedInvoiceDetails[0].order.client.address }}</p>
-        <p>
-          {{ selectedInvoiceDetails[0].order.client.city }},
-          {{ selectedInvoiceDetails[0].order.client.province }}
-          {{ selectedInvoiceDetails[0].order.client.postal_code }}
-        </p>
-        <p>{{ selectedInvoiceDetails[0].order.client.email }}</p>
-        <p>{{ selectedInvoiceDetails[0].order.client.cellphone }}</p>
-      </div>
-    </div>
-
-    <!-- Itemized Invoice List -->
-    <div class="my-6">
-      <h4 class="font-semibold"></h4>
-      <ul class="list-none">
-        <li>
-          <p>
-            <strong>Descripción:</strong>
-            {{ selectedInvoiceDetails[0].order.description }}
-          </p>
-          <p>
-            <strong>Cantidad:</strong>
-            {{ selectedInvoiceDetails[0].order.order_quantity }}
-          </p>
-          <p>
-            <strong>Valor Unitario:</strong>
-            {{ selectedInvoiceDetails[0].order.unitary_value }}
-          </p>
-          <p>
-            <strong>Subtotal:</strong>
-            {{ selectedInvoiceDetails[0].order.subtotal }}
-          </p>
-          <p *ngIf="selectedInvoiceDetails[0].order.iva">
-            <strong>IVA:</strong>
-            {{ selectedInvoiceDetails[0].order.iva }}
-          </p>
-        </li>
-      </ul>
-    </div>
-
-    <!-- Totals Section -->
-    <div class="border-t pt-4 mt-4">
-      <div class="flex justify-between">
-        <p><strong>Subtotal:</strong></p>
-        <p>{{ selectedInvoiceDetails[0].order.subtotal }}</p>
-      </div>
-      <div class="flex justify-between">
-        <p *ngIf="selectedInvoiceDetails[0].order.iva"><strong>IVA:</strong></p>
-        <p>{{ selectedInvoiceDetails[0].order.iva }}</p>
-      </div>
-      <div class="flex justify-between">
-        <p><strong>Total:</strong></p>
-        <p class="font-bold">
-          {{ selectedInvoiceDetails[0].order.total }}
-        </p>
-      </div>
-    </div>
+  <div class="bg-white rounded-lg shadow-lg p-6 w-3/4 max-h-screen overflow-y-auto relative">
+    <!-- Botón de cierre -->
     <button
-      class="bg-green-500 text-white py-2 px-4 mt-4 rounded"
-      (click)="generatePdf()"
+      class="absolute top-4 right-4 text-gray-600 hover:text-black font-bold text-xl"
+      (click)="selectedInvoiceDetails = null"
     >
-      Descargar PDF
+      &times;
     </button>
+    <h2 class="text-xl font-bold">Detalles de Factura</h2>
+
+    <!-- Printable Invoice Layout -->
+    <div class="p-4 border border-gray-300 bg-white invoice-details">
+      <div class="flex justify-between mb-4">
+        <div>
+          <h3 class="font-semibold text-lg">
+            Factura N°: {{ selectedInvoiceDetails[0].code }}
+          </h3>
+          <p>
+            <strong>Fecha:</strong>
+            {{ selectedInvoiceDetails[0].created_at | date : "dd-MM-yyyy" }}
+          </p>
+          <p
+            [class.text-green-600]="
+              selectedInvoiceDetails[0].invoice_status === 'upToDate'
+            "
+            [class.text-red-600]="
+              selectedInvoiceDetails[0].invoice_status === 'overdue'
+            "
+          >
+            <strong>Estado:</strong>
+            {{
+              selectedInvoiceDetails[0].invoice_status === "overdue"
+                ? "En Mora"
+                : selectedInvoiceDetails[0].invoice_status === "upToDate"
+                ? "Al Dia"
+                : "Desconocido"
+            }}
+          </p>
+        </div>
+        <div class="text-right">
+          <p>
+            <strong>De:</strong>
+            {{
+              selectedInvoiceDetails[0].order.client.company_name ||
+                selectedInvoiceDetails[0].order.client.name
+            }}
+          </p>
+          <p>{{ selectedInvoiceDetails[0].order.client.address }}</p>
+          <p>
+            {{ selectedInvoiceDetails[0].order.client.city }},
+            {{ selectedInvoiceDetails[0].order.client.province }}
+            {{ selectedInvoiceDetails[0].order.client.postal_code }}
+          </p>
+          <p>{{ selectedInvoiceDetails[0].order.client.email }}</p>
+          <p>{{ selectedInvoiceDetails[0].order.client.cellphone }}</p>
+        </div>
+      </div>
+
+      <!-- Itemized Invoice List -->
+      <div class="my-6">
+        <h4 class="font-semibold"></h4>
+        <ul class="list-none">
+          <li>
+            <p>
+              <strong>Descripción:</strong>
+              {{ selectedInvoiceDetails[0].order.description }}
+            </p>
+            <p>
+              <strong>Cantidad:</strong>
+              {{ selectedInvoiceDetails[0].order.order_quantity }}
+            </p>
+            <p>
+              <strong>Valor Unitario:</strong>
+              {{ selectedInvoiceDetails[0].order.unitary_value }}
+            </p>
+            <p>
+              <strong>Subtotal:</strong>
+              {{ selectedInvoiceDetails[0].order.subtotal }}
+            </p>
+            <p *ngIf="selectedInvoiceDetails[0].order.iva">
+              <strong>IVA:</strong>
+              {{ selectedInvoiceDetails[0].order.iva }}
+            </p>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Totals Section -->
+      <div class="border-t pt-4 mt-4">
+        <div class="flex justify-between">
+          <p><strong>Subtotal:</strong></p>
+          <p>{{ selectedInvoiceDetails[0].order.subtotal }}</p>
+        </div>
+        <div class="flex justify-between">
+          <p *ngIf="selectedInvoiceDetails[0].order.iva"><strong>IVA:</strong></p>
+          <p>{{ selectedInvoiceDetails[0].order.iva }}</p>
+        </div>
+        <div class="flex justify-between">
+          <p><strong>Total:</strong></p>
+          <p class="font-bold">
+            {{ selectedInvoiceDetails[0].order.total }}
+          </p>
+        </div>
+      </div>
+      <button
+        class="bg-green-500 text-white py-2 px-4 mt-4 rounded"
+        (click)="generatePdf()"
+      >
+        Descargar PDF
+      </button>
   </div>
 </div>

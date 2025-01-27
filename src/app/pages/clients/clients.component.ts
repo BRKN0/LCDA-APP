@@ -64,6 +64,7 @@ export class ClientsComponent implements OnInit {
   itemsPerPage: number = 10; // Elementos por página
   totalPages: number = 0; // Total de páginas
   totalOrderPages: number = 1;
+  itemsPerOrderPage: number = 10;
   paginatedClients: Client[] = []; // Lista paginada de clientes
   paginatedOrders: Orders[] = []; // Lista paginada de pedidos
 
@@ -286,10 +287,10 @@ export class ClientsComponent implements OnInit {
   
   updatePaginatedOrders(): void {
     if (this.selectedClient?.orders?.length) {
-      const startIndex = (this.currentOrderPage - 1) * this.itemsPerPage;
-      const endIndex = startIndex + this.itemsPerPage;
+      const startIndex = (this.currentOrderPage - 1) * this.itemsPerOrderPage;
+      const endIndex = startIndex + this.itemsPerOrderPage;
       this.paginatedOrders = this.selectedClient?.orders.slice(startIndex, endIndex) || [];
-      this.totalOrderPages = Math.ceil((this.selectedClient?.orders.length || 0) / this.itemsPerPage);
+      this.totalOrderPages = Math.ceil((this.selectedClient?.orders.length || 0) / this.itemsPerOrderPage);
     } else {
       this.totalPages = 0;
     }
