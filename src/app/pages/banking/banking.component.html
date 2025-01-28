@@ -1,0 +1,86 @@
+<app-main-banner></app-main-banner>
+<div class="transactions-container">
+  <!-- Filters Section -->
+  <div class="filters">
+    <div class="filter-item">
+      <label for="date-from">Desde:</label>
+      <input
+        id="date-from"
+        type="date"
+        [(ngModel)]="dateFrom"
+        class="filter-input"
+      />
+    </div>
+    <div class="filter-item">
+      <label for="date-to">Hasta:</label>
+      <input
+        id="date-to"
+        type="date"
+        [(ngModel)]="dateTo"
+        class="filter-input"
+      />
+    </div>
+    <div class="filter-item">
+      <label for="bank">Banco:</label>
+      <select
+        id="bank"
+        [(ngModel)]="selectedBank"
+        (change)="updateFilteredTransactions()"
+        class="filter-input"
+      >
+        <option value="">Todos</option>
+        <option *ngFor="let bank of banks" [value]="bank.id">
+          {{ bank.bank }}
+        </option>
+      </select>
+    </div>
+    <button
+      class="top-1/2 transform -translate-y-1/2 bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-700 w-auto"
+      (click)="goToBanksList()"
+    >
+      Ver Bancos
+    </button>
+  </div>
+
+  <!-- Balance Section -->
+  <div class="balance-section">
+    <h2 class="balance-title">Saldo</h2>
+    <p class="balance-amount">
+      {{ calculateBalance() | currency : "COP" }}
+    </p>
+  </div>
+
+  <!-- Transactions Table -->
+  <div class="transactions-table">
+    <table class="table-auto w-full border-collapse">
+      <thead>
+        <tr class="bg-gray-100">
+          <th class="p-3 border">Codigo</th>
+          <th class="p-3 border">Fecha</th>
+          <th class="p-3 border">Banco</th>
+          <th class="p-3 border">Descripción</th>
+          <th class="p-3 border">Entrada</th>
+          <th class="p-3 border">Salida</th>
+          <th class="p-3 border">Categoría</th>
+          <th class="p-3 border">Saldo</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let transaction of filteredTransactions">
+          <td class="p-3 border">{{ transaction.code }}</td>
+          <td class="p-3 border">
+            {{ transaction.created_at | date : "yyyy-MM-dd" }}
+          </td>
+          <td class="p-3 border">{{ getBankName(transaction.id_bank) }}</td>
+          <td class="p-3 border">{{ transaction.description }}</td>
+          <td class="p-3 border">{{ transaction.in | currency : "COP" }}</td>
+          <td class="p-3 border">{{ transaction.out | currency : "COP" }}</td>
+          <td class="p-3 border">{{ transaction.category === 'sales' ? 'Venta' : 'Desconocido' }}</td>
+          <td class="p-3 border">
+            {{ transaction.balance | currency : "COP" }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

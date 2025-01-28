@@ -38,13 +38,13 @@
 
 <!-- Action buttons -->
 <div class="action-buttons mb-4">
-  <button class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600" (click)="generateKardex()">
+  <button class="button px-4 py-2 text-white rounded" (click)="generateKardex()">
     Generar Kardex
   </button>
-  <button class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600" (click)="openComparisonModal()">
+  <button class="button px-4 py-2 text-white rounded" (click)="openComparisonModal()">
     Comparar Archivos
   </button>
-  <button class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600" (click)="addNewItem()">
+  <button class="button px-4 py-2 text-white rounded" (click)="addNewItem()">
     Agregar Artículo
   </button>
 </div>
@@ -149,6 +149,10 @@
         <label class="block text-gray-700">Precio de venta</label>
         <input type="number" [(ngModel)]="selectedItem.sale_price" name="sale_price" class="form-input mt-1 block w-full" required />
       </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Estado</label>
+        <input type="text" [(ngModel)]="selectedItem.status" name="sale_price" class="form-input mt-1 block w-full" required />
+      </div>
       <div class="flex justify-end">
         <button type="button" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md mr-2" (click)="closeModal()">
           Cancelar
@@ -174,6 +178,7 @@
         <th class="p-3 border">Color</th>
         <th class="p-3 border">Costo</th>
         <th class="p-3 border">Precio de venta</th>
+        <th class="p-3 border">Stock</th>
         <th class="p-3 border">Acciones</th>
       </tr>
     </thead>
@@ -190,6 +195,15 @@
           <td class="p-3 border">{{ item.color || 'Sin Color' }}</td>
           <td class="p-3 border">{{ item.cost | currency }}</td>
           <td class="p-3 border">{{ item.sale_price | currency }}</td>
+          <td class="p-3 border">          {{
+            item.status === "out"
+              ? "Fuera de Stock"
+              : item.status === "low"
+              ? "Stock Bajo"
+              : item.status === "ok"
+              ? "En Stock"
+              : "Desconocido"
+          }}</td>
           <td class="p-3 border">
             <button (click)="editItem(item)" class="px-2 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 mr-2">
               Editar
