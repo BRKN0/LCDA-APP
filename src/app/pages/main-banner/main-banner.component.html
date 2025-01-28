@@ -4,7 +4,7 @@
 </div>
 <div class="container mx-auto px-4">
   <!-- Navigation -->
-  <div class="navigation flex justify-around py-4 border-b">
+  <div class="navigation2 flex justify-around py-4 border-b">
     <div class="nav-item cursor-pointer" (click)="goToHome()">
       <i class="fas fa-home"></i>
       <span>Inicio</span>
@@ -24,12 +24,45 @@
         Iniciar sesión
       </button>
 
-      <!-- Usuario -->
+    <!-- Usuario -->
     </ng-template>
     <ng-template #signOutButton>
-      <div class="nav-item">
-        <i class="fas fa-dollar-sign"></i>
-        <span>Financiamiento</span>
+      <div class="relative nav-item2" (clickOutside)="closeFinanceDropdown()">
+        <!-- Finance Button -->
+        <div
+          class="cursor-pointer flex items-center"
+          (click)="toggleFinanceDropdown($event)"
+        >
+          <i class="fas fa-dollar-sign"></i>
+          <span>Financiamiento</span>
+          <i
+            class="ml-2 fas"
+            [ngClass]="{
+              'fa-chevron-down': !financeDropdownOpen,
+              'fa-chevron-up': financeDropdownOpen
+            }"
+          ></i>
+        </div>
+
+        <!-- Dropdown Menu -->
+        <ul
+          *ngIf="financeDropdownOpen"
+          class="absolute bg-white shadow-lg rounded-md mt-2 w-40 z-10"
+          style="left: 0"
+        >
+          <li
+            class="p-2 hover:bg-gray-200 cursor-pointer"
+            (click)="goToBanks(); closeFinanceDropdown()"
+          >
+            Bancos
+          </li>
+          <li
+            class="p-2 hover:bg-gray-200 cursor-pointer"
+            (click)="goToBanking(); closeFinanceDropdown()"
+          >
+            Transacciones
+          </li>
+        </ul>
       </div>
       <div class="nav-item cursor-pointer" (click)="goToInventory()">
         <i class="fas fa-box"></i>
@@ -52,11 +85,28 @@
         <span>Egresos</span>
       </div>
       <button
-        class="p-1 text-white bg-blue-700 rounded-lg shadow-lg"
+        class="p-1 text-white bg-red-500 rounded-lg shadow-lg"
         (click)="signOut()"
       >
         Cerrar sesión
       </button>
+      <!-- Notifications Button -->
+      <div class="nav-item cursor-pointer" (click)="goToNotifications()">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="1.5"
+          stroke="currentColor"
+          class="size-6 absolute left"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"
+          />
+        </svg>
+      </div>
     </ng-template>
   </div>
 </div>
