@@ -51,3 +51,43 @@
 .modal-width {
   width: 50%;
 }
+
+
+.items-per-page {
+  margin-left: auto; /* Mueve el selector de "Elementos por página" completamente a la derecha */
+  display: flex;
+  align-items: center;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+}
+
+.pagination button {
+  background-color: #fff; /* Fondo blanco */
+  border: 1px solid #ccc; /* Borde gris claro */
+  color: #000; /* Texto negro */
+  width: 32px; /* Ancho del botón */
+  height: 32px; /* Alto del botón */
+  border-radius: 50%; /* Forma circular */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px; /* Tamaño de las flechas */
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.pagination button:hover:not([disabled]) {
+  background-color: #f0f0f0;
+  color: #000; /* Mantener texto negro en hover */
+}
+
+.pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.pagination span {
+  margin: 0 0.5rem;
+}

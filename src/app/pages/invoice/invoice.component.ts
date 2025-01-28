@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, NgZone } from '@angular/core';
+import { Component, OnInit, NgZone, ViewChild } from '@angular/core';
 import { MainBannerComponent } from '../main-banner/main-banner.component';
 import { FormsModule } from '@angular/forms';
+import { MatPaginator, MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { jsPDF } from 'jspdf';
 import { SupabaseService } from '../../services/supabase.service';
 
@@ -50,7 +51,7 @@ interface Client {
 @Component({
   selector: 'app-invoice',
   standalone: true,
-  imports: [CommonModule, MainBannerComponent, FormsModule],
+  imports: [CommonModule, MainBannerComponent, FormsModule, MatPaginatorModule],
   templateUrl: './invoice.component.html',
   styleUrls: ['./invoice.component.scss'],
 })
@@ -75,13 +76,16 @@ export class InvoiceComponent implements OnInit {
   startDate: string = ''; 
   endDate: string = ''; 
 
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
+  paginatedInvoices: Invoice[] = [];
+  filteredInvoicesPaginated: Invoice[] = [];
+
   constructor(
     private readonly supabase: SupabaseService,
     private readonly zone: NgZone
   ) {}
 
   async ngOnInit(): Promise<void> {
-    this.updateFilteredInvoices();
     this.supabase.authChanges((_, session) => {
       if (session) {
         this.zone.run(() => {
@@ -89,6 +93,7 @@ export class InvoiceComponent implements OnInit {
         });
       }
     });
+    this.updateFilteredInvoices();
   }
   searchClient() {
     // Filter clients based on name and debt status
@@ -230,6 +235,7 @@ export class InvoiceComponent implements OnInit {
       },
     })) as Invoice[];
     this.loading = false;
+    this.updateFilteredInvoices();
   }
   filteredInvoices(): Invoice[] {
     // If no filter is selected, return all invoices
@@ -294,38 +300,41 @@ export class InvoiceComponent implements OnInit {
   }
 
   updateFilteredInvoices(): void {
-    let filtered = [];
+    // Aplica los filtros dinámicos
+    let filtered = this.invoices.filter((invoice) => {
+      const isDebtFilter = this.showDebt ? invoice.invoice_status === 'overdue' : true;
 
-    // First, check if the debt filter is active
-    if (this.showDebt) {
-      // If the debt filter is active, only include invoices with overdue status
-      filtered = this.invoices.filter(
-        (invoice) => invoice.invoice_status === 'overdue'
-      );
-    } else {
-      // If the debt filter is not active, filter based on the other criteria
-      filtered = this.invoices.filter((invoice) => {
-        return (
-          (this.showPrints && invoice.order.order_type === 'print') ||
-          (this.showCuts && invoice.order.order_type === 'laser') ||
-          (this.showSales && invoice.order.order_type === 'sales')
-        );
-      });
-    }
+      const isPrintsFilter = this.showPrints && invoice.order.order_type === 'print';
+      const isCutsFilter = this.showCuts && invoice.order.order_type === 'laser';
+      const isSalesFilter = this.showSales && invoice.order.order_type === 'sales';
 
-    // Now, filter based on the other checkboxes (Prints, Cuts, Sales), but only if they are active
-    if (this.showPrints || this.showCuts || this.showSales) {
-      filtered = filtered.filter((invoice) => {
-        return (
-          (this.showPrints && invoice.order.order_type === 'print') ||
-          (this.showCuts && invoice.order.order_type === 'laser') ||
-          (this.showSales && invoice.order.order_type === 'sales')
-        );
-      });
-    }
+      const matchesType =
+        isPrintsFilter || isCutsFilter || isSalesFilter || (!this.showPrints && !this.showCuts && !this.showSales);
 
-    // Update the filtered invoices list
-    this.filteredInvoicesList = [...filtered];
+      // Filtro por rango de fechas
+      const invoiceDate = new Date(invoice.created_at);
+      const matchesStartDate = this.startDate ? invoiceDate >= new Date(this.startDate) : true;
+      const matchesEndDate = this.endDate ? invoiceDate <= new Date(this.endDate + 'T23:59:59') : true;
+
+      const matchesDateRange = matchesStartDate && matchesEndDate;
+
+      // Filtro por búsqueda de nombre o empresa
+      const matchesNameSearch =
+        !this.nameSearchQuery ||
+        invoice.order.client.name.toLowerCase().includes(this.nameSearchQuery.toLowerCase()) ||
+        (invoice.order.client.company_name &&
+          invoice.order.client.company_name.toLowerCase().includes(this.nameSearchQuery.toLowerCase()));
+
+      return isDebtFilter && matchesType && matchesDateRange && matchesNameSearch;
+    });
+
+    // Actualiza la lista de facturas filtradas
+    this.filteredInvoicesList = filtered;
+
+    // Actualiza el paginador
+    this.paginator.pageIndex = 0; // Reinicia a la primera página
+    this.paginator.length = filtered.length; // Actualiza el total de elementos
+    this.filteredInvoicesPaginated = filtered.slice(0, this.paginator.pageSize); // Muestra los elementos de la primera pág
   }
 
   async generatePdf(): Promise<void> {
@@ -505,5 +514,25 @@ export class InvoiceComponent implements OnInit {
       img.onerror = (err) => reject(err);
       img.src = url;
     });
+  }
+
+  // Actualiza los datos mostrados según la página seleccionada
+  updatePaginatedInvoices(): void {
+    const filteredInvoices = this.filteredInvoices(); // Llama a los filtros dinámicos
+    this.paginator.length = filteredInvoices.length; // Actualiza el total de elementos en el paginador
+
+    const startIndex = this.paginator.pageIndex * this.paginator.pageSize;
+    const endIndex = startIndex + this.paginator.pageSize;
+
+    this.filteredInvoicesPaginated = filteredInvoices.slice(startIndex, endIndex); // Actualiza los datos paginados
+  }
+
+  onPageChange(event: PageEvent): void {
+    // Actualiza los índices de la página
+    const startIndex = event.pageIndex * event.pageSize;
+    const endIndex = startIndex + event.pageSize;
+  
+    // Genera los elementos paginados basados en los elementos filtrados
+    this.filteredInvoicesPaginated = this.filteredInvoices().slice(startIndex, endIndex);
   }
 }
