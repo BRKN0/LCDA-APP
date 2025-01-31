@@ -1,0 +1,140 @@
+<app-main-banner></app-main-banner>
+
+<!-- Indicador de carga -->
+<div *ngIf="loading" class="p-4 text-center text-gray-600">
+    <p>Cargando empleados...</p>
+</div>
+
+
+<div *ngIf="!loading">
+    <div class="mb-4">
+        <button
+            class="px-4 py-2 transform bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-700 w-auto"
+            (click)="addNewEmployee()"
+        >
+            Añadir empleado
+        </button>
+    </div>
+    <div Class="flex items-center justify-center py-4">
+        <input type="text"
+            placeholder="Buscar cliente por nombre..."
+            [(ngModel)]="searchQuery"
+            (ngModelChange)="searchEmployee()"
+            class="w-1/2 max-w-lg py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
+        />
+    </div>
+    <table class="table-auto w-full border-collapse">
+        <thead>
+            <tr>
+                <th class="border border-gray-300 px-4 py-2 bg-gray-200">ID del empleado</th>
+                <th class="border border-gray-300 px-4 py-2 bg-gray-200">Nombre</th>
+                <th class="border border-gray-300 px-4 py-2 bg-gray-200">Numero de documento</th>
+                <th class="border border-gray-300 px-4 py-2 bg-gray-200">Email</th>
+                <th class="border border-gray-300 px-4 py-2 bg-gray-200">Telefono</th>
+                <th class="border border-gray-300 px-4 py-2 bg-gray-200">Acción</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr
+                *ngFor="let employee of filteredEmployees"
+                class="cursor-pointer hover:bg-gray-200"
+            >
+                <td Class="p-3 border">{{ employee.code }}</td>
+                <td Class="p-3 border">{{ employee.name }}</td>
+                <td Class="p-3 border">{{ employee.id_number }}</td>
+                <td Class="p-3 border">{{ employee.email }}</td>
+                <td Class="p-3 border">{{ employee.phone }}</td>
+                <td class="border px-4 py-2">
+                    <button class="bg-yellow-500 text-white px-2 py-1 rounded" (click)="editEmployee(employee)">Editar</button>
+                    <button class="bg-red-500 text-white px-2 py-1 rounded ml-2" (click)="deleteEmployee(employee)">Eliminar</button>
+                  </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Form to add clients -->
+    <div
+        *ngIf="showModal"
+        class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
+    >
+        <div class="bg-white w-full max-w-2xl rounded-lg shadow-lg p-8">
+            <h3 class="text-2xl font-bold mb-6">
+                {{ isEditing ? 'Editar Empleado' : 'Añadir Nuevo Empleado' }}
+            </h3>
+            <form (ngSubmit)="saveEmployee()">
+                <div class="mb-4">
+                    <label class="block text-gray-700">Codigo</label>
+                    <input 
+                      [(ngModel)]="selectedEmployee.code"
+                      name="code"
+                      class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+                    />
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700">Nombre Completo</label>
+                    <input 
+                      [(ngModel)]="selectedEmployee.name"
+                      name="name"
+                      class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+                    />
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700">Numero de identidad</label>
+                    <input 
+                      [(ngModel)]="selectedEmployee.id_number"
+                      name="id_number"
+                      class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+                    />
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700">Correo Electrónico</label>
+                    <input
+                      type="email"  
+                      [(ngModel)]="selectedEmployee.email"
+                      name="email"
+                      class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+                      required
+                    />
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700">Numero de Telefono</label>
+                    <input 
+                      [(ngModel)]="selectedEmployee.phone"
+                      name="phone"
+                      class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+                    />
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700">Tipo de empleado</label>
+                    <select 
+                      [(ngModel)]="selectedEmployee.employee_type"
+                      name="type_employee"
+                      class="form-select mt-1 block w-full"
+                      required
+                    >
+                      <option value="printer">Impresiones</option>
+                      <option value="cutter">Corte laser</option>
+                      <option value="counter">Contador</option>
+                      <option value="seller">Vendedor</option>
+                      <option value="scheduled">Agendador</option>
+                    </select>
+                </div>
+                <div class="flex justify-end">
+                    <button
+                      type="button"
+                      class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md mr-2"
+                      (click)="closeModal()"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      class="bg-green-300 text-gray-700 px-4 py-2 rounded-md mr-2"
+                    >
+                        {{ isEditing ? 'Actualizar' : 'Guardar Empleado' }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
