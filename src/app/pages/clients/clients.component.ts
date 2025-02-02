@@ -68,6 +68,11 @@ export class ClientsComponent implements OnInit {
   paginatedClients: Client[] = []; // Lista paginada de clientes
   paginatedOrders: Orders[] = []; // Lista paginada de pedidos
 
+  // Variables para formulario
+  selectedClientData: Partial<Client> = {}; // Cliente a editar o agregar
+  isEditing = false; // Controla si estamos editando
+  showModal = false; // Controla la visibilidad del modal
+
   // Para añadir pedidos
   newClient: Partial<Client> = {
     id_client: '',
@@ -180,64 +185,117 @@ export class ClientsComponent implements OnInit {
     }
   }
 
-  toggleAddClientForm(): void {
-    if (!this.showAddClientForm) {
-      // Reinicia el formulario al abrir la ventana modal
-      this.newClient = {
-        id_client: '',
-        document_type: '',
-        name: '',
-        document_number: '',
-        status: 'upToDate',
-        cellphone: '',
-        nit: '',
-        company_name: '',
-        email: '',
-        debt: 0,
-        address: '',
-        city: '',
-        province: '',
-        postal_code: '',
-      };
-    }
-    this.showAddClientForm = !this.showAddClientForm;
+  //---------------------------------------------------------------------------
+
+  addNewClient(): void {
+    this.selectedClientData = {
+      id_client: '',
+      name: '',
+      document_type: '',
+      document_number: '',
+      status: 'upToDate',
+      cellphone: '',
+      nit: '',
+      company_name: '',
+      email: '',
+      debt: 0,
+      address: '',
+      city: '',
+      province: '',
+      postal_code: '',
+    };
+    this.isEditing = false;
+    this.showModal = true;
   }
 
-  async addClient(newClient: Partial<Client>): Promise<void> {
+  // **Editar Cliente**
+  editClient(client: Client): void {
+    this.selectedClientData = { ...client };
+    this.isEditing = true;
+    this.showModal = true;
+  }
 
-    const clientToInsert = {
-      name: newClient.name,
-      document_type: newClient.document_type,
-      document_number: newClient.document_number,
-      cellphone: newClient.cellphone,
-      status: newClient.status || 'upToDate',
-      nit: newClient.nit,
-      company_name: newClient.company_name || 'N/A', 
-      email: newClient.email,
-      debt: newClient.debt || 0,
-      address: newClient.address,
-      city: newClient.city,
-      province: newClient.province,
-      postal_code: newClient.postal_code,
+  // **Guardar Cliente (Insertar o Actualizar)**
+  async saveClient(): Promise<void> {
+    if (!this.selectedClientData) return;
+
+    const clientToSave = {
+      name: this.selectedClientData.name,
+      document_type: this.selectedClientData.document_type,
+      document_number: this.selectedClientData.document_number,
+      cellphone: this.selectedClientData.cellphone,
+      status: this.selectedClientData.status || 'upToDate',
+      nit: this.selectedClientData.nit,
+      company_name: this.selectedClientData.company_name || 'N/A',
+      email: this.selectedClientData.email,
+      debt: this.selectedClientData.debt || 0,
+      address: this.selectedClientData.address,
+      city: this.selectedClientData.city,
+      province: this.selectedClientData.province,
+      postal_code: this.selectedClientData.postal_code,
     };
 
     try {
-      const { error } = await this.supabase
-        .from('clients')
-        .insert([clientToInsert]); // Insert new client
-  
-      if (error) {
-        console.error('Error al añadir al cliente:', error);
-        return;
+      if (this.isEditing) {
+        // **Actualizar cliente**
+        const { error } = await this.supabase
+          .from('clients')
+          .update(clientToSave)
+          .eq('id_client', this.selectedClientData.id_client);
+
+        if (error) {
+          console.error('Error actualizando cliente:', error);
+          return;
+        }
+        alert('Cliente actualizado correctamente');
+      } else {
+        // **Añadir nuevo cliente**
+        const { error } = await this.supabase
+          .from('clients')
+          .insert([clientToSave]);
+
+        if (error) {
+          console.error('Error añadiendo cliente:', error);
+          return;
+        }
+        alert('Cliente añadido correctamente');
       }
-  
-      console.log('Cliente añadido exitosamente:', newClient);
-      this.getClients(); // Actualiza la lista de pedidos después de añadir uno nuevo
-      this.toggleAddClientForm(); // Cierra el formulario
+
+      this.getClients();
+      this.closeModal();
     } catch (error) {
-      console.error('Error inesperado al añadir cliente:', error);
+      console.error('Error inesperado al guardar cliente:', error);
     }
   }
+
+  // **Eliminar Cliente**
+  async deleteClient(client: Client): Promise<void> {
+    if (confirm(`¿Eliminar el cliente ${client.name}?`)) {
+      try {
+        const { error } = await this.supabase
+          .from('clients')
+          .delete()
+          .eq('id_client', client.id_client);
+
+        if (error) {
+          console.error('Error eliminando cliente:', error);
+          return;
+        }
+
+        alert('Cliente eliminado correctamente');
+        this.getClients();
+      } catch (error) {
+        console.error('Error inesperado al eliminar cliente:', error);
+      }
+    }
+  }
+
+  // **Cerrar Modal**
+  closeModal(): void {
+    this.showModal = false;
+    this.isEditing = false;
+  }
+
 
   // Method to generate PDF
   generatePDF(): void {
