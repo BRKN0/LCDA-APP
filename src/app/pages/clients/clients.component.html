@@ -189,7 +189,7 @@
                       (change)="updatePaginatedOrders()"
                       class="border border-gray-300 rounded-md p-1"
                     >
-                      <option *ngFor="let size of [5, 10, 15, 20]" [value]="size">{{ size }}</option>
+                      <option *ngFor="let size of [10, 15, 25, 50]" [value]="size">{{ size }}</option>
                     </select>
                   </div>
                 </div>
@@ -235,7 +235,7 @@
       <select
         id="itemsPerPage"
         [(ngModel)]="itemsPerPage"
-        (change)="updatePaginatedClients()"
+        (change)="currentPage = 1; updatePaginatedClients()"
         class="border border-gray-300 rounded-md p-1"
       >
         <option *ngFor="let size of [2, 10, 15, 20]" [value]="size">{{ size }}</option>
