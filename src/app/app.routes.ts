@@ -9,6 +9,7 @@ import { ExpensesComponent } from './pages/expenses/expenses.component';
 import { BankingComponent } from './pages/banking/banking.component';
 import { NotificationsComponent } from './pages/notifications/notifications.component';
 import { BanksComponent } from './pages/banks/banks.component';
+import { EmployeesComponent } from './pages/employees/employees.component';
 
 export const routes: Routes = [
   {
@@ -54,5 +55,9 @@ export const routes: Routes = [
   {
     path: 'banks',
     loadComponent: () => BanksComponent,
+  },
+  {
+    path: 'employees',
+    loadComponent: () => EmployeesComponent,
   }
 ];
