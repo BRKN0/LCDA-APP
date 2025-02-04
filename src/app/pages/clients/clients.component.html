@@ -15,12 +15,6 @@
       (ngModelChange)="searchClient()"
       class="w-full py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
     />
-    <button
-      class="absolute right-0 top-1/2 transform -translate-y-1/2 bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-700 w-auto"
-      (click)="searchClient()"
-    >
-      Buscar
-    </button>
   </div>
 </div>
 
@@ -31,7 +25,7 @@
   </label>
     <button 
     class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
-    (click)="toggleAddClientForm()"
+    (click)="addNewClient()"
     >
     Añadir Cliente
   </button>
@@ -51,6 +45,7 @@
         <th class="p-3 border">NIT / CC</th>
         <th class="p-3 border">Empresa</th>
         <th class="p-3 border">Estado</th>
+        <th class="p-3 border">Acciones</th>
       </tr>
     </thead>
     <tbody>
@@ -81,6 +76,16 @@
            ? "En Mora"
            : "Desconocido"
           }}
+        </td>
+        <td class="p-3 border">
+          <button class="bg-blue-500 text-white px-2 py-1 rounded-md hover:bg-blue-600" 
+            (click)="editClient(client)">
+            Editar
+          </button>
+          <button class="bg-red-500 text-white px-2 py-1 rounded-md hover:bg-red-600 ml-2" 
+            (click)="deleteClient(client)">
+            Eliminar
+          </button>
         </td>
       </tr>
       
@@ -184,7 +189,7 @@
                       (change)="updatePaginatedOrders()"
                       class="border border-gray-300 rounded-md p-1"
                     >
-                      <option *ngFor="let size of [5, 10, 15, 20]" [value]="size">{{ size }}</option>
+                      <option *ngFor="let size of [10, 15, 25, 50]" [value]="size">{{ size }}</option>
                     </select>
                   </div>
                 </div>
@@ -230,7 +235,7 @@
       <select
         id="itemsPerPage"
         [(ngModel)]="itemsPerPage"
-        (change)="updatePaginatedClients()"
+        (change)="currentPage = 1; updatePaginatedClients()"
         class="border border-gray-300 rounded-md p-1"
       >
         <option *ngFor="let size of [2, 10, 15, 20]" [value]="size">{{ size }}</option>
@@ -240,16 +245,18 @@
 
   <!-- Form to add orders -->
   <div
-    *ngIf="showAddClientForm"
+    *ngIf="showModal"
     class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
   >
     <div class="bg-white modal-width rounded-lg shadow-lg p-6">
-      <h3 class="text-lg font-bold mb-4">Añadir Nuevo Cliente</h3>
-      <form (ngSubmit)="addClient(newClient)">
+      <h3 class="text-lg font-bold mb-4">
+        {{ isEditing ? 'Editar Cliente' : 'Añadir Cliente' }}
+      </h3>
+      <form (ngSubmit)="saveClient()">
         <div class="mb-4">
           <label class="block text-gray-700">Nombre</label>
           <input
-            [(ngModel)]="newClient.name"
+            [(ngModel)]="selectedClientData.name"
             name="name"
             class="form-input mt-1 block w-full"
           />
@@ -258,7 +265,7 @@
           <label class="block text-gray-700">Correo Electrónico</label>
           <input
             type="email"
-            [(ngModel)]="newClient.email"
+            [(ngModel)]="selectedClientData.email"
             name="email"
             class="form-input mt-1 block w-full"
             required
@@ -267,7 +274,7 @@
         <div class="mb-4">
           <label class="block text-gray-700">Tipo de Documento</label>
           <select
-            [(ngModel)]="newClient.document_type"
+            [(ngModel)]="selectedClientData.document_type"
             name="order_type"
             class="form-select mt-1 block w-full"
             required
@@ -288,15 +295,15 @@
         <div class="mb-4">
           <label class="block text-gray-700">Identifiación/Documento</label>
           <input
-            [(ngModel)]="newClient.nit"
-            name="nit"
+            [(ngModel)]="selectedClientData.document_number"
+            name="document_number"
             class="form-input mt-1 block w-full"
           />
         </div>
         <div class="mb-4">
           <label class="block text-gray-700">Empresa</label>
           <input
-            [(ngModel)]="newClient.company_name"
+            [(ngModel)]="selectedClientData.company_name"
             name="company_name"
             class="form-input mt-1 block w-full"
           />
@@ -305,7 +312,7 @@
           <label class="block text-gray-700">Telefono</label>
           <input
           type="number"
-            [(ngModel)]="newClient.cellphone"
+            [(ngModel)]="selectedClientData.cellphone"
             name="cellphone"
             class="form-input mt-1 block w-full"
           />
@@ -314,7 +321,7 @@
           <label class="block text-gray-700">Dirección</label>
           <input
             type="text"
-            [(ngModel)]="newClient.address"
+            [(ngModel)]="selectedClientData.address"
             name="address"
             class="form-input mt-1 block w-full"
           />
@@ -322,22 +329,16 @@
         <div class="flex justify-end">
           <button
             type="button"
-            class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md mr-2"
-            (click)="toggleAddClientForm()"
-          >
+            class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md mr-2 "
+            (click)="closeModal()"
+            >
             Cancelar
           </button>
           <button
             type="submit"
-            style="
-              background-color: red;
-              color: white;
-              border: 1px solid black;
-              padding: 10px;
-            "
             class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
           >
-            Guardar Cliente
+            {{ isEditing ? 'Actualizar Cliente' : 'Guardar Cliente' }}
           </button>
         </div>
       </form>
