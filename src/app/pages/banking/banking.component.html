@@ -1,7 +1,27 @@
 <app-main-banner></app-main-banner>
 <div class="transactions-container">
+  <button
+  class="bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-700"
+  (click)="goToBanksList()"
+>
+  Ver Bancos
+</button>
   <!-- Filters Section -->
   <div class="filters">
+    <div class="filter-item">
+      <label for="bank">Banco:</label>
+      <select
+        id="bank"
+        [(ngModel)]="selectedBank"
+        (change)="updateFilteredTransactions()"
+        class="filter-input"
+      >
+        <option value="">Todos</option>
+        <option *ngFor="let bank of banks" [value]="bank.id">
+          {{ bank.bank }}
+        </option>
+      </select>
+    </div>
     <div class="filter-item">
       <label for="date-from">Desde:</label>
       <input
@@ -20,40 +40,19 @@
         class="filter-input"
       />
     </div>
-    <div class="filter-item">
-      <label for="bank">Banco:</label>
-      <select
-        id="bank"
-        [(ngModel)]="selectedBank"
-        (change)="updateFilteredTransactions()"
-        class="filter-input"
-      >
-        <option value="">Todos</option>
-        <option *ngFor="let bank of banks" [value]="bank.id">
-          {{ bank.bank }}
-        </option>
-      </select>
-
-      <div class="flex justify-start mt-2">
-        <button
-          class="bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-700"
-          (click)="goToBanksList()"
-        >
-          Ver Bancos
-        </button>
-      </div>
-    </div>
+   
 
 
 
+
+</div>
   <!-- Balance Section -->
-  <div class="balance-section">
+  <div class="balance-section justify-center">
     <h2 class="balance-title">Saldo</h2>
     <p class="balance-amount">
       {{ calculateBalance() | currency : "COP" }}
     </p>
   </div>
-
   <!-- Transactions Table -->
   <div class="transactions-table">
     <table class="table-auto w-full border-collapse">
@@ -87,4 +86,3 @@
       </tbody>
     </table>
   </div>
-</div>
