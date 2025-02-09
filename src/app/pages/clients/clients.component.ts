@@ -122,6 +122,7 @@ export class ClientsComponent implements OnInit {
         name,
         description,
         order_payment_status,
+        order_payment_status,
         created_at,
         order_quantity,
         unitary_value,
@@ -314,12 +315,13 @@ export class ClientsComponent implements OnInit {
     doc.setFontSize(16);
     doc.text(`Extracto de Cliente: ${this.selectedClient.name}`, 10, 10);
 
-    //client details 
+    //client details
     const orders = this.selectedClient.orders.map((order: any) => [
       order.code,
       order.created_at,
       order.description,
       `$${order.total}`,
+      order.order_payment_status === 'upToDate' ? 'Al Día' : 'En Mora',
       order.order_payment_status === 'upToDate' ? 'Al Día' : 'En Mora',
     ]);
 
@@ -355,7 +357,7 @@ export class ClientsComponent implements OnInit {
       this.currentPage = this.totalPages;
     }
   }
-  
+
   updatePaginatedOrders(): void {
     if (this.selectedClient?.orders?.length) {
       const startIndex = Number((this.currentOrderPage - 1) * this.itemsPerOrderPage);
@@ -365,7 +367,29 @@ export class ClientsComponent implements OnInit {
     } else {
       this.totalPages = 0;
     }
-    
+  }
+
+  async updateClientStatus(client: Client, newStatus: string): Promise<void> {
+    if (!client || !client.id_client) return;
+
+    try {
+      const { error } = await this.supabase
+        .from('clients')
+        .update({ status: newStatus })
+        .eq('id_client', client.id_client);
+
+      if (error) {
+        console.error('Error actualizando el estado del cliente:', error);
+        return;
+      }
+
+      // Actualizar localmente el estado del cliente sin necesidad de recargar todo
+      client.status = newStatus;
+
+      alert(`Estado actualizado a "${newStatus === 'upToDate' ? 'Al día' : 'En mora'}" correctamente`);
+    } catch (error) {
+      console.error('Error inesperado al actualizar estado:', error);
+    }
   }
 
 }

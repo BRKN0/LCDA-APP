@@ -31,17 +31,17 @@
   </button>
 
   <!-- Tabla -->
-  <div class="table-container">
+  <div class="table-auto w-full border-collapse">
     <table>
       <thead>
         <tr>
-          <th>Codigo</th>
-          <th>Fecha</th>
-          <th>Categoría</th>
-          <th>Tipo</th>
-          <th>Descripción</th>
-          <th>Costo</th>
-          <th>Acciones</th>
+          <th class="border border-gray-300 px-4 py-2 bg-gray-200">Codigo</th>
+          <th class="border border-gray-300 px-4 py-2 bg-gray-200">Fecha</th>
+          <th class="border border-gray-300 px-4 py-2 bg-gray-200">Categoría</th>
+          <th class="border border-gray-300 px-4 py-2 bg-gray-200">Tipo</th>
+          <th class="border border-gray-300 px-4 py-2 bg-gray-200">Descripción</th>
+          <th class="border border-gray-300 px-4 py-2 bg-gray-200">Costo</th>
+          <th class="border border-gray-300 px-4 py-2 bg-gray-200">Acciones</th>
         </tr>
       </thead>
       <tbody>
@@ -53,10 +53,10 @@
           <td>{{ expense.description }}</td>
           <td>{{ expense.cost | currency }}</td>
           <td>
-            <button class="px-4 py-2 transform bg-red-500 text-white mr-8 rounded-md hover:bg-red-700 w-auto" (click)="editExpense(expense)">
+            <button class="btn-edit" (click)="editExpense(expense)">
               Editar
             </button>
-            <button class="px-4 py-2 transform bg-red-500 text-white mr-8 rounded-md hover:bg-red-700 w-auto" (click)="deleteExpense(expense)">
+            <button class="btn-delete" (click)="deleteExpense(expense)">
               Eliminar
             </button>
           </td>

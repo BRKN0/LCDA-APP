@@ -7,22 +7,30 @@
 
 
 <div *ngIf="!loading">
-    <div class="mb-4">
-        <button
-            class="px-4 py-2 transform bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-700 w-auto"
-            (click)="addNewEmployee()"
-        >
-            Añadir empleado
-        </button>
-    </div>
-    <div Class="flex items-center justify-center py-4">
-        <input type="text"
-            placeholder="Buscar cliente por nombre..."
-            [(ngModel)]="searchQuery"
-            (ngModelChange)="searchEmployee()"
-            class="w-1/2 max-w-lg py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
+  <div class="flex flex-wrap items-center justify-between py-4">
+    <div class="relative flex items-center space-x-2">
+      <!-- Input de búsqueda -->
+      <div class="relative">
+        <input
+          type="text"
+          placeholder="Buscar cliente por nombre..."
+          [(ngModel)]="searchQuery"
+          (ngModelChange)="searchEmployee()"
+          class="w-64 py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
         />
+      </div>
+
+      <!-- Botón Añadir empleado -->
+      <button
+        class="bg-red-500 text-white px-6 py-2 rounded-full hover:bg-red-700"
+        (click)="addNewEmployee()"
+      >
+        Añadir empleado
+      </button>
     </div>
+  </div>
+
+
     <table class="table-auto w-full border-collapse">
         <thead>
             <tr>
@@ -45,8 +53,8 @@
                 <td Class="p-3 border">{{ employee.email }}</td>
                 <td Class="p-3 border">{{ employee.phone }}</td>
                 <td class="border px-4 py-2">
-                    <button class="bg-yellow-500 text-white px-2 py-1 rounded" (click)="editEmployee(employee)">Editar</button>
-                    <button class="bg-red-500 text-white px-2 py-1 rounded ml-2" (click)="deleteEmployee(employee)">Eliminar</button>
+                    <button class="btn-edit" (click)="editEmployee(employee)">Editar</button>
+                    <button class="btn-delete" (click)="deleteEmployee(employee)">Eliminar</button>
                   </td>
             </tr>
         </tbody>
@@ -64,7 +72,7 @@
             <form (ngSubmit)="saveEmployee()">
                 <div class="mb-4">
                     <label class="block text-gray-700">Codigo</label>
-                    <input 
+                    <input
                       [(ngModel)]="selectedEmployee.code"
                       name="code"
                       class="form-input mt-1 block w-full border border-gray-300 rounded-md"
@@ -72,7 +80,7 @@
                 </div>
                 <div class="mb-4">
                     <label class="block text-gray-700">Nombre Completo</label>
-                    <input 
+                    <input
                       [(ngModel)]="selectedEmployee.name"
                       name="name"
                       class="form-input mt-1 block w-full border border-gray-300 rounded-md"
@@ -80,7 +88,7 @@
                 </div>
                 <div class="mb-4">
                     <label class="block text-gray-700">Numero de identidad</label>
-                    <input 
+                    <input
                       [(ngModel)]="selectedEmployee.id_number"
                       name="id_number"
                       class="form-input mt-1 block w-full border border-gray-300 rounded-md"
@@ -89,7 +97,7 @@
                 <div class="mb-4">
                     <label class="block text-gray-700">Correo Electrónico</label>
                     <input
-                      type="email"  
+                      type="email"
                       [(ngModel)]="selectedEmployee.email"
                       name="email"
                       class="form-input mt-1 block w-full border border-gray-300 rounded-md"
@@ -98,7 +106,7 @@
                 </div>
                 <div class="mb-4">
                     <label class="block text-gray-700">Numero de Telefono</label>
-                    <input 
+                    <input
                       [(ngModel)]="selectedEmployee.phone"
                       name="phone"
                       class="form-input mt-1 block w-full border border-gray-300 rounded-md"
@@ -106,7 +114,7 @@
                 </div>
                 <div class="mb-4">
                     <label class="block text-gray-700">Tipo de empleado</label>
-                    <select 
+                    <select
                       [(ngModel)]="selectedEmployee.employee_type"
                       name="type_employee"
                       class="form-select mt-1 block w-full"
