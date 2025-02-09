@@ -23,7 +23,7 @@
     <input type="checkbox" [(ngModel)]="filterDebt" (change)="searchClient()" />
     Mostrar solo clientes con deuda
   </label>
-    <button 
+    <button
     class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
     (click)="addNewClient()"
     >
@@ -78,17 +78,17 @@
           }}
         </td>
         <td class="p-3 border">
-          <button class="bg-blue-500 text-white px-2 py-1 rounded-md hover:bg-blue-600" 
+          <button class="btn-edit"
             (click)="editClient(client)">
             Editar
           </button>
-          <button class="bg-red-500 text-white px-2 py-1 rounded-md hover:bg-red-600 ml-2" 
+          <button class="btn-delete"
             (click)="deleteClient(client)">
             Eliminar
           </button>
         </td>
       </tr>
-      
+
       <tr *ngIf="selectedClient">
         <td colspan="5" class="p-4 bg-gray-50">
           <div class="details">
@@ -179,7 +179,7 @@
                       &#8594;
                     </button>
                   </div>
-                
+
                   <!-- Selector de elementos por página para órdenes -->
                   <div class="items-per-page flex items-center">
                     <label for="itemsPerPageOrders" class="mr-2">Elementos por página:</label>
@@ -228,7 +228,7 @@
         &#8594;
       </button>
     </div>
-  
+
     <!-- Selector de elementos por página -->
     <div class="items-per-page flex items-center">
       <label for="itemsPerPage" class="mr-2">Elementos por página:</label>
@@ -325,6 +325,18 @@
             name="address"
             class="form-input mt-1 block w-full"
           />
+        </div>
+        <div class="mb-4">
+          <label class="block text-gray-700">Estado</label>
+          <select
+            [(ngModel)]="selectedClientData.status"
+            name="status"
+            class="form-select mt-1 block w-full"
+            required
+          >
+            <option value="upToDate">Al Día</option>
+            <option value="overdue">En Mora</option>
+          </select>
         </div>
         <div class="flex justify-end">
           <button

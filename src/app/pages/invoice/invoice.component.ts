@@ -20,7 +20,7 @@ interface Orders {
   order_type: string;
   name: string;
   description: string;
-  order_status: string;
+  order_payment_status: string;
   created_at: Date;
   order_quantity: string;
   unitary_value: string;
@@ -48,6 +48,7 @@ interface Client {
   province: string;
   postal_code: string;
 }
+
 @Component({
   selector: 'app-invoice',
   standalone: true,
@@ -59,7 +60,6 @@ export class InvoiceComponent implements OnInit {
   clients: Client[] = [];
   invoices: Invoice[] = [];
   invoice: Invoice | null = null;
-  //checkbox status
   showPrints = true;
   showCuts = true;
   showSales = true;
@@ -72,9 +72,22 @@ export class InvoiceComponent implements OnInit {
   filteredClients: Client[] = [];
   filterDebt: boolean = false;
   noResultsFound: boolean = false;
-  //filter date
-  startDate: string = ''; 
-  endDate: string = ''; 
+  startDate: string = '';
+  endDate: string = '';
+  isEditing = false;
+  showModal = false;
+  selectedInvoice: any | null = null;
+  showAddClientModal = false;
+  orders: any[] = [];
+  newClient = {
+    name: '',
+    email: '',
+    document_type: '',
+    document_number: '',
+    company_name: '',
+    cellphone: '',
+    address: '',
+  };
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   paginatedInvoices: Invoice[] = [];
@@ -85,18 +98,49 @@ export class InvoiceComponent implements OnInit {
     private readonly zone: NgZone
   ) {}
 
+
   async ngOnInit(): Promise<void> {
     this.supabase.authChanges((_, session) => {
       if (session) {
         this.zone.run(() => {
           this.getInvoices();
+          this.getClients();
+          this.loadOrders(); // Cargar órdenes al iniciar
         });
       }
     });
     this.updateFilteredInvoices();
   }
+
+  async getClients(): Promise<void> {
+    const { data, error } = await this.supabase.from('clients').select('*');
+    if (error) {
+      console.error('Error fetching clients:', error);
+      return;
+    }
+    this.clients = data;
+  }
+
+  async saveNewClient(): Promise<void> {
+    if (!this.newClient.name || !this.newClient.email || !this.newClient.document_type || !this.newClient.document_number) {
+      alert('Por favor, complete todos los campos obligatorios.');
+      return;
+    }
+
+    const { data, error } = await this.supabase.from('clients').insert([this.newClient]);
+
+    if (error) {
+      console.error('Error añadiendo el cliente:', error);
+      alert('Error al añadir el cliente.');
+      return;
+    }
+
+    alert('Cliente añadido correctamente.');
+    this.closeAddClientModal();
+    await this.getClients(); // Recargar la lista de clientes
+  }
+
   searchClient() {
-    // Filter clients based on name and debt status
     this.filteredClients = this.clients.filter((client) => {
       const matchesSearchQuery =
         client.name
@@ -107,13 +151,11 @@ export class InvoiceComponent implements OnInit {
             .toLowerCase()
             .includes(this.nameSearchQuery.toLowerCase()));
 
-      // Correctly check for the debt filter
       const matchesDebtFilter = !this.filterDebt || client.debt > 0;
 
       return matchesSearchQuery && matchesDebtFilter;
     });
 
-    // Handle the case when no clients are found
     this.noResultsFound = this.filteredClients.length === 0;
   }
 
@@ -148,7 +190,7 @@ export class InvoiceComponent implements OnInit {
       alert('Factura no encontrada.');
       return;
     }
-    // Select the first matching invoice
+
     this.invoice = {
       ...data[0],
       order: {
@@ -183,14 +225,14 @@ export class InvoiceComponent implements OnInit {
     this.loading = false;
     this.updateFilteredInvoices();
   }
+
   filteredInvoices(): Invoice[] {
-    // If no filter is selected, return all invoices
     if (
       !this.showPrints &&
       !this.showCuts &&
       !this.showSales &&
       !this.showDebt &&
-      !this.nameSearchQuery &&// Make sure to check nameSearchQuery too
+      !this.nameSearchQuery &&
       !this.startDate &&
       !this.endDate
     ) {
@@ -198,12 +240,10 @@ export class InvoiceComponent implements OnInit {
     }
 
     return this.invoices.filter((invoice) => {
-      // Check if 'showDebt' is active, and only include overdue invoices if it is
       const isDebtFilter = this.showDebt
         ? invoice.invoice_status === 'overdue'
         : true;
 
-      // Apply other filters only if they are active
       const isPrintsFilter =
         this.showPrints && invoice.order.order_type === 'print';
       const isCutsFilter =
@@ -211,7 +251,6 @@ export class InvoiceComponent implements OnInit {
       const isSalesFilter =
         this.showSales && invoice.order.order_type === 'sales';
 
-      // Apply the name search filter (if there is a nameSearchQuery)
       const matchesNameSearchQuery =
         !this.nameSearchQuery ||
         invoice.order.client.company_name
@@ -221,7 +260,6 @@ export class InvoiceComponent implements OnInit {
           ?.toLowerCase()
           .includes(this.nameSearchQuery.toLowerCase());
 
-      // Filter by date range
       const invoiceDate = new Date(invoice.created_at);
       const matchesStartDate = this.startDate
         ? invoiceDate >= new Date(this.startDate)
@@ -232,11 +270,9 @@ export class InvoiceComponent implements OnInit {
 
       const matchesDateRange = matchesStartDate && matchesEndDate;
 
-      // Combine all filters: matches debt status, other filters, the name search query and the range date
       const matchesFilters =
         isDebtFilter && (isPrintsFilter || isCutsFilter || isSalesFilter) && matchesDateRange;
 
-      // Return true if the invoice matches both the filters and the name search query
       return matchesFilters && matchesNameSearchQuery;
     });
   }
@@ -246,7 +282,6 @@ export class InvoiceComponent implements OnInit {
   }
 
   updateFilteredInvoices(): void {
-    // Aplica los filtros dinámicos
     let filtered = this.invoices.filter((invoice) => {
       const isDebtFilter = this.showDebt ? invoice.invoice_status === 'overdue' : true;
 
@@ -257,14 +292,12 @@ export class InvoiceComponent implements OnInit {
       const matchesType =
         isPrintsFilter || isCutsFilter || isSalesFilter || (!this.showPrints && !this.showCuts && !this.showSales);
 
-      // Filtro por rango de fechas
       const invoiceDate = new Date(invoice.created_at);
       const matchesStartDate = this.startDate ? invoiceDate >= new Date(this.startDate) : true;
       const matchesEndDate = this.endDate ? invoiceDate <= new Date(this.endDate + 'T23:59:59') : true;
 
       const matchesDateRange = matchesStartDate && matchesEndDate;
 
-      // Filtro por búsqueda de nombre o empresa
       const matchesNameSearch =
         !this.nameSearchQuery ||
         invoice.order.client.name.toLowerCase().includes(this.nameSearchQuery.toLowerCase()) ||
@@ -274,14 +307,12 @@ export class InvoiceComponent implements OnInit {
       return isDebtFilter && matchesType && matchesDateRange && matchesNameSearch;
     });
 
-    // Actualiza la lista de facturas filtradas
     this.filteredInvoicesList = filtered;
-
-    // Actualiza el paginador
-    this.paginator.pageIndex = 0; // Reinicia a la primera página
-    this.paginator.length = filtered.length; // Actualiza el total de elementos
-    this.filteredInvoicesPaginated = filtered.slice(0, this.paginator.pageSize); // Muestra los elementos de la primera pág
+    this.paginator.pageIndex = 0;
+    this.paginator.length = filtered.length;
+    this.filteredInvoicesPaginated = filtered.slice(0, this.paginator.pageSize);
   }
+
 
   async generatePdf(): Promise<void> {
     if (!this.selectedInvoiceDetails) {
@@ -290,28 +321,32 @@ export class InvoiceComponent implements OnInit {
     }
 
     const invoice = this.selectedInvoiceDetails[0];
-    const doc = new jsPDF(); // = new jsPDF ({format: 'a6'}); TODO: change the format to a6 and prevent somehow make the text fit
-    // Date Formatting
+
+    // Validar si la orden existe
+    if (!invoice.order) {
+      alert('Por favor, elija una orden válida.');
+      return;
+    }
+
+    const doc = new jsPDF();
     const invoice_date = new Date(invoice.created_at);
     const year = invoice_date.getFullYear();
-    const month = invoice_date.getMonth() + 1; // Month is zero-based
+    const month = invoice_date.getMonth() + 1;
     const day = invoice_date.getDate();
 
-    // Header Section
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text('La Casa del Acrilico', 10, 10); // Left text
+    doc.text('La Casa del Acrilico', 10, 10);
 
     const logoUrl = 'Untitled.jpg';
     const logo = await this.loadImage(logoUrl);
-    doc.addImage(logo, 'JPEG', 90, 5, 30, 20); // Center logo
+    doc.addImage(logo, 'JPEG', 90, 5, 30, 20);
 
     doc.setTextColor(200);
     doc.setFontSize(30);
-    doc.text('FACTURA', 190, 10, { align: 'right' }); // Right text in light gray
-    doc.setTextColor(0); // Reset text color
+    doc.text('FACTURA', 190, 10, { align: 'right' });
+    doc.setTextColor(0);
 
-    // Address and Invoice Info
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
     doc.text('Barrio Blas de Lezo Cl. 21A Mz. 11A - Lt. 12', 10, 30);
@@ -325,15 +360,17 @@ export class InvoiceComponent implements OnInit {
       doc.text(`NIT: ${invoice.order.client.nit}`, 10, 60);
     }
 
-    // Add Subtitle
     doc.setFont('helvetica', 'bold');
     doc.text('Facturar a:', 10, 70);
     doc.setFont('helvetica', 'normal');
 
-    // Customer Details
     doc.text(`Nombre: ${invoice.order.client.name}`, 10, 80);
-    if (invoice.order.client.nit) {
-      doc.text(`NIT: ${invoice.order.client.nit}`, 10, 90);
+    // Validar si el cliente existe antes de acceder a sus propiedades
+    if (invoice.order.client) {
+      doc.text(`Cliente: ${invoice.order.client.name}`, 10, 40);
+      doc.text(`NIT: ${invoice.order.client.nit || 'N/A'}`, 10, 50);
+    } else {
+      doc.text('Cliente: No disponible', 10, 40);
     }
     doc.text(
       `Nombre de la empresa: ${invoice.order.client.company_name || 'N/A'}`,
@@ -347,28 +384,25 @@ export class InvoiceComponent implements OnInit {
     doc.text(`E-mail: ${invoice.order.client.email}`, 10, 150);
     doc.text(`Teléfono: ${invoice.order.client.cellphone}`, 10, 160);
 
-    // Description Section
     doc.setFont('helvetica', 'bold');
     doc.text('DESCRIPCIÓN:', 10, 170);
     doc.setFont('helvetica', 'normal');
-    const descriptionLines = this.wrapText(doc, invoice.order.description, 180); // Use a maximum width
+    const descriptionLines = this.wrapText(doc, invoice.order.description, 180);
     let currentY = 180;
     descriptionLines.forEach((line) => {
       doc.text(line, 10, currentY);
       currentY += 10;
     });
 
-    // Table Headers
     const startY = currentY + 10;
     const rowHeight = 10;
-    const headerXPositions = [10, 40, 120, 170]; // Calculate positions based on column widths
+    const headerXPositions = [10, 40, 120, 170];
 
     doc.setFont('helvetica', 'bold');
     doc.text('CANTIDAD', headerXPositions[0], startY);
     doc.text('VALOR UNITARIO', headerXPositions[1], startY);
     doc.text('IMPORTE', headerXPositions[2], startY, { align: 'right' });
 
-    // Table Rows
     currentY = startY + rowHeight;
     doc.setFont('helvetica', 'normal');
     doc.text(`${invoice.order.order_quantity}`, headerXPositions[0], currentY);
@@ -377,7 +411,6 @@ export class InvoiceComponent implements OnInit {
       align: 'right',
     });
 
-    // Summary Section
     const summaryStartY = currentY + 20;
     doc.setFont('helvetica', 'bold');
     doc.text('SUBTOTAL:', headerXPositions[1], summaryStartY, {
@@ -407,7 +440,6 @@ export class InvoiceComponent implements OnInit {
       { align: 'right' }
     );
 
-    // Footer Section
     const footerStartY = summaryStartY + rowHeight * 4;
     doc.setFontSize(10);
     doc.setFont('helvetica', 'italic');
@@ -424,11 +456,9 @@ export class InvoiceComponent implements OnInit {
     doc.setFont('helvetica', 'bold');
     doc.text('GRACIAS POR SU CONFIANZA', 10, footerStartY + 20);
 
-    // Save the PDF
     doc.save(`Factura-${invoice.code}.pdf`);
   }
 
-  // Helper function to wrap text
   private wrapText(doc: jsPDF, text: string, maxWidth: number): string[] {
     const words = text.split(' ');
     const lines: string[] = [];
@@ -462,23 +492,219 @@ export class InvoiceComponent implements OnInit {
     });
   }
 
-  // Actualiza los datos mostrados según la página seleccionada
   updatePaginatedInvoices(): void {
-    const filteredInvoices = this.filteredInvoices(); // Llama a los filtros dinámicos
-    this.paginator.length = filteredInvoices.length; // Actualiza el total de elementos en el paginador
+    const filteredInvoices = this.filteredInvoices();
+    this.paginator.length = filteredInvoices.length;
 
     const startIndex = this.paginator.pageIndex * this.paginator.pageSize;
     const endIndex = startIndex + this.paginator.pageSize;
 
-    this.filteredInvoicesPaginated = filteredInvoices.slice(startIndex, endIndex); // Actualiza los datos paginados
+    this.filteredInvoicesPaginated = filteredInvoices.slice(startIndex, endIndex);
   }
 
   onPageChange(event: PageEvent): void {
-    // Actualiza los índices de la página
     const startIndex = event.pageIndex * event.pageSize;
     const endIndex = startIndex + event.pageSize;
-  
-    // Genera los elementos paginados basados en los elementos filtrados
+
     this.filteredInvoicesPaginated = this.filteredInvoices().slice(startIndex, endIndex);
+  }
+
+  addNewInvoice(): void {
+    this.selectedInvoice = {
+      id_invoice: '',
+      created_at: new Date().toISOString().split('T')[0], // Fecha actual en formato YYYY-MM-DD
+      invoice_status: 'upToDate', // Estado por defecto
+      id_order: '',
+      code: '', // Generar código automático
+      order: {
+        id_order: '',
+        order_type: 'print', // Tipo por defecto
+        name: '',
+        description: '',
+        order_payment_status: '',
+        created_at: new Date(),
+        order_quantity: '',
+        unitary_value: '',
+        iva: '',
+        subtotal: '',
+        total: '',
+        amount: '',
+        id_client: '',
+        client: {
+          id_client: '',
+          name: '',
+          document_type: '',
+          document_number: '',
+          cellphone: '',
+          nit: '',
+          company_name: '',
+          email: '',
+          status: '',
+          debt: 0,
+          address: '',
+          city: '',
+          province: '',
+          postal_code: '',
+        },
+      },
+    };
+    this.isEditing = false;
+    this.showModal = true;
+  }
+
+
+  editInvoice(invoice: Invoice): void {
+    this.selectedInvoice = { ...invoice };
+    this.selectedInvoice.created_at = this.formatDateForInput(invoice.created_at); // Formatear la fecha
+    this.isEditing = true;
+    this.showModal = true;
+  }
+
+  // Función para formatear la fecha en el formato que espera el input de tipo date
+  private formatDateForInput(date: Date | string): string {
+    const dateObj = new Date(date);
+    const year = dateObj.getFullYear();
+    const month = (dateObj.getMonth() + 1).toString().padStart(2, '0'); // Meses van de 0 a 11
+    const day = dateObj.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  async validateOrderExists(orderId: string): Promise<boolean> {
+    const { data, error } = await this.supabase
+      .from('orders')
+      .select('id_order')
+      .eq('id_order', orderId)
+      .single();
+
+    if (error || !data) {
+      console.error('Error validando la orden:', error);
+      return false;
+    }
+    return true;
+  }
+
+  async saveInvoice(): Promise<void> {
+    if (!this.selectedInvoice) {
+      console.error('No se ha seleccionado ninguna factura.');
+      return;
+    }
+
+    // Validar que se haya seleccionado un cliente
+    if (!this.selectedInvoice.order.id_client) {
+      alert('Por favor, seleccione un cliente válido.');
+      return;
+    }
+
+    // Validar que se haya seleccionado una orden
+    if (!this.selectedInvoice.order.id_order) {
+      alert('Por favor, seleccione una orden válida.');
+      return;
+    }
+
+    // Verificar si la orden existe en la base de datos
+    const orderExists = await this.validateOrderExists(this.selectedInvoice.order.id_order);
+    if (!orderExists) {
+      alert('La orden seleccionada no existe.');
+      return;
+    }
+
+    // Preparar los datos para guardar
+    const invoiceToSave = {
+      code: this.selectedInvoice.code,
+      created_at: new Date(this.selectedInvoice.created_at).toISOString(),
+      invoice_status: this.selectedInvoice.invoice_status,
+      id_order: this.selectedInvoice.order.id_order, // Asegúrate de que este campo tenga un valor válido
+    };
+
+    try {
+      if (this.isEditing) {
+        // Actualizar factura existente
+        const { error } = await this.supabase
+          .from('invoices')
+          .update(invoiceToSave)
+          .eq('id_invoice', this.selectedInvoice.id_invoice);
+
+        if (error) {
+          console.error('Error actualizando la factura:', error);
+          alert('Error al actualizar la factura.');
+          return;
+        }
+        alert('Factura actualizada correctamente.');
+      } else {
+        // Crear nueva factura
+        const { error } = await this.supabase.from('invoices').insert([invoiceToSave]);
+
+        if (error) {
+          console.error('Error añadiendo la factura:', error);
+          alert('Error al añadir la factura.');
+          return;
+        }
+        alert('Factura añadida correctamente.');
+      }
+
+      // Actualizar la lista de facturas
+      await this.getInvoices();
+      this.closeModal(); // Cerrar el modal después de guardar
+    } catch (error) {
+      console.error('Error inesperado:', error);
+      alert('Ocurrió un error inesperado.');
+    }
+  }
+
+  // Función para validar si un string es un UUID válido
+  private isValidUUID(uuid: string): boolean {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(uuid);
+  }
+
+  async deleteInvoice(invoice: Invoice): Promise<void> {
+    if (confirm(`¿Eliminar factura #${invoice.code}?`)) {
+      const { error } = await this.supabase
+        .from('invoices')
+        .delete()
+        .eq('id_invoice', invoice.id_invoice);
+
+      if (error) {
+        console.error('Error deleting invoice:', error);
+        return;
+      }
+
+      this.getInvoices();
+    }
+  }
+
+  async loadOrders(): Promise<void> {
+    const { data, error } = await this.supabase.from('orders').select('*');
+    if (error) {
+      console.error('Error cargando órdenes:', error);
+      alert('Error al cargar las órdenes.');
+      return;
+    }
+    this.orders = data; // Asignar las órdenes cargadas
+    console.log('Órdenes cargadas:', this.orders); // Verificar en consola
+  }
+
+  closeModal(): void {
+    this.showModal = false;
+    this.selectedInvoice = null;
+    this.isEditing = false;
+    this.showAddClientModal = false;
+  }
+
+  openAddClientModal(): void {
+    this.showAddClientModal = true;
+  }
+
+  closeAddClientModal(): void {
+    this.showAddClientModal = false;
+    this.newClient = {
+      name: '',
+      email: '',
+      document_type: '',
+      document_number: '',
+      company_name: '',
+      cellphone: '',
+      address: '',
+    };
   }
 }
