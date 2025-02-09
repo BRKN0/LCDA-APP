@@ -10,8 +10,13 @@ interface Orders {
   id_order: string;
   order_type: string;
   name: string;
+  code: number;
   description: string;
-  order_status: string;
+  order_payment_status: string;
+  order_completion_status: string;
+  order_comfirmed_status: string;
+  order_delivery_status: string;
+  notes: string;
   created_at: string;
   order_quantity: string;
   unitary_value: string;
@@ -20,7 +25,6 @@ interface Orders {
   total: string;
   amount: string;
   id_client: string;
-  code: number;
 }
 
 interface Client {
@@ -117,7 +121,7 @@ export class ClientsComponent implements OnInit {
         order_type,
         name,
         description,
-        order_status,
+        order_payment_status,
         created_at,
         order_quantity,
         unitary_value,
@@ -316,7 +320,7 @@ export class ClientsComponent implements OnInit {
       order.created_at,
       order.description,
       `$${order.total}`,
-      order.order_status === 'upToDate' ? 'Al Día' : 'En Mora',
+      order.order_payment_status === 'upToDate' ? 'Al Día' : 'En Mora',
     ]);
 
     (doc as any).autoTable({

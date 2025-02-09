@@ -130,35 +130,8 @@ export class InvoiceComponent implements OnInit {
       .select(
         `
         *,
-        orders(
-          id_order,
-          order_type,
-          name,
-          description,
-          order_status,
-          created_at,
-          order_quantity,
-          unitary_value,
-          iva,
-          subtotal,
-          total,
-          amount,
-          id_client,
-          clients(
-            id_client,
-            name,
-            document_type,
-            document_number,
-            cellphone,
-            company_name,
-            nit,
-            email,
-            address,
-            status,
-            debt,
-            city,
-            province,
-            postal_code
+        orders(*,
+          clients(*
           )
         )
       `
@@ -191,35 +164,8 @@ export class InvoiceComponent implements OnInit {
     this.loading = true;
     const { data, error } = await this.supabase.from('invoices').select(`
       *,
-      orders(
-        id_order,
-        order_type,
-        name,
-        description,
-        order_status,
-        created_at,
-        order_quantity,
-        unitary_value,
-        iva,
-        subtotal,
-        total,
-        amount,
-        id_client,
-        clients(
-          id_client,
-          name,
-          document_type,
-          document_number,
-          cellphone,
-          company_name,
-          nit,
-          email,
-          address,
-          status,
-          debt,
-          city,
-          province,
-          postal_code
+      orders(*,
+        clients(*
         )
       )
     `);

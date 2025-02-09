@@ -10,7 +10,11 @@ interface Orders {
   name: string;
   code: number;
   description: string;
-  order_status: string;
+  order_payment_status: string;
+  order_completion_status: string;
+  order_confirmed_status: string;
+  order_delivery_status: string;
+  notes: string;
   created_at: string;
   order_quantity: string;
   unitary_value: string;
@@ -20,7 +24,31 @@ interface Orders {
   amount: string;
   id_client: string;
 }
-
+interface Cuts {
+  id: string;
+  material_type: string;
+  color: string;
+  caliber: string;
+  length: string;
+  width: string;
+  quantity: string;
+  cutting_time: string;
+  id_order: string;
+}
+interface Prints {
+  id: string;
+  material: string;
+  material_type: string;
+  laminating: boolean;
+  die_cutting: boolean;
+  assembly: boolean;
+  printing: boolean;
+  product_number: string;
+  quantity: string;
+  damaged_material: string;
+  notes: string;
+  id_order: string;
+}
 @Component({
   selector: 'app-orders',
   standalone: true,
@@ -30,12 +58,14 @@ interface Orders {
 })
 export class OrdersComponent implements OnInit {
   orders: Orders[] = [];
+  selectedOrderTypeDetail: any | null = null;
   order: Orders | null = null;
   filteredOrdersList: Orders[] = []; // Lista filtrada de pedidos
   clients: { id_client: string; name: string }[] = []; // Lista de clientes
   selectedOrder: Orders | null = null;
   selectedOrderDetails: Orders[] | null = null;
   loading = true;
+  loadingDetails = true;
   searchQuery: string = '';
 
   // Estados para checkboxes
@@ -49,7 +79,7 @@ export class OrdersComponent implements OnInit {
     order_type: '',
     name: '',
     description: '',
-    order_status: 'overdue',
+    order_payment_status: 'overdue',
     created_at: new Date().toISOString(),
     order_quantity: '',
     unitary_value: '',
@@ -130,12 +160,12 @@ export class OrdersComponent implements OnInit {
     }
 
     this.order = {
-      ...data[0]//,
+      ...data[0], //,
       //client: data[0].client,
     } as Orders;
 
     this.selectOrder(this.order);
-    console.log(this.order)
+    console.log(this.order);
   }
   /**
    * Actualiza la lista filtrada de pedidos según los checkboxes seleccionados
@@ -157,7 +187,35 @@ export class OrdersComponent implements OnInit {
     });
   }
 
-  selectOrder(order: Orders) {
+  async selectOrder(order: Orders) {
+    this.loadingDetails = true;
+    if (order.order_type == 'print') {
+      const { data, error } = await this.supabase
+        .from('prints')
+        .select('*')
+        .eq('id_order', order.id_order);
+      if (error) {
+        console.log(error);
+      }
+      console.log("raw:", data);
+      this.selectedOrderTypeDetail = data as Prints[];
+      console.log(this.selectedOrderDetails);
+      this.loadingDetails = false;
+    } else if (order.order_type == 'laser') {
+      const { data, error } = await this.supabase
+        .from('cuts')
+        .select('*')
+        .eq('id_order', order.id_order);
+      if (error) {
+        console.log(error);
+      }
+      console.log("raw:", data);
+      this.selectedOrderTypeDetail = data as Cuts[];
+      console.log(this.selectedOrderDetails);
+      this.loadingDetails = false;
+    } else if (order.order_type == 'sales') {
+      this.loadingDetails = false;
+    }
     this.selectedOrderDetails = [order];
   }
 
@@ -166,12 +224,12 @@ export class OrdersComponent implements OnInit {
       const { data, error } = await this.supabase
         .from('clients') // Tabla de clientes
         .select('id_client, name'); // Solo selecciona el ID y el nombre
-  
+
       if (error) {
         console.error('Error al obtener los clientes:', error);
         return;
       }
-  
+
       this.clients = data || []; // Asigna la lista de clientes
     } catch (error) {
       console.error('Error inesperado al obtener clientes:', error);
@@ -189,7 +247,7 @@ export class OrdersComponent implements OnInit {
         order_type: '',
         name: '',
         description: '',
-        order_status: 'overdue',
+        order_payment_status: 'overdue',
         order_quantity: '',
         unitary_value: '',
         iva: '',
@@ -197,6 +255,10 @@ export class OrdersComponent implements OnInit {
         total: '',
         amount: '',
         id_client: '',
+        order_confirmed_status: 'notConfirmed',
+        order_completion_status: 'standby',
+        order_delivery_status: 'toBeDelivered',
+        notes: '',
       };
     }
     this.showAddOrderForm = !this.showAddOrderForm;
@@ -204,14 +266,16 @@ export class OrdersComponent implements OnInit {
 
   async addOrder(newOrder: Partial<Orders>): Promise<void> {
     // Obtener el nombre del cliente basado en el id_client
-    const selectedClient = this.clients.find(client => client.id_client === newOrder.id_client);
+    const selectedClient = this.clients.find(
+      (client) => client.id_client === newOrder.id_client
+    );
     newOrder.name = selectedClient ? selectedClient.name : '';
 
     const orderToInsert = {
       order_type: newOrder.order_type,
       name: newOrder.name,
       description: newOrder.description,
-      order_status: newOrder.order_status || 'overdue',
+      order_payment_status: newOrder.order_payment_status || 'overdue',
       created_at: newOrder.created_at || new Date().toISOString(),
       order_quantity: newOrder.order_quantity,
       unitary_value: newOrder.unitary_value || 0, // Valor predeterminado si no se proporciona
@@ -220,18 +284,22 @@ export class OrdersComponent implements OnInit {
       total: newOrder.total || 0,
       amount: newOrder.amount || 0,
       id_client: newOrder.id_client,
+      order_confirmed_status: newOrder.order_confirmed_status,
+      order_completion_status: newOrder.order_completion_status,
+      order_delivery_status: newOrder.order_delivery_status,
+      Notes: newOrder.notes,
     };
 
     try {
       const { error } = await this.supabase
         .from('orders')
         .insert([orderToInsert]); // Inserta el nuevo pedido en Supabase
-  
+
       if (error) {
         console.error('Error al añadir el pedido:', error);
         return;
       }
-  
+
       console.log('Pedido añadido exitosamente:', newOrder);
       this.getOrders(); // Actualiza la lista de pedidos después de añadir uno nuevo
       this.toggleAddOrderForm(); // Cierra el formulario
@@ -239,5 +307,4 @@ export class OrdersComponent implements OnInit {
       console.error('Error inesperado al añadir pedido:', error);
     }
   }
-
 }
