@@ -33,14 +33,18 @@
           {{ bank.bank }}
         </option>
       </select>
+
+      <div class="flex justify-start mt-2">
+        <button
+          class="bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-700"
+          (click)="goToBanksList()"
+        >
+          Ver Bancos
+        </button>
+      </div>
     </div>
-    <button
-      class="top-1/2 transform -translate-y-1/2 bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-700 w-auto"
-      (click)="goToBanksList()"
-    >
-      Ver Bancos
-    </button>
-  </div>
+
+
 
   <!-- Balance Section -->
   <div class="balance-section">
