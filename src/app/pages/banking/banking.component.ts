@@ -38,10 +38,10 @@ export class BankingComponent implements OnInit {
   transactions: Transaction[] = [];
   filteredTransactions: Transaction[] = [];
   banks: Bank[] = [];
-  dateFrom: string = '';
-  dateTo: string = '';
   selectedBank: string = '';
   loading = true;
+  startDate: string = '';
+  endDate: string = '';
 
   constructor(
     private readonly router: Router,
@@ -84,15 +84,15 @@ export class BankingComponent implements OnInit {
   }
   updateFilteredTransactions(): void {
     this.filteredTransactions = this.transactions.filter((transaction) => {
-      const isInDateRange =
-        (!this.dateFrom ||
-          new Date(transaction.created_at) >= new Date(this.dateFrom)) &&
-        (!this.dateTo ||
-          new Date(transaction.created_at) <= new Date(this.dateTo));
-      const isBankMatch =
-        !this.selectedBank || transaction.id_bank === this.selectedBank;
+      const transactionDate = new Date(transaction.created_at); // Convertir la fecha de la transacción a objeto Date
 
-      return isInDateRange && isBankMatch;
+        const isWithinDateRange =
+            (!this.startDate || transactionDate >= new Date(this.startDate)) &&
+            (!this.endDate || transactionDate <= new Date(this.endDate + 'T23:59:59'));
+
+        const isBankMatch = !this.selectedBank || transaction.id_bank === this.selectedBank;
+
+        return isWithinDateRange && isBankMatch;
     });
   }
 

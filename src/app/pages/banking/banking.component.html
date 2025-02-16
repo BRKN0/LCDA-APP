@@ -22,23 +22,27 @@
         </option>
       </select>
     </div>
-    <div class="filter-item">
-      <label for="date-from">Desde:</label>
-      <input
-        id="date-from"
-        type="date"
-        [(ngModel)]="dateFrom"
-        class="filter-input"
-      />
-    </div>
-    <div class="filter-item">
-      <label for="date-to">Hasta:</label>
-      <input
-        id="date-to"
-        type="date"
-        [(ngModel)]="dateTo"
-        class="filter-input"
-      />
+    <div class="flex items-center space-x-4">
+      <div>
+        <label for="startDate" class="mr-2 font-semibold">Desde:</label>
+        <input
+          type="date"
+          id="startDate"
+          [(ngModel)]="startDate"
+          (ngModelChange)="updateFilteredTransactions()"
+          class="border border-gray-300 rounded-md p-1"
+        />
+      </div>
+      <div>
+        <label for="endDate" class="mr-2 font-semibold">Hasta:</label>
+        <input
+          type="date"
+          id="endDate"
+          [(ngModel)]="endDate"
+          (ngModelChange)="updateFilteredTransactions()"
+          class="border border-gray-300 rounded-md p-1"
+        />
+      </div>
     </div>
    
 

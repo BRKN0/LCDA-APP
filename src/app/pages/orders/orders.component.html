@@ -39,6 +39,28 @@
       Añadir Pedido
     </button>
   </div>
+  <div class="flex items-center space-x-4">
+    <div>
+      <label for="startDate" class="mr-2 font-semibold">Desde:</label>
+      <input
+        type="date"
+        id="startDate"
+        [(ngModel)]="startDate"
+        (ngModelChange)="updateFilteredOrders()"
+        class="border border-gray-300 rounded-md p-1"
+      />
+    </div>
+    <div>
+      <label for="endDate" class="mr-2 font-semibold">Hasta:</label>
+      <input
+        type="date"
+        id="endDate"
+        [(ngModel)]="endDate"
+        (ngModelChange)="updateFilteredOrders()"
+        class="border border-gray-300 rounded-md p-1"
+      />
+    </div>
+  </div>
   <div class="flex items-center justify-center py-4">
     <div class="w-full max-w-md relative">
       <input

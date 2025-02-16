@@ -34,6 +34,8 @@ export class ExpensesComponent implements OnInit {
   showModal: boolean = false;
   selectedExpense: any = null;
   isEditing: boolean = false;
+  startDate: string = '';
+  endDate: string = '';
 
   // Nuevas variables
   showOtherCategoryInput: boolean = false;
@@ -128,10 +130,14 @@ export class ExpensesComponent implements OnInit {
 
   applyFilters(): void {
     this.filteredExpenses = this.expenses.filter((e) => {
-      return (
-        (!this.selectedCategory || e.category === this.selectedCategory) &&
-        (!this.selectedDate || e.payment_date === this.selectedDate)
-      );
+      const matchesCategory = !this.selectedCategory || e.category === this.selectedCategory;
+        
+        const expenseDate = new Date(e.payment_date); // Convertir la fecha del gasto a objeto Date
+        const isWithinDateRange =
+            (!this.startDate || expenseDate >= new Date(this.startDate)) &&
+            (!this.endDate || expenseDate <= new Date(this.endDate ));
+
+        return matchesCategory && isWithinDateRange;
     });
   }
 
