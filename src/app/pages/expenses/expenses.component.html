@@ -6,29 +6,53 @@
 
 <div class="expenses-container">
   <!-- Filtros -->
-  <div class="filters">
-    <label>
-      <span>Categoría:</span>
-      <select [(ngModel)]="selectedCategory" (change)="applyFilters()">
-        <option value="">Todas</option>
-        <option *ngFor="let category of uniqueCategories" [value]="category">
-          {{ category }}
-        </option>
-      </select>
-    </label>
-    <label>
-      <span>Fecha:</span>
-      <input type="date" [(ngModel)]="selectedDate" (change)="applyFilters()" />
-    </label>
+  <div class="flex justify-between items-center mb-4">
+    <!-- Filtro de Categoría -->
+    <div class="filters">
+      <label>
+        <span>Categoría:</span>
+        <select [(ngModel)]="selectedCategory" (change)="applyFilters()">
+          <option value="">Todas</option>
+          <option *ngFor="let category of uniqueCategories" [value]="category">
+            {{ category }}
+          </option>
+        </select>
+      </label>
+    </div>
+  
+    <!-- Botón Añadir -->
+    <button
+      class="px-4 py-2 bg-red-500 text-white rounded-full hover:bg-red-700"
+      (click)="addNewExpense()"
+    >
+      Añadir Nuevo Egreso
+    </button>
   </div>
-
-  <!-- Botón Añadir -->
-  <button
-    class="px-4 py-2 transform bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-700 w-auto"
-    (click)="addNewExpense()"
-  >
-    Añadir Nuevo Egreso
-  </button>
+  
+  <!-- Filtros de Fechas -->
+  <div class="flex items-center space-x-4">
+    <div>
+      <label for="startDate" class="mr-2 font-semibold">Desde:</label>
+      <input
+        type="date"
+        id="startDate"
+        [(ngModel)]="startDate"
+        (ngModelChange)="applyFilters()"
+        class="border border-gray-300 rounded-md p-1"
+      />
+    </div>
+    <div>
+      <label for="endDate" class="mr-2 font-semibold">Hasta:</label>
+      <input
+        type="date"
+        id="endDate"
+        [(ngModel)]="endDate"
+        (ngModelChange)="applyFilters()"
+        class="border border-gray-300 rounded-md p-1"
+      />
+    </div>
+  </div>
+  
 
   <!-- Tabla -->
   <div class="table-auto w-full border-collapse">

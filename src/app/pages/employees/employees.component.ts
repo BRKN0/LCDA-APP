@@ -38,6 +38,8 @@ export class EmployeesComponent implements OnInit {
   noResultsFound: boolean = false;
   showModal: boolean = false;
   isEditing: boolean = false;
+  startDate: string = '';
+  endDate: string = '';
   
 
   constructor(
@@ -70,16 +72,32 @@ export class EmployeesComponent implements OnInit {
     this.loading = false;
   }
 
+  //Filtros
   searchEmployee() {
-    //Filt the names of the clients
+    //Filt only by date
     if (!this.searchQuery.trim()) {
-      this.filteredEmployees = this.Employees;
-    } else {
-      this.filteredEmployees = this.Employees.filter(emp =>
-        emp.name.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
-        emp.email.toLowerCase().includes(this.searchQuery.toLowerCase())
-      );
-    }
+      this.filteredEmployees = this.Employees.filter(emp => {
+          const employeeDate = new Date(emp.created_at); 
+          const isWithinDateRange =
+              (!this.startDate || employeeDate >= new Date(this.startDate)) &&
+              (!this.endDate || employeeDate <= new Date(this.endDate + 'T23:59:59'));
+          return isWithinDateRange;
+      });
+  } else {
+      // Filtrar por nombre, email y fecha
+      this.filteredEmployees = this.Employees.filter(emp => {
+          const matchesQuery =
+              emp.name.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
+              emp.email.toLowerCase().includes(this.searchQuery.toLowerCase());
+
+          const employeeDate = new Date(emp.created_at); 
+          const isWithinDateRange =
+              (!this.startDate || employeeDate >= new Date(this.startDate)) &&
+              (!this.endDate || employeeDate <= new Date(this.endDate + 'T23:59:59'));
+
+          return matchesQuery && isWithinDateRange;
+      });
+  }
     this.noResultsFound = this.filteredEmployees.length === 0;
     
   }

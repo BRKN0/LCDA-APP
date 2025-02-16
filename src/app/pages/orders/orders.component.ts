@@ -67,6 +67,8 @@ export class OrdersComponent implements OnInit {
   loading = true;
   loadingDetails = true;
   searchQuery: string = '';
+  startDate: string = '';
+  endDate: string = '';
 
   // Estados para checkboxes
   showPrints = true;
@@ -179,11 +181,17 @@ export class OrdersComponent implements OnInit {
 
     // Filtrar los pedidos según los checkboxes seleccionados
     this.filteredOrdersList = this.orders.filter((order) => {
-      return (
-        (this.showPrints && order.order_type === 'print') ||
-        (this.showCuts && order.order_type === 'laser') ||
-        (this.showSales && order.order_type === 'sales')
-      );
+      const matchesType =
+            (this.showPrints && order.order_type === 'print') ||
+            (this.showCuts && order.order_type === 'laser') ||
+            (this.showSales && order.order_type === 'sales');
+
+        const orderDate = new Date(order.created_at); // Convertir la fecha del pedido a objeto Date
+        const isWithinDateRange =
+            (!this.startDate || orderDate >= new Date(this.startDate)) &&
+            (!this.endDate || orderDate <= new Date(this.endDate ));
+
+        return matchesType && isWithinDateRange;
     });
   }
 

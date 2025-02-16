@@ -19,6 +19,29 @@
           class="w-64 py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
         />
       </div>
+      <!-- filtro fecha -->
+      <div class="flex items-center space-x-4">
+        <div>
+          <label for="startDate" class="mr-2 font-semibold">Desde:</label>
+          <input
+            type="date"
+            id="startDate"
+            [(ngModel)]="startDate"
+            (ngModelChange)="searchEmployee()"
+            class="border border-gray-300 rounded-md p-1"
+          />
+        </div>
+        <div>
+          <label for="endDate" class="mr-2 font-semibold">Hasta:</label>
+          <input
+            type="date"
+            id="endDate"
+            [(ngModel)]="endDate"
+            (ngModelChange)="searchEmployee()"
+            class="border border-gray-300 rounded-md p-1"
+          />
+        </div>
+      </div>
 
       <!-- Botón Añadir empleado -->
       <button
@@ -39,6 +62,7 @@
                 <th class="border border-gray-300 px-4 py-2 bg-gray-200">Numero de documento</th>
                 <th class="border border-gray-300 px-4 py-2 bg-gray-200">Email</th>
                 <th class="border border-gray-300 px-4 py-2 bg-gray-200">Telefono</th>
+                <th class="border border-gray-300 px-4 py-2 bg-gray-200">Fecha de contratacion</th>
                 <th class="border border-gray-300 px-4 py-2 bg-gray-200">Acción</th>
             </tr>
         </thead>
@@ -52,6 +76,7 @@
                 <td Class="p-3 border">{{ employee.id_number }}</td>
                 <td Class="p-3 border">{{ employee.email }}</td>
                 <td Class="p-3 border">{{ employee.phone }}</td>
+                <td Class="p-3 border">{{ employee.created_at | date : "dd-MM-yyyy"}}</td>
                 <td class="border px-4 py-2">
                     <button class="btn-edit" (click)="editEmployee(employee)">Editar</button>
                     <button class="btn-delete" (click)="deleteEmployee(employee)">Eliminar</button>
