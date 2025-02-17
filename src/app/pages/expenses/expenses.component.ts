@@ -36,6 +36,11 @@ export class ExpensesComponent implements OnInit {
   isEditing: boolean = false;
   startDate: string = '';
   endDate: string = '';
+  // Paginacion
+  currentPage: number =1;
+  itemsPerPage: number = 10; // Elementos por página
+  totalPages: number = 1; // Total de páginas
+  paginatedExpenses: any[] = []; // Lista paginada 
 
   // Nuevas variables
   showOtherCategoryInput: boolean = false;
@@ -124,6 +129,8 @@ export class ExpensesComponent implements OnInit {
           this.expenses = data || [];
           this.filteredExpenses = [...this.expenses];
           this.uniqueCategories = [...new Set(this.expenses.map((e) => e.category))];
+
+          this.updatePaginatedExpenses();
         }
       });
   }
@@ -139,6 +146,8 @@ export class ExpensesComponent implements OnInit {
 
         return matchesCategory && isWithinDateRange;
     });
+    this.currentPage = 1; // Reiniciar a la primera página
+    this.updatePaginatedExpenses(); // Actualizar la lista paginada
   }
 
   addNewExpense(): void {
@@ -186,5 +195,27 @@ export class ExpensesComponent implements OnInit {
           }
         });
     }
+  }
+
+  //Paginacion
+  paginateItems<T>(items: T[], page: number, itemsPerPage: number): T[] {
+    const startIndex = (page - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return items.slice(startIndex, endIndex);
+  }
+
+  updatePaginatedExpenses(): void {
+    // Calcular el número total de páginas
+    this.totalPages = Math.max(1, Math.ceil(this.filteredExpenses.length / this.itemsPerPage));
+
+    // Asegurar que currentPage no sea menor que 1 ni mayor que totalPages
+    this.currentPage = Math.min(Math.max(this.currentPage, 1), this.totalPages);
+
+    // Calcular los índices de inicio y fin
+    const startIndex = Number((this.currentPage - 1) * this.itemsPerPage);
+    const endIndex = startIndex + Number(this.itemsPerPage);
+
+    // Obtener los elementos para la página actual
+    this.paginatedExpenses = this.filteredExpenses.slice(startIndex, endIndex);
   }
 }

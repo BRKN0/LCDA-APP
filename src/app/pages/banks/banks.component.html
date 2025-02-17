@@ -31,7 +31,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let bank of banks">
+        <tr *ngFor="let bank of paginatedBanks">
           <td class="p-3 border">{{ bank.code }}</td>
           <td class="p-3 border">
             {{ bank.account_number}}
@@ -47,5 +47,38 @@
         </tr>
       </tbody>
     </table>
+    <div class="flex justify-between items-center mb-4">
+      <!-- Controles de paginación -->
+      <div class="pagination flex items-center">
+        <button
+          (click)="currentPage = currentPage - 1; updatePaginatedBanks()"
+          [disabled]="currentPage === 1"
+          class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+        >
+          &#8592;
+        </button>
+        <span class="mx-4 text-gray-700">Página {{ currentPage }} de {{ totalPages }}</span>
+        <button
+          (click)="currentPage = currentPage + 1; updatePaginatedBanks()"
+          [disabled]="currentPage === totalPages"
+          class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+        >
+          &#8594;
+        </button>
+      </div>
+    
+      <!-- Selector de elementos por página -->
+      <div class="items-per-page flex items-center">
+        <label for="itemsPerPage" class="mr-2">Elementos por página:</label>
+        <select
+          id="itemsPerPage"
+          [(ngModel)]="itemsPerPage"
+          (change)="currentPage = 1; updatePaginatedBanks()"
+          class="border border-gray-300 rounded-md p-1"
+        >
+          <option *ngFor="let size of [2, 10, 15, 20]" [value]="size">{{ size }}</option>
+        </select>
+      </div>  
+    </div>
   </div>
 </div>

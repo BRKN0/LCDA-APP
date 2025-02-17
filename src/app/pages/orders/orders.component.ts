@@ -64,16 +64,22 @@ export class OrdersComponent implements OnInit {
   clients: { id_client: string; name: string }[] = []; // Lista de clientes
   selectedOrder: Orders | null = null;
   selectedOrderDetails: Orders[] | null = null;
+  noResultsFound: boolean = false;
   loading = true;
   loadingDetails = true;
   searchQuery: string = '';
   startDate: string = '';
   endDate: string = '';
-
   // Estados para checkboxes
   showPrints = true;
   showCuts = true;
   showSales = true;
+  // Paginacion
+  currentPage: number =1;
+  itemsPerPage: number = 10; // Elementos por página
+  totalPages: number = 1; // Total de páginas
+  paginatedOrders: Orders[] = []; // Lista paginada
+
 
   // Para añadir pedidos
   newOrder: Partial<Orders> = {
@@ -193,6 +199,9 @@ export class OrdersComponent implements OnInit {
 
         return matchesType && isWithinDateRange;
     });
+    this.noResultsFound = this.filteredOrdersList.length === 0;
+    this.currentPage = 1; // Reiniciar a la primera página
+    this.updatePaginatedOrder(); // Actualizar la lista paginada
   }
 
   async selectOrder(order: Orders) {
@@ -314,5 +323,27 @@ export class OrdersComponent implements OnInit {
     } catch (error) {
       console.error('Error inesperado al añadir pedido:', error);
     }
+  }
+
+  //Paginacion
+  paginateItems<T>(items: T[], page: number, itemsPerPage: number): T[] {
+    const startIndex = (page - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return items.slice(startIndex, endIndex);
+  }
+
+  updatePaginatedOrder(): void {
+    // Calcular el número total de páginas
+    this.totalPages = Math.max(1, Math.ceil(this.filteredOrdersList.length / this.itemsPerPage));
+
+    // Asegurar que currentPage no sea menor que 1 ni mayor que totalPages
+    this.currentPage = Math.min(Math.max(this.currentPage, 1), this.totalPages);
+
+    // Calcular los índices de inicio y fin
+    const startIndex = Number((this.currentPage - 1) * this.itemsPerPage);
+    const endIndex = startIndex + Number(this.itemsPerPage);
+
+    // Obtener los elementos para la página actual
+    this.paginatedOrders = this.filteredOrdersList.slice(startIndex, endIndex);
   }
 }

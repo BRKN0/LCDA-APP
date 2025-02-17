@@ -40,7 +40,11 @@ export class EmployeesComponent implements OnInit {
   isEditing: boolean = false;
   startDate: string = '';
   endDate: string = '';
-  
+  // Paginacion
+  currentPage: number =1;
+  itemsPerPage: number = 10; // Elementos por página
+  totalPages: number = 1; // Total de páginas
+  paginatedEmployees: Employee[] = []; // Lista paginada 
 
   constructor(
     private readonly supabase: SupabaseService,
@@ -99,7 +103,8 @@ export class EmployeesComponent implements OnInit {
       });
   }
     this.noResultsFound = this.filteredEmployees.length === 0;
-    
+    this.currentPage = 1; // Reiniciar a la primera página
+    this.updatePaginatedEmployees(); // Actualizar la lista paginada
   }
 
   addNewEmployee(): void {
@@ -203,5 +208,26 @@ export class EmployeesComponent implements OnInit {
     this.selectedEmployee = {};
   }
   
+  //Paginacion
+  paginateItems<T>(items: T[], page: number, itemsPerPage: number): T[] {
+    const startIndex = (page - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return items.slice(startIndex, endIndex);
+  }
+
+  updatePaginatedEmployees(): void {
+    // Calcular el número total de páginas
+    this.totalPages = Math.max(1, Math.ceil(this.filteredEmployees.length / this.itemsPerPage));
+
+    // Asegurar que currentPage no sea menor que 1 ni mayor que totalPages
+    this.currentPage = Math.min(Math.max(this.currentPage, 1), this.totalPages);
+
+    // Calcular los índices de inicio y fin
+    const startIndex = Number((this.currentPage - 1) * this.itemsPerPage);
+    const endIndex = startIndex + Number(this.itemsPerPage);
+
+    // Obtener los elementos para la página actual
+    this.paginatedEmployees = this.filteredEmployees.slice(startIndex, endIndex);
+  }
 
 }
