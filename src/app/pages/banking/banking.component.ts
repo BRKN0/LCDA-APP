@@ -42,6 +42,11 @@ export class BankingComponent implements OnInit {
   loading = true;
   startDate: string = '';
   endDate: string = '';
+  // Paginacion
+  currentPage: number =1;
+  itemsPerPage: number = 10; // Elementos por página
+  totalPages: number = 1; // Total de páginas
+  paginatedBanking: Transaction[] = []; // Lista paginada
 
   constructor(
     private readonly router: Router,
@@ -71,6 +76,7 @@ export class BankingComponent implements OnInit {
     }
     this.transactions = data as Transaction[];
     this.filteredTransactions = [...this.transactions];
+    this.updatePaginatedBanking();
   }
 
   async loadBanks(): Promise<void> {
@@ -94,6 +100,8 @@ export class BankingComponent implements OnInit {
 
         return isWithinDateRange && isBankMatch;
     });
+    this.currentPage = 1; // Reiniciar a la primera página
+    this.updatePaginatedBanking(); // Actualizar la lista paginada
   }
 
   calculateBalance() {
@@ -112,5 +120,27 @@ export class BankingComponent implements OnInit {
 
   goToBanksList(): void {
     this.router.navigate(['/banks']);
+  }
+
+  //Paginacion
+  paginateItems<T>(items: T[], page: number, itemsPerPage: number): T[] {
+    const startIndex = (page - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return items.slice(startIndex, endIndex);
+  }
+
+  updatePaginatedBanking(): void {
+    // Calcular el número total de páginas
+    this.totalPages = Math.max(1, Math.ceil(this.filteredTransactions.length / this.itemsPerPage));
+
+    // Asegurar que currentPage no sea menor que 1 ni mayor que totalPages
+    this.currentPage = Math.min(Math.max(this.currentPage, 1), this.totalPages);
+
+    // Calcular los índices de inicio y fin
+    const startIndex = Number((this.currentPage - 1) * this.itemsPerPage);
+    const endIndex = startIndex + Number(this.itemsPerPage);
+
+    // Obtener los elementos para la página actual
+    this.paginatedBanking = this.filteredTransactions.slice(startIndex, endIndex);
   }
 }

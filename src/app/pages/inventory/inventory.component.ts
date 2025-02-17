@@ -56,6 +56,11 @@ export class InventoryComponent implements OnInit {
   searchCategory: string = '';
   noResultsFound: boolean = false;
 
+  currentPage: number =1;
+  itemsPerPage: number = 10; // Elementos por página
+  totalPages: number = 1; // Total de páginas
+  paginatedInventory: InventoryItem[] = []; // Lista paginada
+
   constructor(
     private readonly supabase: SupabaseService,
     private readonly zone: NgZone
@@ -101,6 +106,10 @@ export class InventoryComponent implements OnInit {
 
       return matchesCode && matchesCategory && categoryMatchesCheckboxes;
     });
+
+    this.noResultsFound = this.filteredInventory.length === 0;
+    this.currentPage = 1; // Reiniciar a la primera página
+    this.updatePaginatedInventory(); // Actualizar la lista paginada
   }
 
   toggleDetails(item: InventoryItem): void {
@@ -389,16 +398,41 @@ export class InventoryComponent implements OnInit {
   }
 
 
-filterInventory(): void {
-  this.filteredInventory = this.inventory.filter(item => {
-    const matchesCode = item.code.toString().includes(this.searchCode);
-    const matchesCategory = item.category?.toLowerCase().includes(this.searchCategory.toLowerCase());
+  filterInventory(): void {
+    this.filteredInventory = this.inventory.filter(item => {
+      const matchesCode = item.code.toString().includes(this.searchCode);
+      const matchesCategory = item.category?.toLowerCase().includes(this.searchCategory.toLowerCase());
 
-    return matchesCode && matchesCategory;
-  });
+      return matchesCode && matchesCategory;
+    });
 
-  this.noResultsFound = this.filteredInventory.length === 0;
-}
+    this.noResultsFound = this.filteredInventory.length === 0;
+    this.currentPage = 1;
+    this.updatePaginatedInventory();
+  }
+
+  //Paginacion
+  paginateItems<T>(items: T[], page: number, itemsPerPage: number): T[] {
+    const startIndex = (page - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return items.slice(startIndex, endIndex);
+  }
+
+  updatePaginatedInventory(): void {
+    // Calcular el número total de páginas
+    this.totalPages = Math.max(1, Math.ceil(this.filteredInventory.length / this.itemsPerPage));
+
+    // Asegurar que currentPage no sea menor que 1 ni mayor que totalPages
+    this.currentPage = Math.min(Math.max(this.currentPage, 1), this.totalPages);
+
+    // Calcular los índices de inicio y fin
+    const startIndex = Number((this.currentPage - 1) * this.itemsPerPage);
+    const endIndex = startIndex + Number(this.itemsPerPage);
+
+    // Obtener los elementos para la página actual
+    this.paginatedInventory = this.filteredInventory.slice(startIndex, endIndex);
+  }
+
 }
 
 

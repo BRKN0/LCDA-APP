@@ -1,8 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, NgZone, ViewChild } from '@angular/core';
+import { Component, OnInit, NgZone} from '@angular/core';
 import { MainBannerComponent } from '../main-banner/main-banner.component';
 import { FormsModule } from '@angular/forms';
-import { MatPaginator, MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { jsPDF } from 'jspdf';
 import { SupabaseService } from '../../services/supabase.service';
 
@@ -52,7 +51,7 @@ interface Client {
 @Component({
   selector: 'app-invoice',
   standalone: true,
-  imports: [CommonModule, MainBannerComponent, FormsModule, MatPaginatorModule],
+  imports: [CommonModule, MainBannerComponent, FormsModule],
   templateUrl: './invoice.component.html',
   styleUrls: ['./invoice.component.scss'],
 })
@@ -78,6 +77,11 @@ export class InvoiceComponent implements OnInit {
   showModal = false;
   selectedInvoice: any | null = null;
   showAddClientModal = false;
+  // Paginacion
+  currentPage: number =1;
+  itemsPerPage: number = 10; // Elementos por página
+  totalPages: number = 1; // Total de páginas
+  paginatedInvoice: Invoice[] = []; // Lista paginada
   orders: any[] = [];
   newClient = {
     name: '',
@@ -88,10 +92,6 @@ export class InvoiceComponent implements OnInit {
     cellphone: '',
     address: '',
   };
-
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
-  paginatedInvoices: Invoice[] = [];
-  filteredInvoicesPaginated: Invoice[] = [];
 
   constructor(
     private readonly supabase: SupabaseService,
@@ -282,7 +282,7 @@ export class InvoiceComponent implements OnInit {
   }
 
   updateFilteredInvoices(): void {
-    let filtered = this.invoices.filter((invoice) => {
+    this.filteredInvoicesList = this.invoices.filter((invoice) => { // 🔹 Asignamos los datos filtrados a `filteredInvoicesList`
       const isDebtFilter = this.showDebt ? invoice.invoice_status === 'overdue' : true;
 
       const isPrintsFilter = this.showPrints && invoice.order.order_type === 'print';
@@ -307,10 +307,8 @@ export class InvoiceComponent implements OnInit {
       return isDebtFilter && matchesType && matchesDateRange && matchesNameSearch;
     });
 
-    this.filteredInvoicesList = filtered;
-    this.paginator.pageIndex = 0;
-    this.paginator.length = filtered.length;
-    this.filteredInvoicesPaginated = filtered.slice(0, this.paginator.pageSize);
+    this.currentPage = 1; // Reiniciar a la primera página
+    this.updatePaginatedInvoices(); // Actualizar la lista paginada
   }
 
 
@@ -492,21 +490,26 @@ export class InvoiceComponent implements OnInit {
     });
   }
 
-  updatePaginatedInvoices(): void {
-    const filteredInvoices = this.filteredInvoices();
-    this.paginator.length = filteredInvoices.length;
-
-    const startIndex = this.paginator.pageIndex * this.paginator.pageSize;
-    const endIndex = startIndex + this.paginator.pageSize;
-
-    this.filteredInvoicesPaginated = filteredInvoices.slice(startIndex, endIndex);
+  //Paginacion
+  paginateItems<T>(items: T[], page: number, itemsPerPage: number): T[] {
+    const startIndex = (page - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return items.slice(startIndex, endIndex);
   }
 
-  onPageChange(event: PageEvent): void {
-    const startIndex = event.pageIndex * event.pageSize;
-    const endIndex = startIndex + event.pageSize;
+  updatePaginatedInvoices(): void {
+    // Calcular el número total de páginas
+    this.totalPages = Math.max(1, Math.ceil(this.filteredInvoicesList.length / this.itemsPerPage));
 
-    this.filteredInvoicesPaginated = this.filteredInvoices().slice(startIndex, endIndex);
+    // Asegurar que currentPage no sea menor que 1 ni mayor que totalPages
+    this.currentPage = Math.min(Math.max(this.currentPage, 1), this.totalPages);
+
+    // Calcular los índices de inicio y fin
+    const startIndex = Number((this.currentPage - 1) * this.itemsPerPage);
+    const endIndex = startIndex + Number(this.itemsPerPage);
+
+    // Obtener los elementos para la página actual
+    this.paginatedInvoice = this.filteredInvoicesList.slice(startIndex, endIndex);
   }
 
   addNewInvoice(): void {
