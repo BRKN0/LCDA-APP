@@ -53,7 +53,7 @@ export class InventoryComponent implements OnInit {
   showMDF = true;
 
   searchCode: string = '';
-  searchCategory: string = '';
+  searchType: string = '';
   noResultsFound: boolean = false;
 
   currentPage: number =1;
@@ -94,7 +94,7 @@ export class InventoryComponent implements OnInit {
   updateFilteredInventory(): void {
     this.filteredInventory = this.inventory.filter(item => {
       const matchesCode = item.code.toString().includes(this.searchCode);
-      const matchesCategory = item.category?.toLowerCase().includes(this.searchCategory.toLowerCase());
+      const matchesType = item.type?.toLowerCase().includes(this.searchType.toLowerCase());
       const normalizedCategory = (item.category || '').trim().toLowerCase();
       const categoryMatchesCheckboxes =
         (this.showVinyls && normalizedCategory === 'vinilo') ||
@@ -104,7 +104,7 @@ export class InventoryComponent implements OnInit {
         (this.showDieCut && normalizedCategory === 'troquelado') ||
         (this.showMDF && normalizedCategory === 'mdf');
 
-      return matchesCode && matchesCategory && categoryMatchesCheckboxes;
+      return matchesCode && matchesType && categoryMatchesCheckboxes;
     });
 
     this.noResultsFound = this.filteredInventory.length === 0;
@@ -401,9 +401,9 @@ export class InventoryComponent implements OnInit {
   filterInventory(): void {
     this.filteredInventory = this.inventory.filter(item => {
       const matchesCode = item.code.toString().includes(this.searchCode);
-      const matchesCategory = item.category?.toLowerCase().includes(this.searchCategory.toLowerCase());
+      const matchesType = item.type?.toLowerCase().includes(this.searchType.toLowerCase());
 
-      return matchesCode && matchesCategory;
+      return matchesCode && matchesType;
     });
 
     this.noResultsFound = this.filteredInventory.length === 0;

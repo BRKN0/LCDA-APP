@@ -63,8 +63,8 @@
   <div class="w-full max-w-md relative">
     <input
       type="text"
-      placeholder="Buscar por categoría..."
-      [(ngModel)]="searchCategory"
+      placeholder="Buscar por tipo..."
+      [(ngModel)]="searchType"
       (ngModelChange)="filterInventory()"
       class="w-full py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
     />
@@ -235,7 +235,7 @@
         &#8594;
       </button>
     </div>
-  
+
     <!-- Selector de elementos por página -->
     <div class="items-per-page flex items-center">
       <label for="itemsPerPage" class="mr-2">Elementos por página:</label>
@@ -247,7 +247,7 @@
       >
         <option *ngFor="let size of [2, 10, 15, 20]" [value]="size">{{ size }}</option>
       </select>
-    </div>  
+    </div>
   </div>
 </div>
 
