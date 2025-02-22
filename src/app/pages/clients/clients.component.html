@@ -55,9 +55,9 @@
         [class.border-red-500]="client.status === 'overdue'"
         [class.border-green-500]="client.status === 'upToDate'"
       >
-        <td class="p-3 border">{{ client.name }}</td>
-        <td class="p-3 border">{{client.email}}</td>
-        <td class="p-3 border">
+        <td>{{ client.name }}</td>
+        <td>{{client.email}}</td>
+        <td>
           {{ client.nit ?? client.document_number }}
         </td>
         <td>
