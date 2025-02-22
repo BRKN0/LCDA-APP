@@ -2,9 +2,8 @@
 
 <!-- Indicador de carga -->
 <div *ngIf="loading" class="p-4 text-center text-gray-600">
-    <p>Cargando empleados...</p>
+  <p>Cargando empleados...</p>
 </div>
-
 
 <div *ngIf="!loading">
   <div class="flex flex-wrap items-center justify-between py-4">
@@ -53,154 +52,158 @@
     </div>
   </div>
 
-
-    <table class="table-auto w-full border-collapse">
-        <thead>
-            <tr>
-                <th class="border border-gray-300 px-4 py-2 bg-gray-200">ID del empleado</th>
-                <th class="border border-gray-300 px-4 py-2 bg-gray-200">Nombre</th>
-                <th class="border border-gray-300 px-4 py-2 bg-gray-200">Numero de documento</th>
-                <th class="border border-gray-300 px-4 py-2 bg-gray-200">Email</th>
-                <th class="border border-gray-300 px-4 py-2 bg-gray-200">Telefono</th>
-                <th class="border border-gray-300 px-4 py-2 bg-gray-200">Fecha de contratacion</th>
-                <th class="border border-gray-300 px-4 py-2 bg-gray-200">Acción</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr
-                *ngFor="let employee of paginatedEmployees"
-                class="cursor-pointer hover:bg-gray-200"
-            >
-                <td Class="p-3 border">{{ employee.code }}</td>
-                <td Class="p-3 border">{{ employee.name }}</td>
-                <td Class="p-3 border">{{ employee.id_number }}</td>
-                <td Class="p-3 border">{{ employee.email }}</td>
-                <td Class="p-3 border">{{ employee.phone }}</td>
-                <td Class="p-3 border">{{ employee.created_at | date : "dd-MM-yyyy"}}</td>
-                <td class="border px-4 py-2">
-                    <button class="btn-edit" (click)="editEmployee(employee)">Editar</button>
-                    <button class="btn-delete" (click)="deleteEmployee(employee)">Eliminar</button>
-                  </td>
-            </tr>
-        </tbody>
-    </table>
-    <div class="flex justify-between items-center mb-4">
-      <!-- Controles de paginación -->
-      <div class="pagination flex items-center">
-        <button
-          (click)="currentPage = currentPage - 1; updatePaginatedEmployees()"
-          [disabled]="currentPage === 1"
-          class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
-        >
-          &#8592;
-        </button>
-        <span class="mx-4 text-gray-700">Página {{ currentPage }} de {{ totalPages }}</span>
-        <button
-          (click)="currentPage = currentPage + 1; updatePaginatedEmployees()"
-          [disabled]="currentPage === totalPages"
-          class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
-        >
-          &#8594;
-        </button>
-      </div>
-    
-      <!-- Selector de elementos por página -->
-      <div class="items-per-page flex items-center">
-        <label for="itemsPerPage" class="mr-2">Elementos por página:</label>
-        <select
-          id="itemsPerPage"
-          [(ngModel)]="itemsPerPage"
-          (change)="currentPage = 1; updatePaginatedEmployees()"
-          class="border border-gray-300 rounded-md p-1"
-        >
-          <option *ngFor="let size of [2, 10, 15, 20]" [value]="size">{{ size }}</option>
-        </select>
-      </div>  
+  <table class="table-std">
+    <thead>
+      <tr>
+        <th class="table-column-std">ID del empleado</th>
+        <th class="table-column-std">Nombre</th>
+        <th class="table-column-std">Numero de documento</th>
+        <th class="table-column-std">Email</th>
+        <th class="table-column-std">Telefono</th>
+        <th class="table-column-std">Fecha de contratacion</th>
+        <th class="table-column-std">Acción</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let employee of paginatedEmployees">
+        <td>{{ employee.code }}</td>
+        <td>{{ employee.name }}</td>
+        <td>{{ employee.id_number }}</td>
+        <td>{{ employee.email }}</td>
+        <td>{{ employee.phone }}</td>
+        <td>{{ employee.created_at | date : "dd-MM-yyyy" }}</td>
+        <td>
+          <button class="btn-edit" (click)="editEmployee(employee)">
+            Editar
+          </button>
+          <button class="btn-delete" (click)="deleteEmployee(employee)">
+            Eliminar
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="flex justify-between items-center mb-4">
+    <!-- Controles de paginación -->
+    <div class="pagination flex items-center">
+      <button
+        (click)="currentPage = currentPage - 1; updatePaginatedEmployees()"
+        [disabled]="currentPage === 1"
+        class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+      >
+        &#8592;
+      </button>
+      <span class="mx-4 text-gray-700"
+        >Página {{ currentPage }} de {{ totalPages }}</span
+      >
+      <button
+        (click)="currentPage = currentPage + 1; updatePaginatedEmployees()"
+        [disabled]="currentPage === totalPages"
+        class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+      >
+        &#8594;
+      </button>
     </div>
 
-    <!-- Form to add clients -->
-    <div
-        *ngIf="showModal"
-        class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
-    >
-        <div class="bg-white w-full max-w-2xl rounded-lg shadow-lg p-8">
-            <h3 class="text-2xl font-bold mb-6">
-                {{ isEditing ? 'Editar Empleado' : 'Añadir Nuevo Empleado' }}
-            </h3>
-            <form (ngSubmit)="saveEmployee()">
-                <div class="mb-4">
-                    <label class="block text-gray-700">Codigo</label>
-                    <input
-                      [(ngModel)]="selectedEmployee.code"
-                      name="code"
-                      class="form-input mt-1 block w-full border border-gray-300 rounded-md"
-                    />
-                </div>
-                <div class="mb-4">
-                    <label class="block text-gray-700">Nombre Completo</label>
-                    <input
-                      [(ngModel)]="selectedEmployee.name"
-                      name="name"
-                      class="form-input mt-1 block w-full border border-gray-300 rounded-md"
-                    />
-                </div>
-                <div class="mb-4">
-                    <label class="block text-gray-700">Numero de identidad</label>
-                    <input
-                      [(ngModel)]="selectedEmployee.id_number"
-                      name="id_number"
-                      class="form-input mt-1 block w-full border border-gray-300 rounded-md"
-                    />
-                </div>
-                <div class="mb-4">
-                    <label class="block text-gray-700">Correo Electrónico</label>
-                    <input
-                      type="email"
-                      [(ngModel)]="selectedEmployee.email"
-                      name="email"
-                      class="form-input mt-1 block w-full border border-gray-300 rounded-md"
-                      required
-                    />
-                </div>
-                <div class="mb-4">
-                    <label class="block text-gray-700">Numero de Telefono</label>
-                    <input
-                      [(ngModel)]="selectedEmployee.phone"
-                      name="phone"
-                      class="form-input mt-1 block w-full border border-gray-300 rounded-md"
-                    />
-                </div>
-                <div class="mb-4">
-                    <label class="block text-gray-700">Tipo de empleado</label>
-                    <select
-                      [(ngModel)]="selectedEmployee.employee_type"
-                      name="type_employee"
-                      class="form-select mt-1 block w-full"
-                      required
-                    >
-                      <option value="printer">Impresiones</option>
-                      <option value="cutter">Corte laser</option>
-                      <option value="counter">Contador</option>
-                      <option value="seller">Vendedor</option>
-                      <option value="scheduled">Agendador</option>
-                    </select>
-                </div>
-                <div class="flex justify-end">
-                    <button
-                      type="button"
-                      class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md mr-2"
-                      (click)="closeModal()"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="submit"
-                      class="bg-green-300 text-gray-700 px-4 py-2 rounded-md mr-2"
-                    >
-                        {{ isEditing ? 'Actualizar' : 'Guardar Empleado' }}
-                    </button>
-                </div>
-            </form>
+    <!-- Selector de elementos por página -->
+    <div class="items-per-page flex items-center">
+      <label for="itemsPerPage" class="mr-2">Elementos por página:</label>
+      <select
+        id="itemsPerPage"
+        [(ngModel)]="itemsPerPage"
+        (change)="currentPage = 1; updatePaginatedEmployees()"
+        class="border border-gray-300 rounded-md p-1"
+      >
+        <option *ngFor="let size of [2, 10, 15, 20]" [value]="size">
+          {{ size }}
+        </option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Form to add clients -->
+  <div
+    *ngIf="showModal"
+    class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
+  >
+    <div class="bg-white w-full max-w-2xl rounded-lg shadow-lg p-8">
+      <h3 class="text-2xl font-bold mb-6">
+        {{ isEditing ? "Editar Empleado" : "Añadir Nuevo Empleado" }}
+      </h3>
+      <form (ngSubmit)="saveEmployee()">
+        <div class="mb-4">
+          <label class="block text-gray-700">Codigo</label>
+          <input
+            [(ngModel)]="selectedEmployee.code"
+            name="code"
+            class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+          />
         </div>
+        <div class="mb-4">
+          <label class="block text-gray-700">Nombre Completo</label>
+          <input
+            [(ngModel)]="selectedEmployee.name"
+            name="name"
+            class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+          />
+        </div>
+        <div class="mb-4">
+          <label class="block text-gray-700">Numero de identidad</label>
+          <input
+            [(ngModel)]="selectedEmployee.id_number"
+            name="id_number"
+            class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+          />
+        </div>
+        <div class="mb-4">
+          <label class="block text-gray-700">Correo Electrónico</label>
+          <input
+            type="email"
+            [(ngModel)]="selectedEmployee.email"
+            name="email"
+            class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+            required
+          />
+        </div>
+        <div class="mb-4">
+          <label class="block text-gray-700">Numero de Telefono</label>
+          <input
+            [(ngModel)]="selectedEmployee.phone"
+            name="phone"
+            class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+          />
+        </div>
+        <div class="mb-4">
+          <label class="block text-gray-700">Tipo de empleado</label>
+          <select
+            [(ngModel)]="selectedEmployee.employee_type"
+            name="type_employee"
+            class="form-select mt-1 block w-full"
+            required
+          >
+            <option value="printer">Impresiones</option>
+            <option value="cutter">Corte laser</option>
+            <option value="counter">Contador</option>
+            <option value="seller">Vendedor</option>
+            <option value="scheduled">Agendador</option>
+          </select>
+        </div>
+        <div class="flex justify-end">
+          <button
+            type="button"
+            class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md mr-2"
+            (click)="closeModal()"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            class="bg-green-300 text-gray-700 px-4 py-2 rounded-md mr-2"
+          >
+            {{ isEditing ? "Actualizar" : "Guardar Empleado" }}
+          </button>
+        </div>
+      </form>
     </div>
+  </div>
 </div>

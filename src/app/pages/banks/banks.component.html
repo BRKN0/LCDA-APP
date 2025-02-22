@@ -19,29 +19,29 @@
 
   <!-- Transactions Table -->
   <div class="transactions-table">
-    <table class="table-auto w-full border-collapse">
+    <table class="table-std">
       <thead>
         <tr class="bg-gray-100">
-          <th class="p-3 border">Codigo</th>
-          <th class="p-3 border">Numero de cuenta</th>
-          <th class="p-3 border">Tipo de cuenta</th>
-          <th class="p-3 border">Banco</th>
-          <th class="p-3 border">Cuenta Contable</th>
-          <th class="p-3 border">Saldo</th>
+          <th class="table-column-std">Codigo</th>
+          <th class="table-column-std">Numero de cuenta</th>
+          <th class="table-column-std">Tipo de cuenta</th>
+          <th class="table-column-std">Banco</th>
+          <th class="table-column-std">Cuenta Contable</th>
+          <th class="table-column-std">Saldo</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let bank of paginatedBanks">
-          <td class="p-3 border">{{ bank.code }}</td>
-          <td class="p-3 border">
-            {{ bank.account_number}}
+          <td>{{ bank.code }}</td>
+          <td>
+            {{ bank.account_number }}
           </td>
-          <td class="p-3 border">
+          <td>
             {{ bank.account_type === "savings" ? "Ahorro" : "Desconocido" }}
           </td>
-          <td class="p-3 border">{{ bank.bank }}</td>
-          <td class="p-3 border">{{ bank.ledger_account }}</td>
-          <td class="p-3 border">
+          <td>{{ bank.bank }}</td>
+          <td>{{ bank.ledger_account }}</td>
+          <td>
             {{ bank.balance | currency : "COP" }}
           </td>
         </tr>
@@ -57,7 +57,9 @@
         >
           &#8592;
         </button>
-        <span class="mx-4 text-gray-700">Página {{ currentPage }} de {{ totalPages }}</span>
+        <span class="mx-4 text-gray-700"
+          >Página {{ currentPage }} de {{ totalPages }}</span
+        >
         <button
           (click)="currentPage = currentPage + 1; updatePaginatedBanks()"
           [disabled]="currentPage === totalPages"
@@ -66,7 +68,7 @@
           &#8594;
         </button>
       </div>
-    
+
       <!-- Selector de elementos por página -->
       <div class="items-per-page flex items-center">
         <label for="itemsPerPage" class="mr-2">Elementos por página:</label>
@@ -76,9 +78,11 @@
           (change)="currentPage = 1; updatePaginatedBanks()"
           class="border border-gray-300 rounded-md p-1"
         >
-          <option *ngFor="let size of [2, 10, 15, 20]" [value]="size">{{ size }}</option>
+          <option *ngFor="let size of [2, 10, 15, 20]" [value]="size">
+            {{ size }}
+          </option>
         </select>
-      </div>  
+      </div>
     </div>
   </div>
 </div>
