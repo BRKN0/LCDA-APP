@@ -5,102 +5,97 @@
   <p>Cargando pedidos...</p>
 </div>
 
-<!-- orders table -->
-<div *ngIf="!loading">
-  <div class="mb-4">
-    <label>
-      <input
-        type="checkbox"
-        [(ngModel)]="showPrints"
-        (change)="updateFilteredOrders()"
-      />
-      Impresiones
-    </label>
-    <label>
-      <input
-        type="checkbox"
-        [(ngModel)]="showCuts"
-        (change)="updateFilteredOrders()"
-      />
-      Cortes
-    </label>
-    <label>
-      <input
-        type="checkbox"
-        [(ngModel)]="showSales"
-        (change)="updateFilteredOrders()"
-      />
-      Ventas
-    </label>
+<!-- Filters -->
+<div class="ml-4">
+  <label>
+    <input
+      type="checkbox"
+      [(ngModel)]="showPrints"
+      (change)="updateFilteredOrders()"
+    />
+    Impresiones
+  </label>
+  <label>
+    <input
+      type="checkbox"
+      [(ngModel)]="showCuts"
+      (change)="updateFilteredOrders()"
+    />
+    Cortes
+  </label>
+  <label>
+    <input
+      type="checkbox"
+      [(ngModel)]="showSales"
+      (change)="updateFilteredOrders()"
+    />
+    Ventas
+  </label>
+  <button
+    class="transform bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-700 w-auto"
+    (click)="toggleAddOrderForm()"
+  >
+    Añadir Pedido
+  </button>
+</div>
+<div class="flex items-center space-x-4">
+  <div>
+    <label for="startDate" class="mr-2 font-semibold">Desde:</label>
+    <input
+      type="date"
+      id="startDate"
+      [(ngModel)]="startDate"
+      (ngModelChange)="updateFilteredOrders()"
+      class="border border-gray-300 rounded-md p-1"
+    />
+  </div>
+  <div>
+    <label for="endDate" class="mr-2 font-semibold">Hasta:</label>
+    <input
+      type="date"
+      id="endDate"
+      [(ngModel)]="endDate"
+      (ngModelChange)="updateFilteredOrders()"
+      class="border border-gray-300 rounded-md p-1"
+    />
+  </div>
+</div>
+<div class="flex items-center justify-center py-4">
+  <div class="w-full max-w-md relative">
+    <input
+      type="text"
+      placeholder="Buscar pedido por número..."
+      [(ngModel)]="searchQuery"
+      class="w-full py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
+    />
     <button
-      class="transform bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-700 w-auto"
-      (click)="toggleAddOrderForm()"
+      class="absolute right-0 top-1/2 transform -translate-y-1/2 bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-700 w-auto"
+      (click)="onSearch()"
     >
-      Añadir Pedido
+      Buscar
     </button>
   </div>
-  <div class="flex items-center space-x-4">
-    <div>
-      <label for="startDate" class="mr-2 font-semibold">Desde:</label>
-      <input
-        type="date"
-        id="startDate"
-        [(ngModel)]="startDate"
-        (ngModelChange)="updateFilteredOrders()"
-        class="border border-gray-300 rounded-md p-1"
-      />
-    </div>
-    <div>
-      <label for="endDate" class="mr-2 font-semibold">Hasta:</label>
-      <input
-        type="date"
-        id="endDate"
-        [(ngModel)]="endDate"
-        (ngModelChange)="updateFilteredOrders()"
-        class="border border-gray-300 rounded-md p-1"
-      />
-    </div>
-  </div>
-  <div class="flex items-center justify-center py-4">
-    <div class="w-full max-w-md relative">
-      <input
-        type="text"
-        placeholder="Buscar pedido por número..."
-        [(ngModel)]="searchQuery"
-        class="w-full py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
-      />
-      <button
-        class="absolute right-0 top-1/2 transform -translate-y-1/2 bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-700 w-auto"
-        (click)="onSearch()"
-      >
-        Buscar
-      </button>
-    </div>
-  </div>
-  <table class="table table-bordered">
+</div>
+
+<!-- Orders Table-->
+<div *ngIf="!loading" class="mt-4">
+  <table class="table-std">
     <thead>
       <tr>
-        <th class="border border-gray-300 px-4 py-2 bg-gray-200">Código</th>
-        <th class="border border-gray-300 px-4 py-2 bg-gray-200">Tipo</th>
-        <th class="border border-gray-300 px-4 py-2 bg-gray-200">Cliente</th>
-        <th class="border border-gray-300 px-4 py-2 bg-gray-200">
-          Estado de pago
-        </th>
-        <th class="border border-gray-300 px-4 py-2 bg-gray-200">
-          Estado de trabajo
-        </th>
-        <th class="border border-gray-300 px-4 py-2 bg-gray-200">Fecha</th>
-        <th class="border border-gray-300 px-4 py-2 bg-gray-200">Total</th>
-        <th class="border border-gray-300 px-4 py-2 bg-gray-200">Acción</th>
+        <th class="table-column-std">Código</th>
+        <th class="table-column-std">Tipo</th>
+        <th class="table-column-std">Cliente</th>
+        <th class="table-column-std">Estado de pago</th>
+        <th class="table-column-std">Estado de trabajo</th>
+        <th class="table-column-std">Fecha</th>
+        <th class="table-column-std">Total</th>
+        <th class="table-column-std">Acción</th>
       </tr>
     </thead>
     <tbody>
-      <tr
-        *ngFor="let order of paginatedOrders"
-        class="cursor-pointer hover:bg-gray-200"
-      >
-        <td class="p-3 border">{{ order.code }}</td>
-        <td class="p-3 border">
+      <tr *ngFor="let order of paginatedOrders">
+        <td>{{ order.code }}</td>
+        <td>
           {{
             order.order_type === "print"
               ? "Impresiones"
@@ -111,9 +106,8 @@
               : "Desconocido"
           }}
         </td>
-        <td class="p-3 border">{{ order.name }}</td>
+        <td>{{ order.name }}</td>
         <td
-          class="p-3 border"
           [ngClass]="{
             'text-green-600': order.order_payment_status === 'upToDate',
             'text-red-600': order.order_payment_status === 'overdue'
@@ -128,12 +122,10 @@
           }}
         </td>
         <td
-          class="p-3 border"
           [ngClass]="{
             'text-green-600': order.order_completion_status === 'finished',
             'text-red-600': order.order_completion_status === 'standby',
-            'text-orange-400':
-              order.order_completion_status === 'inProgress'
+            'text-orange-400': order.order_completion_status === 'inProgress'
           }"
         >
           {{
@@ -146,280 +138,279 @@
               : "Desconocido"
           }}
         </td>
-        <td class="p-3 border">{{ order.created_at }}</td>
-        <td class="p-3 border">{{ order.total }}</td>
-        <td class="border border-gray-300 px-4 py-2">
-          <button
-            class="bg-red-500 text-white py-1 px-3 rounded"
-            (click)="selectOrder(order)"
-          >
+        <td>{{ order.created_at }}</td>
+        <td>{{ order.total }}</td>
+        <td>
+          <button class="btn-details" (click)="selectOrder(order)">
             Ver Detalles
+          </button>
+          <!-- Botón Editar -->
+          <button class="btn-edit" (click)="editOrder(order)">Editar</button>
+
+          <!-- Botón Eliminar -->
+          <button class="btn-delete" (click)="deleteOrder(order)">
+            Eliminar
           </button>
         </td>
       </tr>
     </tbody>
   </table>
-  <div class="flex justify-between items-center mb-4">
-    <!-- Controles de paginación -->
-    <div class="pagination flex items-center">
-      <button
-        (click)="currentPage = currentPage - 1; updatePaginatedOrder()"
-        [disabled]="currentPage === 1"
-        class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
-      >
-        &#8592;
-      </button>
-      <span class="mx-4 text-gray-700">Página {{ currentPage }} de {{ totalPages }}</span>
-      <button
-        (click)="currentPage = currentPage + 1; updatePaginatedOrder()"
-        [disabled]="currentPage === totalPages"
-        class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
-      >
-        &#8594;
-      </button>
-    </div>
-  
-    <!-- Selector de elementos por página -->
-    <div class="items-per-page flex items-center">
-      <label for="itemsPerPage" class="mr-2">Elementos por página:</label>
-      <select
-        id="itemsPerPage"
-        [(ngModel)]="itemsPerPage"
-        (change)="currentPage = 1; updatePaginatedOrder()"
-        class="border border-gray-300 rounded-md p-1"
-      >
-        <option *ngFor="let size of [2, 10, 15, 20]" [value]="size">{{ size }}</option>
-      </select>
-    </div>  
+</div>
+
+<div class="flex justify-between items-center mb-4">
+  <!-- Controles de paginación -->
+  <div class="pagination flex items-center">
+    <button
+      (click)="currentPage = currentPage - 1; updatePaginatedOrder()"
+      [disabled]="currentPage === 1"
+      class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+    >
+      &#8592;
+    </button>
+    <span class="mx-4 text-gray-700"
+      >Página {{ currentPage }} de {{ totalPages }}</span
+    >
+    <button
+      (click)="currentPage = currentPage + 1; updatePaginatedOrder()"
+      [disabled]="currentPage === totalPages"
+      class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+    >
+      &#8594;
+    </button>
   </div>
 
-  <!-- Show details of the selected order -->
-  <div
-    *ngIf="
-      selectedOrderDetails && selectedOrderDetails.length > 0 && !loadingDetails
-    "
-    class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
-  >
-    <div
-      class="bg-white rounded-lg shadow-lg p-6 w-3/4 max-h-screen overflow-y-auto relative"
+  <!-- Selector de elementos por página -->
+  <div class="items-per-page flex items-center">
+    <label for="itemsPerPage" class="mr-2">Elementos por página:</label>
+    <select
+      id="itemsPerPage"
+      [(ngModel)]="itemsPerPage"
+      (change)="currentPage = 1; updatePaginatedOrder()"
+      class="border border-gray-300 rounded-md p-1"
     >
-      <!-- Botón de cierre -->
-      <button
-        class="absolute top-4 right-4 text-gray-600 hover:text-black font-bold text-xl"
-        (click)="selectedOrderDetails = null"
-      >
-        &times;
-      </button>
-      <h2 class="text-xl font-bold">Detalles de Pedido</h2>
-      <!-- Printable Invoice Layout -->
-      <div class="p-4 border border-gray-300 bg-white invoice-details">
-        <div class="flex justify-between mb-4">
-          <div>
-            <h3 class="font-semibold text-lg">
-              Pedido N°: {{ selectedOrderDetails[0].code }}
-            </h3>
-            <p>
-              <strong>Fecha:</strong>
-              {{ selectedOrderDetails[0].created_at | date : "dd-MM-yyyy" }}
-            </p>
-            <p>
-              <strong>Estado de trabajo:</strong>
-              {{
-                selectedOrderDetails[0].order_completion_status === "finished"
-                  ? "Completado"
-                  : selectedOrderDetails[0].order_completion_status ===
-                    "standby"
-                  ? "En espera"
-                  : selectedOrderDetails[0].order_completion_status ===
-                    "inProgress"
-                  ? "En progreso"
-                  : "Desconocido"
-              }}
-            </p>
-            <p>
-              <strong>Confirmacion del pedido:</strong>
-              {{
-                selectedOrderDetails[0].order_confirmed_status === "confirmed"
-                  ? "Confirmado"
-                  : selectedOrderDetails[0].order_confirmed_status ===
-                    "notConfirmed"
-                  ? "Por Confirmar"
-                  : "Desconocido"
-              }}
-            </p>
-            <p>
-              <strong>Tiempo de entrega:</strong>
-              {{
-                selectedOrderDetails[0].order_delivery_status === "onTime"
-                  ? "A tiempo"
-                  : selectedOrderDetails[0].order_delivery_status === "late"
-                  ? "Tarde"
-                  : selectedOrderDetails[0].order_delivery_status ===
-                    "toBeDelivered"
-                  ? "En espera"
-                  : "No especificado"
-              }}
-            </p>
-            <p>
-              <strong>Estado de pago:</strong>
-              {{
-                selectedOrderDetails[0].order_payment_status === "overdue"
-                  ? "En Mora"
-                  : selectedOrderDetails[0].order_payment_status === "upToDate"
-                  ? "Al Día"
-                  : "No especificado"
-              }}
-            </p>
-            <p>
-              <strong>Tipo:</strong>
-              {{
-                selectedOrderDetails[0].order_type === "laser"
-                  ? "Corte Laser"
-                  : selectedOrderDetails[0].order_type === "print"
-                  ? "Impresion"
-                  : selectedOrderDetails[0].order_type === "sales"
-                  ? "Ventas"
-                  : "Otro"
-              }}
-            </p>
-          </div>
-          <div class="text-right">
-            <p>
-              <strong>De:</strong>
-              {{ selectedOrderDetails[0].name }}
-            </p>
-          </div>
-        </div>
+      <option *ngFor="let size of [2, 10, 15, 20]" [value]="size">
+        {{ size }}
+      </option>
+    </select>
+  </div>
+</div>
 
-        <!-- Itemized Invoice List -->
-        <div class="my-6">
-          <h4 class="font-semibold"></h4>
-          <ul class="list-none">
-            <li>
-              <p>
-                <strong>Descripción:</strong>
-                {{ selectedOrderDetails[0].description }}
-              </p>
-              <p>
-                <strong>Notas:</strong>
-                {{ selectedOrderDetails[0].notes }}
-              </p>
-              <p>
-                <strong>Cantidad:</strong>
-                {{ selectedOrderDetails[0].order_quantity }}
-              </p>
-              <p>
-                <strong>Valor Unitario:</strong>
-                {{ selectedOrderDetails[0].unitary_value }}
-              </p>
-              <p *ngIf="selectedOrderDetails[0].iva">
-                <strong>IVA:</strong>
-                {{ selectedOrderDetails[0].iva }}
-              </p>
-            </li>
-          </ul>
+<!-- Show details of the selected order -->
+<div
+  *ngIf="
+    selectedOrderDetails && selectedOrderDetails.length > 0 && !loadingDetails
+  "
+  class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
+>
+  <div
+    class="bg-white rounded-lg shadow-lg p-6 w-3/4 max-h-screen overflow-y-auto relative"
+  >
+    <!-- Botón de cierre -->
+    <button
+      class="absolute top-4 right-4 text-gray-600 hover:text-black font-bold text-xl"
+      (click)="selectedOrderDetails = null"
+    >
+      &times;
+    </button>
+    <h2 class="text-xl font-bold">Detalles de Pedido</h2>
+    <!-- Printable Invoice Layout -->
+    <div class="p-4 border border-gray-300 bg-white invoice-details">
+      <div class="flex justify-between mb-4">
+        <div>
+          <h3 class="font-semibold text-lg">
+            Pedido N°: {{ selectedOrderDetails[0].code }}
+          </h3>
+          <p>
+            <strong>Fecha:</strong>
+            {{ selectedOrderDetails[0].created_at | date : "dd-MM-yyyy" }}
+          </p>
+          <p>
+            <strong>Estado de trabajo:</strong>
+            {{
+              selectedOrderDetails[0].order_completion_status === "finished"
+                ? "Completado"
+                : selectedOrderDetails[0].order_completion_status === "standby"
+                ? "En espera"
+                : selectedOrderDetails[0].order_completion_status ===
+                  "inProgress"
+                ? "En progreso"
+                : "Desconocido"
+            }}
+          </p>
+          <p>
+            <strong>Confirmacion del pedido:</strong>
+            {{
+              selectedOrderDetails[0].order_confirmed_status === "confirmed"
+                ? "Confirmado"
+                : selectedOrderDetails[0].order_confirmed_status ===
+                  "notConfirmed"
+                ? "Por Confirmar"
+                : "Desconocido"
+            }}
+          </p>
+          <p>
+            <strong>Tiempo de entrega:</strong>
+            {{
+              selectedOrderDetails[0].order_delivery_status === "onTime"
+                ? "A tiempo"
+                : selectedOrderDetails[0].order_delivery_status === "late"
+                ? "Tarde"
+                : selectedOrderDetails[0].order_delivery_status ===
+                  "toBeDelivered"
+                ? "En espera"
+                : "No especificado"
+            }}
+          </p>
+          <p>
+            <strong>Estado de pago:</strong>
+            {{
+              selectedOrderDetails[0].order_payment_status === "overdue"
+                ? "En Mora"
+                : selectedOrderDetails[0].order_payment_status === "upToDate"
+                ? "Al Día"
+                : "No especificado"
+            }}
+          </p>
+          <p>
+            <strong>Tipo:</strong>
+            {{
+              selectedOrderDetails[0].order_type === "laser"
+                ? "Corte Laser"
+                : selectedOrderDetails[0].order_type === "print"
+                ? "Impresion"
+                : selectedOrderDetails[0].order_type === "sales"
+                ? "Ventas"
+                : "Otro"
+            }}
+          </p>
         </div>
-        <!--Specific details for cuts-->
-        <div
-          *ngIf="selectedOrderDetails[0].order_type === 'laser'"
-          class="my-6"
-        >
-          <h4 class="font-semibold"></h4>
-          <ul class="list-none">
-            <li>
-              <p>
-                <strong>Tipo de Material:</strong>
-                {{ selectedOrderTypeDetail[0].material_type }}
-              </p>
-              <p>
-                <strong>Calibre:</strong>
-                {{ selectedOrderTypeDetail[0].caliber }}
-              </p>
-              <p>
-                <strong>Color:</strong>
-                {{ selectedOrderTypeDetail[0].color }}
-              </p>
-              <p>
-                <strong>Cantidad Usada:</strong>
-                {{ selectedOrderTypeDetail[0].quantity }}
-              </p>
-              <p>
-                <strong>Dimensiones:</strong>
-                {{ selectedOrderTypeDetail[0].length }}
-                X
-                {{ selectedOrderTypeDetail[0].width }}
-              </p>
-              <p>
-                <strong>Tiempo de corte:</strong>
-                {{ selectedOrderTypeDetail[0].cutting_time }}
-                mins
-              </p>
-            </li>
-          </ul>
+        <div class="text-right">
+          <p>
+            <strong>De:</strong>
+            {{ selectedOrderDetails[0].name }}
+          </p>
         </div>
-        <!--Specific details for prints-->
-        <div
-          *ngIf="selectedOrderDetails[0].order_type === 'prints'"
-          class="my-6"
-        >
-          <h4 class="font-semibold"></h4>
-          <ul class="list-none">
-            <li>
-              <p>
-                <strong>Material:</strong>
-                {{ selectedOrderTypeDetail[0].material }}
-              </p>
-              <p>
-                <strong>Tipo de Material:</strong>
-                {{ selectedOrderTypeDetail[0].material_type }}
-              </p>
-              <p>
-                <strong>P. Laminado:</strong>
-                {{
-                  selectedOrderTypeDetail[0].laminating === true ? "Si" : "-"
-                }}
-                <strong>P. Impresion:</strong>
-                {{ selectedOrderTypeDetail[0].printing === true ? "Si" : "-" }}
-                <strong>P. Troquelado:</strong>
-                {{
-                  selectedOrderTypeDetail[0].die_cutting === true ? "Si" : "-"
-                }}
-                <strong>P. Armado:</strong>
-                {{ selectedOrderTypeDetail[0].assembly === true ? "Si" : "-" }}
-              </p>
-              <p>
-                <strong>Numero de producto:</strong>
-                {{ selectedOrderTypeDetail[0].product_number }}
-              </p>
-              <p>
-                <strong>Cantidad Usada:</strong>
-                {{ selectedOrderTypeDetail[0].quantity }}
-              </p>
-              <p>
-                <strong>Producto Dañado:</strong>
-                {{ selectedOrderTypeDetail[0].damaged_material }}
-              </p>
-            </li>
-          </ul>
-        </div>
-        <!-- Totals Section -->
-        <div class="border-t pt-4 mt-4">
-          <div class="flex justify-between">
-            <p><strong>Subtotal:</strong></p>
-            <p>{{ selectedOrderDetails[0].subtotal }}</p>
-          </div>
-          <div class="flex justify-between">
-            <p *ngIf="selectedOrderDetails[0].iva"><strong>IVA:</strong></p>
-            <p>{{ selectedOrderDetails[0].iva }}</p>
-          </div>
-          <div class="flex justify-between">
-            <p><strong>Total:</strong></p>
-            <p class="font-bold">
-              {{ selectedOrderDetails[0].total }}
+      </div>
+
+      <!-- Itemized Invoice List -->
+      <div class="my-6">
+        <h4 class="font-semibold"></h4>
+        <ul class="list-none">
+          <li>
+            <p>
+              <strong>Descripción:</strong>
+              {{ selectedOrderDetails[0].description }}
             </p>
-          </div>
+            <p>
+              <strong>Notas:</strong>
+              {{ selectedOrderDetails[0].notes }}
+            </p>
+            <p>
+              <strong>Cantidad:</strong>
+              {{ selectedOrderDetails[0].order_quantity }}
+            </p>
+            <p>
+              <strong>Valor Unitario:</strong>
+              {{ selectedOrderDetails[0].unitary_value }}
+            </p>
+            <p *ngIf="selectedOrderDetails[0].iva">
+              <strong>IVA:</strong>
+              {{ selectedOrderDetails[0].iva }}
+            </p>
+          </li>
+        </ul>
+      </div>
+      <!--Specific details for cuts-->
+      <div *ngIf="selectedOrderDetails[0].order_type === 'laser'" class="my-6">
+        <h4 class="font-semibold"></h4>
+        <ul class="list-none">
+          <li>
+            <p>
+              <strong>Tipo de Material:</strong>
+              {{ selectedOrderTypeDetail[0].material_type }}
+            </p>
+            <p>
+              <strong>Calibre:</strong>
+              {{ selectedOrderTypeDetail[0].caliber }}
+            </p>
+            <p>
+              <strong>Color:</strong>
+              {{ selectedOrderTypeDetail[0].color }}
+            </p>
+            <p>
+              <strong>Cantidad Usada:</strong>
+              {{ selectedOrderTypeDetail[0].quantity }}
+            </p>
+            <p>
+              <strong>Dimensiones:</strong>
+              {{ selectedOrderTypeDetail[0].length }}
+              X
+              {{ selectedOrderTypeDetail[0].width }}
+            </p>
+            <p>
+              <strong>Tiempo de corte:</strong>
+              {{ selectedOrderTypeDetail[0].cutting_time }}
+              mins
+            </p>
+          </li>
+        </ul>
+      </div>
+      <!--Specific details for prints-->
+      <div *ngIf="selectedOrderDetails[0].order_type === 'prints'" class="my-6">
+        <h4 class="font-semibold"></h4>
+        <ul class="list-none">
+          <li>
+            <p>
+              <strong>Material:</strong>
+              {{ selectedOrderTypeDetail[0].material }}
+            </p>
+            <p>
+              <strong>Tipo de Material:</strong>
+              {{ selectedOrderTypeDetail[0].material_type }}
+            </p>
+            <p>
+              <strong>P. Laminado:</strong>
+              {{ selectedOrderTypeDetail[0].laminating === true ? "Si" : "-" }}
+              <strong>P. Impresion:</strong>
+              {{ selectedOrderTypeDetail[0].printing === true ? "Si" : "-" }}
+              <strong>P. Troquelado:</strong>
+              {{ selectedOrderTypeDetail[0].die_cutting === true ? "Si" : "-" }}
+              <strong>P. Armado:</strong>
+              {{ selectedOrderTypeDetail[0].assembly === true ? "Si" : "-" }}
+            </p>
+            <p>
+              <strong>Numero de producto:</strong>
+              {{ selectedOrderTypeDetail[0].product_number }}
+            </p>
+            <p>
+              <strong>Cantidad Usada:</strong>
+              {{ selectedOrderTypeDetail[0].quantity }}
+            </p>
+            <p>
+              <strong>Producto Dañado:</strong>
+              {{ selectedOrderTypeDetail[0].damaged_material }}
+            </p>
+          </li>
+        </ul>
+      </div>
+      <!-- Totals Section -->
+      <div class="border-t pt-4 mt-4">
+        <div class="flex justify-between">
+          <p><strong>Subtotal:</strong></p>
+          <p>{{ selectedOrderDetails[0].subtotal }}</p>
         </div>
-        <!-- TODO 
+        <div class="flex justify-between">
+          <p *ngIf="selectedOrderDetails[0].iva"><strong>IVA:</strong></p>
+          <p>{{ selectedOrderDetails[0].iva }}</p>
+        </div>
+        <div class="flex justify-between">
+          <p><strong>Total:</strong></p>
+          <p class="font-bold">
+            {{ selectedOrderDetails[0].total }}
+          </p>
+        </div>
+      </div>
+      <!-- TODO 
     <button
     class="bg-green-500 text-white py-2 px-4 mt-4 rounded"
     (click)="CheckoutClient(id_client)"
@@ -427,104 +418,103 @@
     Ver Detalles del Cliente
   </button>
 -->
-      </div>
     </div>
   </div>
-  <!-- Form to add orders -->
-  <div
-    *ngIf="showAddOrderForm"
-    class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
-  >
-    <div class="bg-white modal-width rounded-lg shadow-lg p-6">
-      <h3 class="text-lg font-bold mb-4">Añadir Nuevo Pedido</h3>
-      <form (ngSubmit)="addOrder(newOrder)">
-        <div class="mb-4">
-          <label class="block text-gray-700">Tipo de Pedido</label>
-          <select
-            [(ngModel)]="newOrder.order_type"
-            name="order_type"
-            class="form-select mt-1 block w-full"
-            required
-          >
-            <!--<option value="" disabled selected>Seleccione un tipo</option>-->
-            <option value="print">Impresiones</option>
-            <option value="laser">Cortes</option>
-            <option value="sales">Ventas</option>
-          </select>
-        </div>
-        <div class="mb-4">
-          <label class="block text-gray-700">Cliente</label>
-          <select
-            [(ngModel)]="newOrder.id_client"
-            name="id_client"
-            class="form-select mt-1 block w-full"
-            required
-          >
-            <!--TODO: Add client search by name -->
-            <option value="" disabled selected>Seleccione un cliente</option>
-            <option *ngFor="let client of clients" [value]="client.id_client">
-              {{ client.name }}
-            </option>
-          </select>
-        </div>
-        <div class="mb-4">
-          <label class="block text-gray-700">Descripción</label>
-          <textarea
-            [(ngModel)]="newOrder.description"
-            name="description"
-            class="form-textarea mt-1 block w-full"
-          ></textarea>
-        </div>
-        <div class="mb-4">
-          <label class="block text-gray-700">Cantidad</label>
-          <input
-            type="number"
-            [(ngModel)]="newOrder.order_quantity"
-            name="order_quantity"
-            class="form-input mt-1 block w-full"
-          />
-        </div>
-        <div class="mb-4">
-          <label class="block text-gray-700">Notas</label>
-          <input
-            [(ngModel)]="newOrder.notes"
-            name="notes"
-            class="form-input mt-1 block w-full"
-            required
-          />
-        </div>
-        <div class="mb-4">
-          <label class="block text-gray-700">Total</label>
-          <input
-            type="number"
-            [(ngModel)]="newOrder.total"
-            name="total"
-            class="form-input mt-1 block w-full"
-            required
-          />
-        </div>
-        <div class="flex justify-end">
-          <button
-            type="button"
-            class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md mr-2"
-            (click)="toggleAddOrderForm()"
-          >
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            style="
-              background-color: red;
-              color: white;
-              border: 1px solid black;
-              padding: 10px;
-            "
-            class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
-          >
-            Guardar Pedido
-          </button>
-        </div>
-      </form>
-    </div>
+</div>
+<!-- Form to add orders -->
+<div
+  *ngIf="showModal"
+  class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
+>
+  <div class="bg-white modal-width rounded-lg shadow-lg p-6">
+    <h3 class="text-lg font-bold mb-4">Añadir Nuevo Pedido</h3>
+    <form (ngSubmit)="addOrder(newOrder)">
+      <div class="mb-4">
+        <label class="block text-gray-700">Tipo de Pedido</label>
+        <select
+          [(ngModel)]="newOrder.order_type"
+          name="order_type"
+          class="form-select mt-1 block w-full"
+          required
+        >
+          <!--<option value="" disabled selected>Seleccione un tipo</option>-->
+          <option value="print">Impresiones</option>
+          <option value="laser">Cortes</option>
+          <option value="sales">Ventas</option>
+        </select>
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Cliente</label>
+        <select
+          [(ngModel)]="newOrder.id_client"
+          name="id_client"
+          class="form-select mt-1 block w-full"
+          required
+        >
+          <!--TODO: Add client search by name -->
+          <option value="" disabled selected>Seleccione un cliente</option>
+          <option *ngFor="let client of clients" [value]="client.id_client">
+            {{ client.name }}
+          </option>
+        </select>
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Descripción</label>
+        <textarea
+          [(ngModel)]="newOrder.description"
+          name="description"
+          class="form-textarea mt-1 block w-full"
+        ></textarea>
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Cantidad</label>
+        <input
+          type="number"
+          [(ngModel)]="newOrder.order_quantity"
+          name="order_quantity"
+          class="form-input mt-1 block w-full"
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Notas</label>
+        <input
+          [(ngModel)]="newOrder.notes"
+          name="notes"
+          class="form-input mt-1 block w-full"
+          required
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Total</label>
+        <input
+          type="number"
+          [(ngModel)]="newOrder.total"
+          name="total"
+          class="form-input mt-1 block w-full"
+          required
+        />
+      </div>
+      <div class="flex justify-end">
+        <button
+          type="button"
+          class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md mr-2"
+          (click)="toggleAddOrderForm()"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          style="
+            background-color: red;
+            color: white;
+            border: 1px solid black;
+            padding: 10px;
+          "
+          class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
+        >
+          Guardar Pedido
+        </button>
+      </div>
+    </form>
   </div>
 </div>
