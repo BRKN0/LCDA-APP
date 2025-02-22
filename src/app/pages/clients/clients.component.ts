@@ -58,6 +58,8 @@ export class ClientsComponent implements OnInit {
   filteredClients: Client[] = [];
   selectedClient: Client | null = null;
   showOrders = false;
+  showClientModal = false; // Nueva variable para controlar el modal del cliente
+  showDetails = false; // Nueva variable para controlar la visibilidad de los detalles
   loading = true;
   searchQuery: string = '';
   filterDebt: boolean = false;
@@ -169,9 +171,25 @@ export class ClientsComponent implements OnInit {
     this.updatePaginatedClients(); // Actualizar la lista paginada
   }
 
-  toggleDetails(client: Client) {
-    this.selectedClient = this.selectedClient === client ? null : client;
-    this.showOrders = false; // Reset the orders view
+  // Abrir el modal del cliente
+  openClientModal(client: Client) {
+    this.selectedClient = client;
+    this.showClientModal = true;
+    this.showDetails = false; // Detalles ocultos por defecto
+    this.showOrders = false; // Pedidos ocultos por defecto
+  }
+
+  // Cerrar el modal del cliente
+  closeClientModal() {
+    this.showClientModal = false;
+    this.selectedClient = null;
+    this.showDetails = false;
+    this.showOrders = false;
+  }
+
+  // Mostrar/Ocultar detalles del cliente
+  toggleClientDetails() {
+    this.showDetails = !this.showDetails;
   }
 
   toggleOrders(client: Client | null): void {
@@ -189,8 +207,6 @@ export class ClientsComponent implements OnInit {
       this.showOrders = false;
     }
   }
-
-  //---------------------------------------------------------------------------
 
   addNewClient(): void {
     this.selectedClientData = {
