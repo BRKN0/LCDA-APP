@@ -57,6 +57,8 @@ interface Prints {
   styleUrls: ['./orders.component.scss'],
 })
 export class OrdersComponent implements OnInit {
+  showModal: boolean = false;
+  isEditing: boolean = false;
   orders: Orders[] = [];
   selectedOrderTypeDetail: any | null = null;
   order: Orders | null = null;
@@ -75,12 +77,10 @@ export class OrdersComponent implements OnInit {
   showCuts = true;
   showSales = true;
   // Paginacion
-  currentPage: number =1;
+  currentPage: number = 1;
   itemsPerPage: number = 10; // Elementos por página
   totalPages: number = 1; // Total de páginas
   paginatedOrders: Orders[] = []; // Lista paginada
-
-
   // Para añadir pedidos
   newOrder: Partial<Orders> = {
     id_order: '',
@@ -97,7 +97,6 @@ export class OrdersComponent implements OnInit {
     amount: '',
     id_client: '',
   };
-  showAddOrderForm = false;
 
   constructor(
     private readonly supabase: SupabaseService,
@@ -188,16 +187,16 @@ export class OrdersComponent implements OnInit {
     // Filtrar los pedidos según los checkboxes seleccionados
     this.filteredOrdersList = this.orders.filter((order) => {
       const matchesType =
-            (this.showPrints && order.order_type === 'print') ||
-            (this.showCuts && order.order_type === 'laser') ||
-            (this.showSales && order.order_type === 'sales');
+        (this.showPrints && order.order_type === 'print') ||
+        (this.showCuts && order.order_type === 'laser') ||
+        (this.showSales && order.order_type === 'sales');
 
-        const orderDate = new Date(order.created_at); // Convertir la fecha del pedido a objeto Date
-        const isWithinDateRange =
-            (!this.startDate || orderDate >= new Date(this.startDate)) &&
-            (!this.endDate || orderDate <= new Date(this.endDate ));
+      const orderDate = new Date(order.created_at); // Convertir la fecha del pedido a objeto Date
+      const isWithinDateRange =
+        (!this.startDate || orderDate >= new Date(this.startDate)) &&
+        (!this.endDate || orderDate <= new Date(this.endDate));
 
-        return matchesType && isWithinDateRange;
+      return matchesType && isWithinDateRange;
     });
     this.noResultsFound = this.filteredOrdersList.length === 0;
     this.currentPage = 1; // Reiniciar a la primera página
@@ -214,7 +213,7 @@ export class OrdersComponent implements OnInit {
       if (error) {
         console.log(error);
       }
-      console.log("raw:", data);
+      console.log('raw:', data);
       this.selectedOrderTypeDetail = data as Prints[];
       console.log(this.selectedOrderDetails);
       this.loadingDetails = false;
@@ -226,7 +225,7 @@ export class OrdersComponent implements OnInit {
       if (error) {
         console.log(error);
       }
-      console.log("raw:", data);
+      console.log('raw:', data);
       this.selectedOrderTypeDetail = data as Cuts[];
       console.log(this.selectedOrderDetails);
       this.loadingDetails = false;
@@ -252,12 +251,19 @@ export class OrdersComponent implements OnInit {
       console.error('Error inesperado al obtener clientes:', error);
     }
   }
-
+  // Función para formatear la fecha en el formato que espera el input de tipo date
+  private formatDateForInput(date: Date | string): string {
+    const dateObj = new Date(date);
+    const year = dateObj.getFullYear();
+    const month = (dateObj.getMonth() + 1).toString().padStart(2, '0'); // Meses van de 0 a 11
+    const day = dateObj.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
   /**
    * Añadir nueva orden
    */
   toggleAddOrderForm(): void {
-    if (!this.showAddOrderForm) {
+    if (!this.showModal) {
       // Reinicia el formulario al abrir la ventana modal
       this.newOrder = {
         id_order: '',
@@ -278,9 +284,29 @@ export class OrdersComponent implements OnInit {
         notes: '',
       };
     }
-    this.showAddOrderForm = !this.showAddOrderForm;
+    this.showModal = !this.showModal;
+  }
+  editOrder(order: Orders): void {
+    this.order = { ...order };
+    this.order.created_at = this.formatDateForInput(order.created_at);
+    this.isEditing = true;
+    this.showModal = true;
   }
 
+  async deleteOrder(order: Orders): Promise<void> {
+    if (confirm(`¿Eliminar orden #${order.code}?`)) {
+      const { error } = await this.supabase
+        .from('orders')
+        .delete()
+        .eq('id_order', order.id_order);
+      if (error) {
+        console.log('Failed to delete order: ', error);
+        return
+      }
+      this.getOrders();
+    }
+
+  }
   async addOrder(newOrder: Partial<Orders>): Promise<void> {
     // Obtener el nombre del cliente basado en el id_client
     const selectedClient = this.clients.find(
@@ -334,7 +360,10 @@ export class OrdersComponent implements OnInit {
 
   updatePaginatedOrder(): void {
     // Calcular el número total de páginas
-    this.totalPages = Math.max(1, Math.ceil(this.filteredOrdersList.length / this.itemsPerPage));
+    this.totalPages = Math.max(
+      1,
+      Math.ceil(this.filteredOrdersList.length / this.itemsPerPage)
+    );
 
     // Asegurar que currentPage no sea menor que 1 ni mayor que totalPages
     this.currentPage = Math.min(Math.max(this.currentPage, 1), this.totalPages);

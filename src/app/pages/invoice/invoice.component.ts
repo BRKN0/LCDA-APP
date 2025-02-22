@@ -660,12 +660,6 @@ export class InvoiceComponent implements OnInit {
     }
   }
 
-  // Función para validar si un string es un UUID válido
-  private isValidUUID(uuid: string): boolean {
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    return uuidRegex.test(uuid);
-  }
-
   async deleteInvoice(invoice: Invoice): Promise<void> {
     if (confirm(`¿Eliminar factura #${invoice.code}?`)) {
       const { error } = await this.supabase
@@ -674,7 +668,7 @@ export class InvoiceComponent implements OnInit {
         .eq('id_invoice', invoice.id_invoice);
 
       if (error) {
-        console.error('Error deleting invoice:', error);
+        console.log('Failed to delete invoice:', error);
         return;
       }
 

@@ -37,15 +37,15 @@
 </div>
 
 <div *ngIf="!loading && !noResultsFound">
-  <table class="table-auto w-full border-collapse">
+  <table class="table-std">
     <thead>
-      <tr class="bg-gray-100">
-        <th class="p-3 border">Nombre</th>
-        <th class="p-3 border">Correo</th>
-        <th class="p-3 border">NIT / CC</th>
-        <th class="p-3 border">Empresa</th>
-        <th class="p-3 border">Estado</th>
-        <th class="p-3 border">Acciones</th>
+      <tr>
+        <th class="table-column-std">Nombre</th>
+        <th class="table-column-std">Correo</th>
+        <th class="table-column-std">NIT / CC</th>
+        <th class="table-column-std">Empresa</th>
+        <th class="table-column-std">Estado</th>
+        <th class="table-column-std">Acciones</th>
       </tr>
     </thead>
     <tbody>
@@ -54,18 +54,16 @@
         (click)="toggleDetails(client)"
         [class.border-red-500]="client.status === 'overdue'"
         [class.border-green-500]="client.status === 'upToDate'"
-        class="cursor-pointer hover:bg-gray-200 border"
       >
-        <td class="p-3 border">{{ client.name }}</td>
-        <td class="p-3 border">{{client.email}}</td>
-        <td class="p-3 border">
+        <td>{{ client.name }}</td>
+        <td>{{client.email}}</td>
+        <td>
           {{ client.nit ?? client.document_number }}
         </td>
-        <td class="p-3 border">
+        <td>
           {{ client.company_name ?? "N/A" }}
         </td>
         <td
-          class="p-3 border"
           [class.text-green-600]="client.status === 'upToDate'"
           [class.text-red-600]="client.status === 'overdue'"
         >
@@ -77,7 +75,7 @@
            : "Desconocido"
           }}
         </td>
-        <td class="p-3 border">
+        <td>
           <button class="btn-edit"
             (click)="editClient(client)">
             Editar

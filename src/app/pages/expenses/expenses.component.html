@@ -19,7 +19,7 @@
         </select>
       </label>
     </div>
-  
+
     <!-- Botón Añadir -->
     <button
       class="px-4 py-2 bg-red-500 text-white rounded-full hover:bg-red-700"
@@ -28,7 +28,7 @@
       Añadir Nuevo Egreso
     </button>
   </div>
-  
+
   <!-- Filtros de Fechas -->
   <div class="flex items-center space-x-4">
     <div>
@@ -52,20 +52,19 @@
       />
     </div>
   </div>
-  
 
   <!-- Tabla -->
-  <div class="table-auto w-full border-collapse">
+  <div class="table-std">
     <table>
       <thead>
         <tr>
-          <th class="border border-gray-300 px-4 py-2 bg-gray-200">Codigo</th>
-          <th class="border border-gray-300 px-4 py-2 bg-gray-200">Fecha</th>
-          <th class="border border-gray-300 px-4 py-2 bg-gray-200">Categoría</th>
-          <th class="border border-gray-300 px-4 py-2 bg-gray-200">Tipo</th>
-          <th class="border border-gray-300 px-4 py-2 bg-gray-200">Descripción</th>
-          <th class="border border-gray-300 px-4 py-2 bg-gray-200">Costo</th>
-          <th class="border border-gray-300 px-4 py-2 bg-gray-200">Acciones</th>
+          <th class="table-column-std">Codigo</th>
+          <th class="table-column-std">Fecha</th>
+          <th class="table-column-std">Categoría</th>
+          <th class="table-column-std">Tipo</th>
+          <th class="table-column-std">Descripción</th>
+          <th class="table-column-std">Costo</th>
+          <th class="table-column-std">Acciones</th>
         </tr>
       </thead>
       <tbody>
@@ -87,41 +86,44 @@
         </tr>
       </tbody>
     </table>
-    <div class="flex justify-between items-center mb-4">
-      <!-- Controles de paginación -->
-      <div class="pagination flex items-center">
-        <button
-          (click)="currentPage = currentPage - 1; updatePaginatedExpenses()"
-          [disabled]="currentPage === 1"
-          class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
-        >
-          &#8592;
-        </button>
-        <span class="mx-4 text-gray-700">Página {{ currentPage }} de {{ totalPages }}</span>
-        <button
-          (click)="currentPage = currentPage + 1; updatePaginatedExpenses()"
-          [disabled]="currentPage === totalPages"
-          class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
-        >
-          &#8594;
-        </button>
-      </div>
-    
-      <!-- Selector de elementos por página -->
-      <div class="items-per-page flex items-center">
-        <label for="itemsPerPage" class="mr-2">Elementos por página:</label>
-        <select
-          id="itemsPerPage"
-          [(ngModel)]="itemsPerPage"
-          (change)="currentPage = 1; updatePaginatedExpenses()"
-          class="border border-gray-300 rounded-md p-1"
-        >
-          <option *ngFor="let size of [2, 10, 15, 20]" [value]="size">{{ size }}</option>
-        </select>
-      </div>  
+  </div>
+  <div class="flex justify-between items-center mb-4">
+    <!-- Controles de paginación -->
+    <div class="pagination flex items-center">
+      <button
+        (click)="currentPage = currentPage - 1; updatePaginatedExpenses()"
+        [disabled]="currentPage === 1"
+        class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+      >
+        &#8592;
+      </button>
+      <span class="mx-4 text-gray-700"
+        >Página {{ currentPage }} de {{ totalPages }}</span
+      >
+      <button
+        (click)="currentPage = currentPage + 1; updatePaginatedExpenses()"
+        [disabled]="currentPage === totalPages"
+        class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+      >
+        &#8594;
+      </button>
+    </div>
+
+    <!-- Selector de elementos por página -->
+    <div class="items-per-page flex items-center">
+      <label for="itemsPerPage" class="mr-2">Elementos por página:</label>
+      <select
+        id="itemsPerPage"
+        [(ngModel)]="itemsPerPage"
+        (change)="currentPage = 1; updatePaginatedExpenses()"
+        class="border border-gray-300 rounded-md p-1"
+      >
+        <option *ngFor="let size of [2, 10, 15, 20]" [value]="size">
+          {{ size }}
+        </option>
+      </select>
     </div>
   </div>
-
   <div *ngIf="showModal" class="modal-overlay">
     <div class="modal-content">
       <h3 class="modal-title">
