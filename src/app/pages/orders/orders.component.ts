@@ -304,7 +304,7 @@ export class OrdersComponent implements OnInit {
       order_confirmed_status: newOrder.order_confirmed_status,
       order_completion_status: newOrder.order_completion_status,
       order_delivery_status: newOrder.order_delivery_status,
-      Notes: newOrder.notes,
+      notes: newOrder.notes,
     };
 
     try {
