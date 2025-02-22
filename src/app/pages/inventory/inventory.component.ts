@@ -313,7 +313,7 @@ export class InventoryComponent implements OnInit {
       caliber: '',
       material_quantity: 0,
       color: '',
-      code: Date.now(), // Usamos timestamp como código temporal
+      code: 0,
       cost: 0,
       sale_price: 0,
       status: ''
