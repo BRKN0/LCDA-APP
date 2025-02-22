@@ -238,10 +238,6 @@
 
       <!-- Resto del formulario de factura -->
       <div class="mb-4">
-        <label class="block text-gray-700">Código</label>
-        <input [(ngModel)]="selectedInvoice.code" name="code" class="form-input mt-1 block w-full" required />
-      </div>
-      <div class="mb-4">
         <label class="block text-gray-700">Tipo</label>
         <select [(ngModel)]="selectedInvoice.order.order_type" name="type" class="form-select mt-1 block w-full" required>
           <option value="print">Impresiones</option>

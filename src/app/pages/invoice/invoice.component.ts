@@ -613,7 +613,7 @@ export class InvoiceComponent implements OnInit {
 
     // Preparar los datos para guardar
     const invoiceToSave = {
-      code: this.selectedInvoice.code,
+      code: null,
       created_at: new Date(this.selectedInvoice.created_at).toISOString(),
       invoice_status: this.selectedInvoice.invoice_status,
       id_order: this.selectedInvoice.order.id_order, // Asegúrate de que este campo tenga un valor válido
@@ -622,6 +622,12 @@ export class InvoiceComponent implements OnInit {
     try {
       if (this.isEditing) {
         // Actualizar factura existente
+        const invoiceToSave = {
+          code: this.selectedInvoice.code,
+          created_at: new Date(this.selectedInvoice.created_at).toISOString(),
+          invoice_status: this.selectedInvoice.invoice_status,
+          id_order: this.selectedInvoice.order.id_order, // Asegúrate de que este campo tenga un valor válido
+        };
         const { error } = await this.supabase
           .from('invoices')
           .update(invoiceToSave)
