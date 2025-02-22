@@ -68,6 +68,30 @@ button {
     background-color: #d97706; /* bg-yellow-600 */
   }
 }
+.table-std {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid theme('colors.gray.400');
+  margin-top: theme('spacing.2');
+
+  th, td {
+    border: 1px solid theme('colors.gray.400');
+    padding: theme('spacing.2');
+  }
+
+  thead {
+    background-color: theme('colors.gray.200');
+  }
+}
+
+.table-column-std {
+  border: 1px solid theme('colors.gray.300');
+  padding: theme('spacing.2') theme('spacing.4');
+  text-align: left; // Ensures text is visible
+  white-space: nowrap; // Prevents text from wrapping (optional)
+  overflow: hidden; // Hides overflow if necessary
+  max-width: 100%; // Ensures it doesn't shrink too much
+}
 
 .btn-delete {
   padding: 0.5rem 0.25rem;
@@ -76,6 +100,18 @@ button {
   border-radius: 0.25rem;
   &:hover {
     background-color: #e53e3e; /* bg-red-600 */
+  }
+}
+.btn-details {
+  background-color: theme('colors.red.500');
+  color: theme('colors.white');
+  padding: theme('spacing.1') theme('spacing.3');
+  margin-right: theme('spacing.5');
+  border-radius: theme('borderRadius.DEFAULT');
+  transition: background-color 0.3s ease-in-out;
+
+  &:hover {
+    background-color: theme('colors.red.700');
   }
 }
 

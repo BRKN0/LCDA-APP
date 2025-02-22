@@ -7,44 +7,80 @@
 <!-- Filter checkboxes -->
 <div *ngIf="!loading" class="mb-4">
   <label>
-    <input type="checkbox" [(ngModel)]="showVinyls" (change)="updateFilteredInventory()" />
+    <input
+      type="checkbox"
+      [(ngModel)]="showVinyls"
+      (change)="updateFilteredInventory()"
+    />
     Vinilos
   </label>
   <label>
-    <input type="checkbox" [(ngModel)]="showCutVinyls" (change)="updateFilteredInventory()" />
+    <input
+      type="checkbox"
+      [(ngModel)]="showCutVinyls"
+      (change)="updateFilteredInventory()"
+    />
     Vinilos de corte
   </label>
   <label>
-    <input type="checkbox" [(ngModel)]="showAcrylic" (change)="updateFilteredInventory()" />
+    <input
+      type="checkbox"
+      [(ngModel)]="showAcrylic"
+      (change)="updateFilteredInventory()"
+    />
     Acrilico
   </label>
   <label>
-    <input type="checkbox" [(ngModel)]="showPolystyrene" (change)="updateFilteredInventory()" />
+    <input
+      type="checkbox"
+      [(ngModel)]="showPolystyrene"
+      (change)="updateFilteredInventory()"
+    />
     Poliestireno
   </label>
   <label>
-    <input type="checkbox" [(ngModel)]="showDieCut" (change)="updateFilteredInventory()" />
+    <input
+      type="checkbox"
+      [(ngModel)]="showDieCut"
+      (change)="updateFilteredInventory()"
+    />
     Troquelado
   </label>
   <label>
-    <input type="checkbox" [(ngModel)]="showMDF" (change)="updateFilteredInventory()" />
+    <input
+      type="checkbox"
+      [(ngModel)]="showMDF"
+      (change)="updateFilteredInventory()"
+    />
     MDF
   </label>
 </div>
 
-<div *ngIf="!loading && filteredInventory.length === 0" class="p-4 text-center text-gray-600">
+<div
+  *ngIf="!loading && filteredInventory.length === 0"
+  class="p-4 text-center text-gray-600"
+>
   <p>No hay datos disponibles en el inventario.</p>
 </div>
 
 <!-- Action buttons -->
 <div class="action-buttons mb-4">
-  <button class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 mr-2" (click)="generateKardex()">
+  <button
+    class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 mr-2"
+    (click)="generateKardex()"
+  >
     Generar Kardex
   </button>
-  <button class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 mr-2" (click)="openComparisonModal()">
+  <button
+    class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 mr-2"
+    (click)="openComparisonModal()"
+  >
     Comparar Archivos
   </button>
-  <button class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600" (click)="addNewItem()">
+  <button
+    class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
+    (click)="addNewItem()"
+  >
     Agregar Artículo
   </button>
 </div>
@@ -103,7 +139,9 @@
         <tbody>
           <tr *ngFor="let result of comparisonResult">
             <td>{{ result.product }}</td>
-            <td [style.color]="getDetailColor(result.change)">{{ result.change }}</td>
+            <td [style.color]="getDetailColor(result.change)">
+              {{ result.change }}
+            </td>
             <td>{{ result.detail }}</td>
           </tr>
         </tbody>
@@ -113,52 +151,117 @@
 </div>
 
 <!-- Modal para agregar/editar -->
-<div *ngIf="showModal && !isComparing" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
+<div
+  *ngIf="showModal && !isComparing"
+  class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
+>
   <div class="bg-white modal-width rounded-lg shadow-lg p-6">
-    <h3 class="text-lg font-bold mb-4">{{ isEditing ? 'Editar Artículo' : 'Agregar Artículo' }}</h3>
+    <h3 class="text-lg font-bold mb-4">
+      {{ isEditing ? "Editar Artículo" : "Agregar Artículo" }}
+    </h3>
     <form (ngSubmit)="saveItem()">
       <div class="mb-4">
         <label class="block text-gray-700">Código</label>
-        <input type="number" [(ngModel)]="selectedItem.code" name="code" class="form-input mt-1 block w-full" required />
+        <input
+          type="number"
+          [(ngModel)]="selectedItem.code"
+          name="code"
+          class="form-input mt-1 block w-full"
+          required
+        />
       </div>
       <div class="mb-4">
         <label class="block text-gray-700">Categoría</label>
-        <input type="text" [(ngModel)]="selectedItem.category" name="category" class="form-input mt-1 block w-full" required />
+        <input
+          type="text"
+          [(ngModel)]="selectedItem.category"
+          name="category"
+          class="form-input mt-1 block w-full"
+          required
+        />
       </div>
       <div class="mb-4">
         <label class="block text-gray-700">Tipo</label>
-        <input type="text" [(ngModel)]="selectedItem.type" name="type" class="form-input mt-1 block w-full" required />
+        <input
+          type="text"
+          [(ngModel)]="selectedItem.type"
+          name="type"
+          class="form-input mt-1 block w-full"
+          required
+        />
       </div>
       <div class="mb-4">
         <label class="block text-gray-700">Calibre</label>
-        <input type="text" [(ngModel)]="selectedItem.caliber" name="caliber" class="form-input mt-1 block w-full" required />
+        <input
+          type="text"
+          [(ngModel)]="selectedItem.caliber"
+          name="caliber"
+          class="form-input mt-1 block w-full"
+          required
+        />
       </div>
       <div class="mb-4">
         <label class="block text-gray-700">Cantidad</label>
-        <input type="number" [(ngModel)]="selectedItem.material_quantity" name="quantity" class="form-input mt-1 block w-full" required />
+        <input
+          type="number"
+          [(ngModel)]="selectedItem.material_quantity"
+          name="quantity"
+          class="form-input mt-1 block w-full"
+          required
+        />
       </div>
       <div class="mb-4">
         <label class="block text-gray-700">Color</label>
-        <input type="text" [(ngModel)]="selectedItem.color" name="color" class="form-input mt-1 block w-full" />
+        <input
+          type="text"
+          [(ngModel)]="selectedItem.color"
+          name="color"
+          class="form-input mt-1 block w-full"
+        />
       </div>
       <div class="mb-4">
         <label class="block text-gray-700">Costo</label>
-        <input type="number" [(ngModel)]="selectedItem.cost" name="cost" class="form-input mt-1 block w-full" required />
+        <input
+          type="number"
+          [(ngModel)]="selectedItem.cost"
+          name="cost"
+          class="form-input mt-1 block w-full"
+          required
+        />
       </div>
       <div class="mb-4">
         <label class="block text-gray-700">Precio de venta</label>
-        <input type="number" [(ngModel)]="selectedItem.sale_price" name="sale_price" class="form-input mt-1 block w-full" required />
+        <input
+          type="number"
+          [(ngModel)]="selectedItem.sale_price"
+          name="sale_price"
+          class="form-input mt-1 block w-full"
+          required
+        />
       </div>
       <div class="mb-4">
         <label class="block text-gray-700">Estado</label>
-        <input type="text" [(ngModel)]="selectedItem.status" name="sale_price" class="form-input mt-1 block w-full" required />
+        <input
+          type="text"
+          [(ngModel)]="selectedItem.status"
+          name="sale_price"
+          class="form-input mt-1 block w-full"
+          required
+        />
       </div>
       <div class="flex justify-end">
-        <button type="button" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md mr-2" (click)="closeModal()">
+        <button
+          type="button"
+          class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md mr-2"
+          (click)="closeModal()"
+        >
           Cancelar
         </button>
-        <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600">
-          {{ isEditing ? 'Actualizar Artículo' : 'Agregar Artículo' }}
+        <button
+          type="submit"
+          class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
+        >
+          {{ isEditing ? "Actualizar Artículo" : "Agregar Artículo" }}
         </button>
       </div>
     </form>
@@ -167,47 +270,50 @@
 
 <!-- Inventory table -->
 <div *ngIf="!loading && filteredInventory.length > 0">
-  <table class="table-auto w-full border-collapse">
+  <table class="table-std">
     <thead>
       <tr class="bg-gray-100">
-        <th class="p-3 border">Código</th>
-        <th class="p-3 border">Categoría</th>
-        <th class="p-3 border">Tipo</th>
-        <th class="p-3 border">Calibre</th>
-        <th class="p-3 border">Cantidad</th>
-        <th class="p-3 border">Color</th>
-        <th class="p-3 border">Costo</th>
-        <th class="p-3 border">Precio de venta</th>
-        <th class="p-3 border">Stock</th>
-        <th class="p-3 border">Acciones</th>
+        <th class="table-column-std">Código</th>
+        <th class="table-column-std">Categoría</th>
+        <th class="table-column-std">Tipo</th>
+        <th class="table-column-std">Calibre</th>
+        <th class="table-column-std">Cantidad</th>
+        <th class="table-column-std">Color</th>
+        <th class="table-column-std">Costo</th>
+        <th class="table-column-std">Precio de venta</th>
+        <th class="table-column-std">Stock</th>
+        <th class="table-column-std">Acciones</th>
       </tr>
     </thead>
     <tbody>
       <ng-container *ngFor="let item of paginatedInventory">
-        <tr (click)="toggleDetails(item)" class="cursor-pointer hover:bg-gray-200 border">
-          <td class="p-3 border">{{ item.code }}</td>
-          <td class="p-3 border">{{ item.category || 'Sin Categoria' }}</td>
-          <td class="p-3 border">{{ item.type || 'Sin Tipo' }}</td>
-          <td class="p-3 border">{{ item.caliber || 'Sin Calibre' }}</td>
-          <td class="p-3 border" [class.text-green-600]="item.material_quantity > 10" [class.text-red-600]="item.material_quantity <= 10">
+        <tr (click)="toggleDetails(item)">
+          <td>{{ item.code }}</td>
+          <td>{{ item.category || "Sin Categoria" }}</td>
+          <td>{{ item.type || "Sin Tipo" }}</td>
+          <td>{{ item.caliber || "Sin Calibre" }}</td>
+          <td
+            [class.text-green-600]="item.material_quantity > 10"
+            [class.text-red-600]="item.material_quantity <= 10"
+          >
             {{ item.material_quantity || 0 }}
           </td>
-          <td class="p-3 border">{{ item.color || 'Sin Color' }}</td>
-          <td class="p-3 border">{{ item.cost | currency }}</td>
-          <td class="p-3 border">{{ item.sale_price | currency }}</td>
-          <td class="p-3 border">          {{
-            item.status === "out"
-              ? "Fuera de Stock"
-              : item.status === "low"
-              ? "Stock Bajo"
-              : item.status === "ok"
-              ? "En Stock"
-              : "Desconocido"
-          }}</td>
-          <td class="p-3 border">
-            <button (click)="editItem(item)" class="btn-edit">
-              Editar
-            </button>
+          <td>{{ item.color || "Sin Color" }}</td>
+          <td>{{ item.cost | currency }}</td>
+          <td>{{ item.sale_price | currency }}</td>
+          <td>
+            {{
+              item.status === "out"
+                ? "Fuera de Stock"
+                : item.status === "low"
+                ? "Stock Bajo"
+                : item.status === "ok"
+                ? "En Stock"
+                : "Desconocido"
+            }}
+          </td>
+          <td>
+            <button (click)="editItem(item)" class="btn-edit">Editar</button>
             <button (click)="deleteItem(item)" class="btn-delete">
               Eliminar
             </button>
@@ -226,7 +332,9 @@
       >
         &#8592;
       </button>
-      <span class="mx-4 text-gray-700">Página {{ currentPage }} de {{ totalPages }}</span>
+      <span class="mx-4 text-gray-700"
+        >Página {{ currentPage }} de {{ totalPages }}</span
+      >
       <button
         (click)="currentPage = currentPage + 1; updatePaginatedInventory()"
         [disabled]="currentPage === totalPages"
@@ -245,10 +353,10 @@
         (change)="currentPage = 1; updatePaginatedInventory()"
         class="border border-gray-300 rounded-md p-1"
       >
-        <option *ngFor="let size of [2, 10, 15, 20]" [value]="size">{{ size }}</option>
+        <option *ngFor="let size of [2, 10, 15, 20]" [value]="size">
+          {{ size }}
+        </option>
       </select>
     </div>
   </div>
 </div>
-
-

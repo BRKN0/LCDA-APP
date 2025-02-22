@@ -59,31 +59,31 @@
   </div>
   <!-- Transactions Table -->
   <div class="transactions-table">
-    <table class="table-auto w-full border-collapse">
+    <table class="table-std">
       <thead>
         <tr class="bg-gray-100">
-          <th class="p-3 border">Codigo</th>
-          <th class="p-3 border">Fecha</th>
-          <th class="p-3 border">Banco</th>
-          <th class="p-3 border">Descripción</th>
-          <th class="p-3 border">Entrada</th>
-          <th class="p-3 border">Salida</th>
-          <th class="p-3 border">Categoría</th>
-          <th class="p-3 border">Saldo</th>
+          <th class="table-column-std">Codigo</th>
+          <th class="table-column-std">Fecha</th>
+          <th class="table-column-std">Banco</th>
+          <th class="table-column-std">Descripción</th>
+          <th class="table-column-std">Entrada</th>
+          <th class="table-column-std">Salida</th>
+          <th class="table-column-std">Categoría</th>
+          <th class="table-column-std">Saldo</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let transaction of paginatedBanking">
-          <td class="p-3 border">{{ transaction.code }}</td>
-          <td class="p-3 border">
+          <td>{{ transaction.code }}</td>
+          <td>
             {{ transaction.created_at | date : "yyyy-MM-dd" }}
           </td>
-          <td class="p-3 border">{{ getBankName(transaction.id_bank) }}</td>
-          <td class="p-3 border">{{ transaction.description }}</td>
-          <td class="p-3 border">{{ transaction.in | currency : "COP" }}</td>
-          <td class="p-3 border">{{ transaction.out | currency : "COP" }}</td>
-          <td class="p-3 border">{{ transaction.category === 'sales' ? 'Venta' : 'Desconocido' }}</td>
-          <td class="p-3 border">
+          <td>{{ getBankName(transaction.id_bank) }}</td>
+          <td>{{ transaction.description }}</td>
+          <td>{{ transaction.in | currency : "COP" }}</td>
+          <td>{{ transaction.out | currency : "COP" }}</td>
+          <td>{{ transaction.category === 'sales' ? 'Venta' : 'Desconocido' }}</td>
+          <td>
             {{ transaction.balance | currency : "COP" }}
           </td>
         </tr>

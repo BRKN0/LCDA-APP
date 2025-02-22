@@ -100,25 +100,24 @@
 
 
 
-<!-- Tabla de facturas -->
+<!-- Invoice Table -->
 <div class="mt-4">
-  <h2 class="text-xl font-bold">Facturas</h2>
-  <table class="table-auto border-collapse border border-gray-400 w-full mt-2">
+  <table class="table-std">
     <thead>
       <tr>
-        <th class="border border-gray-300 px-4 py-2 bg-gray-200">N° Factura</th>
-        <th class="border border-gray-300 px-4 py-2 bg-gray-200">Tipo</th>
-        <th class="border border-gray-300 px-4 py-2 bg-gray-200">Cliente</th>
-        <th class="border border-gray-300 px-4 py-2 bg-gray-200">Fecha</th>
-        <th class="border border-gray-300 px-4 py-2 bg-gray-200">Importe</th>
-        <th class="border border-gray-300 px-4 py-2 bg-gray-200">Estado</th>
-        <th class="border border-gray-300 px-4 py-2 bg-gray-200">Acciones</th>
+        <th class="table-column-std">N° Factura</th>
+        <th class="table-column-std">Tipo</th>
+        <th class="table-column-std">Cliente</th>
+        <th class="table-column-std">Fecha</th>
+        <th class="table-column-std">Importe</th>
+        <th class="table-column-std">Estado</th>
+        <th class="table-column-std">Acciones</th>
       </tr>
     </thead>
     <tbody>
       <tr *ngFor="let invoice of paginatedInvoice">
-        <td class="border border-gray-300 px-4 py-2">{{ invoice.code }}</td>
-        <td class="border border-gray-300 px-4 py-2">
+        <td>{{ invoice.code }}</td>
+        <td>
           {{
             invoice.order.order_type === "print"
               ? "Impresiones"
@@ -129,19 +128,18 @@
               : "Otro"
           }}
         </td>
-        <td class="border border-gray-300 px-4 py-2">
+        <td>
           {{ invoice.order.client.company_name === "N/A"
           ?  invoice.order.client.name 
           : invoice.order.client.company_name || invoice.order.client.name
           ? invoice.order.client.company_name || invoice.order.client.name
           : ""}}
         </td>
-        <td class="border border-gray-300 px-4 py-2">
+        <td>
           {{ invoice.created_at | date : "dd-MM-yyyy" }}
         </td>
-        <td class="border border-gray-300 px-4 py-2">{{ invoice.order.amount }}</td>
+        <td>{{ invoice.order.amount }}</td>
         <td
-          class="border border-gray-300 px-4 py-2"
           [class.text-green-600]="invoice.invoice_status === 'upToDate'"
           [class.text-red-600]="invoice.invoice_status === 'overdue'"
         >
@@ -153,7 +151,13 @@
               : "Desconocido"
           }}
         </td>
-        <td class="border border-gray-300 px-4 py-2 flex space-x-2">
+        <td>
+          <button
+          class="btn-details"
+          (click)="selectInvoice(invoice)"
+        >
+          Ver Detalles
+        </button>
           <!-- Botón Editar -->
           <button
             class="btn-edit"
@@ -237,10 +241,6 @@
       </div>
 
       <!-- Resto del formulario de factura -->
-      <div class="mb-4">
-        <label class="block text-gray-700">Código</label>
-        <input [(ngModel)]="selectedInvoice.code" name="code" class="form-input mt-1 block w-full" required />
-      </div>
       <div class="mb-4">
         <label class="block text-gray-700">Tipo</label>
         <select [(ngModel)]="selectedInvoice.order.order_type" name="type" class="form-select mt-1 block w-full" required>
