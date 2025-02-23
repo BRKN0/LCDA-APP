@@ -222,6 +222,20 @@ export class InvoiceComponent implements OnInit {
         client: invoice.orders?.clients || null,
       },
     })) as Invoice[];
+    // sorting invoice by code
+    let n = this.invoices.length;
+    let swapped: boolean;
+  
+    do {
+      swapped = false;
+      for (let i = 0; i < n - 1; i++) {
+        if (this.invoices[i].code > this.invoices[i + 1].code) {
+          [this.invoices[i], this.invoices[i + 1]] = [this.invoices[i + 1], this.invoices[i]];
+          swapped = true;
+        }
+      }
+      n--;
+    } while (swapped);
     this.loading = false;
     this.updateFilteredInvoices();
   }

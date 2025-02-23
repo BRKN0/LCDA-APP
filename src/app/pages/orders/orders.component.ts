@@ -123,25 +123,38 @@ export class OrdersComponent implements OnInit {
    */
   async getOrders(): Promise<void> {
     this.loading = true;
+    const { data, error } = await this.supabase
+      .from('orders') // Nombre de la tabla
+      .select('*'); // Seleccionar todos los campos
 
-    try {
-      const { data, error } = await this.supabase
-        .from('orders') // Nombre de la tabla
-        .select('*'); // Seleccionar todos los campos
-
-      if (error) {
-        console.error('Error al obtener los pedidos:', error);
-        this.loading = false;
-        return;
-      }
-
-      this.orders = data as Orders[]; // Asignar los datos obtenidos
-      this.updateFilteredOrders(); // Filtrar después de cargar los datos
-    } catch (error) {
-      console.error('Error inesperado:', error);
-    } finally {
+    if (error) {
+      console.error('Error al obtener los pedidos:', error);
       this.loading = false;
+      return;
     }
+
+    this.orders = data as Orders[]; // Asignar los datos obtenidos
+    this.updateFilteredOrders(); // Filtrar después de cargar los datos
+    console.error('Error inesperado:', error);
+
+    // sorting orders by code
+    let n = this.orders.length;
+    let swapped: boolean;
+
+    do {
+      swapped = false;
+      for (let i = 0; i < n - 1; i++) {
+        if (this.orders[i].code > this.orders[i + 1].code) {
+          [this.orders[i], this.orders[i + 1]] = [
+            this.orders[i + 1],
+            this.orders[i],
+          ];
+          swapped = true;
+        }
+      }
+      n--;
+    } while (swapped);
+    this.loading = false;
   }
   async onSearch(): Promise<void> {
     if (!this.searchQuery.trim()) {
@@ -301,11 +314,10 @@ export class OrdersComponent implements OnInit {
         .eq('id_order', order.id_order);
       if (error) {
         console.log('Failed to delete order: ', error);
-        return
+        return;
       }
       this.getOrders();
     }
-
   }
   async addOrder(newOrder: Partial<Orders>): Promise<void> {
     // Obtener el nombre del cliente basado en el id_client

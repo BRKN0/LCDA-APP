@@ -56,7 +56,7 @@ export class InventoryComponent implements OnInit {
   searchType: string = '';
   noResultsFound: boolean = false;
 
-  currentPage: number =1;
+  currentPage: number = 1;
   itemsPerPage: number = 10; // Elementos por página
   totalPages: number = 1; // Total de páginas
   paginatedInventory: InventoryItem[] = []; // Lista paginada
@@ -87,14 +87,33 @@ export class InventoryComponent implements OnInit {
     }
 
     this.inventory = data as InventoryItem[];
+    // sorting materials by code
+    let n = this.inventory.length;
+    let swapped: boolean;
+
+    do {
+      swapped = false;
+      for (let i = 0; i < n - 1; i++) {
+        if (this.inventory[i].code > this.inventory[i + 1].code) {
+          [this.inventory[i], this.inventory[i + 1]] = [
+            this.inventory[i + 1],
+            this.inventory[i],
+          ];
+          swapped = true;
+        }
+      }
+      n--;
+    } while (swapped);
     this.updateFilteredInventory();
     this.loading = false;
   }
 
   updateFilteredInventory(): void {
-    this.filteredInventory = this.inventory.filter(item => {
+    this.filteredInventory = this.inventory.filter((item) => {
       const matchesCode = item.code.toString().includes(this.searchCode);
-      const matchesType = item.type?.toLowerCase().includes(this.searchType.toLowerCase());
+      const matchesType = item.type
+        ?.toLowerCase()
+        .includes(this.searchType.toLowerCase());
       const normalizedCategory = (item.category || '').trim().toLowerCase();
       const categoryMatchesCheckboxes =
         (this.showVinyls && normalizedCategory === 'vinilo') ||
@@ -113,18 +132,21 @@ export class InventoryComponent implements OnInit {
   }
 
   toggleDetails(item: InventoryItem): void {
-    this.selectedItem = this.selectedItem === item ? {
-      id_material: '',
-      category: '',
-      type: '',
-      caliber: '',
-      material_quantity: 0,
-      color: '',
-      code: 0,
-      cost: 0,
-      sale_price: 0,
-      status: ''
-    } : item;
+    this.selectedItem =
+      this.selectedItem === item
+        ? {
+            id_material: '',
+            category: '',
+            type: '',
+            caliber: '',
+            material_quantity: 0,
+            color: '',
+            code: 0,
+            cost: 0,
+            sale_price: 0,
+            status: '',
+          }
+        : item;
   }
 
   generateKardex(): void {
@@ -139,10 +161,10 @@ export class InventoryComponent implements OnInit {
       'Costo',
       'Precio de Venta',
       'Saldo',
-      'Fecha'
+      'Fecha',
     ];
 
-    const csvRows = this.filteredInventory.map(item => {
+    const csvRows = this.filteredInventory.map((item) => {
       const saldo = item.sale_price * item.material_quantity;
       return [
         item.code,
@@ -154,16 +176,18 @@ export class InventoryComponent implements OnInit {
         item.cost.toFixed(2),
         item.sale_price.toFixed(2),
         saldo.toFixed(2),
-        currentDate
-      ].map(value => `"${value}"`);
+        currentDate,
+      ].map((value) => `"${value}"`);
     });
 
     const csvContent = [csvHeader, ...csvRows]
-      .map(row => row.join(';'))
+      .map((row) => row.join(';'))
       .join('\r\n');
 
     const bom = '\uFEFF';
-    const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([bom + csvContent], {
+      type: 'text/csv;charset=utf-8;',
+    });
     const url = window.URL.createObjectURL(blob);
 
     const a = document.createElement('a');
@@ -185,8 +209,10 @@ export class InventoryComponent implements OnInit {
   }
 
   compareCSV(): void {
-    const file1 = (document.getElementById('file1') as HTMLInputElement).files?.[0];
-    const file2 = (document.getElementById('file2') as HTMLInputElement).files?.[0];
+    const file1 = (document.getElementById('file1') as HTMLInputElement)
+      .files?.[0];
+    const file2 = (document.getElementById('file2') as HTMLInputElement)
+      .files?.[0];
 
     if (!file1 || !file2) {
       alert('Por favor, selecciona ambos archivos CSV.');
@@ -199,9 +225,13 @@ export class InventoryComponent implements OnInit {
         reader.onload = () => {
           const text = reader.result as string;
           const rows = text.split('\r\n').filter((row) => row.trim() !== '');
-          const headers = rows[0].split(';').map((header) => header.replace(/"/g, ''));
+          const headers = rows[0]
+            .split(';')
+            .map((header) => header.replace(/"/g, ''));
           const data = rows.slice(1).map((row) => {
-            const values = row.split(';').map((value) => value.replace(/"/g, ''));
+            const values = row
+              .split(';')
+              .map((value) => value.replace(/"/g, ''));
             return headers.reduce((obj, header, index) => {
               obj[header] = values[index];
               return obj;
@@ -316,16 +346,16 @@ export class InventoryComponent implements OnInit {
       code: 0,
       cost: 0,
       sale_price: 0,
-      status: ''
+      status: '',
     };
     this.isEditing = false; // Indicar que no estamos editando
-    this.showModal = true;  // Mostrar el modal
+    this.showModal = true; // Mostrar el modal
   }
 
   editItem(item: InventoryItem): void {
     this.selectedItem = { ...item };
     this.isEditing = true; // Indicar que estamos editando
-    this.showModal = true;  // Mostrar el modal
+    this.showModal = true; // Mostrar el modal
   }
 
   saveItem(): void {
@@ -339,7 +369,7 @@ export class InventoryComponent implements OnInit {
       color: this.selectedItem.color,
       cost: this.selectedItem.cost,
       sale_price: this.selectedItem.sale_price,
-      status: this.selectedItem.status
+      status: this.selectedItem.status,
     };
 
     if (this.selectedItem.id_material) {
@@ -397,11 +427,12 @@ export class InventoryComponent implements OnInit {
     this.isEditing = false; // Resetear el estado de edición
   }
 
-
   filterInventory(): void {
-    this.filteredInventory = this.inventory.filter(item => {
+    this.filteredInventory = this.inventory.filter((item) => {
       const matchesCode = item.code.toString().includes(this.searchCode);
-      const matchesType = item.type?.toLowerCase().includes(this.searchType.toLowerCase());
+      const matchesType = item.type
+        ?.toLowerCase()
+        .includes(this.searchType.toLowerCase());
 
       return matchesCode && matchesType;
     });
@@ -420,7 +451,10 @@ export class InventoryComponent implements OnInit {
 
   updatePaginatedInventory(): void {
     // Calcular el número total de páginas
-    this.totalPages = Math.max(1, Math.ceil(this.filteredInventory.length / this.itemsPerPage));
+    this.totalPages = Math.max(
+      1,
+      Math.ceil(this.filteredInventory.length / this.itemsPerPage)
+    );
 
     // Asegurar que currentPage no sea menor que 1 ni mayor que totalPages
     this.currentPage = Math.min(Math.max(this.currentPage, 1), this.totalPages);
@@ -430,12 +464,9 @@ export class InventoryComponent implements OnInit {
     const endIndex = startIndex + Number(this.itemsPerPage);
 
     // Obtener los elementos para la página actual
-    this.paginatedInventory = this.filteredInventory.slice(startIndex, endIndex);
+    this.paginatedInventory = this.filteredInventory.slice(
+      startIndex,
+      endIndex
+    );
   }
-
 }
-
-
-
-
-
