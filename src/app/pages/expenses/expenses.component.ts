@@ -102,7 +102,9 @@ export class ExpensesComponent implements OnInit {
     }
 
     // Determinar la categoría final
-    const finalCategory = this.showOtherCategoryInput ? this.otherCategory : this.selectedExpense.category;
+    const finalCategory = this.showOtherCategoryInput
+      ? this.otherCategory
+      : this.selectedExpense.category;
 
     const expenseToSave: Partial<ExpensesItem> = {
       payment_date: this.selectedExpense.payment_date || '',
@@ -160,13 +162,36 @@ export class ExpensesComponent implements OnInit {
         } else {
           this.expenses = (data || []).map((item: any) => ({
             ...item,
-            payment_date: item.payment_date ? new Date(item.payment_date).toISOString().split('T')[0] : '',
-            created_at: item.created_at ? new Date(item.created_at) : new Date(),
+            payment_date: item.payment_date
+              ? new Date(item.payment_date).toISOString().split('T')[0]
+              : '',
+            created_at: item.created_at
+              ? new Date(item.created_at)
+              : new Date(),
           })) as ExpensesItem[];
+          // sorting orders by code
+          let n = this.expenses.length;
+          let swapped: boolean;
+
+          do {
+            swapped = false;
+            for (let i = 0; i < n - 1; i++) {
+              if (this.expenses[i].code < this.expenses[i + 1].code) {
+                [this.expenses[i], this.expenses[i + 1]] = [
+                  this.expenses[i + 1],
+                  this.expenses[i],
+                ];
+                swapped = true;
+              }
+            }
+            n--;
+          } while (swapped);
           this.filteredExpenses = [...this.expenses];
 
           // Obtener categorías únicas y ordenarlas
-          this.uniqueCategories = [...new Set(this.expenses.map((e) => e.category || ''))].sort();
+          this.uniqueCategories = [
+            ...new Set(this.expenses.map((e) => e.category || '')),
+          ].sort();
 
           // Inicializar los checkboxes con las categorías existentes
           this.initializeCategoryCheckboxes();
@@ -243,7 +268,13 @@ export class ExpensesComponent implements OnInit {
   }
 
   deleteExpense(expense: ExpensesItem): void {
-    if (confirm(`¿Eliminar el egreso de categoría ${expense.category || 'sin categoría'}?`)) {
+    if (
+      confirm(
+        `¿Eliminar el egreso de categoría ${
+          expense.category || 'sin categoría'
+        }?`
+      )
+    ) {
       this.supabase
         .from('expenses')
         .delete()
@@ -268,7 +299,10 @@ export class ExpensesComponent implements OnInit {
 
   updatePaginatedExpenses(): void {
     // Calcular el número total de páginas
-    this.totalPages = Math.max(1, Math.ceil(this.filteredExpenses.length / this.itemsPerPage));
+    this.totalPages = Math.max(
+      1,
+      Math.ceil(this.filteredExpenses.length / this.itemsPerPage)
+    );
 
     // Asegurar que currentPage no sea menor que 1 ni mayor que totalPages
     this.currentPage = Math.min(Math.max(this.currentPage, 1), this.totalPages);

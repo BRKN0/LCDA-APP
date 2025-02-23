@@ -125,7 +125,6 @@ export class OrdersComponent implements OnInit {
         this.filteredOrdersList = [];
       }
     });
-
   }
 
   async getOrders(): Promise<void> {
@@ -141,9 +140,6 @@ export class OrdersComponent implements OnInit {
     }
 
     this.orders = data as Orders[]; // Asignar los datos obtenidos
-    this.updateFilteredOrders(); // Filtrar después de cargar los datos
-    console.error('Error inesperado:', error);
-
     // sorting orders by code
     let n = this.orders.length;
     let swapped: boolean;
@@ -151,7 +147,7 @@ export class OrdersComponent implements OnInit {
     do {
       swapped = false;
       for (let i = 0; i < n - 1; i++) {
-        if (this.orders[i].code > this.orders[i + 1].code) {
+        if (this.orders[i].code < this.orders[i + 1].code) {
           [this.orders[i], this.orders[i + 1]] = [
             this.orders[i + 1],
             this.orders[i],
@@ -161,6 +157,7 @@ export class OrdersComponent implements OnInit {
       }
       n--;
     } while (swapped);
+    this.updateFilteredOrders(); // Filtrar después de cargar los datos
     this.loading = false;
   }
 
@@ -185,7 +182,6 @@ export class OrdersComponent implements OnInit {
   }
 
   async onSearch(): Promise<void> {
-
     let query = this.supabase.from('orders').select('*');
 
     if (this.searchQuery.trim()) {
@@ -214,11 +210,16 @@ export class OrdersComponent implements OnInit {
   }
 
   updateFilteredOrders(): void {
-    const allCheckboxesOff = !this.showPrints && !this.showCuts && !this.showSales;
+    const allCheckboxesOff =
+      !this.showPrints && !this.showCuts && !this.showSales;
 
     this.filteredOrdersList = this.orders.filter((order) => {
-      const matchesCode = order.code.toString().includes(this.searchQuery.trim());
-      const matchesClientName = order.name.toLowerCase().includes(this.searchByNameQuery.toLowerCase().trim());
+      const matchesCode = order.code
+        .toString()
+        .includes(this.searchQuery.trim());
+      const matchesClientName = order.name
+        .toLowerCase()
+        .includes(this.searchByNameQuery.toLowerCase().trim());
 
       const matchesType =
         allCheckboxesOff ||
@@ -231,7 +232,9 @@ export class OrdersComponent implements OnInit {
         (!this.startDate || orderDate >= new Date(this.startDate)) &&
         (!this.endDate || orderDate <= new Date(this.endDate));
 
-      return (matchesCode || matchesClientName) && matchesType && isWithinDateRange;
+      return (
+        (matchesCode || matchesClientName) && matchesType && isWithinDateRange
+      );
     });
 
     this.noResultsFound = this.filteredOrdersList.length === 0;
@@ -365,12 +368,13 @@ export class OrdersComponent implements OnInit {
   }
 
   updatePaginatedOrder(): void {
-    this.totalPages = Math.max(1, Math.ceil(this.filteredOrdersList.length / this.itemsPerPage));
+    this.totalPages = Math.max(
+      1,
+      Math.ceil(this.filteredOrdersList.length / this.itemsPerPage)
+    );
     this.currentPage = Math.min(Math.max(this.currentPage, 1), this.totalPages);
     const startIndex = (this.currentPage - 1) * this.itemsPerPage;
     const endIndex = startIndex + this.itemsPerPage;
     this.paginatedOrders = this.filteredOrdersList.slice(startIndex, endIndex);
   }
 }
-
-

@@ -273,7 +273,7 @@ export class InvoiceComponent implements OnInit {
     do {
       swapped = false;
       for (let i = 0; i < n - 1; i++) {
-        if (this.invoices[i].code > this.invoices[i + 1].code) {
+        if (this.invoices[i].code < this.invoices[i + 1].code) {
           [this.invoices[i], this.invoices[i + 1]] = [this.invoices[i + 1], this.invoices[i]];
           swapped = true;
         }
