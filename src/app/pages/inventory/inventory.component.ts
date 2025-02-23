@@ -94,7 +94,7 @@ export class InventoryComponent implements OnInit {
     do {
       swapped = false;
       for (let i = 0; i < n - 1; i++) {
-        if (this.inventory[i].code > this.inventory[i + 1].code) {
+        if (this.inventory[i].code < this.inventory[i + 1].code) {
           [this.inventory[i], this.inventory[i + 1]] = [
             this.inventory[i + 1],
             this.inventory[i],
