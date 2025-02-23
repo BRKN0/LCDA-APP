@@ -109,12 +109,28 @@ export class InventoryComponent implements OnInit {
   }
 
   updateFilteredInventory(): void {
+    // Verificar si todos los checkboxes están desactivados
+    const allCheckboxesOff =
+      !this.showVinyls &&
+      !this.showCutVinyls &&
+      !this.showAcrylic &&
+      !this.showPolystyrene &&
+      !this.showDieCut &&
+      !this.showMDF;
+
     this.filteredInventory = this.inventory.filter((item) => {
       const matchesCode = item.code.toString().includes(this.searchCode);
       const matchesType = item.type
         ?.toLowerCase()
         .includes(this.searchType.toLowerCase());
       const normalizedCategory = (item.category || '').trim().toLowerCase();
+
+      // Si todos los checkboxes están desactivados, no filtrar por categoría
+      if (allCheckboxesOff) {
+        return matchesCode && matchesType;
+      }
+
+      // Si hay al menos un checkbox activado, filtrar por categoría
       const categoryMatchesCheckboxes =
         (this.showVinyls && normalizedCategory === 'vinilo') ||
         (this.showCutVinyls && normalizedCategory === 'vinilo de corte') ||

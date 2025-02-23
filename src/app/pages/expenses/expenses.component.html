@@ -5,21 +5,21 @@
 </div>
 
 <div class="expenses-container">
+  <!-- Filtros - Checkboxes de categorías -->
+  <div class="ml-4 mb-4">
+    <div *ngFor="let category of uniqueCategories" class="inline-flex items-center mr-4">
+      <input
+        type="checkbox"
+        [(ngModel)]="categoryCheckboxes[category]"
+        (click)="onCheckboxChange(category)"
+        class="form-checkbox"
+      />
+      <span class="ml-2">{{ category }}</span>
+    </div>
+  </div>
+
   <!-- Filtros -->
   <div class="flex justify-between items-center mb-4">
-    <!-- Filtro de Categoría -->
-    <div class="filters">
-      <label>
-        <span>Categoría:</span>
-        <select [(ngModel)]="selectedCategory" (change)="applyFilters()">
-          <option value="">Todas</option>
-          <option *ngFor="let category of uniqueCategories" [value]="category">
-            {{ category }}
-          </option>
-        </select>
-      </label>
-    </div>
-
     <!-- Botón Añadir -->
     <button
       class="px-4 py-2 bg-red-500 text-white rounded-full hover:bg-red-700"
@@ -58,7 +58,7 @@
     <table>
       <thead>
         <tr>
-          <th class="table-column-std">Codigo</th>
+          <th class="table-column-std">Código</th>
           <th class="table-column-std">Fecha</th>
           <th class="table-column-std">Categoría</th>
           <th class="table-column-std">Tipo</th>
@@ -87,6 +87,7 @@
       </tbody>
     </table>
   </div>
+
   <div class="flex justify-between items-center mb-4">
     <!-- Controles de paginación -->
     <div class="pagination flex items-center">
@@ -95,7 +96,7 @@
         [disabled]="currentPage === 1"
         class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
       >
-        &#8592;
+        ←
       </button>
       <span class="mx-4 text-gray-700"
         >Página {{ currentPage }} de {{ totalPages }}</span
@@ -105,7 +106,7 @@
         [disabled]="currentPage === totalPages"
         class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
       >
-        &#8594;
+        →
       </button>
     </div>
 
@@ -124,90 +125,107 @@
       </select>
     </div>
   </div>
-  <div *ngIf="showModal" class="modal-overlay">
-    <div class="modal-content">
-      <h3 class="modal-title">
-        {{ isEditing ? "Editar Egreso" : "Añadir Nuevo Egreso" }}
-      </h3>
-      <div class="form-container">
-        <form (ngSubmit)="saveExpense()">
-          <div class="form-group">
-            <label for="payment_date">Fecha</label>
-            <input
-              id="payment_date"
-              type="date"
-              [(ngModel)]="selectedExpense.payment_date"
-              name="payment_date"
-              required
-            />
-          </div>
-          <div class="form-group">
-            <label for="category">Categoría</label>
-            <select
-              id="category"
-              [(ngModel)]="selectedExpense.category"
-              name="category"
-              required
-              (change)="onCategoryChange($event)"
-            >
-              <option
-                *ngFor="let category of uniqueCategories"
-                [value]="category"
-              >
-                {{ category }}
-              </option>
-              <option value="Otros">Otros</option>
-              <!-- Opción para añadir una nueva categoría -->
-            </select>
-            <!-- Campo de texto para "Otros" -->
-            <div *ngIf="showOtherCategoryInput" class="form-group">
-              <label for="otherCategory">Especificar categoría:</label>
-              <input
-                id="otherCategory"
-                type="text"
-                [(ngModel)]="otherCategory"
-                name="otherCategory"
-              />
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="type">Tipo</label>
-            <input
-              id="type"
-              type="text"
-              [(ngModel)]="selectedExpense.type"
-              name="type"
-              required
-            />
-          </div>
-          <div class="form-group">
-            <label for="description">Descripción</label>
-            <textarea
-              id="description"
-              [(ngModel)]="selectedExpense.description"
-              name="description"
-            ></textarea>
-          </div>
-          <div class="form-group">
-            <label for="cost">Costo</label>
-            <input
-              id="cost"
-              type="number"
-              [(ngModel)]="selectedExpense.cost"
-              name="cost"
-              required
-            />
-          </div>
-          <div class="modal-actions">
-            <button type="button" class="btn-cancel" (click)="closeModal()">
-              Cancelar
-            </button>
-            <button type="submit" class="btn-save">
-              {{ isEditing ? "Actualizar Egreso" : "Añadir Egreso" }}
-            </button>
-          </div>
-        </form>
+
+
+  <!-- Modal para añadir/editar egresos -->
+<div *ngIf="showModal" class="modal-overlay">
+  <div class="modal-content w-1/2">
+    <h2>{{ isEditing ? 'Editar Egreso' : 'Añadir Nuevo Egreso' }}</h2>
+
+    <!-- Formulario -->
+    <form (ngSubmit)="saveExpense()">
+      <div class="form-group">
+        <label for="payment_date">Fecha</label>
+        <input
+          type="date"
+          id="payment_date"
+          [(ngModel)]="selectedExpense.payment_date"
+          name="payment_date"
+          class="form-input"
+          required
+        />
       </div>
-    </div>
+
+      <div class="form-group">
+        <label for="category">Categoría</label>
+        <select
+          id="category"
+          [(ngModel)]="selectedExpense.category"
+          name="category"
+          class="form-select"
+          (change)="onCategoryChange($event)"
+          required
+        >
+          <option *ngFor="let category of uniqueCategories" [value]="category">
+            {{ category }}
+          </option>
+          <option value="Otros">Otros</option>
+        </select>
+        <input
+          *ngIf="showOtherCategoryInput"
+          type="text"
+          [(ngModel)]="otherCategory"
+          placeholder="Especificar categoría"
+          class="form-input mt-2"
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="type">Tipo</label>
+        <input
+          type="text"
+          id="type"
+          [(ngModel)]="selectedExpense.type"
+          name="type"
+          class="form-input"
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="description">Descripción</label>
+        <textarea
+          id="description"
+          [(ngModel)]="selectedExpense.description"
+          name="description"
+          class="form-textarea"
+          rows="3"
+          required
+        ></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="cost">Costo</label>
+        <input
+          type="number"
+          id="cost"
+          [(ngModel)]="selectedExpense.cost"
+          name="cost"
+          class="form-input"
+          step="0.01"
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="code">Código</label>
+        <input
+          type="number"
+          id="code"
+          [(ngModel)]="selectedExpense.code"
+          name="code"
+          class="form-input"
+          required
+        />
+      </div>
+
+      <!-- Botones -->
+      <div class="form-actions">
+        <button type="button" class="btn-danger" (click)="closeModal()">Cancelar</button>
+        <button type="submit" class="btn-primary">{{ isEditing ? 'Actualizar Egreso' : 'Añadir Egreso' }}</button>
+      </div>
+    </form>
   </div>
 </div>
+
