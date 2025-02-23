@@ -77,11 +77,11 @@
         </td>
         <td class="p-3 border">
           <button class="btn-edit"
-            (click)="editClient(client);">
+            (click)="editClient(client); $event.stopPropagation()">
             Editar
           </button>
           <button class="btn-delete"
-            (click)="deleteClient(client)">
+            (click)="deleteClient(client); $event.stopPropagation()">
             Eliminar
           </button>
         </td>
