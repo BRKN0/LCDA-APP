@@ -7,6 +7,7 @@ import { MainBannerComponent } from '../main-banner/main-banner.component';
 interface ExpensesItem {
   id_expenses: string;
   created_at: Date;
+  payment_date: string;
   category: string;
   type: string;
   description: string;
@@ -19,30 +20,39 @@ interface ExpensesItem {
   standalone: true,
   imports: [CommonModule, FormsModule, MainBannerComponent],
   templateUrl: './expenses.component.html',
-  styleUrl: './expenses.component.scss'
+  styleUrls: ['./expenses.component.scss'],
 })
-
-
 export class ExpensesComponent implements OnInit {
   // Variables existentes
-  expenses: any[] = [];
-  filteredExpenses: any[] = [];
+  expenses: ExpensesItem[] = [];
+  filteredExpenses: ExpensesItem[] = [];
   uniqueCategories: string[] = [];
   selectedCategory: string = '';
-  selectedDate: string = '';
   loading: boolean = false;
   showModal: boolean = false;
-  selectedExpense: any = null;
+  selectedExpense: ExpensesItem = {
+    id_expenses: '',
+    payment_date: '',
+    category: '',
+    type: '',
+    description: '',
+    cost: 0,
+    code: 0,
+    created_at: new Date(),
+  }; // Inicializado con valores por defecto
   isEditing: boolean = false;
   startDate: string = '';
   endDate: string = '';
-  // Paginacion
-  currentPage: number =1;
+  isSaving: boolean = false; // Variable to prevent multiple clicks
+
+  // Paginación
+  currentPage: number = 1;
   itemsPerPage: number = 10; // Elementos por página
   totalPages: number = 1; // Total de páginas
-  paginatedExpenses: any[] = []; // Lista paginada 
+  paginatedExpenses: ExpensesItem[] = []; // Lista paginada
 
-  // Nuevas variables
+  // Nuevas variables para los checkboxes de categorías
+  categoryCheckboxes: { [key: string]: boolean } = {};
   showOtherCategoryInput: boolean = false;
   otherCategory: string = '';
 
@@ -50,30 +60,57 @@ export class ExpensesComponent implements OnInit {
 
   ngOnInit(): void {
     this.getExpenses();
+    this.initializeCategoryCheckboxes(); // Inicializar los checkboxes
   }
 
-  // Método para manejar el cambio en la selección de categoría
+  // Inicializar los checkboxes con las categorías únicas
+  initializeCategoryCheckboxes(): void {
+    this.uniqueCategories.forEach((category) => {
+      this.categoryCheckboxes[category] = true; // Por defecto, todos los checkboxes están activos
+    });
+  }
+
+  // Método para manejar el cambio en la selección de categoría en el dropdown
   onCategoryChange(event: Event): void {
     const selectedValue = (event.target as HTMLSelectElement).value;
     this.showOtherCategoryInput = selectedValue === 'Otros';
     if (!this.showOtherCategoryInput) {
       this.otherCategory = ''; // Limpiar el campo si no se selecciona "Otros"
     }
+    if (selectedValue && selectedValue !== 'Otros') {
+      this.selectedExpense.category = selectedValue; // Actualizar la categoría seleccionada
+    }
   }
 
-  // Método para guardar el egreso
+  // Método para guardar el egreso y actualizar los checkboxes
   saveExpense(): void {
-    if (!this.selectedExpense) return;
+    if (this.isSaving) return; // Evitar múltiples clics
+    this.isSaving = true;
+
+    // Asegurarse de que selectedExpense no sea null
+    if (!this.selectedExpense) {
+      this.selectedExpense = {
+        id_expenses: '',
+        payment_date: '',
+        category: '',
+        type: '',
+        description: '',
+        cost: 0,
+        code: 0,
+        created_at: new Date(),
+      };
+    }
 
     // Determinar la categoría final
     const finalCategory = this.showOtherCategoryInput ? this.otherCategory : this.selectedExpense.category;
 
-    const expenseToSave = {
-      payment_date: this.selectedExpense.payment_date,
-      category: finalCategory, // Usar la categoría final
-      type: this.selectedExpense.type,
-      description: this.selectedExpense.description,
-      cost: this.selectedExpense.cost,
+    const expenseToSave: Partial<ExpensesItem> = {
+      payment_date: this.selectedExpense.payment_date || '',
+      category: finalCategory || '', // Usar la categoría final
+      type: this.selectedExpense.type || '',
+      description: this.selectedExpense.description || '',
+      cost: this.selectedExpense.cost || 0,
+      code: this.selectedExpense.code || 0,
     };
 
     if (this.selectedExpense.id_expenses) {
@@ -104,18 +141,13 @@ export class ExpensesComponent implements OnInit {
           } else {
             alert('Egreso añadido correctamente');
             this.getExpenses();
-
-            // Actualizar uniqueCategories si la categoría es nueva
-            if (!this.uniqueCategories.includes(finalCategory)) {
-              this.uniqueCategories.push(finalCategory);
-            }
           }
           this.closeModal();
         });
     }
   }
 
-  // Métodos existentes
+  // Métodos existentes ajustados
   getExpenses(): void {
     this.loading = true;
     this.supabase
@@ -126,28 +158,56 @@ export class ExpensesComponent implements OnInit {
         if (error) {
           console.error('Error al cargar los egresos:', error);
         } else {
-          this.expenses = data || [];
+          this.expenses = (data || []).map((item: any) => ({
+            ...item,
+            payment_date: item.payment_date ? new Date(item.payment_date).toISOString().split('T')[0] : '',
+            created_at: item.created_at ? new Date(item.created_at) : new Date(),
+          })) as ExpensesItem[];
           this.filteredExpenses = [...this.expenses];
-          this.uniqueCategories = [...new Set(this.expenses.map((e) => e.category))];
 
-          this.updatePaginatedExpenses();
+          // Obtener categorías únicas y ordenarlas
+          this.uniqueCategories = [...new Set(this.expenses.map((e) => e.category || ''))].sort();
+
+          // Inicializar los checkboxes con las categorías existentes
+          this.initializeCategoryCheckboxes();
+
+          // Aplicar filtros iniciales
+          this.applyFilters();
         }
       });
   }
 
   applyFilters(): void {
     this.filteredExpenses = this.expenses.filter((e) => {
-      const matchesCategory = !this.selectedCategory || e.category === this.selectedCategory;
-        
-        const expenseDate = new Date(e.payment_date); // Convertir la fecha del gasto a objeto Date
-        const isWithinDateRange =
-            (!this.startDate || expenseDate >= new Date(this.startDate)) &&
-            (!this.endDate || expenseDate <= new Date(this.endDate ));
+      const matchesCategory = this.isAnyCategoryChecked()
+        ? Object.entries(this.categoryCheckboxes)
+            .filter(([_, checked]) => checked)
+            .some(([category]) => e.category === category)
+        : true; // Si no hay checkboxes activos, mostrar todos
 
-        return matchesCategory && isWithinDateRange;
+      const expenseDate = new Date(e.payment_date);
+      const isWithinDateRange =
+        (!this.startDate || expenseDate >= new Date(this.startDate)) &&
+        (!this.endDate || expenseDate <= new Date(this.endDate));
+
+      return matchesCategory && isWithinDateRange;
     });
-    this.currentPage = 1; // Reiniciar a la primera página
-    this.updatePaginatedExpenses(); // Actualizar la lista paginada
+
+    // Actualizar la paginación después de aplicar los filtros
+    this.updatePaginatedExpenses();
+  }
+
+  // Verificar si hay al menos un checkbox de categoría activado
+  isAnyCategoryChecked(): boolean {
+    return Object.values(this.categoryCheckboxes).some((checked) => checked);
+  }
+
+  onCheckboxChange(category: string): void {
+    // Alternar el estado del checkbox
+    this.categoryCheckboxes[category] = !this.categoryCheckboxes[category];
+
+    // Aplicar filtros después de cambiar el estado del checkbox
+    this.applyFilters();
   }
 
   addNewExpense(): void {
@@ -158,6 +218,8 @@ export class ExpensesComponent implements OnInit {
       type: '',
       description: '',
       cost: 0,
+      code: 0,
+      created_at: new Date(),
     };
     this.showOtherCategoryInput = false; // Ocultar el campo "Otros" al añadir un nuevo egreso
     this.otherCategory = ''; // Limpiar el campo "Otros"
@@ -181,7 +243,7 @@ export class ExpensesComponent implements OnInit {
   }
 
   deleteExpense(expense: ExpensesItem): void {
-    if (confirm(`¿Eliminar el egreso de categoría ${expense.category}?`)) {
+    if (confirm(`¿Eliminar el egreso de categoría ${expense.category || 'sin categoría'}?`)) {
       this.supabase
         .from('expenses')
         .delete()
@@ -197,7 +259,7 @@ export class ExpensesComponent implements OnInit {
     }
   }
 
-  //Paginacion
+  // Paginación
   paginateItems<T>(items: T[], page: number, itemsPerPage: number): T[] {
     const startIndex = (page - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;

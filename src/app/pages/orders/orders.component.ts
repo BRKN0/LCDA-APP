@@ -24,6 +24,7 @@ interface Orders {
   amount: string;
   id_client: string;
 }
+
 interface Cuts {
   id: string;
   material_type: string;
@@ -35,6 +36,7 @@ interface Cuts {
   cutting_time: string;
   id_order: string;
 }
+
 interface Prints {
   id: string;
   material: string;
@@ -49,6 +51,7 @@ interface Prints {
   notes: string;
   id_order: string;
 }
+
 @Component({
   selector: 'app-orders',
   standalone: true,
@@ -76,7 +79,7 @@ export class OrdersComponent implements OnInit {
   showPrints = true;
   showCuts = true;
   showSales = true;
-  // Paginacion
+  // Paginación
   currentPage: number = 1;
   itemsPerPage: number = 10; // Elementos por página
   totalPages: number = 1; // Total de páginas
@@ -96,6 +99,10 @@ export class OrdersComponent implements OnInit {
     total: '',
     amount: '',
     id_client: '',
+    order_confirmed_status: 'notConfirmed',
+    order_completion_status: 'standby',
+    order_delivery_status: 'toBeDelivered',
+    notes: '',
   };
 
   constructor(
@@ -108,7 +115,7 @@ export class OrdersComponent implements OnInit {
       if (session) {
         this.zone.run(() => {
           this.getOrders(); // Cargar los pedidos al autenticarse
-          this.getClients(); //Cargar clientes
+          this.getClients(); // Cargar clientes
         });
       } else {
         console.error('Usuario no autenticado.');
@@ -116,6 +123,7 @@ export class OrdersComponent implements OnInit {
         this.filteredOrdersList = [];
       }
     });
+    this.updateFilteredOrders();
   }
 
   /**
@@ -136,6 +144,7 @@ export class OrdersComponent implements OnInit {
       }
 
       this.orders = data as Orders[]; // Asignar los datos obtenidos
+      console.log('Orders loaded:', this.orders); // Depuración
       this.updateFilteredOrders(); // Filtrar después de cargar los datos
     } catch (error) {
       console.error('Error inesperado:', error);
@@ -143,9 +152,10 @@ export class OrdersComponent implements OnInit {
       this.loading = false;
     }
   }
+
   async onSearch(): Promise<void> {
     if (!this.searchQuery.trim()) {
-      alert('Por favor, ingrese un número de factura.');
+      alert('Por favor, ingrese un número de pedido.');
       return;
     }
     this.loading = true;
@@ -157,47 +167,61 @@ export class OrdersComponent implements OnInit {
     this.loading = false;
     if (error) {
       console.error('Error fetching order:', error);
-      alert('Error al buscar la factura.');
+      alert('Error al buscar el pedido.');
       return;
     }
 
     if (!data || data.length === 0) {
-      alert('Factura no encontrada.');
+      alert('Pedido no encontrado.');
       return;
     }
 
     this.order = {
-      ...data[0], //,
-      //client: data[0].client,
+      ...data[0],
     } as Orders;
 
     this.selectOrder(this.order);
-    console.log(this.order);
+    console.log('Searched order:', this.order);
   }
+
   /**
    * Actualiza la lista filtrada de pedidos según los checkboxes seleccionados
    */
   updateFilteredOrders(): void {
-    // Si todas las checkboxes están desmarcadas, no mostrar nada
-    if (!this.showPrints && !this.showCuts && !this.showSales) {
-      this.filteredOrdersList = [];
-      return;
-    }
+    // Verificar si todos los checkboxes de tipo están desactivados
+    const allTypeCheckboxesOff = !this.showPrints && !this.showCuts && !this.showSales;
+    console.log('Checkbox states - Prints:', this.showPrints, 'Cuts:', this.showCuts, 'Sales:', this.showSales, 'All off:', allTypeCheckboxesOff);
 
-    // Filtrar los pedidos según los checkboxes seleccionados
     this.filteredOrdersList = this.orders.filter((order) => {
-      const matchesType =
-        (this.showPrints && order.order_type === 'print') ||
-        (this.showCuts && order.order_type === 'laser') ||
-        (this.showSales && order.order_type === 'sales');
+      const orderDate = new Date(order.created_at);
+      const matchesStartDate = this.startDate ? orderDate >= new Date(this.startDate) : true;
+      const matchesEndDate = this.endDate ? orderDate <= new Date(this.endDate + 'T23:59:59') : true;
+      const matchesDateRange = matchesStartDate && matchesEndDate;
 
-      const orderDate = new Date(order.created_at); // Convertir la fecha del pedido a objeto Date
-      const isWithinDateRange =
-        (!this.startDate || orderDate >= new Date(this.startDate)) &&
-        (!this.endDate || orderDate <= new Date(this.endDate));
+      const matchesSearch =
+        !this.searchQuery ||
+        order.code.toString().toLowerCase().includes(this.searchQuery.toLowerCase()) ||
+        order.name.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
+        order.description.toLowerCase().includes(this.searchQuery.toLowerCase());
 
-      return matchesType && isWithinDateRange;
+      // Si todos los checkboxes de tipo están desactivados, mostrar todos los pedidos
+      if (allTypeCheckboxesOff) {
+        console.log('Showing all orders due to all type checkboxes being off');
+        return matchesDateRange && matchesSearch;
+      }
+
+      // Filtros normales si hay al menos un checkbox de tipo activado
+      const isPrintsFilter = this.showPrints && order.order_type === 'print';
+      const isCutsFilter = this.showCuts && order.order_type === 'laser';
+      const isSalesFilter = this.showSales && order.order_type === 'sales';
+
+      const matchesType = isPrintsFilter || isCutsFilter || isSalesFilter;
+
+      console.log('Order type filter:', { isPrintsFilter, isCutsFilter, isSalesFilter, matchesType });
+      return matchesType && matchesDateRange && matchesSearch;
     });
+
+    console.log('Filtered orders:', this.filteredOrdersList);
     this.noResultsFound = this.filteredOrdersList.length === 0;
     this.currentPage = 1; // Reiniciar a la primera página
     this.updatePaginatedOrder(); // Actualizar la lista paginada
@@ -205,34 +229,35 @@ export class OrdersComponent implements OnInit {
 
   async selectOrder(order: Orders) {
     this.loadingDetails = true;
-    if (order.order_type == 'print') {
+    if (order.order_type === 'print') {
       const { data, error } = await this.supabase
         .from('prints')
         .select('*')
         .eq('id_order', order.id_order);
       if (error) {
-        console.log(error);
+        console.error('Error fetching print details:', error);
       }
-      console.log('raw:', data);
+      console.log('Print details raw:', data);
       this.selectedOrderTypeDetail = data as Prints[];
-      console.log(this.selectedOrderDetails);
+      console.log('Selected print details:', this.selectedOrderTypeDetail);
       this.loadingDetails = false;
-    } else if (order.order_type == 'laser') {
+    } else if (order.order_type === 'laser') {
       const { data, error } = await this.supabase
         .from('cuts')
         .select('*')
         .eq('id_order', order.id_order);
       if (error) {
-        console.log(error);
+        console.error('Error fetching cut details:', error);
       }
-      console.log('raw:', data);
+      console.log('Cut details raw:', data);
       this.selectedOrderTypeDetail = data as Cuts[];
-      console.log(this.selectedOrderDetails);
+      console.log('Selected cut details:', this.selectedOrderTypeDetail);
       this.loadingDetails = false;
-    } else if (order.order_type == 'sales') {
+    } else if (order.order_type === 'sales') {
       this.loadingDetails = false;
     }
     this.selectedOrderDetails = [order];
+    console.log('Selected order details:', this.selectedOrderDetails);
   }
 
   async getClients(): Promise<void> {
@@ -247,10 +272,12 @@ export class OrdersComponent implements OnInit {
       }
 
       this.clients = data || []; // Asigna la lista de clientes
+      console.log('Clients loaded:', this.clients);
     } catch (error) {
       console.error('Error inesperado al obtener clientes:', error);
     }
   }
+
   // Función para formatear la fecha en el formato que espera el input de tipo date
   private formatDateForInput(date: Date | string): string {
     const dateObj = new Date(date);
@@ -259,6 +286,7 @@ export class OrdersComponent implements OnInit {
     const day = dateObj.getDate().toString().padStart(2, '0');
     return `${year}-${month}-${day}`;
   }
+
   /**
    * Añadir nueva orden
    */
@@ -286,6 +314,7 @@ export class OrdersComponent implements OnInit {
     }
     this.showModal = !this.showModal;
   }
+
   editOrder(order: Orders): void {
     this.order = { ...order };
     this.order.created_at = this.formatDateForInput(order.created_at);
@@ -300,13 +329,13 @@ export class OrdersComponent implements OnInit {
         .delete()
         .eq('id_order', order.id_order);
       if (error) {
-        console.log('Failed to delete order: ', error);
-        return
+        console.error('Failed to delete order:', error);
+        return;
       }
       this.getOrders();
     }
-
   }
+
   async addOrder(newOrder: Partial<Orders>): Promise<void> {
     // Obtener el nombre del cliente basado en el id_client
     const selectedClient = this.clients.find(
@@ -321,15 +350,15 @@ export class OrdersComponent implements OnInit {
       order_payment_status: newOrder.order_payment_status || 'overdue',
       created_at: newOrder.created_at || new Date().toISOString(),
       order_quantity: newOrder.order_quantity,
-      unitary_value: newOrder.unitary_value || 0, // Valor predeterminado si no se proporciona
-      iva: newOrder.iva || 0,
-      subtotal: newOrder.subtotal || 0,
-      total: newOrder.total || 0,
-      amount: newOrder.amount || 0,
+      unitary_value: newOrder.unitary_value || '0',
+      iva: newOrder.iva || '0',
+      subtotal: newOrder.subtotal || '0',
+      total: newOrder.total || '0',
+      amount: newOrder.amount || '0',
       id_client: newOrder.id_client,
-      order_confirmed_status: newOrder.order_confirmed_status,
-      order_completion_status: newOrder.order_completion_status,
-      order_delivery_status: newOrder.order_delivery_status,
+      order_confirmed_status: newOrder.order_confirmed_status || 'notConfirmed',
+      order_completion_status: newOrder.order_completion_status || 'standby',
+      order_delivery_status: newOrder.order_delivery_status || 'toBeDelivered',
       notes: newOrder.notes,
     };
 
@@ -351,7 +380,7 @@ export class OrdersComponent implements OnInit {
     }
   }
 
-  //Paginacion
+  // Paginación
   paginateItems<T>(items: T[], page: number, itemsPerPage: number): T[] {
     const startIndex = (page - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;

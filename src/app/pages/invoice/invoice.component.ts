@@ -73,7 +73,6 @@ export class InvoiceComponent implements OnInit {
   filteredInvoicesList: Invoice[] = [];
   filteredClients: Client[] = []; // Lista filtrada de clientes para búsqueda
   clientOrders: Orders[] = []; // Órdenes filtradas por cliente seleccionado
-  filterDebt: boolean = false;
   noResultsFound: boolean = false;
   startDate: string = '';
   endDate: string = '';
@@ -175,7 +174,6 @@ export class InvoiceComponent implements OnInit {
     }
   }
 
-
   /**
    * Oculta el dropdown de sugerencias al perder el foco
    */
@@ -273,20 +271,13 @@ export class InvoiceComponent implements OnInit {
   }
 
   updateFilteredInvoices(): void {
+    // Verificar si todos los checkboxes de tipo están desactivados
+    const allTypeCheckboxesOff = !this.showPrints && !this.showCuts && !this.showSales;
+
     this.filteredInvoicesList = this.invoices.filter((invoice) => {
-      const isDebtFilter = this.showDebt ? invoice.invoice_status === 'overdue' : true;
-
-      const isPrintsFilter = this.showPrints && invoice.order.order_type === 'print';
-      const isCutsFilter = this.showCuts && invoice.order.order_type === 'laser';
-      const isSalesFilter = this.showSales && invoice.order.order_type === 'sales';
-
-      const matchesType =
-        isPrintsFilter || isCutsFilter || isSalesFilter || (!this.showPrints && !this.showCuts && !this.showSales);
-
       const invoiceDate = new Date(invoice.created_at);
       const matchesStartDate = this.startDate ? invoiceDate >= new Date(this.startDate) : true;
       const matchesEndDate = this.endDate ? invoiceDate <= new Date(this.endDate + 'T23:59:59') : true;
-
       const matchesDateRange = matchesStartDate && matchesEndDate;
 
       const matchesNameSearch =
@@ -295,9 +286,25 @@ export class InvoiceComponent implements OnInit {
         (invoice.order.client.company_name &&
           invoice.order.client.company_name.toLowerCase().includes(this.nameSearchQuery.toLowerCase()));
 
+      // Si todos los checkboxes de tipo están desactivados, reiniciar y mostrar todas las facturas
+      if (allTypeCheckboxesOff) {
+        console.log('Todos los checkboxes de tipo están desactivados, mostrando todas las facturas');
+        return matchesDateRange && matchesNameSearch;
+      }
+
+      // Filtros normales si hay al menos un checkbox de tipo activado
+      const isDebtFilter = this.showDebt ? invoice.invoice_status === 'overdue' : true;
+
+      const isPrintsFilter = this.showPrints && invoice.order.order_type === 'print';
+      const isCutsFilter = this.showCuts && invoice.order.order_type === 'laser';
+      const isSalesFilter = this.showSales && invoice.order.order_type === 'sales';
+
+      const matchesType = isPrintsFilter || isCutsFilter || isSalesFilter;
+
       return isDebtFilter && matchesType && matchesDateRange && matchesNameSearch;
     });
 
+    this.noResultsFound = this.filteredInvoicesList.length === 0;
     this.currentPage = 1; // Reiniciar a la primera página
     this.updatePaginatedInvoices(); // Actualizar la lista paginada
   }
