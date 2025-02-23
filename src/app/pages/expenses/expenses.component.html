@@ -5,21 +5,21 @@
 </div>
 
 <div class="expenses-container">
+  <!-- Filtros - Checkboxes de categorías -->
+  <div class="ml-4 mb-4">
+    <div *ngFor="let category of uniqueCategories" class="inline-flex items-center mr-4">
+      <input
+        type="checkbox"
+        [(ngModel)]="categoryCheckboxes[category]"
+        (click)="onCheckboxChange(category)"
+        class="form-checkbox"
+      />
+      <span class="ml-2">{{ category }}</span>
+    </div>
+  </div>
+
   <!-- Filtros -->
   <div class="flex justify-between items-center mb-4">
-    <!-- Filtro de Categoría -->
-    <div class="filters">
-      <label>
-        <span>Categoría:</span>
-        <select [(ngModel)]="selectedCategory" (change)="applyFilters()">
-          <option value="">Todas</option>
-          <option *ngFor="let category of uniqueCategories" [value]="category">
-            {{ category }}
-          </option>
-        </select>
-      </label>
-    </div>
-
     <!-- Botón Añadir -->
     <button
       class="px-4 py-2 bg-red-500 text-white rounded-full hover:bg-red-700"
@@ -58,7 +58,7 @@
     <table>
       <thead>
         <tr>
-          <th class="table-column-std">Codigo</th>
+          <th class="table-column-std">Código</th>
           <th class="table-column-std">Fecha</th>
           <th class="table-column-std">Categoría</th>
           <th class="table-column-std">Tipo</th>
@@ -87,6 +87,7 @@
       </tbody>
     </table>
   </div>
+
   <div class="flex justify-between items-center mb-4">
     <!-- Controles de paginación -->
     <div class="pagination flex items-center">
@@ -95,7 +96,7 @@
         [disabled]="currentPage === 1"
         class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
       >
-        &#8592;
+        ←
       </button>
       <span class="mx-4 text-gray-700"
         >Página {{ currentPage }} de {{ totalPages }}</span
@@ -105,7 +106,7 @@
         [disabled]="currentPage === totalPages"
         class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
       >
-        &#8594;
+        →
       </button>
     </div>
 
@@ -124,6 +125,7 @@
       </select>
     </div>
   </div>
+
   <div *ngIf="showModal" class="modal-overlay">
     <div class="modal-content">
       <h3 class="modal-title">
@@ -157,7 +159,6 @@
                 {{ category }}
               </option>
               <option value="Otros">Otros</option>
-              <!-- Opción para añadir una nueva categoría -->
             </select>
             <!-- Campo de texto para "Otros" -->
             <div *ngIf="showOtherCategoryInput" class="form-group">
