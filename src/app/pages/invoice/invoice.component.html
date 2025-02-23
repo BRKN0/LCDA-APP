@@ -38,66 +38,39 @@
     />
     <span class="ml-4">En Mora</span>
   </label>
-  <!--Filter date range-->
-  <div class="flex items-center space-x-4">
-    <div>
-      <label for="startDate" class="mr-2 font-semibold">Desde:</label>
-      <input
-        type="date"
-        id="startDate"
-        [(ngModel)]="startDate"
-        (ngModelChange)="updateFilteredInvoices()"
-        class="border border-gray-300 rounded-md p-1"
-      />
+  <!-- Filter date range y botón Añadir Factura, pegado a la derecha y alineado -->
+  <div class="flex items-center justify-between mt-4"> <!-- Cambié space-x-4 por justify-between y ajusté mt-4 -->
+    <div class="flex items-center space-x-4">
+      <div>
+        <label for="startDate" class="mr-2 font-semibold">Desde:</label>
+        <input
+          type="date"
+          id="startDate"
+          [(ngModel)]="startDate"
+          (ngModelChange)="updateFilteredInvoices()"
+          class="form-input"
+        />
+      </div>
+      <div>
+        <label for="endDate" class="mr-2 font-semibold">Hasta:</label>
+        <input
+          type="date"
+          id="endDate"
+          [(ngModel)]="endDate"
+          (ngModelChange)="updateFilteredInvoices()"
+          class="form-input"
+        />
+      </div>
     </div>
-    <div>
-      <label for="endDate" class="mr-2 font-semibold">Hasta:</label>
-      <input
-        type="date"
-        id="endDate"
-        [(ngModel)]="endDate"
-        (ngModelChange)="updateFilteredInvoices()"
-        class="border border-gray-300 rounded-md p-1"
-      />
-    </div>
-  </div>
-</div>
-
-<!-- Búsqueda y botón Añadir Factura -->
-<div class="flex items-center justify-center py-4">
-  <div class="w-full max-w-md relative">
-    <input
-      type="text"
-      placeholder="Buscar por nombre..."
-      [(ngModel)]="nameSearchQuery"
-      (ngModelChange)= "updateFilteredInvoices()"
-      class="w-full py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
-    />
-  </div>
-  <div class="w-full max-w-md relative">
-    <input
-      type="text"
-      placeholder="Buscar factura por codigo..."
-      [(ngModel)]="searchQuery"
-      class="w-full py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
-    />
+    <!-- Botón Añadir Factura, pegado a la derecha -->
     <button
-      class="absolute right-0 top-1/2 transform -translate-y-1/2 bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-700"
-      (click)="onSearch()"
+      class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
+      (click)="addNewInvoice()"
     >
-      Buscar
+      Añadir Factura
     </button>
   </div>
-
-  <!-- Botón de Añadir Factura al lado de la búsqueda -->
-  <button
-    class="ml-4 bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
-    (click)="addNewInvoice()"
-  >
-    Añadir Factura
-  </button>
 </div>
-
 
 
 <!-- Invoice Table -->
@@ -116,8 +89,8 @@
     </thead>
     <tbody>
       <tr *ngFor="let invoice of paginatedInvoice">
-        <td>{{ invoice.code }}</td>
-        <td>
+        <td class="table-column-std">{{ invoice.code }}</td>
+        <td class="table-column-std">
           {{
             invoice.order.order_type === "print"
               ? "Impresiones"
@@ -128,18 +101,19 @@
               : "Otro"
           }}
         </td>
-        <td>
-          {{ invoice.order.client.company_name === "N/A"
-          ?  invoice.order.client.name 
-          : invoice.order.client.company_name || invoice.order.client.name
-          ? invoice.order.client.company_name || invoice.order.client.name
-          : ""}}
+        <td class="table-column-std">
+          {{
+            invoice.order.client.company_name === "N/A"
+            ? invoice.order.client.name
+            : invoice.order.client.company_name || invoice.order.client.name
+          }}
         </td>
-        <td>
+        <td class="table-column-std">
           {{ invoice.created_at | date : "dd-MM-yyyy" }}
         </td>
-        <td>{{ invoice.order.amount }}</td>
+        <td class="table-column-std">{{ invoice.order.amount }}</td>
         <td
+          class="table-column-std"
           [class.text-green-600]="invoice.invoice_status === 'upToDate'"
           [class.text-red-600]="invoice.invoice_status === 'overdue'"
         >
@@ -151,13 +125,13 @@
               : "Desconocido"
           }}
         </td>
-        <td>
+        <td class="table-column-std">
           <button
-          class="btn-details"
-          (click)="selectInvoice(invoice)"
-        >
-          Ver Detalles
-        </button>
+            class="btn-details"
+            (click)="selectInvoice(invoice)"
+          >
+            Ver Detalles
+          </button>
           <!-- Botón Editar -->
           <button
             class="btn-edit"
@@ -183,20 +157,20 @@
       <button
         (click)="currentPage = currentPage - 1; updatePaginatedInvoices()"
         [disabled]="currentPage === 1"
-        class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+        class="btn-primary px-2 py-1 rounded-full disabled:bg-gray-300 disabled:cursor-not-allowed"
       >
-        &#8592;
+        ←
       </button>
       <span class="mx-4 text-gray-700">Página {{ currentPage }} de {{ totalPages }}</span>
       <button
         (click)="currentPage = currentPage + 1; updatePaginatedInvoices()"
         [disabled]="currentPage === totalPages"
-        class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+        class="btn-primary px-2 py-1 rounded-full disabled:bg-gray-300 disabled:cursor-not-allowed"
       >
-        &#8594;
+        →
       </button>
     </div>
-  
+
     <!-- Selector de elementos por página -->
     <div class="items-per-page flex items-center">
       <label for="itemsPerPage" class="mr-2">Elementos por página:</label>
@@ -204,46 +178,66 @@
         id="itemsPerPage"
         [(ngModel)]="itemsPerPage"
         (change)="currentPage = 1; updatePaginatedInvoices()"
-        class="border border-gray-300 rounded-md p-1"
+        class="form-select"
       >
         <option *ngFor="let size of [2, 10, 15, 20]" [value]="size">{{ size }}</option>
       </select>
-    </div>  
+    </div>
   </div>
 </div>
 
 <!-- Modal para añadir/editar facturas -->
-<div *ngIf="showModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50">
-  <div class="bg-white rounded-lg shadow-lg p-6 w-1/2">
+<div *ngIf="showModal" class="modal-overlay">
+  <div class="modal-content w-1/2">
     <h2 class="text-xl font-bold mb-4">{{ isEditing ? 'Editar Factura' : 'Añadir Factura' }}</h2>
     <form (ngSubmit)="saveInvoice()">
-      <!-- Campo de selección de cliente -->
+      <!-- Campo de selección de cliente con búsqueda manual -->
       <div class="mb-4">
         <label class="block text-gray-700">Cliente</label>
-        <select
-          [(ngModel)]="selectedInvoice.order.id_client"
-          name="client"
-          class="form-select mt-1 block w-full"
-          required
-        >
-          <option value="" disabled selected>Seleccione un cliente</option>
-          <option *ngFor="let client of clients" [value]="client.id_client">
-            {{ client.name }} ({{ client.company_name || 'Sin empresa' }})
-          </option>
-        </select>
+        <div class="relative">
+          <input
+            type="text"
+            placeholder="Buscar cliente por nombre..."
+            [(ngModel)]="clientSearchQuery"
+            (ngModelChange)="searchClients()"
+            name="clientSearch"
+            class="form-input"
+            (focus)="showClientDropdown = true"
+            (blur)="hideClientDropdown()"
+            required
+          />
+          <!-- Dropdown de sugerencias de clientes -->
+          <div
+            *ngIf="showClientDropdown && filteredClients.length > 0"
+            class="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto"
+          >
+            <div
+              *ngFor="let client of filteredClients"
+              class="p-2 hover:bg-gray-200 cursor-pointer"
+              (click)="selectClient(client)"
+            >
+              {{ client.name }} ({{ client.company_name || 'Sin empresa' }})
+            </div>
+          </div>
+        </div>
         <button
           type="button"
-          class="mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+          class="btn-primary mt-2"
           (click)="openAddClientModal()"
         >
           Añadir nuevo cliente
         </button>
       </div>
 
-      <!-- Resto del formulario de factura -->
+      <!-- Resto del formulario -->
       <div class="mb-4">
         <label class="block text-gray-700">Tipo</label>
-        <select [(ngModel)]="selectedInvoice.order.order_type" name="type" class="form-select mt-1 block w-full" required>
+        <select
+          [(ngModel)]="selectedInvoice.order.order_type"
+          name="type"
+          class="form-select"
+          required
+        >
           <option value="print">Impresiones</option>
           <option value="laser">Cortes</option>
           <option value="sales">Ventas</option>
@@ -251,34 +245,64 @@
       </div>
       <div class="mb-4">
         <label class="block text-gray-700">Fecha</label>
-        <input type="date" [(ngModel)]="selectedInvoice.created_at" name="date" class="form-input mt-1 block w-full" required />
+        <input
+          type="date"
+          [(ngModel)]="selectedInvoice.created_at"
+          name="date"
+          class="form-input"
+          required
+        />
       </div>
       <div class="mb-4">
         <label class="block text-gray-700">Importe</label>
-        <input [(ngModel)]="selectedInvoice.order.amount" name="amount" class="form-input mt-1 block w-full" required />
+        <input
+          [(ngModel)]="selectedInvoice.order.amount"
+          name="amount"
+          class="form-input"
+          required
+        />
       </div>
       <div class="mb-4">
         <label class="block text-gray-700">Estado</label>
-        <select [(ngModel)]="selectedInvoice.invoice_status" name="status" class="form-select mt-1 block w-full" required>
+        <select
+          [(ngModel)]="selectedInvoice.invoice_status"
+          name="status"
+          class="form-select"
+          required
+        >
           <option value="upToDate">Al Día</option>
           <option value="overdue">En Mora</option>
         </select>
       </div>
       <div class="mb-4">
-        <form *ngIf="selectedInvoice"></form>
-        <label for="id_order">Orden:</label>
-        <select id="id_order" [(ngModel)]="selectedInvoice.order.id_order" name="id_order" required>
-          <option value="">Seleccione una orden</option>
-          <option *ngFor="let order of orders" [value]="order.id_order">
-            {{ order.name }} ({{ order.code }})
+        <label class="block text-gray-700">Orden</label>
+        <select
+          [(ngModel)]="selectedInvoice.order.id_order"
+          name="id_order"
+          class="form-select"
+          required
+        >
+          <option value="" disabled selected>Seleccione una orden</option>
+          <option
+            *ngFor="let order of clientOrders"
+            [value]="order.id_order"
+          >
+            {{ order.description || order.order_type }}
           </option>
         </select>
       </div>
       <div class="flex justify-end">
-        <button type="button" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md mr-2" (click)="closeModal()">
+        <button
+          type="button"
+          class="btn-danger px-4 py-2 rounded-md mr-2"
+          (click)="closeModal()"
+        >
           Cancelar
         </button>
-        <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600">
+        <button
+          type="submit"
+          class="btn-success px-4 py-2 rounded-md"
+        >
           {{ isEditing ? 'Actualizar Factura' : 'Guardar Factura' }}
         </button>
       </div>
@@ -287,8 +311,8 @@
 </div>
 
 <!-- Modal para añadir cliente -->
-<div *ngIf="showAddClientModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50">
-  <div class="bg-white rounded-lg shadow-lg p-6 w-1/2">
+<div *ngIf="showAddClientModal" class="modal-overlay">
+  <div class="modal-content w-1/2">
     <h2 class="text-xl font-bold mb-4">Añadir Nuevo Cliente</h2>
     <form (ngSubmit)="saveNewClient()">
       <div class="mb-4">
@@ -296,7 +320,7 @@
         <input
           [(ngModel)]="newClient.name"
           name="name"
-          class="form-input mt-1 block w-full"
+          class="form-input"
           required
         />
       </div>
@@ -306,7 +330,7 @@
           type="email"
           [(ngModel)]="newClient.email"
           name="email"
-          class="form-input mt-1 block w-full"
+          class="form-input"
           required
         />
       </div>
@@ -315,7 +339,7 @@
         <select
           [(ngModel)]="newClient.document_type"
           name="document_type"
-          class="form-select mt-1 block w-full"
+          class="form-select"
           required
         >
           <option value="NIT">NIT</option>
@@ -335,7 +359,7 @@
         <input
           [(ngModel)]="newClient.document_number"
           name="document_number"
-          class="form-input mt-1 block w-full"
+          class="form-input"
           required
         />
       </div>
@@ -344,7 +368,7 @@
         <input
           [(ngModel)]="newClient.company_name"
           name="company_name"
-          class="form-input mt-1 block w-full"
+          class="form-input"
         />
       </div>
       <div class="mb-4">
@@ -353,7 +377,7 @@
           type="number"
           [(ngModel)]="newClient.cellphone"
           name="cellphone"
-          class="form-input mt-1 block w-full"
+          class="form-input"
         />
       </div>
       <div class="mb-4">
@@ -362,20 +386,20 @@
           type="text"
           [(ngModel)]="newClient.address"
           name="address"
-          class="form-input mt-1 block w-full"
+          class="form-input"
         />
       </div>
       <div class="flex justify-end">
         <button
           type="button"
-          class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md mr-2"
+          class="btn-danger px-4 py-2 rounded-md mr-2"
           (click)="closeAddClientModal()"
         >
           Cancelar
         </button>
         <button
           type="submit"
-          class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
+          class="btn-success px-4 py-2 rounded-md"
         >
           Guardar Cliente
         </button>
@@ -384,18 +408,18 @@
   </div>
 </div>
 
-<!-- Show details of the selected invoice in float window-->
+<!-- Show details of the selected invoice in float window -->
 <div
   *ngIf="selectedInvoiceDetails && selectedInvoiceDetails.length > 0"
-  class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
+  class="modal-overlay"
 >
-  <div class="bg-white rounded-lg shadow-lg p-6 w-3/4 max-h-screen overflow-y-auto relative">
+  <div class="modal-content w-3/4 max-h-screen overflow-y-auto relative">
     <!-- Botón de cierre -->
     <button
       class="absolute top-4 right-4 text-gray-600 hover:text-black font-bold text-xl"
       (click)="selectedInvoiceDetails = null"
     >
-      &times;
+      ×
     </button>
     <h2 class="text-xl font-bold">Detalles de Factura</h2>
 
@@ -423,7 +447,7 @@
               selectedInvoiceDetails[0].invoice_status === "overdue"
                 ? "En Mora"
                 : selectedInvoiceDetails[0].invoice_status === "upToDate"
-                ? "Al Dia"
+                ? "Al Día"
                 : "Desconocido"
             }}
           </p>
@@ -494,7 +518,7 @@
         </div>
       </div>
       <button
-        class="bg-green-500 text-white py-2 px-4 mt-4 rounded"
+        class="btn-success py-2 px-4 mt-4 rounded"
         (click)="generatePdf()"
       >
         Descargar PDF
