@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, NgZone} from '@angular/core';
+import { Component, OnInit, NgZone } from '@angular/core';
 import { MainBannerComponent } from '../main-banner/main-banner.component';
 import { FormsModule } from '@angular/forms';
 import { jsPDF } from 'jspdf';
+import { Router } from '@angular/router'; // Importar Router
 import { SupabaseService } from '../../services/supabase.service';
 
 interface Invoice {
@@ -58,6 +59,7 @@ interface Client {
 export class InvoiceComponent implements OnInit {
   clients: Client[] = [];
   invoices: Invoice[] = [];
+  orders: Orders[] = []; // Lista de órdenes
   invoice: Invoice | null = null;
   showPrints = true;
   showCuts = true;
@@ -67,22 +69,25 @@ export class InvoiceComponent implements OnInit {
   loading = true;
   searchQuery: string = '';
   nameSearchQuery: string = '';
+  clientSearchQuery: string = ''; // Para búsqueda manual de clientes
   filteredInvoicesList: Invoice[] = [];
-  filteredClients: Client[] = [];
+  filteredClients: Client[] = []; // Lista filtrada de clientes para búsqueda
+  clientOrders: Orders[] = []; // Órdenes filtradas por cliente seleccionado
   filterDebt: boolean = false;
   noResultsFound: boolean = false;
   startDate: string = '';
   endDate: string = '';
   isEditing = false;
   showModal = false;
-  selectedInvoice: any | null = null;
   showAddClientModal = false;
-  // Paginacion
-  currentPage: number =1;
+  showClientDropdown: boolean = false; // Controla la visibilidad del dropdown de sugerencias
+  selectedInvoice: any | null = null;
+  // Paginación
+  currentPage: number = 1;
   itemsPerPage: number = 10; // Elementos por página
   totalPages: number = 1; // Total de páginas
   paginatedInvoice: Invoice[] = []; // Lista paginada
-  orders: any[] = [];
+
   newClient = {
     name: '',
     email: '',
@@ -95,9 +100,9 @@ export class InvoiceComponent implements OnInit {
 
   constructor(
     private readonly supabase: SupabaseService,
-    private readonly zone: NgZone
+    private readonly zone: NgZone,
+    private router: Router // Inyectar Router
   ) {}
-
 
   async ngOnInit(): Promise<void> {
     this.supabase.authChanges((_, session) => {
@@ -119,6 +124,7 @@ export class InvoiceComponent implements OnInit {
       return;
     }
     this.clients = data;
+    this.filteredClients = [...this.clients]; // Inicializa los clientes filtrados
   }
 
   async saveNewClient(): Promise<void> {
@@ -140,23 +146,65 @@ export class InvoiceComponent implements OnInit {
     await this.getClients(); // Recargar la lista de clientes
   }
 
-  searchClient() {
-    this.filteredClients = this.clients.filter((client) => {
-      const matchesSearchQuery =
-        client.name
-          .toLowerCase()
-          .includes(this.nameSearchQuery.toLowerCase()) ||
-        (client.company_name &&
-          client.company_name
-            .toLowerCase()
-            .includes(this.nameSearchQuery.toLowerCase()));
+  /**
+   * Busca clientes por nombre
+   */
+  searchClients(): void {
+    if (!this.clientSearchQuery.trim()) {
+      this.filteredClients = [...this.clients];
+      return;
+    }
 
-      const matchesDebtFilter = !this.filterDebt || client.debt > 0;
+    this.filteredClients = this.clients.filter((client) =>
+      client.name.toLowerCase().includes(this.clientSearchQuery.toLowerCase()) ||
+      (client.company_name && client.company_name.toLowerCase().includes(this.clientSearchQuery.toLowerCase()))
+    );
+  }
 
-      return matchesSearchQuery && matchesDebtFilter;
-    });
+  /**
+   * Selecciona un cliente de las sugerencias
+   */
+  selectClient(client: Client): void {
+    if (this.selectedInvoice) {
+      this.selectedInvoice.order.id_client = client.id_client;
+      this.selectedInvoice.order.client = { ...client }; // Asignar todos los datos del cliente
+      // Actualizar el campo de búsqueda con el nombre del cliente
+      this.clientSearchQuery = `${client.name} (${client.company_name || 'Sin empresa'})`;
+      this.showClientDropdown = false; // Ocultar el dropdown después de seleccionar
+      this.onClientSelect(); // Actualiza las órdenes del cliente seleccionado
+    }
+  }
 
-    this.noResultsFound = this.filteredClients.length === 0;
+
+  /**
+   * Oculta el dropdown de sugerencias al perder el foco
+   */
+  hideClientDropdown(): void {
+    setTimeout(() => {
+      this.showClientDropdown = false;
+    }, 200); // Pequeño delay para permitir clics en las sugerencias
+  }
+
+  /**
+   * Filtra las órdenes del cliente seleccionado
+   */
+  onClientSelect(): void {
+    const selectedClientId = this.selectedInvoice.order.id_client;
+    if (selectedClientId) {
+      this.clientOrders = this.orders.filter(
+        (order) => order.id_client === selectedClientId
+      );
+    } else {
+      this.clientOrders = [];
+    }
+  }
+
+  /**
+   * Navega a la página para añadir un nuevo cliente
+   */
+  navigateToAddClient(): void {
+    this.router.navigate(['/clients']); // Ajusta la ruta según tu configuración
+    this.closeModal(); // Opcional: cierra el formulario actual
   }
 
   async onSearch(): Promise<void> {
@@ -173,8 +221,7 @@ export class InvoiceComponent implements OnInit {
         `
         *,
         orders(*,
-          clients(*
-          )
+          clients(*)
         )
       `
       )
@@ -207,8 +254,7 @@ export class InvoiceComponent implements OnInit {
     const { data, error } = await this.supabase.from('invoices').select(`
       *,
       orders(*,
-        clients(*
-        )
+        clients(*)
       )
     `);
     if (error) {
@@ -226,63 +272,8 @@ export class InvoiceComponent implements OnInit {
     this.updateFilteredInvoices();
   }
 
-  filteredInvoices(): Invoice[] {
-    if (
-      !this.showPrints &&
-      !this.showCuts &&
-      !this.showSales &&
-      !this.showDebt &&
-      !this.nameSearchQuery &&
-      !this.startDate &&
-      !this.endDate
-    ) {
-      return this.invoices;
-    }
-
-    return this.invoices.filter((invoice) => {
-      const isDebtFilter = this.showDebt
-        ? invoice.invoice_status === 'overdue'
-        : true;
-
-      const isPrintsFilter =
-        this.showPrints && invoice.order.order_type === 'print';
-      const isCutsFilter =
-        this.showCuts && invoice.order.order_type === 'laser';
-      const isSalesFilter =
-        this.showSales && invoice.order.order_type === 'sales';
-
-      const matchesNameSearchQuery =
-        !this.nameSearchQuery ||
-        invoice.order.client.company_name
-          ?.toLowerCase()
-          .includes(this.nameSearchQuery.toLowerCase()) ||
-        invoice.order.client.name
-          ?.toLowerCase()
-          .includes(this.nameSearchQuery.toLowerCase());
-
-      const invoiceDate = new Date(invoice.created_at);
-      const matchesStartDate = this.startDate
-        ? invoiceDate >= new Date(this.startDate)
-        : true;
-      const matchesEndDate = this.endDate
-        ? invoiceDate <= new Date(this.endDate + 'T23:59:59')
-        : true;
-
-      const matchesDateRange = matchesStartDate && matchesEndDate;
-
-      const matchesFilters =
-        isDebtFilter && (isPrintsFilter || isCutsFilter || isSalesFilter) && matchesDateRange;
-
-      return matchesFilters && matchesNameSearchQuery;
-    });
-  }
-
-  selectInvoice(invoice: Invoice) {
-    this.selectedInvoiceDetails = [invoice];
-  }
-
   updateFilteredInvoices(): void {
-    this.filteredInvoicesList = this.invoices.filter((invoice) => { // 🔹 Asignamos los datos filtrados a `filteredInvoicesList`
+    this.filteredInvoicesList = this.invoices.filter((invoice) => {
       const isDebtFilter = this.showDebt ? invoice.invoice_status === 'overdue' : true;
 
       const isPrintsFilter = this.showPrints && invoice.order.order_type === 'print';
@@ -311,6 +302,9 @@ export class InvoiceComponent implements OnInit {
     this.updatePaginatedInvoices(); // Actualizar la lista paginada
   }
 
+  selectInvoice(invoice: Invoice) {
+    this.selectedInvoiceDetails = [invoice];
+  }
 
   async generatePdf(): Promise<void> {
     if (!this.selectedInvoiceDetails) {
@@ -490,7 +484,7 @@ export class InvoiceComponent implements OnInit {
     });
   }
 
-  //Paginacion
+  // Paginación
   paginateItems<T>(items: T[], page: number, itemsPerPage: number): T[] {
     const startIndex = (page - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
@@ -515,13 +509,13 @@ export class InvoiceComponent implements OnInit {
   addNewInvoice(): void {
     this.selectedInvoice = {
       id_invoice: '',
-      created_at: new Date().toISOString().split('T')[0], // Fecha actual en formato YYYY-MM-DD
-      invoice_status: 'upToDate', // Estado por defecto
+      created_at: new Date().toISOString().split('T')[0],
+      invoice_status: 'upToDate',
       id_order: '',
-      code: '', // Generar código automático
+      code: '',
       order: {
         id_order: '',
-        order_type: 'print', // Tipo por defecto
+        order_type: 'print',
         name: '',
         description: '',
         order_payment_status: '',
@@ -553,14 +547,19 @@ export class InvoiceComponent implements OnInit {
     };
     this.isEditing = false;
     this.showModal = true;
+    this.clientSearchQuery = '';
+    this.filteredClients = [...this.clients];
+    this.clientOrders = [];
+    this.showClientDropdown = false; // Asegurarse de que el dropdown esté oculto al inicio
   }
-
 
   editInvoice(invoice: Invoice): void {
     this.selectedInvoice = { ...invoice };
     this.selectedInvoice.created_at = this.formatDateForInput(invoice.created_at); // Formatear la fecha
     this.isEditing = true;
     this.showModal = true;
+    this.clientSearchQuery = `${invoice.order.client.name} (${invoice.order.client.company_name || 'Sin empresa'})`; // Mostrar el nombre del cliente seleccionado
+    this.onClientSelect(); // Filtrar las órdenes del cliente seleccionado
   }
 
   // Función para formatear la fecha en el formato que espera el input de tipo date
@@ -613,21 +612,15 @@ export class InvoiceComponent implements OnInit {
 
     // Preparar los datos para guardar
     const invoiceToSave = {
-      code: null,
+      code: this.selectedInvoice.code || null, // Usar el código existente o null para generar uno nuevo
       created_at: new Date(this.selectedInvoice.created_at).toISOString(),
       invoice_status: this.selectedInvoice.invoice_status,
-      id_order: this.selectedInvoice.order.id_order, // Asegúrate de que este campo tenga un valor válido
+      id_order: this.selectedInvoice.order.id_order,
     };
 
     try {
       if (this.isEditing) {
         // Actualizar factura existente
-        const invoiceToSave = {
-          code: this.selectedInvoice.code,
-          created_at: new Date(this.selectedInvoice.created_at).toISOString(),
-          invoice_status: this.selectedInvoice.invoice_status,
-          id_order: this.selectedInvoice.order.id_order, // Asegúrate de que este campo tenga un valor válido
-        };
         const { error } = await this.supabase
           .from('invoices')
           .update(invoiceToSave)
@@ -692,6 +685,7 @@ export class InvoiceComponent implements OnInit {
     this.selectedInvoice = null;
     this.isEditing = false;
     this.showAddClientModal = false;
+    this.showClientDropdown = false; // Reiniciar el dropdown de sugerencias
   }
 
   openAddClientModal(): void {
