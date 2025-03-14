@@ -368,13 +368,10 @@ export class OrdersComponent implements OnInit {
   }
 
   updatePaginatedOrder(): void {
-    this.totalPages = Math.max(
-      1,
-      Math.ceil(this.filteredOrdersList.length / this.itemsPerPage)
-    );
+    this.totalPages = Math.max(1, Math.ceil(this.filteredOrdersList.length / this.itemsPerPage)    );
     this.currentPage = Math.min(Math.max(this.currentPage, 1), this.totalPages);
-    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
-    const endIndex = startIndex + this.itemsPerPage;
+    const startIndex = Number((this.currentPage - 1) * this.itemsPerPage);
+    const endIndex = startIndex + Number(this.itemsPerPage);
     this.paginatedOrders = this.filteredOrdersList.slice(startIndex, endIndex);
   }
 }
