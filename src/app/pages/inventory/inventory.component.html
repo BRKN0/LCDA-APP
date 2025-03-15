@@ -60,7 +60,7 @@
   *ngIf="!loading && filteredInventory.length === 0"
   class="p-4 text-center text-gray-600"
 >
-  <p>No hay datos disponibles en el inventario.</p>
+  <p>No hay coincidencias con la busqueda.</p>
 </div>
 
 <!-- Action buttons -->
@@ -224,7 +224,7 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block text-gray-700">Costo</label>
+        <label class="block text-gray-700">Costo/Unidad</label>
         <input
           type="number"
           [(ngModel)]="selectedItem.cost"
@@ -256,14 +256,14 @@
       <div class="flex justify-end">
         <button
           type="button"
-          class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md mr-2"
+          class="btn-danger"
           (click)="closeModal()"
         >
           Cancelar
         </button>
         <button
           type="submit"
-          class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
+          class="btn-success"
         >
           {{ isEditing ? "Actualizar Artículo" : "Agregar Artículo" }}
         </button>
@@ -283,7 +283,7 @@
         <th class="table-column-std">Calibre</th>
         <th class="table-column-std">Cantidad</th>
         <th class="table-column-std">Color</th>
-        <th class="table-column-std">Costo</th>
+        <th class="table-column-std">Costo/Unidad</th>
         <th class="table-column-std">Precio de venta</th>
         <th class="table-column-std">Stock</th>
         <th class="table-column-std">Acciones</th>

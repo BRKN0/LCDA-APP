@@ -61,6 +61,15 @@
           class="form-input"
         />
       </div>
+      <div class="relative w-full max-w-md">
+        <input
+          type="text"
+          placeholder="Ingrese nombre o empresa"
+          [(ngModel)]="nameSearchQuery"
+          (input)="updateFilteredInvoices()"
+          class="w-full py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
+        />
+      </div>
     </div>
     <!-- Botón Añadir Factura, pegado a la derecha -->
     <button
@@ -293,7 +302,7 @@
       <div class="flex justify-end">
         <button
           type="button"
-          class="btn-danger px-4 py-2 rounded-md mr-2"
+          class="btn-danger"
           (click)="closeModal()"
         >
           Cancelar
@@ -391,7 +400,7 @@
       <div class="flex justify-end">
         <button
           type="button"
-          class="btn-danger px-4 py-2 rounded-md mr-2"
+          class="btn-danger"
           (click)="closeAddClientModal()"
         >
           Cancelar
@@ -517,6 +526,7 @@
         </div>
       </div>
       <button
+        type="button"
         class="btn-success py-2 px-4 mt-4 rounded"
         (click)="generatePdf()"
       >
