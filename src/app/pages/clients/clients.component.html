@@ -45,13 +45,12 @@
         <th class="table-column-std">NIT / CC</th>
         <th class="table-column-std">Empresa</th>
         <th class="table-column-std">Estado</th>
-        <th class="table-column-std">Acciones</th>
+        <th class="w-1/6">Acciones</th>
       </tr>
     </thead>
     <tbody>
       <tr
         *ngFor="let client of paginatedClients"
-        (click)="openClientModal(client)"
         [class.border-red-500]="client.status === 'overdue'"
         [class.border-green-500]="client.status === 'upToDate'"
       >
@@ -75,7 +74,11 @@
               : "Desconocido"
           }}
         </td>
-        <td class="p-3 border">
+        <td>
+          <button class="btn-details"
+            (click)="openClientModal(client); $event.stopPropagation()">
+            Detalles
+          </button>
           <button class="btn-edit"
             (click)="editClient(client); $event.stopPropagation()">
             Editar
@@ -141,7 +144,7 @@
       <!-- Botón para cerrar el modal -->
       <div class="flex justify-end mt-4">
         <button
-          class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
+          class="btn-danger"
           (click)="closeClientModal()"
         >
           Cerrar
@@ -376,14 +379,14 @@
         <div class="flex justify-end">
           <button
             type="button"
-            class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md mr-2"
+            class="btn-danger"
             (click)="closeModal()"
           >
             Cancelar
           </button>
           <button
             type="submit"
-            class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
+            class="btn-success"
           >
             {{ isEditing ? "Actualizar Cliente" : "Guardar Cliente" }}
           </button>

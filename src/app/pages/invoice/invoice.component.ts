@@ -351,7 +351,7 @@ export class InvoiceComponent implements OnInit {
     doc.setFont('helvetica', 'bold');
     doc.text('La Casa del Acrilico', 10, 10);
 
-    const logoUrl = 'Untitled.jpg';
+    const logoUrl = '/Logo.png';
     const logo = await this.loadImage(logoUrl);
     doc.addImage(logo, 'JPEG', 90, 5, 30, 20);
 
@@ -380,8 +380,6 @@ export class InvoiceComponent implements OnInit {
     doc.text(`Nombre: ${invoice.order.client.name}`, 10, 80);
     // Validar si el cliente existe antes de acceder a sus propiedades
     if (invoice.order.client) {
-      doc.text(`Cliente: ${invoice.order.client.name}`, 10, 40);
-      doc.text(`NIT: ${invoice.order.client.nit || 'N/A'}`, 10, 50);
     } else {
       doc.text('Cliente: No disponible', 10, 40);
     }
