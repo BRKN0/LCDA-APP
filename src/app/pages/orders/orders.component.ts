@@ -182,62 +182,62 @@ export class OrdersComponent implements OnInit {
   }
 
   async onSearch(): Promise<void> {
-    let query = this.supabase.from('orders').select('*');
-
-    if (this.searchQuery.trim()) {
-      query = query.or(`code.eq.${this.searchQuery.trim()}`);
-    }
-
-    if (this.searchByNameQuery.trim()) {
-      query = query.or(`name.ilike.%${this.searchByNameQuery.trim()}%`);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error('Error al buscar la orden:', error);
-      alert('Error al buscar la orden.');
+    if (!this.searchQuery.trim()) {
+      // Si no hay búsqueda por número, volver al filtrado normal
+      this.updateFilteredOrders();
       return;
     }
 
-    if (!data || data.length === 0) {
-      alert('No se encontraron resultados.');
+    const { data, error } = await this.supabase
+      .from('orders')
+      .select('*')
+      .eq('code', this.searchQuery.trim());
+
+    if (error) {
+      console.error('Error al buscar la orden:', error);
+      this.noResultsFound = true; // Mostrar mensaje en caso de error
+      this.filteredOrdersList = [];
+      this.updatePaginatedOrder();
       return;
     }
 
     this.filteredOrdersList = data as Orders[];
+    this.noResultsFound = this.searchQuery.trim() !== '' && (!data || data.length === 0); // Activar mensaje si no hay resultados
+    this.currentPage = 1; // Reiniciar paginación
     this.updatePaginatedOrder();
   }
 
   updateFilteredOrders(): void {
-    const allCheckboxesOff =
-      !this.showPrints && !this.showCuts && !this.showSales;
+    // Verificar si todos los checkboxes de tipo están desactivados
+    const allTypeCheckboxesOff = !this.showPrints && !this.showCuts && !this.showSales;
 
     this.filteredOrdersList = this.orders.filter((order) => {
-      const matchesCode = order.code
-        .toString()
-        .includes(this.searchQuery.trim());
-      const matchesClientName = order.name
-        .toLowerCase()
-        .includes(this.searchByNameQuery.toLowerCase().trim());
-
-      const matchesType =
-        allCheckboxesOff ||
-        (this.showPrints && order.order_type === 'print') ||
-        (this.showCuts && order.order_type === 'laser') ||
-        (this.showSales && order.order_type === 'sales');
-
       const orderDate = new Date(order.created_at);
-      const isWithinDateRange =
-        (!this.startDate || orderDate >= new Date(this.startDate)) &&
-        (!this.endDate || orderDate <= new Date(this.endDate));
+      const matchesStartDate = this.startDate ? orderDate >= new Date(this.startDate) : true;
+      const matchesEndDate = this.endDate ? orderDate <= new Date(this.endDate + 'T23:59:59') : true;
+      const matchesDateRange = matchesStartDate && matchesEndDate;
 
-      return (
-        (matchesCode || matchesClientName) && matchesType && isWithinDateRange
-      );
+      const matchesNameSearch =
+        !this.searchByNameQuery ||
+        order.name.toLowerCase().includes(this.searchByNameQuery.toLowerCase().trim());
+
+      // Si todos los checkboxes de tipo están desactivados, mostrar todos los pedidos
+      if (allTypeCheckboxesOff) {
+        return matchesDateRange && matchesNameSearch;
+      }
+
+      // Filtros normales si hay al menos un checkbox de tipo activado
+      const isPrintsFilter = this.showPrints && order.order_type === 'print';
+      const isCutsFilter = this.showCuts && order.order_type === 'laser';
+      const isSalesFilter = this.showSales && order.order_type === 'sales';
+
+      const matchesType = isPrintsFilter || isCutsFilter || isSalesFilter;
+
+      return matchesType && matchesDateRange && matchesNameSearch;
     });
 
-    this.noResultsFound = this.filteredOrdersList.length === 0;
+    // Activar noResultsFound solo si hay una búsqueda por nombre y no hay resultados
+    this.noResultsFound = this.searchByNameQuery.trim() !== '' && this.filteredOrdersList.length === 0;
     this.currentPage = 1; // Reiniciar a la primera página
     this.updatePaginatedOrder(); // Actualizar la lista paginada
   }

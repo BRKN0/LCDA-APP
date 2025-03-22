@@ -83,6 +83,13 @@
       </tr>
     </tbody>
   </table>
+
+  <!-- Mensaje de no resultados para búsqueda por nombre -->
+<div *ngIf="noResultsFound" class="p-4 text-center text-gray-600">
+  <p>No hay coincidencias con la búsqueda.</p>
+</div>
+
+
   <div class="flex justify-between items-center mb-4">
     <!-- Controles de paginación -->
     <div class="pagination flex items-center">
