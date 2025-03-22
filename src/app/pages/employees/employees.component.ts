@@ -1,4 +1,4 @@
-import { Component, OnInit, NgZone} from '@angular/core';
+import { Component, OnInit, NgZone } from '@angular/core';
 import { MainBannerComponent } from '../main-banner/main-banner.component';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
@@ -19,10 +19,13 @@ interface Employee {
   postal_code: number;
   employee_type: string;
   salary: number;
+  employee_liquidations?: Employee_liquidations[];
+  employee_benefits?: Employee_benefits[];
 }
 
 interface Employee_liquidations {
   id: string;
+  code: string;
   id_employee: string;
   liquidation_date: Date;
   total_amount: number;
@@ -32,6 +35,7 @@ interface Employee_liquidations {
 
 interface Employee_benefits {
   id: string;
+  code: string;
   id_employee: string;
   benefit_type: string;
   period: string;
@@ -46,14 +50,19 @@ interface Employee_benefits {
   standalone: true,
   imports: [CommonModule, FormsModule, MainBannerComponent],
   templateUrl: './employees.component.html',
-  styleUrl: './employees.component.scss'
+  styleUrl: './employees.component.scss',
 })
-
 export class EmployeesComponent implements OnInit {
-
+  showDetailsModal = false;
+  showDetails = false;
+  showBenefits = false;
+  showLiquidations = false;
+  currentBenefitPage: number = 1;
+  currentLiquidationPage: number = 1;
   Employees: Employee[] = [];
   filteredEmployees: Employee[] = [];
   selectedEmployee: Partial<Employee> = {};
+  selectedEmployeeDetails: Employee | null = null;
   loading = true;
   searchQuery: string = '';
   noResultsFound: boolean = false;
@@ -62,10 +71,16 @@ export class EmployeesComponent implements OnInit {
   startDate: string = '';
   endDate: string = '';
   // Paginacion
-  currentPage: number =1;
+  currentPage: number = 1;
   itemsPerPage: number = 10; // Elementos por página
+  itemsPerBenefitPage: number = 3;
+  itemsPerLiquidationPage: number = 3;
   totalPages: number = 1; // Total de páginas
-  paginatedEmployees: Employee[] = []; // Lista paginada 
+  totalLiquidationPages: number = 1;
+  totalBenefitPages: number = 1;
+  paginatedLiquidations: Employee_liquidations[] = []; 
+  paginatedBenefits: Employee_benefits[] = [];
+  paginatedEmployees: Employee[] = []; // Lista paginada
 
   constructor(
     private readonly supabase: SupabaseService,
@@ -74,25 +89,34 @@ export class EmployeesComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     this.supabase.authChanges((_, session) => {
-      if (session){
+      if (session) {
         this.zone.run(() => {
           this.getEmployees();
-        })
+        });
       }
     });
   }
 
-  async getEmployees(){
+  async getEmployees() {
     this.loading = true;
-    const { data, error } = await this.supabase
-      .from('employees')
-      .select(`*`);
-    
+    const { data, error } = await this.supabase.from('employees').select(`*,
+        employee_liquidations(*),
+        employee_benefits(*)`);
+
     if (error) {
+      console.log(error);
       return;
     }
 
-    this.Employees = data as Employee[];
+    this.Employees = [...data].map((employee) => ({
+      ...employee,
+      employee_liquidations: Array.isArray(employee.employee_liquidations)
+        ? employee.employee_liquidations
+        : employee.employee_liquidations
+        ? [employee.employee_liquidations]
+        : [],
+    })) as Employee[];
+    console.log(this.Employees)
     this.searchEmployee();
     this.loading = false;
   }
@@ -101,33 +125,96 @@ export class EmployeesComponent implements OnInit {
   searchEmployee() {
     //Filt only by date
     if (!this.searchQuery.trim()) {
-      this.filteredEmployees = this.Employees.filter(emp => {
-          const employeeDate = new Date(emp.created_at); 
-          const isWithinDateRange =
-              (!this.startDate || employeeDate >= new Date(this.startDate)) &&
-              (!this.endDate || employeeDate <= new Date(this.endDate + 'T23:59:59'));
-          return isWithinDateRange;
+      this.filteredEmployees = this.Employees.filter((emp) => {
+        const employeeDate = new Date(emp.created_at);
+        const isWithinDateRange =
+          (!this.startDate || employeeDate >= new Date(this.startDate)) &&
+          (!this.endDate ||
+            employeeDate <= new Date(this.endDate + 'T23:59:59'));
+        return isWithinDateRange;
       });
-  } else {
+    } else {
       // Filtrar por nombre, email y fecha
-      this.filteredEmployees = this.Employees.filter(emp => {
-          const matchesQuery =
-              emp.name.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
-              emp.email.toLowerCase().includes(this.searchQuery.toLowerCase());
+      this.filteredEmployees = this.Employees.filter((emp) => {
+        const matchesQuery =
+          emp.name.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
+          emp.email.toLowerCase().includes(this.searchQuery.toLowerCase());
 
-          const employeeDate = new Date(emp.created_at); 
-          const isWithinDateRange =
-              (!this.startDate || employeeDate >= new Date(this.startDate)) &&
-              (!this.endDate || employeeDate <= new Date(this.endDate + 'T23:59:59'));
+        const employeeDate = new Date(emp.created_at);
+        const isWithinDateRange =
+          (!this.startDate || employeeDate >= new Date(this.startDate)) &&
+          (!this.endDate ||
+            employeeDate <= new Date(this.endDate + 'T23:59:59'));
 
-          return matchesQuery && isWithinDateRange;
+        return matchesQuery && isWithinDateRange;
       });
-  }
+    }
     this.noResultsFound = this.filteredEmployees.length === 0;
     this.currentPage = 1; // Reiniciar a la primera página
     this.updatePaginatedEmployees(); // Actualizar la lista paginada
   }
+  openDetailsModal(employee: Employee) {
+    this.selectedEmployeeDetails = employee;
+    this.showDetailsModal = true;
+  }
+  closeDetailsModal() {
+    this.showDetailsModal = false;
+    this.selectedEmployeeDetails = null;
+  }
 
+  toggleLiquidations(employee: Employee | null) {
+    if (employee) {
+      if (!Array.isArray(employee.employee_liquidations)) {
+        console.error('liquidations is not an array');
+        return;
+      }
+      this.selectedEmployeeDetails = employee;
+      this.showLiquidations = true;
+      this.currentLiquidationPage = 1;
+      this.updatePaginatedLiquidations();
+    } else {
+      this.showLiquidations = false;
+    }
+  }
+  toggleBenefits(employee: Employee | null) {
+    if (employee) {
+      if (!Array.isArray(employee.employee_benefits)) {
+        console.error('benefits is not an array');
+        return;
+      }
+      this.selectedEmployeeDetails = employee;
+      this.showBenefits = true;
+      this.currentBenefitPage = 1;
+      this.updatePaginatedBenefits();
+    } else {
+      this.showBenefits = false;
+    }
+  }
+  toggleDetails() {
+    this.showDetails = !this.showDetails;
+  }
+
+  
+  updatePaginatedLiquidations(): void {
+    if (this.selectedEmployeeDetails?.employee_liquidations?.length) {
+      const startIndex = Number((this.currentLiquidationPage - 1) * this.itemsPerLiquidationPage);
+      const endIndex = startIndex + Number(this.itemsPerLiquidationPage);
+      this.paginatedLiquidations = this.selectedEmployeeDetails?.employee_liquidations.slice(startIndex, endIndex) || [];
+      this.totalLiquidationPages = Math.ceil((this.selectedEmployeeDetails?.employee_liquidations.length || 0) / this.itemsPerLiquidationPage);
+    } else {
+      this.totalPages = 0;
+    }
+  }
+  updatePaginatedBenefits(): void {
+    if (this.selectedEmployeeDetails?.employee_benefits?.length) {
+      const startIndex = Number((this.currentBenefitPage - 1) * this.itemsPerBenefitPage);
+      const endIndex = startIndex + Number(this.itemsPerBenefitPage);
+      this.paginatedBenefits = this.selectedEmployeeDetails?.employee_benefits.slice(startIndex, endIndex) || [];
+      this.totalBenefitPages = Math.ceil((this.selectedEmployeeDetails?.employee_benefits.length || 0) / this.itemsPerLiquidationPage);
+    } else {
+      this.totalPages = 0;
+    }
+  }
   addNewEmployee(): void {
     this.selectedEmployee = {
       id_employee: '',
@@ -230,7 +317,7 @@ export class EmployeesComponent implements OnInit {
     this.isEditing = false; // Resetear el estado de edición
     this.selectedEmployee = {};
   }
-  
+
   //Paginacion
   paginateItems<T>(items: T[], page: number, itemsPerPage: number): T[] {
     const startIndex = (page - 1) * itemsPerPage;
@@ -240,7 +327,10 @@ export class EmployeesComponent implements OnInit {
 
   updatePaginatedEmployees(): void {
     // Calcular el número total de páginas
-    this.totalPages = Math.max(1, Math.ceil(this.filteredEmployees.length / this.itemsPerPage));
+    this.totalPages = Math.max(
+      1,
+      Math.ceil(this.filteredEmployees.length / this.itemsPerPage)
+    );
 
     // Asegurar que currentPage no sea menor que 1 ni mayor que totalPages
     this.currentPage = Math.min(Math.max(this.currentPage, 1), this.totalPages);
@@ -250,7 +340,9 @@ export class EmployeesComponent implements OnInit {
     const endIndex = startIndex + Number(this.itemsPerPage);
 
     // Obtener los elementos para la página actual
-    this.paginatedEmployees = this.filteredEmployees.slice(startIndex, endIndex);
+    this.paginatedEmployees = this.filteredEmployees.slice(
+      startIndex,
+      endIndex
+    );
   }
-
 }

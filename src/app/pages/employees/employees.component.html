@@ -77,6 +77,9 @@
         <td>{{ employee.salary }}</td>
         <td>{{ employee.created_at | date : "dd-MM-yyyy" }}</td>
         <td>
+          <button class="btn-details" (click)="openDetailsModal(employee)">
+            Detalles
+          </button>
           <button class="btn-edit" (click)="editEmployee(employee)">
             Editar
           </button>
@@ -131,12 +134,14 @@
     </div>
   </div>
 
-  <!-- Form to add clients -->
+  <!-- Form to add employees -->
   <div
     *ngIf="showModal"
     class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
   >
-    <div class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto">
+    <div
+      class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto"
+    >
       <h3 class="text-lg font-bold mb-4">
         {{ isEditing ? "Editar Empleado" : "Añadir Nuevo Empleado" }}
       </h3>
@@ -261,6 +266,221 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+  <!-- Modal para detalles del cliente -->
+  <div
+    *ngIf="showDetailsModal && selectedEmployeeDetails"
+    class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
+  >
+    <div
+      class="bg-white rounded-lg shadow-lg p-6 w-3/4 max-h-screen overflow-y-auto"
+    >
+      <h3 class="text-lg mb-4">
+        <p><strong>Cliente:</strong> {{ selectedEmployeeDetails.name }}</p>
+        <p><strong>Numero de Identificación:</strong>{{ selectedEmployeeDetails.id_number }}</p>
+        <p><strong>Email:</strong> {{ selectedEmployeeDetails.email }}</p>
+        <p><strong>Telefono:</strong> {{ selectedEmployeeDetails.phone }}</p>
+      </h3>
+      <div class="flex space-x-4 mb-4">
+        <button
+          (click)="toggleLiquidations(selectedEmployeeDetails)"
+          class="bg-red-500 text-white p-2 rounded-md hover:bg-red-600"
+        >
+          Mostrar Liquidaciones
+        </button>
+        <button
+          (click)="toggleBenefits(selectedEmployeeDetails)"
+          class="bg-red-500 text-white p-2 rounded-md hover:bg-red-600"
+        >
+          Mostrar Prestaciones
+        </button>
+        <button
+          class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
+          (click)="toggleDetails()"
+        >
+          {{ showDetails ? "Ocultar Detalles" : "Mostrar Detalles" }}
+        </button>
+      </div>
+
+      <!-- Detalles del cliente -->
+      <div *ngIf="showDetails" class="details">
+        <p>
+          <strong>Tipo de Empleado:</strong>
+          {{ selectedEmployeeDetails.employee_type }}
+        </p>
+        <p><strong>Salario:</strong> {{ selectedEmployeeDetails.salary }}</p>
+        <p>
+          <strong> Direccion: </strong> {{ selectedEmployeeDetails.address }}
+        </p>
+        <p>
+          <strong>Barrio:</strong> {{ selectedEmployeeDetails.neighborhood }}
+        </p>
+        <p><strong>Ciudad:</strong> {{ selectedEmployeeDetails.city }}</p>
+        <p>
+          <strong>Departamento:</strong>
+          {{ selectedEmployeeDetails.department }}
+        </p>
+        <p>
+          <strong>Codigo Postal:</strong>
+          {{ selectedEmployeeDetails.postal_code }}
+        </p>
+      </div>
+
+      <!-- Botón para cerrar el modal -->
+      <div class="flex justify-end mt-4">
+        <button class="btn-danger" (click)="closeDetailsModal()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+  <!--Liquidations-->
+  <div
+    *ngIf="showLiquidations"
+    class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
+  >
+    <div class="bg-white rounded-lg shadow-lg p-6 w-3/4 max-h-screen overflow-y-auto">
+      <h3 class="text-lg font-bold mb-4">
+        Liquidaciones del Empleado: {{ selectedEmployeeDetails?.name }}
+      </h3>
+      <table class="w-full border-collapse">
+        <thead>
+          <tr class="bg-gray-100">
+            <th class="p-3 border">#</th>
+            <th class="p-3 border">Detalles</th>
+            <th class="p-3 border">Total</th>
+            <th class="p-3 border">Fecha de Liquidacion</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let liquidations of paginatedLiquidations">
+            <td class="p-3 border">{{ liquidations.code }}</td>
+            <td class="p-3 border">{{ liquidations.notes }}</td>
+            <td class="p-3 border">{{ liquidations.total_amount }}</td>
+            <td class="p-3 border"> {{liquidations.liquidation_date}}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="flex justify-between items-center mb-4">
+        <div class="pagination flex items-center">
+          <button
+            (click)="currentLiquidationPage = currentLiquidationPage - 1; updatePaginatedLiquidations()"
+            [disabled]="currentLiquidationPage === 1"
+            class="px-2 py-1 text-black border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+          >
+            ←
+          </button>
+          <span class="mx-4 text-gray-700">
+            Página {{ currentLiquidationPage }} de {{ totalLiquidationPages }}
+          </span>
+          <button
+            (click)="currentLiquidationPage = currentLiquidationPage + 1; updatePaginatedLiquidations()"
+            [disabled]="currentLiquidationPage === totalLiquidationPages"
+            class="px-2 py-1 text-black border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+          >
+            →
+          </button>
+        </div>
+        <div class="items-per-page flex items-center">
+          <label for="itemsPerLiquidationPage" class="mr-2">
+            Elementos por página:
+          </label>
+          <select
+            id="itemsPerLiquidationPage"
+            [(ngModel)]="itemsPerLiquidationPage"
+            (change)="updatePaginatedLiquidations()"
+            class="border border-gray-300 rounded-md p-1"
+          >
+            <option *ngFor="let size of [10, 15, 25, 50]" [value]="size">
+              {{ size }}
+            </option>
+          </select>
+        </div>
+      </div>
+      <div class="flex justify-end mt-4">
+        <button
+          class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
+          (click)="toggleLiquidations(null)"
+        >
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+  <!--Benefits-->
+  <div
+    *ngIf="showBenefits"
+    class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
+  >
+    <div class="bg-white rounded-lg shadow-lg p-6 w-3/4 max-h-screen overflow-y-auto">
+      <h3 class="text-lg font-bold mb-4">
+        Prestaciones del Empleado: {{ selectedEmployeeDetails?.name }}
+      </h3>
+      <table class="w-full border-collapse">
+        <thead>
+          <tr class="bg-gray-100">
+            <th class="p-3 border">#</th>
+            <th class="p-3 border">Tipo</th>
+            <th class="p-3 border">Periodo</th>
+            <th class="p-3 border">Total</th>
+            <th class="p-3 border">Estado de Pago</th>
+            <th class="p-3 border">Fecha de pago</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let benefits of paginatedBenefits">
+            <td class="p-3 border">{{ benefits.code }}</td>
+            <td class="p-3 border">{{ benefits.benefit_type }}</td>
+            <td class="p-3 border">{{ benefits.period }}</td>
+            <td class="p-3 border"> {{benefits.amount}}</td>
+            <td class="p-3 border">{{ benefits.status }}</td>
+            <td class="p-3 border"> {{benefits.payment_date}}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="flex justify-between items-center mb-4">
+        <div class="pagination flex items-center">
+          <button
+            (click)="currentBenefitPage = currentBenefitPage - 1; updatePaginatedBenefits()"
+            [disabled]="currentBenefitPage === 1"
+            class="px-2 py-1 text-black border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+          >
+            ←
+          </button>
+          <span class="mx-4 text-gray-700">
+            Página {{ currentBenefitPage }} de {{ totalBenefitPages }}
+          </span>
+          <button
+            (click)="currentBenefitPage = currentBenefitPage + 1; updatePaginatedBenefits()"
+            [disabled]="currentBenefitPage === totalBenefitPages"
+            class="px-2 py-1 text-black border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+          >
+            →
+          </button>
+        </div>
+        <div class="items-per-page flex items-center">
+          <label for="itemsPerBenefitPage" class="mr-2">
+            Elementos por página:
+          </label>
+          <select
+            id="itemsPerBenefitPage"
+            [(ngModel)]="itemsPerBenefitPage"
+            (change)="updatePaginatedBenefits()"
+            class="border border-gray-300 rounded-md p-1"
+          >
+            <option *ngFor="let size of [10, 15, 25, 50]" [value]="size">
+              {{ size }}
+            </option>
+          </select>
+        </div>
+      </div>
+      <div class="flex justify-end mt-4">
+        <button
+          class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
+          (click)="toggleBenefits(null)"
+        >
+          Cerrar
+        </button>
+      </div>
     </div>
   </div>
 </div>
