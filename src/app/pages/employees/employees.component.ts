@@ -18,6 +18,27 @@ interface Employee {
   department: string;
   postal_code: number;
   employee_type: string;
+  salary: number;
+}
+
+interface Employee_liquidations {
+  id: string;
+  id_employee: string;
+  liquidation_date: Date;
+  total_amount: number;
+  notes: string;
+  created_at: string;
+}
+
+interface Employee_benefits {
+  id: string;
+  id_employee: string;
+  benefit_type: string;
+  period: string;
+  amount: number;
+  status: string;
+  payment_date: string;
+  created_at: string;
 }
 
 @Component({
@@ -122,6 +143,7 @@ export class EmployeesComponent implements OnInit {
       department: '',
       postal_code: 0,
       employee_type: '',
+      salary: 0,
     };
 
     this.isEditing = false;
@@ -150,6 +172,7 @@ export class EmployeesComponent implements OnInit {
       department: this.selectedEmployee.department,
       postal_code: this.selectedEmployee.postal_code || 0,
       employee_type: this.selectedEmployee.employee_type,
+      salary: this.selectedEmployee.salary,
     };
 
     if (this.isEditing && this.selectedEmployee.id_employee) {
