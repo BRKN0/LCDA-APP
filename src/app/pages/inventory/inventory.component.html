@@ -60,7 +60,7 @@
   *ngIf="!loading && filteredInventory.length === 0"
   class="p-4 text-center text-gray-600"
 >
-  <p>No hay datos disponibles en el inventario.</p>
+  <p>No hay coincidencias con la busqueda.</p>
 </div>
 
 <!-- Action buttons -->
@@ -108,41 +108,45 @@
 </div>
 
 <!-- Modal para comparación -->
-<div *ngIf="showModal && isComparing" class="modal">
-  <div class="modal-content">
-    <h2>Comparar Inventario</h2>
-    <div class="file-inputs">
-      <div class="file-input">
-        <label for="file1">Archivo 1:</label>
-        <input id="file1" type="file" accept=".csv" />
-      </div>
-      <div class="file-input">
-        <label for="file2">Archivo 2:</label>
-        <input id="file2" type="file" accept=".csv" />
-      </div>
+<div *ngIf="showModal && isComparing" 
+    class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
+  <div class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[80vh]">
+    <h2 class="text-lg font-bold mb-4">Comparar Inventario</h2>
+    
+    <div class="mb-4">
+      <label for="file1" class="block text-gray-700">Archivo 1:</label>
+      <input id="file1" type="file" accept=".csv" 
+            class="w-full border border-gray-300 rounded-md p-2"/>
     </div>
-    <div class="buttons">
-      <button (click)="compareCSV()">Iniciar Comparación</button>
-      <button (click)="clearComparison()">Limpiar</button>
-      <button (click)="closeComparisonModal()">Cerrar</button>
+    <div class="mb-4">
+      <label for="file2" class="block text-gray-700">Archivo 2:</label>
+      <input id="file2" type="file" accept=".csv" 
+            class="w-full border border-gray-300 rounded-md p-2"/>
     </div>
-    <div *ngIf="comparisonResult.length > 0" class="results">
-      <h3>Resultados de la Comparación</h3>
-      <table>
+  
+    <div class="flex justify-between">
+      <button (click)="compareCSV()" class="btn-success">Iniciar Comparación</button>
+      <button (click)="clearComparison()" class="btn-edit">Limpiar</button>
+      <button (click)="closeComparisonModal()" class="btn-delete">Cerrar</button>
+    </div>
+    <div *ngIf="comparisonResult.length > 0" class="mt-4">
+      <h3 class="text-md font-semibold mb-2">Resultados de la Comparación</h3>
+      <table class="w-full border-collapse border border-gray-300">
         <thead>
-          <tr>
-            <th>Producto</th>
-            <th>Cambio</th>
-            <th>Detalle</th>
+          <tr class="bg-gray-200">
+            <th class="border border-gray-300 px-2 py-1">Producto</th>
+            <th class="border border-gray-300 px-2 py-1">Cambio</th>
+            <th class="border border-gray-300 px-2 py-1">Detalle</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let result of comparisonResult">
-            <td>{{ result.product }}</td>
-            <td [style.color]="getDetailColor(result.change)">
+            <td class="border border-gray-300 px-2 py-1">{{ result.product }}</td>
+            <td class="border border-gray-300 px-2 py-1"
+                [style.color]="getDetailColor(result.change)">
               {{ result.change }}
             </td>
-            <td>{{ result.detail }}</td>
+            <td class="border border-gray-300 px-2 py-1">{{ result.detail }}</td>
           </tr>
         </tbody>
       </table>
@@ -155,7 +159,7 @@
   *ngIf="showModal && !isComparing"
   class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
 >
-  <div class="bg-white modal-width rounded-lg shadow-lg p-6">
+  <div class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto">
     <h3 class="text-lg font-bold mb-4">
       {{ isEditing ? "Editar Artículo" : "Agregar Artículo" }}
     </h3>
@@ -220,7 +224,7 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block text-gray-700">Costo</label>
+        <label class="block text-gray-700">Costo/Unidad</label>
         <input
           type="number"
           [(ngModel)]="selectedItem.cost"
@@ -252,14 +256,14 @@
       <div class="flex justify-end">
         <button
           type="button"
-          class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md mr-2"
+          class="btn-danger"
           (click)="closeModal()"
         >
           Cancelar
         </button>
         <button
           type="submit"
-          class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
+          class="btn-success"
         >
           {{ isEditing ? "Actualizar Artículo" : "Agregar Artículo" }}
         </button>
@@ -279,7 +283,7 @@
         <th class="table-column-std">Calibre</th>
         <th class="table-column-std">Cantidad</th>
         <th class="table-column-std">Color</th>
-        <th class="table-column-std">Costo</th>
+        <th class="table-column-std">Costo/Unidad</th>
         <th class="table-column-std">Precio de venta</th>
         <th class="table-column-std">Stock</th>
         <th class="table-column-std">Acciones</th>

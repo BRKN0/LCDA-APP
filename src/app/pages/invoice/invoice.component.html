@@ -61,6 +61,15 @@
           class="form-input"
         />
       </div>
+      <div class="relative w-full max-w-md">
+        <input
+          type="text"
+          placeholder="Ingrese nombre o empresa"
+          [(ngModel)]="nameSearchQuery"
+          (input)="updateFilteredInvoices()"
+          class="w-full py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
+        />
+      </div>
     </div>
     <!-- Botón Añadir Factura, pegado a la derecha -->
     <button
@@ -150,6 +159,13 @@
       </tr>
     </tbody>
   </table>
+
+  <!-- No results found -->
+  <div *ngIf="noResultsFound" class="p-4 text-center text-gray-600">
+    <p>No hay coincidencias con la búsqueda.</p>
+  </div>
+
+
   <div class="flex justify-between items-center mb-4">
     <!-- Controles de paginación -->
     <div class="pagination flex items-center">
@@ -190,7 +206,7 @@
   <div class="modal-content w-1/2">
     <h2 class="text-xl font-bold mb-4">{{ isEditing ? 'Editar Factura' : 'Añadir Factura' }}</h2>
     <form (ngSubmit)="saveInvoice()">
-      <!-- Campo de selección de cliente con búsqueda manual -->
+      <!-- Campo de selección de cliente -->
       <div class="mb-4">
         <label class="block text-gray-700">Cliente</label>
         <div class="relative">
@@ -205,7 +221,6 @@
             (blur)="hideClientDropdown()"
             required
           />
-          <!-- Dropdown de sugerencias de clientes -->
           <div
             *ngIf="showClientDropdown && filteredClients.length > 0"
             class="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto"
@@ -228,13 +243,13 @@
         </button>
       </div>
 
-      <!-- Resto del formulario -->
       <div class="mb-4">
         <label class="block text-gray-700">Tipo</label>
         <select
           [(ngModel)]="selectedInvoice.order.order_type"
           name="type"
           class="form-select"
+          (ngModelChange)="updateClientOrders()"
           required
         >
           <option value="print">Impresiones</option>
@@ -253,13 +268,26 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block text-gray-700">Importe</label>
+        <label class="block text-gray-700">Importe (sin IVA)</label>
         <input
+          type="number"
           [(ngModel)]="selectedInvoice.order.amount"
           name="amount"
           class="form-input"
+          step="0.01"
           required
         />
+      </div>
+      <div class="mb-4">
+        <label class="inline-flex items-center">
+          <input
+            type="checkbox"
+            [(ngModel)]="selectedInvoice.includeIVA"
+            name="includeIVA"
+            class="form-checkbox"
+          />
+          <span class="ml-2">Incluir IVA (19%)</span>
+        </label>
       </div>
       <div class="mb-4">
         <label class="block text-gray-700">Estado</label>
@@ -289,11 +317,14 @@
             {{ order.description || order.order_type }}
           </option>
         </select>
+        <p *ngIf="clientOrders.length === 0" class="text-red-500 mt-2">
+          No hay órdenes disponibles para este cliente de este tipo.
+        </p>
       </div>
       <div class="flex justify-end">
         <button
           type="button"
-          class="btn-danger px-4 py-2 rounded-md mr-2"
+          class="btn-danger"
           (click)="closeModal()"
         >
           Cancelar
@@ -391,7 +422,7 @@
       <div class="flex justify-end">
         <button
           type="button"
-          class="btn-danger px-4 py-2 rounded-md mr-2"
+          class="btn-danger"
           (click)="closeAddClientModal()"
         >
           Cancelar
@@ -487,14 +518,6 @@
               <strong>Valor Unitario:</strong>
               {{ selectedInvoiceDetails[0].order.unitary_value }}
             </p>
-            <p>
-              <strong>Subtotal:</strong>
-              {{ selectedInvoiceDetails[0].order.subtotal }}
-            </p>
-            <p *ngIf="selectedInvoiceDetails[0].order.iva">
-              <strong>IVA:</strong>
-              {{ selectedInvoiceDetails[0].order.iva }}
-            </p>
           </li>
         </ul>
       </div>
@@ -503,20 +526,21 @@
       <div class="border-t pt-4 mt-4">
         <div class="flex justify-between">
           <p><strong>Subtotal:</strong></p>
-          <p>{{ selectedInvoiceDetails[0].order.subtotal }}</p>
+          <p>{{ calculateInvoiceValues(selectedInvoiceDetails[0]).subtotal.toFixed(2) }}</p>
         </div>
-        <div class="flex justify-between">
-          <p *ngIf="selectedInvoiceDetails[0].order.iva"><strong>IVA:</strong></p>
-          <p>{{ selectedInvoiceDetails[0].order.iva }}</p>
+        <div class="flex justify-between" *ngIf="selectedInvoiceDetails[0].include_iva">
+          <p><strong>IVA (19%):</strong></p>
+          <p>{{ calculateInvoiceValues(selectedInvoiceDetails[0]).iva.toFixed(2) }}</p>
         </div>
         <div class="flex justify-between">
           <p><strong>Total:</strong></p>
           <p class="font-bold">
-            {{ selectedInvoiceDetails[0].order.total }}
+            {{ (selectedInvoiceDetails[0].include_iva ? calculateInvoiceValues(selectedInvoiceDetails[0]).total : calculateInvoiceValues(selectedInvoiceDetails[0]).subtotal).toFixed(2) }}
           </p>
         </div>
       </div>
       <button
+        type="button"
         class="btn-success py-2 px-4 mt-4 rounded"
         (click)="generatePdf()"
       >

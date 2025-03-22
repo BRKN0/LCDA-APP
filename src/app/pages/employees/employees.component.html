@@ -83,6 +83,13 @@
       </tr>
     </tbody>
   </table>
+
+  <!-- Mensaje de no resultados para búsqueda por nombre -->
+<div *ngIf="noResultsFound" class="p-4 text-center text-gray-600">
+  <p>No hay coincidencias con la búsqueda.</p>
+</div>
+
+
   <div class="flex justify-between items-center mb-4">
     <!-- Controles de paginación -->
     <div class="pagination flex items-center">
@@ -191,14 +198,14 @@
         <div class="flex justify-end">
           <button
             type="button"
-            class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md mr-2"
+            class="btn-danger"
             (click)="closeModal()"
           >
             Cancelar
           </button>
           <button
             type="submit"
-            class="bg-green-300 text-gray-700 px-4 py-2 rounded-md mr-2"
+            class="btn-success"
           >
             {{ isEditing ? "Actualizar" : "Guardar Empleado" }}
           </button>
