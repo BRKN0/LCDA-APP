@@ -213,10 +213,10 @@
 <!-- Show details of the selected order -->
 <div
   *ngIf="selectedOrderDetails && selectedOrderDetails.length > 0 && !loadingDetails"
-  class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
+  class="modal-overlay"
 >
   <div
-    class="bg-white rounded-lg shadow-lg p-6 w-3/4 max-h-screen overflow-y-auto relative"
+    class="modal-content w-3/4 max-h-screen overflow-y-auto relative"
   >
     <!-- Botón de cierre -->
     <button
