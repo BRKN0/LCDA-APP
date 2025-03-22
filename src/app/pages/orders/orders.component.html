@@ -70,7 +70,7 @@
       placeholder="Buscar por nombre de cliente..."
       [(ngModel)]="searchByNameQuery"
       class="w-full py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
-      (input)="onSearch()"
+      (input)="updateFilteredOrders()"
     />
   </div>
   <!-- Buscar por número de pedido -->
@@ -151,7 +151,7 @@
               : "Desconocido"
           }}
         </td>
-        <td>{{ order.created_at }}</td>
+        <td>{{ order.created_at | date : "dd-MM-yyyy" }}</td>
         <td>{{ order.total }}</td>
         <td>
           <button class="btn-details" (click)="selectOrder(order)">
@@ -165,6 +165,11 @@
       </tr>
     </tbody>
   </table>
+</div>
+
+<!-- Mensaje de no resultados para búsqueda por nombre -->
+<div *ngIf="noResultsFound" class="p-4 text-center text-gray-600">
+  <p>No hay coincidencias con la búsqueda.</p>
 </div>
 
 <div class="flex justify-between items-center mb-4">
@@ -364,7 +369,7 @@
   *ngIf="showModal"
   class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
 >
-  <div class="bg-white modal-width rounded-lg shadow-lg p-6">
+  <div class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6">
     <h3 class="text-lg font-bold mb-4">Pedido</h3>
     <form (ngSubmit)="addOrder(newOrder)">
       <div class="mb-4">
@@ -433,15 +438,14 @@
       <div class="flex justify-end">
         <button
           type="button"
-          class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md mr-2"
+          class="btn-danger"
           (click)="toggleAddOrderForm()"
         >
           Cancelar
         </button>
         <button
           type="submit"
-          class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
-          style="background-color: red; color: white; border: 1px solid black; padding: 10px;"
+          class="btn-success"
         >
           Guardar Pedido
         </button>

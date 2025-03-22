@@ -202,6 +202,67 @@ export class ExpensesComponent implements OnInit {
       });
   }
 
+  // Nueva función para generar el kardex de egresos
+  generateExpensesKardex(): void {
+    console.log('Botón Generar Kardex clicado');
+    try {
+      const currentDate = new Date().toISOString().split('T')[0];
+      console.log('Fecha actual:', currentDate);
+
+      const csvHeader = [
+        'ID Egreso',
+        'Código',
+        'Fecha de Pago',
+        'Categoría',
+        'Tipo',
+        'Descripción',
+        'Costo',
+        'Fecha de Creación',
+      ];
+
+      console.log('filteredExpenses:', this.filteredExpenses);
+      if (!this.filteredExpenses || this.filteredExpenses.length === 0) {
+        console.warn('No hay egresos para exportar');
+        alert('No hay egresos para generar el kardex');
+        return;
+      }
+
+      const csvRows = this.filteredExpenses.map((expense) => {
+        console.log('Procesando egreso:', expense);
+        const costValue = typeof expense.cost === 'number' ? expense.cost : parseFloat(expense.cost || '0');
+        const formattedCost = isNaN(costValue) ? '0.00' : costValue.toFixed(2);
+
+        return [
+          expense.id_expenses,
+          expense.code,
+          expense.payment_date || 'Sin Fecha',
+          expense.category || 'Sin Categoría',
+          expense.type || 'Sin Tipo',
+          expense.description || 'Sin Descripción',
+          formattedCost,
+          expense.created_at.toISOString().split('T')[0] || currentDate,
+        ].map((value) => `"${value}"`);
+      });
+
+      const csvContent = [csvHeader, ...csvRows].map((row) => row.join(';')).join('\r\n');
+      const bom = '\uFEFF';
+      const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `expenses_${currentDate}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      console.log('Archivo generado y clic simulado');
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error en generateExpensesKardex:', error);
+      alert('Ocurrió un error al generar el kardex');
+    }
+  }
+
   applyFilters(): void {
     this.filteredExpenses = this.expenses.filter((e) => {
       const matchesCategory = this.isAnyCategoryChecked()

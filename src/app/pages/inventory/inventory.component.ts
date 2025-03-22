@@ -331,6 +331,14 @@ export class InventoryComponent implements OnInit {
       }
     });
 
+    if (results.length === 0) {
+      results.push({
+        product: 'N/A',
+        change: 'Sin cambios',
+        detail: 'No se detectaron modificaciones en los archivos comparados.'
+      });
+    }
+
     return results;
   }
 

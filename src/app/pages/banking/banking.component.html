@@ -76,7 +76,7 @@
         <tr *ngFor="let transaction of paginatedBanking">
           <td>{{ transaction.code }}</td>
           <td>
-            {{ transaction.created_at | date : "yyyy-MM-dd" }}
+            {{ transaction.created_at | date : "dd-MM-yyyy" }}
           </td>
           <td>{{ getBankName(transaction.id_bank) }}</td>
           <td>{{ transaction.description }}</td>

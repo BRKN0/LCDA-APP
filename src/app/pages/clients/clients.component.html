@@ -18,22 +18,27 @@
   </div>
 </div>
 
-<div class="flex justify-between items-center mb-4">
+<div class="action-buttons mb-4">
   <label>
     <input type="checkbox" [(ngModel)]="filterDebt" (change)="searchClient()" />
     Mostrar solo clientes con deuda
   </label>
   <button
-    class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
+    class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 mr-4"
     (click)="addNewClient()"
   >
     Añadir Cliente
   </button>
-</div>
+  <button
+    class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 mr-4"
+    (click)="generateClientsKardex()"
+  >
+  Generar Kardex
+  </button>
 
 <!-- No clients found -->
-<div *ngIf="noResultsFound" class="p-4 text-center text-red-500">
-  <p>No se encontró ningún cliente con ese nombre.</p>
+<div *ngIf="noResultsFound" class="p-4 text-center text-gray-600">
+  <p>No hay coincidencias con la busqueda.</p>
 </div>
 
 <div *ngIf="!loading && !noResultsFound">
@@ -45,13 +50,12 @@
         <th class="table-column-std">NIT / CC</th>
         <th class="table-column-std">Empresa</th>
         <th class="table-column-std">Estado</th>
-        <th class="table-column-std">Acciones</th>
+        <th class="w-1/6">Acciones</th>
       </tr>
     </thead>
     <tbody>
       <tr
         *ngFor="let client of paginatedClients"
-        (click)="openClientModal(client)"
         [class.border-red-500]="client.status === 'overdue'"
         [class.border-green-500]="client.status === 'upToDate'"
       >
@@ -75,7 +79,11 @@
               : "Desconocido"
           }}
         </td>
-        <td class="p-3 border">
+        <td>
+          <button class="btn-details"
+            (click)="openClientModal(client); $event.stopPropagation()">
+            Detalles
+          </button>
           <button class="btn-edit"
             (click)="editClient(client); $event.stopPropagation()">
             Editar
@@ -141,7 +149,7 @@
       <!-- Botón para cerrar el modal -->
       <div class="flex justify-end mt-4">
         <button
-          class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
+          class="btn-danger"
           (click)="closeClientModal()"
         >
           Cerrar
@@ -280,7 +288,7 @@
     *ngIf="showModal"
     class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
   >
-    <div class="bg-white modal-width rounded-lg shadow-lg p-6">
+    <div class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto">
       <h3 class="text-lg font-bold mb-4">
         {{ isEditing ? "Editar Cliente" : "Añadir Cliente" }}
       </h3>
@@ -376,14 +384,14 @@
         <div class="flex justify-end">
           <button
             type="button"
-            class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md mr-2"
+            class="btn-danger"
             (click)="closeModal()"
           >
             Cancelar
           </button>
           <button
             type="submit"
-            class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
+            class="btn-success"
           >
             {{ isEditing ? "Actualizar Cliente" : "Guardar Cliente" }}
           </button>

@@ -58,7 +58,7 @@
 
           <!-- Button -->
           <button
-            class="absolute top-1 right-12 cursor-pointer bg-red-500 text-white rounded p-1 hover:bg-red-600"
+            class="absolute top-1 right-12 cursor-pointer bg-yellow-500 text-white rounded p-1 hover:bg-yellow-600"
             (click)="selectNotification(notification)"
           >
             <svg
@@ -136,20 +136,14 @@
       <div class="flex justify-end">
         <button
           type="button"
-          class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md mr-2"
+          class="btn-danger"
           (click)="toggleReminderForm()"
         >
           Cancelar
         </button>
         <button
           type="submit"
-          style="
-            background-color: red;
-            color: white;
-            border: 1px solid black;
-            padding: 10px;
-          "
-          class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
+          class="btn-success"
         >
           Guardar Recordatorio
         </button>
@@ -201,7 +195,7 @@
             border: 1px solid black;
             padding: 10px;
           "
-          class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
+          class="btn-success"
         >
           Guardar
         </button>
