@@ -13,6 +13,7 @@ interface Invoice {
   id_order: string;
   code: string;
   order: Orders;
+  include_iva: boolean;
 }
 
 interface Orders {
@@ -24,9 +25,9 @@ interface Orders {
   created_at: Date;
   order_quantity: string;
   unitary_value: string;
-  iva: string;
-  subtotal: string;
-  total: string;
+  iva?: string;
+  subtotal?: string;
+  total?: string;
   amount: string;
   id_client: string;
   client: Client;
@@ -86,6 +87,7 @@ export class InvoiceComponent implements OnInit {
   itemsPerPage: number = 10; // Elementos por página
   totalPages: number = 1; // Total de páginas
   paginatedInvoice: Invoice[] = []; // Lista paginada
+  IVA_RATE = 0.19; // Tasa de IVA
 
   newClient = {
     name: '',
@@ -170,7 +172,7 @@ export class InvoiceComponent implements OnInit {
       // Actualizar el campo de búsqueda con el nombre del cliente
       this.clientSearchQuery = `${client.name} (${client.company_name || 'Sin empresa'})`;
       this.showClientDropdown = false; // Ocultar el dropdown después de seleccionar
-      this.onClientSelect(); // Actualiza las órdenes del cliente seleccionado
+      this.updateClientOrders(); // Actualizar los pedidos al seleccionar un cliente
     }
   }
 
@@ -183,17 +185,33 @@ export class InvoiceComponent implements OnInit {
     }, 200); // Pequeño delay para permitir clics en las sugerencias
   }
 
-  /**
-   * Filtra las órdenes del cliente seleccionado
-   */
-  onClientSelect(): void {
+  // Nueva función para actualizar los pedidos del cliente seleccionado
+  updateClientOrders(): void {
+    if (!this.selectedInvoice) return;
+
     const selectedClientId = this.selectedInvoice.order.id_client;
+    const selectedOrderType = this.selectedInvoice.order.order_type;
+
     if (selectedClientId) {
-      this.clientOrders = this.orders.filter(
-        (order) => order.id_client === selectedClientId
-      );
+      // Filtrar pedidos por cliente y tipo
+      this.clientOrders = this.orders.filter((order) => {
+        const matchesClient = order.id_client === selectedClientId;
+        const matchesType = order.order_type === selectedOrderType;
+        // Excluir pedidos que ya están asignados a una factura (excepto si es la factura que estamos editando)
+        const isAssigned = this.invoices.some(
+          (invoice) =>
+            invoice.id_order === order.id_order &&
+            (!this.isEditing || invoice.id_invoice !== this.selectedInvoice.id_invoice)
+        );
+        return matchesClient && matchesType && !isAssigned;
+      });
     } else {
       this.clientOrders = [];
+    }
+
+    // Si no hay pedidos disponibles, mostramos un mensaje (opcional)
+    if (this.clientOrders.length === 0) {
+      console.log('No hay pedidos disponibles para este cliente y tipo.');
     }
   }
 
@@ -238,6 +256,7 @@ export class InvoiceComponent implements OnInit {
 
     this.invoice = {
       ...data[0],
+      include_iva: data[0].include_iva ?? true, // Valor por defecto
       order: {
         ...data[0].orders,
         client: data[0].orders?.clients || null,
@@ -261,6 +280,7 @@ export class InvoiceComponent implements OnInit {
 
     this.invoices = [...data].map((invoice) => ({
       ...invoice,
+      include_iva: invoice.include_iva ?? true, // Asignar true por defecto si no existe
       order: {
         ...invoice.orders,
         client: invoice.orders?.clients || null,
@@ -269,7 +289,7 @@ export class InvoiceComponent implements OnInit {
     // sorting invoice by code
     let n = this.invoices.length;
     let swapped: boolean;
-  
+
     do {
       swapped = false;
       for (let i = 0; i < n - 1; i++) {
@@ -323,6 +343,21 @@ export class InvoiceComponent implements OnInit {
     this.updatePaginatedInvoices(); // Actualizar la lista paginada
   }
 
+  // Calcular valores dinámicos para la factura
+  calculateInvoiceValues(invoice: Invoice): { subtotal: number; iva: number; total: number } {
+    const amount = parseFloat(invoice.order.amount) || 0;
+    const subtotal = amount;
+    const iva = invoice.include_iva ? amount * this.IVA_RATE : 0;
+    const total = subtotal + iva;
+    return { subtotal, iva, total };
+  }
+
+  // Obtener el valor a mostrar en la tabla
+  getDisplayAmount(invoice: Invoice): string {
+    const { total, subtotal } = this.calculateInvoiceValues(invoice);
+    return invoice.include_iva ? total.toFixed(2) : subtotal.toFixed(2);
+  }
+
   selectInvoice(invoice: Invoice) {
     this.selectedInvoiceDetails = [invoice];
   }
@@ -334,18 +369,24 @@ export class InvoiceComponent implements OnInit {
     }
 
     const invoice = this.selectedInvoiceDetails[0];
-
-    // Validar si la orden existe
     if (!invoice.order) {
       alert('Por favor, elija una orden válida.');
       return;
     }
 
+    // Calcular los valores correctamente
+    const amount = parseFloat(invoice.order.amount) || 0;
+    const quantity = parseFloat(invoice.order.order_quantity) || 1;
+    const unitaryValue = amount / quantity; // Calcular el valor unitario dividiendo el importe total por la cantidad
+    const subtotal = amount; // El subtotal es el amount (sin IVA)
+    const iva = invoice.include_iva ? subtotal * this.IVA_RATE : 0;
+    const total = subtotal + iva;
+
     const doc = new jsPDF();
     const invoice_date = new Date(invoice.created_at);
     const year = invoice_date.getFullYear();
-    const month = invoice_date.getMonth() + 1;
-    const day = invoice_date.getDate();
+    const month = (invoice_date.getMonth() + 1).toString().padStart(2, '0');
+    const day = invoice_date.getDate().toString().padStart(2, '0');
 
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
@@ -378,11 +419,6 @@ export class InvoiceComponent implements OnInit {
     doc.setFont('helvetica', 'normal');
 
     doc.text(`Nombre: ${invoice.order.client.name}`, 10, 80);
-    // Validar si el cliente existe antes de acceder a sus propiedades
-    if (invoice.order.client) {
-    } else {
-      doc.text('Cliente: No disponible', 10, 40);
-    }
     doc.text(
       `Nombre de la empresa: ${invoice.order.client.company_name || 'N/A'}`,
       10,
@@ -417,41 +453,28 @@ export class InvoiceComponent implements OnInit {
     currentY = startY + rowHeight;
     doc.setFont('helvetica', 'normal');
     doc.text(`${invoice.order.order_quantity}`, headerXPositions[0], currentY);
-    doc.text(`$${invoice.order.unitary_value}`, headerXPositions[1], currentY);
-    doc.text(`$${invoice.order.amount}`, headerXPositions[2], currentY, {
-      align: 'right',
-    });
+    doc.text(`$${unitaryValue.toFixed(2)}`, headerXPositions[1], currentY); // Mostrar el valor unitario calculado
+    doc.text(`$${subtotal.toFixed(2)}`, headerXPositions[2], currentY, { align: 'right' }); // Mostrar el importe (subtotal)
 
     const summaryStartY = currentY + 20;
     doc.setFont('helvetica', 'bold');
-    doc.text('SUBTOTAL:', headerXPositions[1], summaryStartY, {
-      align: 'right',
-    });
-    doc.text(`$${invoice.order.subtotal}`, headerXPositions[2], summaryStartY, {
-      align: 'right',
-    });
+    doc.text('SUBTOTAL:', headerXPositions[1], summaryStartY, { align: 'right' });
+    doc.text(`$${subtotal.toFixed(2)}`, headerXPositions[2], summaryStartY, { align: 'right' });
 
-    doc.text('IVA 19%:', headerXPositions[1], summaryStartY + rowHeight, {
-      align: 'right',
-    });
+    if (invoice.include_iva) {
+      doc.text('IVA 19%:', headerXPositions[1], summaryStartY + rowHeight, { align: 'right' });
+      doc.text(`$${iva.toFixed(2)}`, headerXPositions[2], summaryStartY + rowHeight, { align: 'right' });
+    }
+
+    doc.text('TOTAL:', headerXPositions[1], summaryStartY + (invoice.include_iva ? rowHeight * 2 : rowHeight), { align: 'right' });
     doc.text(
-      `$${invoice.order.iva || '0.00'}`,
+      `$${total.toFixed(2)}`,
       headerXPositions[2],
-      summaryStartY + rowHeight,
+      summaryStartY + (invoice.include_iva ? rowHeight * 2 : rowHeight),
       { align: 'right' }
     );
 
-    doc.text('TOTAL:', headerXPositions[1], summaryStartY + rowHeight * 2, {
-      align: 'right',
-    });
-    doc.text(
-      `$${invoice.order.total}`,
-      headerXPositions[2],
-      summaryStartY + rowHeight * 2,
-      { align: 'right' }
-    );
-
-    const footerStartY = summaryStartY + rowHeight * 4;
+    const footerStartY = summaryStartY + (invoice.include_iva ? rowHeight * 4 : rowHeight * 3);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'italic');
     doc.text(
@@ -532,6 +555,7 @@ export class InvoiceComponent implements OnInit {
       invoice_status: 'upToDate',
       id_order: '',
       code: '',
+      include_iva: true, // Por defecto, incluye IVA
       order: {
         id_order: '',
         order_type: 'print',
@@ -578,7 +602,7 @@ export class InvoiceComponent implements OnInit {
     this.isEditing = true;
     this.showModal = true;
     this.clientSearchQuery = `${invoice.order.client.name} (${invoice.order.client.company_name || 'Sin empresa'})`; // Mostrar el nombre del cliente seleccionado
-    this.onClientSelect(); // Filtrar las órdenes del cliente seleccionado
+    this.updateClientOrders(); // Filtrar las órdenes del cliente seleccionado
   }
 
   // Función para formatear la fecha en el formato que espera el input de tipo date
@@ -607,39 +631,69 @@ export class InvoiceComponent implements OnInit {
   async saveInvoice(): Promise<void> {
     if (!this.selectedInvoice) {
       console.error('No se ha seleccionado ninguna factura.');
+      alert('No se ha seleccionado ninguna factura.');
       return;
     }
 
-    // Validar que se haya seleccionado un cliente
     if (!this.selectedInvoice.order.id_client) {
       alert('Por favor, seleccione un cliente válido.');
       return;
     }
 
-    // Validar que se haya seleccionado una orden
     if (!this.selectedInvoice.order.id_order) {
       alert('Por favor, seleccione una orden válida.');
       return;
     }
 
-    // Verificar si la orden existe en la base de datos
     const orderExists = await this.validateOrderExists(this.selectedInvoice.order.id_order);
     if (!orderExists) {
       alert('La orden seleccionada no existe.');
       return;
     }
 
-    // Preparar los datos para guardar
+    const amount = parseFloat(this.selectedInvoice.order.amount);
+    if (isNaN(amount) || amount <= 0) {
+      alert('Por favor, ingrese un importe válido mayor a 0.');
+      return;
+    }
+
+    // Actualizar el amount en la tabla orders
+    const { error: updateOrderError } = await this.supabase
+      .from('orders')
+      .update({ amount: this.selectedInvoice.order.amount })
+      .eq('id_order', this.selectedInvoice.order.id_order);
+
+    if (updateOrderError) {
+      console.error('Error actualizando el importe del pedido:', updateOrderError);
+      alert('Error al actualizar el importe del pedido: ' + updateOrderError.message);
+      return;
+    }
+
+    // Preparar la fecha seleccionada manualmente para evitar problemas de zona horaria
+    const selectedDate = this.selectedInvoice.created_at; // Esto viene del input en formato 'YYYY-MM-DD'
+    const dateParts = selectedDate.split('-'); // Separar el año, mes y día
+    const year = parseInt(dateParts[0], 10);
+    const month = parseInt(dateParts[1], 10) - 1; // Los meses en JavaScript son 0-11
+    const day = parseInt(dateParts[2], 10);
+
+    // Crear un objeto Date con la fecha seleccionada, asegurándonos de que sea al inicio del día en UTC
+    const adjustedDate = new Date(Date.UTC(year, month, day, 0, 0, 0));
+    const isoDate = adjustedDate.toISOString(); // Esto será algo como '2025-03-19T00:00:00.000Z'
+
+    // Preparar la factura para guardar
     const invoiceToSave = {
-      code: this.selectedInvoice.code || null, // Usar el código existente o null para generar uno nuevo
-      created_at: new Date(this.selectedInvoice.created_at).toISOString(),
+      code: this.selectedInvoice.code || null,
+      created_at: isoDate, // Usar la fecha ajustada
       invoice_status: this.selectedInvoice.invoice_status,
       id_order: this.selectedInvoice.order.id_order,
+      include_iva: this.selectedInvoice.includeIVA,
     };
+
+    // Agregar un console.log para depurar la fecha que se está enviando
+    console.log('Fecha enviada a Supabase:', invoiceToSave.created_at);
 
     try {
       if (this.isEditing) {
-        // Actualizar factura existente
         const { error } = await this.supabase
           .from('invoices')
           .update(invoiceToSave)
@@ -647,28 +701,31 @@ export class InvoiceComponent implements OnInit {
 
         if (error) {
           console.error('Error actualizando la factura:', error);
-          alert('Error al actualizar la factura.');
+          alert('Error al actualizar la factura: ' + error.message);
           return;
         }
         alert('Factura actualizada correctamente.');
       } else {
-        // Crear nueva factura
         const { error } = await this.supabase.from('invoices').insert([invoiceToSave]);
 
         if (error) {
           console.error('Error añadiendo la factura:', error);
-          alert('Error al añadir la factura.');
+          if (error.code === '42501') {
+            alert('No tienes permisos para añadir esta factura. Por favor, verifica tu autenticación o contacta al administrador.');
+          } else {
+            alert('Error al añadir la factura: ' + error.message);
+          }
           return;
         }
         alert('Factura añadida correctamente.');
       }
 
-      // Actualizar la lista de facturas
       await this.getInvoices();
-      this.closeModal(); // Cerrar el modal después de guardar
+      await this.loadOrders(); // Recargar los pedidos para reflejar el nuevo amount
+      this.closeModal();
     } catch (error) {
       console.error('Error inesperado:', error);
-      alert('Ocurrió un error inesperado.');
+      alert('Ocurrió un error inesperado: ' + (error instanceof Error ? error.message : String(error)));
     }
   }
 
