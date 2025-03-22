@@ -1,1 +1,43 @@
-<app-main-banner><app-main-banner>
+<app-main-banner></app-main-banner>
+<ng-template
+  [ngIf]="isLoggedIn$ | async"
+  [ngIfThen]="roleChangeButton"
+  [ngIfElse]="visitor"
+>
+</ng-template>
+
+<ng-template #roleChangeButton>
+  <div
+    class="bg-white shadow-md rounded-lg p-6 text-center max-w-xl mx-auto mt-10"
+  >
+    <h2 class="text-3xl font-bold text-red-600 mb-4">
+      ¡Bienvenido a La Casa del Acrílico Administrador!
+    </h2>
+  </div>
+  <div class="relative inline-block text-left">
+    <label for="role-select" class="mr-2 font-semibold">Cambiar Rol:</label>
+    <select
+      id="role-select"
+      [(ngModel)]="userRole"
+      (change)="onRoleChange()"
+      class="border border-gray-300 rounded p-2 bg-white text-black"
+    >
+      <option value="admin">Administrador</option>
+      <option value="prints_employee">Empleado Impresiones</option>
+      <option value="cuts_employee">Empleado Cortes</option>
+    </select>
+  </div>
+</ng-template>
+<ng-template #visitor>
+  <div
+    class="bg-white shadow-md rounded-lg p-6 text-center max-w-xl mx-auto mt-10"
+  >
+    <h2 class="text-3xl font-bold text-red-600 mb-4">
+      ¡Bienvenido a La Casa del Acrílico!
+    </h2>
+    <p class="text-gray-700 mb-6">
+      Somos especialistas en cortes y grabados en acrílico. Descubre nuestros
+      productos y servicios personalizados.
+    </p>
+  </div>
+</ng-template>
