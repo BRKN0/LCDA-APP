@@ -49,7 +49,7 @@ export class MainBannerComponent implements OnInit {
   goToExpenses() {
     this.router.navigate(['/expenses']); // Redirect to expenses route
   }
-  goToEmployees(){
+  goToEmployees() {
     this.router.navigate(['/employees']); // redirect to employees route
   }
   signOut() {

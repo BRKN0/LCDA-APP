@@ -1,9 +1,17 @@
 <router-outlet></router-outlet>
-<div class="banner bg-red-600 text-white py-4 flex items-center justify-center relative">
+<div
+  class="banner bg-red-600 text-white py-4 flex items-center justify-center relative"
+>
   <!-- Título centrado -->
   <h1 class="text-3xl font-bold">La Casa del Acrílico</h1>
   <!-- Logo a la izquierda -->
-  <img src="/Logo.png" alt="Logo" class="logo-banner absolute left-4" width="80" height="80">
+  <img
+    src="/Logo.png"
+    alt="Logo"
+    class="logo-banner absolute left-4"
+    width="80"
+    height="80"
+  />
 </div>
 
 <div class="container mx-auto px-4">
@@ -22,13 +30,13 @@
     <!-- Usuario Visitante  -->
     <ng-template #loginButton>
       <button
-        class="p-1 text-white bg-blue-700 rounded-lg shadow-lg"
+        class="p-1 text-white bg-red-500 rounded-lg shadow-lg"
         (click)="goToLogin()"
       >
         Iniciar sesión
       </button>
 
-    <!-- Usuario -->
+      <!-- Usuario -->
     </ng-template>
     <ng-template #signOutButton>
       <div class="relative nav-item2" (clickOutside)="closeFinanceDropdown()">
