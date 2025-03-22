@@ -60,7 +60,9 @@
         <th class="table-column-std">Numero de documento</th>
         <th class="table-column-std">Email</th>
         <th class="table-column-std">Telefono</th>
+        <th class="table-column-std">Salario</th>
         <th class="table-column-std">Fecha de contratacion</th>
+        <th class="table-column-std">Tipo de Empleado</th>
         <th class="table-column-std">Acción</th>
       </tr>
     </thead>
@@ -71,6 +73,8 @@
         <td>{{ employee.id_number }}</td>
         <td>{{ employee.email }}</td>
         <td>{{ employee.phone }}</td>
+        <td>{{ employee.employee_type }}</td>
+        <td>{{ employee.salary }}</td>
         <td>{{ employee.created_at | date : "dd-MM-yyyy" }}</td>
         <td>
           <button class="btn-edit" (click)="editEmployee(employee)">
@@ -85,10 +89,9 @@
   </table>
 
   <!-- Mensaje de no resultados para búsqueda por nombre -->
-<div *ngIf="noResultsFound" class="p-4 text-center text-gray-600">
-  <p>No hay coincidencias con la búsqueda.</p>
-</div>
-
+  <div *ngIf="noResultsFound" class="p-4 text-center text-gray-600">
+    <p>No hay coincidencias con la búsqueda.</p>
+  </div>
 
   <div class="flex justify-between items-center mb-4">
     <!-- Controles de paginación -->
@@ -133,8 +136,8 @@
     *ngIf="showModal"
     class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
   >
-    <div class="bg-white w-full max-w-2xl rounded-lg shadow-lg p-8">
-      <h3 class="text-2xl font-bold mb-6">
+    <div class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto">
+      <h3 class="text-lg font-bold mb-4">
         {{ isEditing ? "Editar Empleado" : "Añadir Nuevo Empleado" }}
       </h3>
       <form (ngSubmit)="saveEmployee()">
@@ -181,6 +184,60 @@
           />
         </div>
         <div class="mb-4">
+          <label class="block text-gray-700">Direccion</label>
+          <input
+            [(ngModel)]="selectedEmployee.address"
+            name="address"
+            class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+            required
+          />
+        </div>
+        <div class="mb-4">
+          <label class="block text-gray-700">Barrio</label>
+          <input
+            [(ngModel)]="selectedEmployee.neighborhood"
+            name="neighborhood"
+            class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+            required
+          />
+        </div>
+        <div class="mb-4">
+          <label class="block text-gray-700">Ciudad</label>
+          <input
+            [(ngModel)]="selectedEmployee.city"
+            name="city"
+            class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+            required
+          />
+        </div>
+        <div class="mb-4">
+          <label class="block text-gray-700">Departamento</label>
+          <input
+            [(ngModel)]="selectedEmployee.department"
+            name="department"
+            class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+            required
+          />
+        </div>
+        <div class="mb-4">
+          <label class="block text-gray-700">Codigo Postal</label>
+          <input
+            [(ngModel)]="selectedEmployee.postal_code"
+            name="postal_code"
+            class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+            required
+          />
+        </div>
+        <div class="mb-4">
+          <label class="block text-gray-700">Salario</label>
+          <input
+            [(ngModel)]="selectedEmployee.salary"
+            name="salary"
+            class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+            required
+          />
+        </div>
+        <div class="mb-4">
           <label class="block text-gray-700">Tipo de empleado</label>
           <select
             [(ngModel)]="selectedEmployee.employee_type"
@@ -196,17 +253,10 @@
           </select>
         </div>
         <div class="flex justify-end">
-          <button
-            type="button"
-            class="btn-danger"
-            (click)="closeModal()"
-          >
+          <button type="button" class="btn-danger" (click)="closeModal()">
             Cancelar
           </button>
-          <button
-            type="submit"
-            class="btn-success"
-          >
+          <button type="submit" class="btn-success">
             {{ isEditing ? "Actualizar" : "Guardar Empleado" }}
           </button>
         </div>
