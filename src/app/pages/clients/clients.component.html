@@ -18,18 +18,23 @@
   </div>
 </div>
 
-<div class="flex justify-between items-center mb-4">
+<div class="action-buttons mb-4">
   <label>
     <input type="checkbox" [(ngModel)]="filterDebt" (change)="searchClient()" />
     Mostrar solo clientes con deuda
   </label>
   <button
-    class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
+    class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 mr-4"
     (click)="addNewClient()"
   >
     Añadir Cliente
   </button>
-</div>
+  <button
+    class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 mr-4"
+    (click)="generateClientsKardex()"
+  >
+  Generar Kardex
+  </button>
 
 <!-- No clients found -->
 <div *ngIf="noResultsFound" class="p-4 text-center text-gray-600">
