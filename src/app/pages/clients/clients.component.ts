@@ -351,6 +351,81 @@ export class ClientsComponent implements OnInit {
     doc.save(`Extracto-${this.selectedClient.name}`);
   }
 
+// Nueva función para generar el kardex de clientes
+  generateClientsKardex(): void {
+    console.log('Botón Generar Kardex clicado');
+    try {
+      const currentDate = new Date().toISOString().split('T')[0];
+      console.log('Fecha actual:', currentDate);
+
+      const csvHeader = [
+        'ID Cliente',
+        'Nombre',
+        'Correo',
+        'Tipo de Documento',
+        'Número de Documento',
+        'NIT',
+        'Empresa',
+        'Teléfono',
+        'Dirección',
+        'Ciudad',
+        'Provincia',
+        'Código Postal',
+        'Estado',
+        'Deuda',
+        'Fecha de Registro',
+      ];
+
+      console.log('filteredClients:', this.filteredClients);
+      if (!this.filteredClients || this.filteredClients.length === 0) {
+        console.warn('No hay clientes para exportar');
+        alert('No hay clientes para generar el kardex');
+        return;
+      }
+
+      const csvRows = this.filteredClients.map((client) => {
+        console.log('Procesando cliente:', client);
+        // Convertir debt a número y manejar casos no válidos
+        const debtValue = typeof client.debt === 'number' ? client.debt : parseFloat(client.debt || '0');
+        const formattedDebt = isNaN(debtValue) ? '0.00' : debtValue.toFixed(2);
+
+        return [
+          client.id_client,
+          client.name || 'Sin Nombre',
+          client.email || 'Sin Correo',
+          client.document_type || 'N/A',
+          client.document_number || 'N/A',
+          client.nit || 'N/A',
+          client.company_name || 'N/A',
+          client.cellphone || 'Sin Teléfono',
+          client.address || 'Sin Dirección',
+          client.city || 'N/A',
+          client.province || 'N/A',
+          client.postal_code || 'N/A',
+          client.status === 'upToDate' ? 'Al Día' : client.status === 'overdue' ? 'En Mora' : 'Desconocido',
+          formattedDebt,
+          client.created_at.split('T')[0] || currentDate,
+        ].map((value) => `"${value}"`);
+      });
+
+      const csvContent = [csvHeader, ...csvRows].map((row) => row.join(';')).join('\r\n');
+      const bom = '\uFEFF';
+      const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `clients_${currentDate}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      console.log('Archivo generado y clic simulado');
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error en generateClientsKardex:', error);
+      alert('Ocurrió un error al generar el kardex');
+    }
+  }
   //Paginacion
   paginateItems<T>(items: T[], page: number, itemsPerPage: number): T[] {
     const startIndex = (page - 1) * itemsPerPage;
