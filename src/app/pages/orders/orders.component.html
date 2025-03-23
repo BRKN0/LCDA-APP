@@ -6,8 +6,8 @@
 </div>
 
 <!-- Filters -->
-<div *ngIf="userRole == 'admin'"class="ml-4">
-  <label >
+<div *ngIf="userRole == 'admin'" class="ml-4">
+  <label>
     <input
       type="checkbox"
       [(ngModel)]="showPrints"
@@ -31,12 +31,6 @@
     />
     Ventas
   </label>
-  <button
-    class="transform bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-700 w-auto"
-    (click)="toggleAddOrderForm()"
-  >
-    Añadir Pedido
-  </button>
 </div>
 <div class="flex items-center space-x-4">
   <div>
@@ -59,6 +53,12 @@
       class="border border-gray-300 rounded-md p-1"
     />
   </div>
+  <button
+    class="transform bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-700 w-auto"
+    (click)="toggleAddOrderForm()"
+  >
+    Añadir Pedido
+  </button>
 </div>
 
 <!-- Search bars -->
@@ -158,7 +158,11 @@
             Ver Detalles
           </button>
           <button class="btn-edit" (click)="editOrder(order)">Editar</button>
-          <button *ngIf="userRole == 'admin'" class="btn-delete" (click)="deleteOrder(order)">
+          <button
+            *ngIf="userRole == 'admin'"
+            class="btn-delete"
+            (click)="deleteOrder(order)"
+          >
             Eliminar
           </button>
         </td>
@@ -212,12 +216,12 @@
 
 <!-- Show details of the selected order -->
 <div
-  *ngIf="selectedOrderDetails && selectedOrderDetails.length > 0 && !loadingDetails"
+  *ngIf="
+    selectedOrderDetails && selectedOrderDetails.length > 0 && !loadingDetails
+  "
   class="modal-overlay"
 >
-  <div
-    class="modal-content w-3/4 max-h-screen overflow-y-auto relative"
-  >
+  <div class="modal-content w-3/4 max-h-screen overflow-y-auto relative">
     <!-- Botón de cierre -->
     <button
       class="absolute top-4 right-4 text-gray-600 hover:text-black font-bold text-xl"
@@ -244,7 +248,8 @@
                 ? "Completado"
                 : selectedOrderDetails[0].order_completion_status === "standby"
                 ? "En espera"
-                : selectedOrderDetails[0].order_completion_status === "inProgress"
+                : selectedOrderDetails[0].order_completion_status ===
+                  "inProgress"
                 ? "En progreso"
                 : "Desconocido"
             }}
@@ -254,7 +259,8 @@
             {{
               selectedOrderDetails[0].order_confirmed_status === "confirmed"
                 ? "Confirmado"
-                : selectedOrderDetails[0].order_confirmed_status === "notConfirmed"
+                : selectedOrderDetails[0].order_confirmed_status ===
+                  "notConfirmed"
                 ? "Por Confirmar"
                 : "Desconocido"
             }}
@@ -266,7 +272,8 @@
                 ? "A tiempo"
                 : selectedOrderDetails[0].order_delivery_status === "late"
                 ? "Tarde"
-                : selectedOrderDetails[0].order_delivery_status === "toBeDelivered"
+                : selectedOrderDetails[0].order_delivery_status ===
+                  "toBeDelivered"
                 ? "En espera"
                 : "No especificado"
             }}
@@ -306,11 +313,22 @@
       <div class="my-6">
         <ul class="list-none">
           <li>
-            <p><strong>Descripción:</strong> {{ selectedOrderDetails[0].description }}</p>
+            <p>
+              <strong>Descripción:</strong>
+              {{ selectedOrderDetails[0].description }}
+            </p>
             <p><strong>Notas:</strong> {{ selectedOrderDetails[0].notes }}</p>
-            <p><strong>Cantidad:</strong> {{ selectedOrderDetails[0].order_quantity }}</p>
-            <p><strong>Valor Unitario:</strong> {{ selectedOrderDetails[0].unitary_value }}</p>
-            <p *ngIf="selectedOrderDetails[0].iva"><strong>IVA:</strong> {{ selectedOrderDetails[0].iva }}</p>
+            <p>
+              <strong>Cantidad:</strong>
+              {{ selectedOrderDetails[0].order_quantity }}
+            </p>
+            <p>
+              <strong>Valor Unitario:</strong>
+              {{ selectedOrderDetails[0].unitary_value }}
+            </p>
+            <p *ngIf="selectedOrderDetails[0].iva">
+              <strong>IVA:</strong> {{ selectedOrderDetails[0].iva }}
+            </p>
           </li>
         </ul>
       </div>
@@ -318,12 +336,29 @@
       <div *ngIf="selectedOrderDetails[0].order_type === 'laser'" class="my-6">
         <ul class="list-none">
           <li>
-            <p><strong>Tipo de Material:</strong> {{ selectedOrderTypeDetail[0].material_type }}</p>
-            <p><strong>Calibre:</strong> {{ selectedOrderTypeDetail[0].caliber }}</p>
-            <p><strong>Color:</strong> {{ selectedOrderTypeDetail[0].color }}</p>
-            <p><strong>Cantidad Usada:</strong> {{ selectedOrderTypeDetail[0].quantity }}</p>
-            <p><strong>Dimensiones:</strong> {{ selectedOrderTypeDetail[0].length }} X {{ selectedOrderTypeDetail[0].width }}</p>
-            <p><strong>Tiempo de corte:</strong> {{ selectedOrderTypeDetail[0].cutting_time }} mins</p>
+            <p>
+              <strong>Tipo de Material:</strong>
+              {{ selectedOrderTypeDetail[0].material_type }}
+            </p>
+            <p>
+              <strong>Calibre:</strong> {{ selectedOrderTypeDetail[0].caliber }}
+            </p>
+            <p>
+              <strong>Color:</strong> {{ selectedOrderTypeDetail[0].color }}
+            </p>
+            <p>
+              <strong>Cantidad Usada:</strong>
+              {{ selectedOrderTypeDetail[0].quantity }}
+            </p>
+            <p>
+              <strong>Dimensiones:</strong>
+              {{ selectedOrderTypeDetail[0].length }} X
+              {{ selectedOrderTypeDetail[0].width }}
+            </p>
+            <p>
+              <strong>Tiempo de corte:</strong>
+              {{ selectedOrderTypeDetail[0].cutting_time }} mins
+            </p>
           </li>
         </ul>
       </div>
@@ -331,17 +366,36 @@
       <div *ngIf="selectedOrderDetails[0].order_type === 'prints'" class="my-6">
         <ul class="list-none">
           <li>
-            <p><strong>Material:</strong> {{ selectedOrderTypeDetail[0].material }}</p>
-            <p><strong>Tipo de Material:</strong> {{ selectedOrderTypeDetail[0].material_type }}</p>
             <p>
-              <strong>P. Laminado:</strong> {{ selectedOrderTypeDetail[0].laminating ? "Si" : "-" }}
-              <strong>P. Impresión:</strong> {{ selectedOrderTypeDetail[0].printing ? "Si" : "-" }}
-              <strong>P. Troquelado:</strong> {{ selectedOrderTypeDetail[0].die_cutting ? "Si" : "-" }}
-              <strong>P. Armado:</strong> {{ selectedOrderTypeDetail[0].assembly ? "Si" : "-" }}
+              <strong>Material:</strong>
+              {{ selectedOrderTypeDetail[0].material }}
             </p>
-            <p><strong>Número de producto:</strong> {{ selectedOrderTypeDetail[0].product_number }}</p>
-            <p><strong>Cantidad Usada:</strong> {{ selectedOrderTypeDetail[0].quantity }}</p>
-            <p><strong>Producto Dañado:</strong> {{ selectedOrderTypeDetail[0].damaged_material }}</p>
+            <p>
+              <strong>Tipo de Material:</strong>
+              {{ selectedOrderTypeDetail[0].material_type }}
+            </p>
+            <p>
+              <strong>P. Laminado:</strong>
+              {{ selectedOrderTypeDetail[0].laminating ? "Si" : "-" }}
+              <strong>P. Impresión:</strong>
+              {{ selectedOrderTypeDetail[0].printing ? "Si" : "-" }}
+              <strong>P. Troquelado:</strong>
+              {{ selectedOrderTypeDetail[0].die_cutting ? "Si" : "-" }}
+              <strong>P. Armado:</strong>
+              {{ selectedOrderTypeDetail[0].assembly ? "Si" : "-" }}
+            </p>
+            <p>
+              <strong>Número de producto:</strong>
+              {{ selectedOrderTypeDetail[0].product_number }}
+            </p>
+            <p>
+              <strong>Cantidad Usada:</strong>
+              {{ selectedOrderTypeDetail[0].quantity }}
+            </p>
+            <p>
+              <strong>Producto Dañado:</strong>
+              {{ selectedOrderTypeDetail[0].damaged_material }}
+            </p>
           </li>
         </ul>
       </div>
@@ -436,23 +490,11 @@
         />
       </div>
       <div class="flex justify-end">
-        <button
-          type="button"
-          class="btn-danger"
-          (click)="toggleAddOrderForm()"
-        >
+        <button type="button" class="btn-danger" (click)="toggleAddOrderForm()">
           Cancelar
         </button>
-        <button
-          type="submit"
-          class="btn-success"
-        >
-          Guardar Pedido
-        </button>
+        <button type="submit" class="btn-success">Guardar Pedido</button>
       </div>
     </form>
   </div>
 </div>
-
-
-
