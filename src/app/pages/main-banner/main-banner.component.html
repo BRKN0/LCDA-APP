@@ -84,7 +84,7 @@
         <i class="fas fa-users"></i>
         <span>Clientes</span>
       </div>
-      <div class="nav-item cursor-pointer" (click)="goToInvoices()">
+      <div *ngIf="userRole == 'admin'" class="nav-item cursor-pointer" (click)="goToInvoices()">
         <i class="fas fa-users"></i>
         <span>Facturas</span>
       </div>

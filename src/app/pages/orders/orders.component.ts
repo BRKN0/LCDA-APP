@@ -4,7 +4,7 @@ import { MainBannerComponent } from '../main-banner/main-banner.component';
 import { SupabaseService } from '../../services/supabase.service';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
-import { debounceTime } from 'rxjs/operators';
+import { RoleService } from '../../services/role.service';
 
 interface Orders {
   id_order: string;
@@ -62,7 +62,10 @@ interface Prints {
   styleUrls: ['./orders.component.scss'],
 })
 export class OrdersComponent implements OnInit {
+  userId: string | null = null;
+  userRole: string | null = null;
   showModal: boolean = false;
+  order_role_filter: string = '';
   isEditing: boolean = false;
   orders: Orders[] = [];
   selectedOrderTypeDetail: any | null = null;
@@ -109,13 +112,19 @@ export class OrdersComponent implements OnInit {
 
   constructor(
     private readonly supabase: SupabaseService,
-    private readonly zone: NgZone
+    private readonly zone: NgZone,
+    private readonly roleService: RoleService
   ) {}
 
   async ngOnInit(): Promise<void> {
     this.supabase.authChanges((_, session) => {
       if (session) {
         this.zone.run(() => {
+          this.userId = session.user.id;
+          this.roleService.fetchAndSetUserRole(this.userId);
+          this.roleService.role$.subscribe((role) => {
+            this.userRole = role;
+          });
           this.getOrders();
           this.getClients();
         });
@@ -129,17 +138,39 @@ export class OrdersComponent implements OnInit {
 
   async getOrders(): Promise<void> {
     this.loading = true;
-    const { data, error } = await this.supabase
-      .from('orders') // Nombre de la tabla
-      .select('*'); // Seleccionar todos los campos
+    if (this.userRole != 'admin') {
+      switch (this.userRole) {
+        case 'prints_employee':
+          this.order_role_filter = 'print';
+          break;
+        case 'cuts_employee':
+          this.order_role_filter = 'laser';
+          break;
+        default:
+          break;
+      }
+      const { data, error } = await this.supabase
+        .from('orders')
+        .select('*')
+        .eq('order_type', this.order_role_filter);
 
-    if (error) {
-      console.error('Error al obtener los pedidos:', error);
-      this.loading = false;
-      return;
+      if (error) {
+        console.error('Error al obtener los pedidos:', error);
+        this.loading = false;
+        return;
+      }
+      this.orders = data as Orders[];
+    } else {
+      const { data, error } = await this.supabase.from('orders').select('*');
+
+      if (error) {
+        console.error('Error al obtener los pedidos:', error);
+        this.loading = false;
+        return;
+      }
+      this.orders = data as Orders[];
     }
 
-    this.orders = data as Orders[]; // Asignar los datos obtenidos
     // sorting orders by code
     let n = this.orders.length;
     let swapped: boolean;
@@ -202,24 +233,32 @@ export class OrdersComponent implements OnInit {
     }
 
     this.filteredOrdersList = data as Orders[];
-    this.noResultsFound = this.searchQuery.trim() !== '' && (!data || data.length === 0); // Activar mensaje si no hay resultados
+    this.noResultsFound =
+      this.searchQuery.trim() !== '' && (!data || data.length === 0); // Activar mensaje si no hay resultados
     this.currentPage = 1; // Reiniciar paginación
     this.updatePaginatedOrder();
   }
 
   updateFilteredOrders(): void {
     // Verificar si todos los checkboxes de tipo están desactivados
-    const allTypeCheckboxesOff = !this.showPrints && !this.showCuts && !this.showSales;
+    const allTypeCheckboxesOff =
+      !this.showPrints && !this.showCuts && !this.showSales;
 
     this.filteredOrdersList = this.orders.filter((order) => {
       const orderDate = new Date(order.created_at);
-      const matchesStartDate = this.startDate ? orderDate >= new Date(this.startDate) : true;
-      const matchesEndDate = this.endDate ? orderDate <= new Date(this.endDate + 'T23:59:59') : true;
+      const matchesStartDate = this.startDate
+        ? orderDate >= new Date(this.startDate)
+        : true;
+      const matchesEndDate = this.endDate
+        ? orderDate <= new Date(this.endDate + 'T23:59:59')
+        : true;
       const matchesDateRange = matchesStartDate && matchesEndDate;
 
       const matchesNameSearch =
         !this.searchByNameQuery ||
-        order.name.toLowerCase().includes(this.searchByNameQuery.toLowerCase().trim());
+        order.name
+          .toLowerCase()
+          .includes(this.searchByNameQuery.toLowerCase().trim());
 
       // Si todos los checkboxes de tipo están desactivados, mostrar todos los pedidos
       if (allTypeCheckboxesOff) {
@@ -237,7 +276,9 @@ export class OrdersComponent implements OnInit {
     });
 
     // Activar noResultsFound solo si hay una búsqueda por nombre y no hay resultados
-    this.noResultsFound = this.searchByNameQuery.trim() !== '' && this.filteredOrdersList.length === 0;
+    this.noResultsFound =
+      this.searchByNameQuery.trim() !== '' &&
+      this.filteredOrdersList.length === 0;
     this.currentPage = 1; // Reiniciar a la primera página
     this.updatePaginatedOrder(); // Actualizar la lista paginada
   }
@@ -368,7 +409,10 @@ export class OrdersComponent implements OnInit {
   }
 
   updatePaginatedOrder(): void {
-    this.totalPages = Math.max(1, Math.ceil(this.filteredOrdersList.length / this.itemsPerPage)    );
+    this.totalPages = Math.max(
+      1,
+      Math.ceil(this.filteredOrdersList.length / this.itemsPerPage)
+    );
     this.currentPage = Math.min(Math.max(this.currentPage, 1), this.totalPages);
     const startIndex = Number((this.currentPage - 1) * this.itemsPerPage);
     const endIndex = startIndex + Number(this.itemsPerPage);
