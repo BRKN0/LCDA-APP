@@ -15,7 +15,7 @@ import { CommonModule } from '@angular/common';
 })
 export class MainBannerComponent implements OnInit {
   isLoggedIn$;
-  userRole: string = 'visitor';
+  userRole: string | null = null;
   userId: string | null = null;
   message: string | null = null;
   financeDropdownOpen = false;
@@ -71,7 +71,10 @@ export class MainBannerComponent implements OnInit {
       if (session && !this.userId) {
         this.zone.run(() => {
           this.userId = session.user.id;
-          this.getUserRole();
+          this.roleService.fetchAndSetUserRole(this.userId)
+          this.roleService.role$.subscribe((role) => {
+            this.userRole = role;
+          });
         });
       }
     });
@@ -105,35 +108,6 @@ export class MainBannerComponent implements OnInit {
       });
     }
     */
-  }
-  async getUserRole() {
-    const { data, error } = await this.supabase
-      .from('users')
-      .select('id_role')
-      .eq('id', this.userId);
-
-    if (error) {
-      console.error('Error fetching user role: ', error);
-      alert('Error al buscar el rol del usuario');
-      return;
-    }
-    this.userRole = data[0].id_role;
-    this.getRoleName();
-  }
-  async getRoleName() {
-    const { data, error } = await this.supabase
-      .from('roles')
-      .select('name')
-      .eq('id', this.userRole);
-    if (error) {
-      console.error('Error fetching user role: ', error);
-      alert('Error al buscar el rol del usuario');
-      return;
-    }
-    this.userRole = data[0].name;
-    this.roleService.role$.subscribe((role) => {
-      this.userRole = role;
-    });
   }
   toggleFinanceDropdown(event: MouseEvent): void {
     event.stopPropagation(); // Prevents the document click listener from firing

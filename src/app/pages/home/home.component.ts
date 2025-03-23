@@ -19,7 +19,7 @@ interface User {
   styleUrl: './home.component.scss',
 })
 export class HomeComponent implements OnInit {
-  user: User | null = null;
+  userEmail: string | undefined = '';
   userId: string | null = null;
   userRole: string = 'visitor';
   isLoggedIn$;
@@ -38,40 +38,11 @@ export class HomeComponent implements OnInit {
       if (session) {
         this.zone.run(() => {
           this.userId = session.user.id;
-          this.getUserRole();
+          this.userEmail = session.user.email;
+          this.roleService.fetchAndSetUserRole(this.userId);
         });
       }
     });
-  }
-  async getUserRole() {
-    const { data, error } = await this.supabase
-      .from('users')
-      .select('*')
-      .eq('id', this.userId);
-
-    if (error) {
-      console.error('Error fetching user role: ', error);
-      alert('Error al buscar el rol del usuario');
-      return;
-    }
-    this.user = data[0];
-  }
-  // This doesn't matter right now but later this hides the role change buttons from other users
-  async isAdmin() {
-    const { data, error } = await this.supabase
-      .from('roles')
-      .select('id_role')
-      .eq('id', this.userRole);
-    if (error) {
-      console.error('Error fetching user role: ', error);
-      alert('Error al buscar el rol del usuario');
-      return;
-    }
-    this.userRole = data[0].id_role;
-    /* This could be implemented with an extra table 'admins' and check for specific ids/emails instead
-    if( userRole == 'admin' ) {
-    }
-    */
   }
   async onRoleChange() {
     const { data, error } = await this.supabase
@@ -83,8 +54,8 @@ export class HomeComponent implements OnInit {
       return;
     }
     const userToUpdate = {
-      id: this.user?.id,
-      email: this.user?.email,
+      id: this.userId,
+      email: this.userEmail,
       id_role: data[0].id,
     };
     console.log(userToUpdate);
