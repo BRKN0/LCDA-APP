@@ -103,6 +103,7 @@
         <th class="table-column-std">Fecha</th>
         <th class="table-column-std">Total</th>
         <th class="table-column-std">Acción</th>
+        <th class="table-column-std">Confirmación de Orden</th>
       </tr>
     </thead>
     <tbody>
@@ -166,6 +167,28 @@
             Eliminar
           </button>
         </td>
+        <td *ngIf="userRole == 'admin'" [ngClass]="{
+          'text-green-600': order.order_confirmed_status === 'confirmed',
+          'text-orange-400': order.order_confirmed_status === 'notConfirmed'
+        }"
+      >
+          {{
+            order.order_confirmed_status === "confirmed"
+              ? "Confirmado"
+              : order.order_confirmed_status === "notConfirmed"
+              ? "En espera"
+              : "Desconocido"
+          }}
+        </td>  
+        <td *ngIf="userRole != 'admin'">
+          <label>
+            <input
+              type="checkbox"
+              [checked]="order.order_confirmed_status === 'confirmed'"
+              (change)="toggleOrderStatus(order)"
+            />
+          </label>
+        </td>        
       </tr>
     </tbody>
   </table>
@@ -266,7 +289,7 @@
             }}
           </p>
           <p>
-            <strong>Tiempo de entrega:</strong>
+            <strong>Estado de entrega:</strong>
             {{
               selectedOrderDetails[0].order_delivery_status === "onTime"
                 ? "A tiempo"
