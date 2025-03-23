@@ -170,7 +170,7 @@ export class OrdersComponent implements OnInit {
       }
       this.orders = data as Orders[];
     }
-
+    console.log(this.orders);
     // sorting orders by code
     let n = this.orders.length;
     let swapped: boolean;
@@ -307,7 +307,19 @@ export class OrdersComponent implements OnInit {
     this.selectedOrderDetails = [order];
     this.loadingDetails = false;
   }
-
+  async toggleOrderStatus(order: Orders) {
+    order.order_confirmed_status =
+      order.order_confirmed_status === 'confirmed'
+        ? 'notConfirmed'
+        : 'confirmed';
+    const { error } = await this.supabase
+      .from('orders')
+      .update({ order_confirmed_status: order.order_confirmed_status })
+      .eq('id_order', order.id_order);
+    if (error) {
+      console.error(error);
+    }
+  }
   toggleAddOrderForm(): void {
     if (!this.showModal) {
       this.newOrder = {
@@ -361,6 +373,7 @@ export class OrdersComponent implements OnInit {
     );
     newOrder.name = selectedClient ? selectedClient.name : '';
     const orderToInsert = {
+      id_order: newOrder.id_order,
       order_type: newOrder.order_type,
       name: newOrder.name,
       description: newOrder.description,
@@ -378,7 +391,19 @@ export class OrdersComponent implements OnInit {
       order_delivery_status: newOrder.order_delivery_status,
       notes: newOrder.notes,
     };
-    try {
+    // How was there no update before?? it just added a copy of the selected order. why?
+    if (this.isEditing == true) {
+      const { error } = await this.supabase
+        .from('orders')
+        .update([orderToInsert])
+        .eq('id_order', orderToInsert.id_order);
+      if (error) {
+        console.error('Error al añadir el pedido:', error);
+        return;
+      }
+      this.getOrders();
+      this.toggleAddOrderForm();
+    } else {
       const { error } = await this.supabase
         .from('orders')
         .insert([orderToInsert]);
@@ -386,11 +411,8 @@ export class OrdersComponent implements OnInit {
         console.error('Error al añadir el pedido:', error);
         return;
       }
-      console.log('Pedido añadido exitosamente:', newOrder);
       this.getOrders();
       this.toggleAddOrderForm();
-    } catch (error) {
-      console.error('Error inesperado al añadir pedido:', error);
     }
   }
 
