@@ -39,7 +39,7 @@
       <!-- Usuario -->
     </ng-template>
     <ng-template #signOutButton>
-      <div class="relative nav-item2" (clickOutside)="closeFinanceDropdown()">
+      <div *ngIf="userRole == 'admin'" class="relative nav-item2" (clickOutside)="closeFinanceDropdown()">
         <!-- Finance Button -->
         <div
           class="cursor-pointer flex items-center"
@@ -76,11 +76,11 @@
           </li>
         </ul>
       </div>
-      <div class="nav-item cursor-pointer" (click)="goToInventory()">
+      <div *ngIf="userRole == 'admin'" class="nav-item cursor-pointer" (click)="goToInventory()">
         <i class="fas fa-box"></i>
         <span>Inventario</span>
       </div>
-      <div class="nav-item cursor-pointer" (click)="goToClients()">
+      <div *ngIf="userRole == 'admin'" class="nav-item cursor-pointer" (click)="goToClients()">
         <i class="fas fa-users"></i>
         <span>Clientes</span>
       </div>
@@ -92,11 +92,11 @@
         <i class="fas fa-users"></i>
         <span>Pedidos</span>
       </div>
-      <div class="nav-item cursor-pointer" (click)="goToExpenses()">
+      <div *ngIf="userRole == 'admin'" class="nav-item cursor-pointer" (click)="goToExpenses()">
         <i class="fas fa-users"></i>
         <span>Egresos</span>
       </div>
-      <div class="nav-item cursor-pointer" (click)="goToEmployees()">
+      <div *ngIf="userRole == 'admin'" class="nav-item cursor-pointer" (click)="goToEmployees()">
         <i class="fas fa-users"></i>
         <span>Empleados</span>
       </div>

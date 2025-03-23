@@ -1,5 +1,6 @@
-import { Component, HostListener, OnInit } from '@angular/core';
+import { Component, HostListener, OnInit, NgZone } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { RoleService } from '../../services/role.service';
 import { SupabaseService } from '../../services/supabase.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { map } from 'rxjs';
@@ -14,12 +15,16 @@ import { CommonModule } from '@angular/common';
 })
 export class MainBannerComponent implements OnInit {
   isLoggedIn$;
+  userRole: string = 'visitor';
+  userId: string | null = null;
   message: string | null = null;
   financeDropdownOpen = false;
   constructor(
     private readonly supabase: SupabaseService,
-    private readonly route: ActivatedRoute,
-    private readonly router: Router
+    private readonly roleService: RoleService,
+    //private readonly route: ActivatedRoute,
+    private readonly router: Router,
+    private readonly zone: NgZone
   ) {
     this.isLoggedIn$ = this.supabase
       .authChanges$()
@@ -62,9 +67,17 @@ export class MainBannerComponent implements OnInit {
   }
 
   async ngOnInit(): Promise<void> {
+    this.supabase.authChanges((_, session) => {
+      if (session && !this.userId) {
+        this.zone.run(() => {
+          this.userId = session.user.id;
+          this.getUserRole();
+        });
+      }
+    });
+    /* I honestly don't even know what this is supposed to do here maybe it's important?
     const type = this.route.snapshot.queryParamMap.get('type');
     const token = this.route.snapshot.queryParamMap.get('token');
-
     // Check if it's a signup confirmation
     if (type === 'signup' && token) {
       // You'll need the email used during signup.
@@ -91,6 +104,36 @@ export class MainBannerComponent implements OnInit {
         replaceUrl: true,
       });
     }
+    */
+  }
+  async getUserRole() {
+    const { data, error } = await this.supabase
+      .from('users')
+      .select('id_role')
+      .eq('id', this.userId);
+
+    if (error) {
+      console.error('Error fetching user role: ', error);
+      alert('Error al buscar el rol del usuario');
+      return;
+    }
+    this.userRole = data[0].id_role;
+    this.getRoleName();
+  }
+  async getRoleName() {
+    const { data, error } = await this.supabase
+      .from('roles')
+      .select('name')
+      .eq('id', this.userRole);
+    if (error) {
+      console.error('Error fetching user role: ', error);
+      alert('Error al buscar el rol del usuario');
+      return;
+    }
+    this.userRole = data[0].name;
+    this.roleService.role$.subscribe((role) => {
+      this.userRole = role;
+    });
   }
   toggleFinanceDropdown(event: MouseEvent): void {
     event.stopPropagation(); // Prevents the document click listener from firing
