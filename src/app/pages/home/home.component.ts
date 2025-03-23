@@ -1,4 +1,5 @@
 import { Component, OnInit, NgZone } from '@angular/core';
+import { RoleService } from '../../services/role.service';
 import { MainBannerComponent } from '../main-banner/main-banner.component';
 import { SupabaseService } from '../../services/supabase.service';
 import { CommonModule } from '@angular/common';
@@ -20,11 +21,12 @@ interface User {
 export class HomeComponent implements OnInit {
   user: User | null = null;
   userId: string | null = null;
-  userRole: string | null = null;
+  userRole: string = 'visitor';
   isLoggedIn$;
   constructor(
     private readonly supabase: SupabaseService,
-    private readonly zone: NgZone
+    private readonly zone: NgZone,
+    private readonly roleService: RoleService,
   ) {
     this.isLoggedIn$ = this.supabase
       .authChanges$()
@@ -98,5 +100,6 @@ export class HomeComponent implements OnInit {
       console.log('error updating role: ', error);
       return;
     }
+    this.roleService.setRole(this.userRole)
   }
 }
