@@ -3,6 +3,7 @@ import { Component, OnInit, NgZone } from '@angular/core';
 import { MainBannerComponent } from '../main-banner/main-banner.component';
 import { SupabaseService } from '../../services/supabase.service';
 import { FormsModule } from '@angular/forms';
+import { RoleService } from '../../services/role.service';
 
 interface Notifications {
   id_notification: string;
@@ -14,6 +15,7 @@ interface Notifications {
   id_expenses: string;
   id_material: string;
   due_date: string;
+  id_user: string;
 }
 
 @Component({
@@ -33,6 +35,8 @@ export class NotificationsComponent implements OnInit {
   showAddReminderForm = false;
   showEditReminderForm = false;
   selectedNotification: Notifications | null = null;
+  userId: string = '';
+  userRole: string | null = null;
   reminderForm: Notifications = {
     id_notification: '',
     created_at: '',
@@ -43,11 +47,13 @@ export class NotificationsComponent implements OnInit {
     id_expenses: '',
     id_material: '',
     due_date: '',
+    id_user: this.userId,
   };
 
   constructor(
     private readonly supabase: SupabaseService,
-    private readonly zone: NgZone
+    private readonly zone: NgZone,
+    private readonly roleService: RoleService,
   ) {}
 
   ngOnInit(): void {
@@ -55,6 +61,11 @@ export class NotificationsComponent implements OnInit {
     this.supabase.authChanges((_, session) => {
       if (session) {
         this.zone.run(() => {
+          this.userId = session.user.id;
+          this.roleService.fetchAndSetUserRole(this.userId);
+          this.roleService.role$.subscribe((role) => {
+            this.userRole = role;
+          })
           this.getNotifications();
         });
       }
@@ -64,7 +75,8 @@ export class NotificationsComponent implements OnInit {
     this.loading = true;
     const { error, data } = await this.supabase
       .from('notifications')
-      .select('*');
+      .select('*')
+      .eq('id_user', this.userId);
     if (error) {
       return;
     }
@@ -135,6 +147,7 @@ export class NotificationsComponent implements OnInit {
         id_expenses: '',
         id_material: '',
         due_date: '',
+        id_user: this.userId,
       };
     }
     this.showAddReminderForm = !this.showAddReminderForm;
@@ -157,6 +170,7 @@ export class NotificationsComponent implements OnInit {
       id_order: selectedNotification.id_order,
       id_expenses: selectedNotification.id_expenses,
       id_material: selectedNotification.id_material,
+      id_user: this.userId,
     };
 
     const { error } = await this.supabase

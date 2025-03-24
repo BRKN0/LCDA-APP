@@ -307,7 +307,7 @@ export class OrdersComponent implements OnInit {
     this.selectedOrderDetails = [order];
     this.loadingDetails = false;
   }
-  async toggleOrderStatus(order: Orders) {
+  async toggleOrderConfirmedStatus(order: Orders) {
     order.order_confirmed_status =
       order.order_confirmed_status === 'confirmed'
         ? 'notConfirmed'
@@ -318,6 +318,24 @@ export class OrdersComponent implements OnInit {
       .eq('id_order', order.id_order);
     if (error) {
       console.error(error);
+    }
+  }
+  async toggleOrderCompletionStatus(order: Orders) {
+    const { error } = await this.supabase
+      .from('orders')
+      .update({ order_completion_status: order.order_completion_status })
+      .eq('id_order', order.id_order);
+    if (error) {
+      console.error('Error actualizando estado:', error);
+    }
+  }
+  async toggleOrderPaymentStatus(order: Orders) {
+    const { error } = await this.supabase
+      .from('orders')
+      .update({ order_payment_status: order.order_payment_status })
+      .eq('id_order', order.id_order);
+    if (error) {
+      console.error('Error actualizando estado:', error);
     }
   }
   toggleAddOrderForm(): void {
