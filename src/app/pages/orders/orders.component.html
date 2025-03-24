@@ -93,134 +93,195 @@
 <!-- Orders Table -->
 <div *ngIf="!loading" class="mt-4">
   <table class="table-std">
+    <ng-template
+      [ngIf]="userRole === 'admin'"
+      [ngIfThen]="Admin"
+      [ngIfElse]="notAdmin"
+    ></ng-template>
     <thead>
-      <tr>
+      <ng-template #Admin>
+        <tr>
+          <th class="table-column-std">Código</th>
+          <th class="table-column-std">Tipo</th>
+          <th class="table-column-std">Cliente</th>
+          <th class="table-column-std">Estado de pago</th>
+          <th class="table-column-std">Estado de trabajo</th>
+          <th class="table-column-std">Fecha</th>
+          <th class="table-column-std">Total</th>
+          <th class="table-column-std">Acción</th>
+          <th class="table-column-std">Confirmación de Orden</th>
+        </tr>
+        <tbody>
+          <tr *ngFor="let order of paginatedOrders">
+            <td>{{ order.code }}</td>
+            <td>
+              {{
+                order.order_type === "print"
+                  ? "Impresiones"
+                  : order.order_type === "laser"
+                  ? "Cortes"
+                  : order.order_type === "sales"
+                  ? "Ventas"
+                  : "Desconocido"
+              }}
+            </td>
+            <td>{{ order.name }}</td>
+            <td
+              [ngClass]="{
+                'text-green-600': order.order_payment_status === 'upToDate',
+                'text-red-600': order.order_payment_status === 'overdue'
+              }"
+            >
+              {{
+                order.order_payment_status === "upToDate"
+                  ? "Al Día"
+                  : order.order_payment_status === "overdue"
+                  ? "En Mora"
+                  : "Desconocido"
+              }}
+            </td>
+            <td
+              [ngClass]="{
+                'text-green-600': order.order_completion_status === 'finished',
+                'text-red-600': order.order_completion_status === 'standby',
+                'text-orange-400':
+                  order.order_completion_status === 'inProgress'
+              }"
+            >
+              <select
+                class="border rounded p-1"
+                [(ngModel)]="order.order_completion_status"
+                (change)="toggleOrderCompletionStatus(order)"
+              >
+                <option value="finished">Terminado</option>
+                <option value="standby">En espera</option>
+                <option value="inProgress">En progreso</option>
+              </select>
+            </td>
+
+            <td>{{ order.created_at | date : "dd-MM-yyyy" }}</td>
+            <td [class.invisible]="userRole != 'admin'">
+              {{ order.total }}
+            </td>
+            <td>
+              <button class="btn-details" (click)="selectOrder(order)">
+                Ver Detalles
+              </button>
+              <button class="btn-edit" (click)="editOrder(order)">
+                Editar
+              </button>
+              <button
+                *ngIf="userRole == 'admin'"
+                class="btn-delete"
+                (click)="deleteOrder(order)"
+              >
+                Eliminar
+              </button>
+            </td>
+            <td
+              [ngClass]="{
+                'text-green-600': order.order_confirmed_status === 'confirmed',
+                'text-orange-400':
+                  order.order_confirmed_status === 'notConfirmed'
+              }"
+            >
+              {{
+                order.order_confirmed_status === "confirmed"
+                  ? "Confirmado"
+                  : order.order_confirmed_status === "notConfirmed"
+                  ? "En espera"
+                  : "Desconocido"
+              }}
+            </td>
+          </tr>
+        </tbody>
+      </ng-template>
+      <ng-template #notAdmin>
         <th class="table-column-std">Código</th>
         <th class="table-column-std">Tipo</th>
         <th class="table-column-std">Cliente</th>
         <th class="table-column-std">Estado de pago</th>
         <th class="table-column-std">Estado de trabajo</th>
         <th class="table-column-std">Fecha</th>
-        <th *ngIf="userRole === 'admin'" class="table-column-std">Total</th>
         <th class="table-column-std">Acción</th>
         <th class="table-column-std">Confirmación de Orden</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let order of paginatedOrders">
-        <td>{{ order.code }}</td>
-        <td>
-          {{
-            order.order_type === "print"
-              ? "Impresiones"
-              : order.order_type === "laser"
-              ? "Cortes"
-              : order.order_type === "sales"
-              ? "Ventas"
-              : "Desconocido"
-          }}
-        </td>
-        <td>{{ order.name }}</td>
-        <td
-          [ngClass]="{
-            'text-green-600': order.order_payment_status === 'upToDate',
-            'text-red-600': order.order_payment_status === 'overdue'
-          }"
-        >
-          <ng-container *ngIf="userRole === 'admin'; else paymentStatusText">
-            <select
-              class="border rounded p-1"
-              [(ngModel)]="order.order_payment_status"
-              (change)="toggleOrderPaymentStatus(order)"
+        <tbody>
+          <tr *ngFor="let order of paginatedOrders">
+            <td>{{ order.code }}</td>
+            <td>
+              {{
+                order.order_type === "print"
+                  ? "Impresiones"
+                  : order.order_type === "laser"
+                  ? "Cortes"
+                  : order.order_type === "sales"
+                  ? "Ventas"
+                  : "Desconocido"
+              }}
+            </td>
+            <td>{{ order.name }}</td>
+            <td
+              [ngClass]="{
+                'text-green-600': order.order_payment_status === 'upToDate',
+                'text-red-600': order.order_payment_status === 'overdue'
+              }"
             >
-              <option value="upToDate">Al Dia</option>
-              <option value="overdue">En mora</option>
-            </select>
-          </ng-container>
-          <ng-template #paymentStatusText>
-            {{
-              order.order_payment_status === "upToDate"
-                ? "Al Día"
-                : order.order_payment_status === "overdue"
-                ? "En Mora"
-                : "Desconocido"
-            }}
-          </ng-template>
-        </td>
-        <td
-          [ngClass]="{
-            'text-green-600': order.order_completion_status === 'finished',
-            'text-red-600': order.order_completion_status === 'standby',
-            'text-orange-400': order.order_completion_status === 'inProgress'
-          }"
-        >
-          <ng-container *ngIf="userRole !== 'admin'; else completionStatusText">
-            <select
-              class="border rounded p-1"
-              [(ngModel)]="order.order_completion_status"
-              (change)="toggleOrderCompletionStatus(order)"
+              {{
+                order.order_payment_status === "upToDate"
+                  ? "Al Día"
+                  : order.order_payment_status === "overdue"
+                  ? "En Mora"
+                  : "Desconocido"
+              }}
+            </td>
+            <td
+              [ngClass]="{
+                'text-green-600': order.order_completion_status === 'finished',
+                'text-red-600': order.order_completion_status === 'standby',
+                'text-orange-400':
+                  order.order_completion_status === 'inProgress'
+              }"
             >
-              <option value="finished">Terminado</option>
-              <option value="standby">En espera</option>
-              <option value="inProgress">En progreso</option>
-            </select>
-          </ng-container>
-          <ng-template #completionStatusText>
-            {{
-              order.order_completion_status === "finished"
-                ? "Terminado"
-                : order.order_completion_status === "standby"
-                ? "En espera"
-                : order.order_completion_status === "inProgress"
-                ? "En progreso"
-                : "Desconocido"
-            }}
-          </ng-template>
-        </td>
+              <select
+                class="border rounded p-1"
+                [(ngModel)]="order.order_completion_status"
+                (change)="toggleOrderCompletionStatus(order)"
+              >
+                <option value="finished">Terminado</option>
+                <option value="standby">En espera</option>
+                <option value="inProgress">En progreso</option>
+              </select>
+            </td>
+            <td>{{ order.created_at | date : "dd-MM-yyyy" }}</td>
+            <td>
+              <button class="btn-details" (click)="selectOrder(order)">
+                Ver Detalles
+              </button>
+              <button class="btn-edit" (click)="editOrder(order)">
+                Editar
+              </button>
+              <button
+                *ngIf="userRole == 'admin'"
+                class="btn-delete"
+                (click)="deleteOrder(order)"
+              >
+                Eliminar
+              </button>
+            </td>
 
-        <td>{{ order.created_at | date : "dd-MM-yyyy" }}</td>
-        <td>
-          {{ order.total }}
-        </td>
-        <td>
-          <button class="btn-details" (click)="selectOrder(order)">
-            Ver Detalles
-          </button>
-          <button class="btn-edit" (click)="editOrder(order)">Editar</button>
-          <button
-            *ngIf="userRole == 'admin'"
-            class="btn-delete"
-            (click)="deleteOrder(order)"
-          >
-            Eliminar
-          </button>
-        </td>
-        <td
-          *ngIf="userRole == 'admin'"
-          [ngClass]="{
-            'text-green-600': order.order_confirmed_status === 'confirmed',
-            'text-orange-400': order.order_confirmed_status === 'notConfirmed'
-          }"
-        >
-          {{
-            order.order_confirmed_status === "confirmed"
-              ? "Confirmado"
-              : order.order_confirmed_status === "notConfirmed"
-              ? "En espera"
-              : "Desconocido"
-          }}
-        </td>
-        <td *ngIf="userRole != 'admin'">
-          <label>
-            <input
-              type="checkbox"
-              [checked]="order.order_confirmed_status === 'confirmed'"
-              (change)="toggleOrderConfirmedStatus(order)"
-            />
-          </label>
-        </td>
-      </tr>
-    </tbody>
+            <td>
+              <label>
+                <input
+                  type="checkbox"
+                  [checked]="order.order_confirmed_status === 'confirmed'"
+                  (change)="toggleOrderConfirmedStatus(order)"
+                />
+              </label>
+            </td>
+          </tr>
+        </tbody>
+      </ng-template>
+    </thead>
   </table>
 </div>
 
