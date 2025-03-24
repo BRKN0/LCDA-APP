@@ -32,7 +32,7 @@ interface Cuts {
   material_type: string;
   color: string;
   caliber: string;
-  length: string;
+  height: string;
   width: string;
   quantity: string;
   cutting_time: string;
