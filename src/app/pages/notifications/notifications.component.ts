@@ -106,6 +106,7 @@ export class NotificationsComponent implements OnInit {
         this.printsOrders.push(this.notifications[i]);
       }
     }
+    this.loading = false;
   }
 
   async getNotifications() {
@@ -233,6 +234,10 @@ export class NotificationsComponent implements OnInit {
     if (error) {
       return;
     }
-    this.getNotifications();
+    if (this.userRole == 'admin') {
+      this.getNotifications();
+    } else {
+      this.getEmployeeNotifications();
+    }
   }
 }

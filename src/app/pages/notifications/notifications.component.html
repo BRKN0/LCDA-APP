@@ -1,5 +1,9 @@
 <app-main-banner></app-main-banner>
-<div class="notifications-container">
+<!-- Indicador de carga -->
+<div *ngIf="loading" class="p-4 text-center text-gray-600">
+  <p>Cargando notificaciones...</p>
+</div>
+<div *ngIf="!loading" class="notifications-container">
   <!-- To Collect Section -->
   <div *ngIf="userRole == 'admin'" class="notification-section">
     <h2 class="section-title">
