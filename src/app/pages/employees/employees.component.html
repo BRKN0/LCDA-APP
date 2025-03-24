@@ -73,9 +73,19 @@
         <td>{{ employee.id_number }}</td>
         <td>{{ employee.email }}</td>
         <td>{{ employee.phone }}</td>
-        <td>{{ employee.employee_type }}</td>
         <td>{{ employee.salary }}</td>
         <td>{{ employee.created_at | date : "dd-MM-yyyy" }}</td>
+        <td>
+          {{ 
+            { 
+              cutter: "Empleado de cortes", 
+              printer: "Empleado de impresiones",
+              counter: "Contador",
+              seller: "Vendedor",
+              scheduled: "Agendador", 
+            }[employee.employee_type] || "Desconocido" 
+          }}
+        </td>
         <td>
           <button class="btn-details" (click)="openDetailsModal(employee)">
             Detalles
