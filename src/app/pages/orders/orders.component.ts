@@ -19,14 +19,25 @@ interface Orders {
   notes: string;
   created_at: string;
   order_quantity: string;
-  unitary_value: string;
-  iva: string;
-  subtotal: string;
-  total: string;
-  amount: string;
+  unitary_value: string | number;
+  iva: string | number;
+  subtotal: string | number;
+  total: string | number;
+  amount: string | number;
   id_client: string;
 }
-
+interface Notifications {
+  id_notification: string;
+  created_at: string;
+  type: string;
+  description: string;
+  id_invoice: string;
+  id_order: string;
+  id_expenses: string;
+  id_material: string;
+  due_date: string;
+  id_user: string | null;
+}
 interface Cuts {
   id: string;
   material_type: string;
@@ -62,6 +73,9 @@ interface Prints {
   styleUrls: ['./orders.component.scss'],
 })
 export class OrdersComponent implements OnInit {
+  notificationToInsert: Partial<Notifications> = {};
+  orderToInsert: Partial<Orders> = {};
+  notificationDesc: string = '';
   userId: string | null = null;
   userRole: string | null = null;
   showModal: boolean = false;
@@ -94,21 +108,7 @@ export class OrdersComponent implements OnInit {
   private searchSubject = new Subject<void>();
 
   // Para añadir pedidos
-  newOrder: Partial<Orders> = {
-    id_order: '',
-    order_type: '',
-    name: '',
-    description: '',
-    order_payment_status: 'overdue',
-    created_at: new Date().toISOString(),
-    order_quantity: '',
-    unitary_value: '',
-    iva: '',
-    subtotal: '',
-    total: '',
-    amount: '',
-    id_client: '',
-  };
+  newOrder: Partial<Orders> = {};
 
   constructor(
     private readonly supabase: SupabaseService,
@@ -385,36 +385,38 @@ export class OrdersComponent implements OnInit {
     }
   }
 
-  async addOrder(newOrder: Partial<Orders>): Promise<void> {
+  async addOrder(newOrderForm: Partial<Orders>): Promise<void> {
     const selectedClient = this.clients.find(
-      (client) => client.id_client === newOrder.id_client
+      (client) => client.id_client === newOrderForm.id_client
     );
-    newOrder.name = selectedClient ? selectedClient.name : '';
-    const orderToInsert = {
-      id_order: newOrder.id_order,
-      order_type: newOrder.order_type,
-      name: newOrder.name,
-      description: newOrder.description,
-      order_payment_status: newOrder.order_payment_status || 'overdue',
-      created_at: newOrder.created_at || new Date().toISOString(),
-      order_quantity: newOrder.order_quantity,
-      unitary_value: newOrder.unitary_value || 0,
-      iva: newOrder.iva || 0,
-      subtotal: newOrder.subtotal || 0,
-      total: newOrder.total || 0,
-      amount: newOrder.amount || 0,
-      id_client: newOrder.id_client,
-      order_confirmed_status: newOrder.order_confirmed_status,
-      order_completion_status: newOrder.order_completion_status,
-      order_delivery_status: newOrder.order_delivery_status,
-      notes: newOrder.notes,
+    newOrderForm.name = selectedClient ? selectedClient.name : '';
+    // Everytime you use a constant used for this you get closer to hell, please stop
+    // Like what was even the point? just use newOrder instead of making a useless constant
+    // Also, why name the new order coming from the form the same as the Partial Object
+    this.newOrder = {
+      order_type: newOrderForm.order_type,
+      name: newOrderForm.name,
+      description: newOrderForm.description,
+      order_payment_status: newOrderForm.order_payment_status || 'overdue',
+      created_at: newOrderForm.created_at || new Date().toISOString(),
+      order_quantity: newOrderForm.order_quantity,
+      unitary_value: newOrderForm.unitary_value || 0,
+      iva: newOrderForm.iva || 0,
+      subtotal: newOrderForm.subtotal || 0,
+      total: newOrderForm.total || 0,
+      amount: newOrderForm.amount || 0,
+      id_client: newOrderForm.id_client,
+      order_confirmed_status: newOrderForm.order_confirmed_status,
+      order_completion_status: newOrderForm.order_completion_status,
+      order_delivery_status: newOrderForm.order_delivery_status,
+      notes: newOrderForm.notes,
     };
-    // How was there no update before?? it just added a copy of the selected order. why?
     if (this.isEditing == true) {
+      this.newOrder.id_order = newOrderForm.id_order;
       const { error } = await this.supabase
         .from('orders')
-        .update([orderToInsert])
-        .eq('id_order', orderToInsert.id_order);
+        .update([this.newOrder])
+        .eq('id_order', this.newOrder.id_order);
       if (error) {
         console.error('Error al añadir el pedido:', error);
         return;
@@ -422,18 +424,57 @@ export class OrdersComponent implements OnInit {
       this.getOrders();
       this.toggleAddOrderForm();
     } else {
-      const { error } = await this.supabase
+      const { data, error } = await this.supabase
         .from('orders')
-        .insert([orderToInsert]);
+        .insert([this.newOrder])
+        .select();
       if (error) {
         console.error('Error al añadir el pedido:', error);
         return;
       }
+      this.newOrder.id_order = data[0].id_order;
+      this.newOrder.code = data[0].code;
+      console.log(this.newOrder);
+      this.createNotification(this.newOrder);
       this.getOrders();
       this.toggleAddOrderForm();
     }
   }
+  async createNotification(addedOrder: Partial<Orders>) {
+    this.notificationDesc = 'Nuevo pedido: ' + addedOrder.description + '. Codigo: ' + addedOrder.code;
+    if (addedOrder.order_type == 'print') {
+      this.notificationToInsert = {
+        id_user: null,
+        id_order: addedOrder.id_order,
+        description: this.notificationDesc,
+        type: 'prints',
+        due_date: addedOrder.created_at,
+      };
+      const { error } = await this.supabase
+        .from('notifications')
+        .insert([this.notificationToInsert]);
+      if (error) {
+        console.error('Error creating notification', error);
+        return;
+      }
+    } else if (addedOrder.order_type == 'laser') {
+      this.notificationToInsert = {
+        id_user: null,
+        id_order: addedOrder.id_order,
+        description: this.notificationDesc,
+        type: 'cuts',
+        due_date: addedOrder.created_at,
+      };
 
+      const { error } = await this.supabase
+        .from('notifications')
+        .insert([this.notificationToInsert]);
+      if (error) {
+        console.error('Error creating notification', error);
+        return;
+      }
+    }
+  }
   private formatDateForInput(date: Date | string): string {
     const dateObj = new Date(date);
     const year = dateObj.getFullYear();
