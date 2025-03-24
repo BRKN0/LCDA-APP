@@ -30,6 +30,8 @@ export class NotificationsComponent implements OnInit {
   toPay: Notifications[] = [];
   lowStock: Notifications[] = [];
   reminders: Notifications[] = [];
+  cutsOrders: Notifications[] = [];
+  printsOrders: Notifications[] = [];
   loading: boolean = true;
   notifications: Notifications[] = [];
   showAddReminderForm = false;
@@ -53,7 +55,7 @@ export class NotificationsComponent implements OnInit {
   constructor(
     private readonly supabase: SupabaseService,
     private readonly zone: NgZone,
-    private readonly roleService: RoleService,
+    private readonly roleService: RoleService
   ) {}
 
   ngOnInit(): void {
@@ -65,12 +67,47 @@ export class NotificationsComponent implements OnInit {
           this.roleService.fetchAndSetUserRole(this.userId);
           this.roleService.role$.subscribe((role) => {
             this.userRole = role;
-          })
-          this.getNotifications();
+          });
+          if (this.userRole != 'admin') {
+            this.getEmployeeNotifications();
+          } else {
+            this.getNotifications();
+          }
         });
       }
     });
   }
+  async getEmployeeNotifications() {
+    this.loading = true;
+    if (this.userRole == 'cuts_employee') {
+      this.cutsOrders = [];
+      const { error, data } = await this.supabase
+        .from('notifications')
+        .select('*')
+        .eq('type', 'cuts');
+      if (error) {
+        return;
+      }
+      this.notifications = data as Notifications[];
+      for (let i = 0; i < this.notifications.length; i++) {
+        this.cutsOrders.push(this.notifications[i]);
+      }
+    } else if (this.userRole == 'prints_employee') {
+      this.printsOrders = [];
+      const { error, data } = await this.supabase
+        .from('notifications')
+        .select('*')
+        .eq('type', 'prints');
+      if (error) {
+        return;
+      }
+      this.notifications = data as Notifications[];
+      for (let i = 0; i < this.notifications.length; i++) {
+        this.printsOrders.push(this.notifications[i]);
+      }
+    }
+  }
+
   async getNotifications() {
     this.loading = true;
     const { error, data } = await this.supabase
@@ -100,7 +137,12 @@ export class NotificationsComponent implements OnInit {
         case 'reminder':
           this.reminders.push(this.notifications[i]);
           break;
-
+        case 'prints':
+          this.printsOrders.push(this.notifications[i]);
+          break;
+        case 'cuts':
+          this.cutsOrders.push(this.notifications[i]);
+          break;
         default:
           console.log(
             'notification type is unknown: ',
