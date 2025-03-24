@@ -1,7 +1,7 @@
 <app-main-banner></app-main-banner>
 <div class="notifications-container">
   <!-- To Collect Section -->
-  <div class="notification-section">
+  <div *ngIf="userRole == 'admin'" class="notification-section">
     <h2 class="section-title">
       Por Cobrar
       <span class="notification-count">{{ toCollect.length }}</span>
@@ -14,7 +14,7 @@
   </div>
 
   <!-- To Pay Section -->
-  <div class="notification-section">
+  <div *ngIf="userRole == 'admin'" class="notification-section">
     <h2 class="section-title">
       Por Pagar
       <span class="notification-count">{{ toPay.length }}</span>
@@ -27,7 +27,7 @@
   </div>
 
   <!-- Low Stock Section -->
-  <div class="notification-section">
+  <div *ngIf="userRole == 'admin'" class="notification-section">
     <h2 class="section-title">
       Bajo Stock
       <span class="notification-count">{{ lowStock.length }}</span>
@@ -38,13 +38,17 @@
       </li>
     </ul>
   </div>
-
-  <!-- Reminders Section -->
   <div class="notification-section">
-    <h2 class="section-title">
+    <h2 *ngIf="userRole == 'admin'" class="section-title">
       Recordatorio
       <span class="notification-count">{{ reminders.length }}</span>
     </h2>
+    <h2 *ngIf="userRole != 'admin'" class="section-title">
+      Ordenes pendientes
+      <span class="notification-count">{{ reminders.length }}</span>
+    </h2>
+  <!-- Reminders Section -->
+   <ng-template>
     <ul>
       <li *ngFor="let notification of reminders" class="relative p-4 border-b">
         <div class="flex justify-between items-start">
@@ -98,6 +102,7 @@
         </div>
       </li>
     </ul>
+   </ng-template>
 
     <button
       class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 bottom-0 right-0"
@@ -108,7 +113,7 @@
   </div>
 </div>
 <!-- Form to add reminder -->
-<div
+<div 
   *ngIf="showAddReminderForm"
   class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
 >
