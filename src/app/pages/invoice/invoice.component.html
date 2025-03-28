@@ -90,7 +90,8 @@
         <th class="table-column-std">Tipo</th>
         <th class="table-column-std">Cliente</th>
         <th class="table-column-std">Fecha</th>
-        <th class="table-column-std">Importe</th>
+        <th class="p-3 border">Abonos</th>
+        <th class="p-3 border">Falta por pagar</th>
         <th class="table-column-std">Estado</th>
         <th class="table-column-std">Acciones</th>
       </tr>
@@ -119,7 +120,12 @@
         <td class="table-column-std">
           {{ invoice.created_at | date : "dd-MM-yyyy" }}
         </td>
-        <td class="table-column-std">{{ invoice.order.amount }}</td>
+        <td class="table-column-std">
+          ${{ getTotalPayments(invoice.order) }}
+        </td>
+        <td class="table-column-std">
+          ${{ formatNumber(getRemainingBalance(invoice)) }}
+        </td>
         <td
           class="table-column-std"
           [class.text-green-600]="invoice.invoice_status === 'upToDate'"
@@ -264,17 +270,6 @@
           [(ngModel)]="selectedInvoice.created_at"
           name="date"
           class="form-input"
-          required
-        />
-      </div>
-      <div class="mb-4">
-        <label class="block text-gray-700">Importe (sin IVA)</label>
-        <input
-          type="number"
-          [(ngModel)]="selectedInvoice.order.amount"
-          name="amount"
-          class="form-input"
-          step="0.01"
           required
         />
       </div>
@@ -439,6 +434,7 @@
 </div>
 
 <!-- Show details of the selected invoice in float window -->
+<!-- Show details of the selected invoice in float window -->
 <div
   *ngIf="selectedInvoiceDetails && selectedInvoiceDetails.length > 0"
   class="modal-overlay"
@@ -447,10 +443,14 @@
     <!-- Botón de cierre -->
     <button
       class="absolute top-4 right-4 text-gray-600 hover:text-black font-bold text-xl"
-      (click)="selectedInvoiceDetails = null"
+      (click)="closeDetails()"
     >
       ×
     </button>
+    <!-- Notificación -->
+    <div *ngIf="notificationMessage" class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4">
+      {{ notificationMessage }}
+    </div>
     <h2 class="text-xl font-bold">Detalles de Factura</h2>
 
     <!-- Printable Invoice Layout -->
@@ -466,11 +466,9 @@
           </p>
           <p
             [class.text-green-600]="
-              selectedInvoiceDetails[0].invoice_status === 'upToDate'
-            "
+              selectedInvoiceDetails[0].invoice_status === 'upToDate'"
             [class.text-red-600]="
-              selectedInvoiceDetails[0].invoice_status === 'overdue'
-            "
+              selectedInvoiceDetails[0].invoice_status === 'overdue'"
           >
             <strong>Estado:</strong>
             {{
@@ -538,7 +536,56 @@
             {{ (selectedInvoiceDetails[0].include_iva ? calculateInvoiceValues(selectedInvoiceDetails[0]).total : calculateInvoiceValues(selectedInvoiceDetails[0]).subtotal).toFixed(2) }}
           </p>
         </div>
+        <!-- Mostrar abonos y falta por pagar -->
+        <div class="flex justify-between mt-2">
+          <p><strong>Abonos Realizados:</strong></p>
+          <p>
+            ${{ getTotalPayments(selectedInvoiceDetails[0].order) }}
+          </p>
+        </div>
+        <div class="flex justify-between">
+          <p><strong>Falta por Pagar:</strong></p>
+          <p>
+            ${{ formatNumber(getRemainingBalance(selectedInvoiceDetails[0])) }}
+          </p>
+        </div>
       </div>
+
+      <!-- Lista de abonos -->
+      <div *ngIf="selectedInvoiceDetails[0].order.payments && selectedInvoiceDetails[0].order.payments.length > 0" class="mt-4">
+        <h4 class="font-semibold">Abonos:</h4>
+        <ul>
+          <li *ngFor="let payment of selectedInvoiceDetails[0].order.payments">
+            ${{ payment.amount }} - {{ payment.payment_date | date: 'dd-MM-yyyy' }}
+            <button
+              class="text-blue-500 ml-2"
+              (click)="editPayment(payment)"
+            >
+              Editar
+            </button>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Formulario para añadir abono -->
+      <div class="mt-4">
+        <h4 class="font-semibold">Añadir Abono:</h4>
+        <input
+          type="number"
+          placeholder="Monto del abono"
+          [(ngModel)]="newPaymentAmount"
+          name="newPaymentAmount"
+          class="form-input w-full mt-1"
+        />
+        <button
+          class="btn-success py-2 px-4 mt-2 rounded"
+          (click)="addPayment(selectedInvoiceDetails[0].order, newPaymentAmount)"
+        >
+          Añadir Abono
+        </button>
+      </div>
+
+      <!-- Botón para descargar PDF -->
       <button
         type="button"
         class="btn-success py-2 px-4 mt-4 rounded"
@@ -546,6 +593,36 @@
       >
         Descargar PDF
       </button>
+    </div>
+  </div>
+
+  <!-- Modal para editar abono -->
+  <div
+    *ngIf="showEditPayment && selectedPayment"
+    class="modal-overlay"
+  >
+    <div class="modal-content w-1/3">
+      <h4 class="text-lg font-bold mb-4">Editar Abono</h4>
+      <input
+        type="number"
+        [(ngModel)]="selectedPayment.amount"
+        name="editPaymentAmount"
+        class="form-input w-full mb-2"
+      />
+      <div class="flex justify-end">
+        <button
+          class="btn-danger"
+          (click)="showEditPayment = false"
+        >
+          Cancelar
+        </button>
+        <button
+          class="btn-success px-4 py-2 rounded-md ml-2"
+          (click)="updatePayment(selectedInvoiceDetails[0].order)"
+        >
+          Guardar
+        </button>
+      </div>
     </div>
   </div>
 </div>

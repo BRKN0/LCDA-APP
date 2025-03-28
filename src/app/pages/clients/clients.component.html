@@ -127,24 +127,43 @@
         </button>
       </div>
 
-            <!-- Detalles del cliente -->
-      <div *ngIf="showDetails" class="details">
-        <p><strong>Teléfono:</strong> {{ selectedClient?.cellphone }}</p>
-        <p><strong>Dirección:</strong> {{ selectedClient?.address }}</p>
+      <!-- Detalles del cliente -->
+      <div *ngIf="showDetails && selectedClient" class="details">
+        <p><strong>Teléfono:</strong> {{ selectedClient.cellphone }}</p>
+        <p><strong>Dirección:</strong> {{ selectedClient.address }}</p>
         <p>
           <strong>Deuda:</strong>
           <span
-            [class.text-green-600]="(selectedClient?.debt ?? 0) === 0"
-            [class.text-red-600]="(selectedClient?.debt ?? 0) > 0"
+            [class.text-green-600]="selectedClient.debt === 0"
+            [class.text-red-600]="selectedClient.debt > 0"
           >
             {{
-              (selectedClient?.debt ?? 0) > 0
-                ? "$" + (selectedClient?.debt ?? 0)
+              selectedClient.debt > 0
+                ? "$" + selectedClient.debt
                 : "Sin Deuda"
             }}
           </span>
         </p>
+        <p><strong>Límite de Crédito:</strong> ${{ selectedClient.credit_limit }}</p>
+        <!-- Campo para editar el límite de crédito (solo admin) -->
+        <div *ngIf="userRole === 'admin' && selectedClient" class="mt-2">
+          <label for="creditLimit" class="block text-gray-700">Actualizar Límite de Crédito:</label>
+          <input
+            type="number"
+            id="creditLimit"
+            [(ngModel)]="selectedClient.credit_limit"
+            name="creditLimit"
+            class="border p-1 mt-1 block w-full"
+          />
+          <button
+            class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 mt-2"
+            (click)="updateCreditLimit(selectedClient)"
+          >
+            Guardar
+          </button>
+        </div>
       </div>
+
 
       <!-- Botón para cerrar el modal -->
       <div class="flex justify-end mt-4">
@@ -158,93 +177,104 @@
     </div>
   </div>
 
-  <!-- Modal para mostrar pedidos (sin cambios) -->
+  <!-- Modal para mostrar pedidos -->
   <div
-    *ngIf="showOrders"
-    class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
+  *ngIf="showOrders"
+  class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
   >
-    <div class="bg-white rounded-lg shadow-lg p-6 w-3/4 max-h-screen overflow-y-auto">
-      <h3 class="text-lg font-bold mb-4">
-        Pedidos del Cliente: {{ selectedClient?.name }}
-      </h3>
-      <table class="w-full border-collapse">
-        <thead>
-          <tr class="bg-gray-100">
-            <th class="p-3 border">#</th>
-            <th class="p-3 border">Fecha</th>
-            <th class="p-3 border">Detalles</th>
-            <th class="p-3 border">Total</th>
-            <th class="p-3 border">Estado de pago</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let order of paginatedOrders">
-            <td class="p-3 border">{{ order.code }}</td>
-            <td class="p-3 border">{{ order.created_at }}</td>
-            <td class="p-3 border">{{ order.description }}</td>
-            <td class="p-3 border">{{ order.total }}</td>
-            <td
-              class="p-3 border"
-              [class.text-green-600]="order.order_payment_status === 'upToDate'"
-              [class.text-red-600]="order.order_payment_status === 'overdue'"
-              [class.text-yellow-500]="order.order_payment_status === 'No Pago'"
-            >
-              {{
-                order.order_payment_status === "upToDate"
-                  ? "Al Día"
-                  : order.order_payment_status === "overdue"
-                  ? "En Mora"
-                  : "Desconocido"
-              }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <div class="flex justify-between items-center mb-4">
-        <div class="pagination flex items-center">
-          <button
-            (click)="currentOrderPage = currentOrderPage - 1; updatePaginatedOrders()"
-            [disabled]="currentOrderPage === 1"
-            class="px-2 py-1 text-black border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+  <div class="bg-white rounded-lg shadow-lg p-6 w-3/4 max-h-screen overflow-y-auto">
+    <h3 class="text-lg font-bold mb-4">
+      Pedidos del Cliente: {{ selectedClient?.name }}
+    </h3>
+    <table class="w-full border-collapse">
+      <thead>
+        <tr class="bg-gray-100">
+          <th class="p-3 border">#</th>
+          <th class="p-3 border">Fecha</th>
+          <th class="p-3 border">Detalles</th>
+          <th class="p-3 border">Total</th>
+          <th class="p-3 border">Estado de pago</th>
+          <th class="p-3 border">Abonos</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let order of paginatedOrders">
+          <td class="p-3 border">{{ order.code }}</td>
+          <td class="p-3 border">{{ order.created_at | date: 'dd-MM-yyyy' }}</td>
+          <td class="p-3 border">{{ order.description }}</td>
+          <td class="p-3 border">${{ order.total }}</td>
+          <td
+            class="p-3 border"
+            [class.text-green-600]="order.order_payment_status === 'upToDate'"
+            [class.text-red-600]="order.order_payment_status === 'overdue'"
           >
-            ←
-          </button>
-          <span class="mx-4 text-gray-700">
-            Página {{ currentOrderPage }} de {{ totalOrderPages }}
-          </span>
-          <button
-            (click)="currentOrderPage = currentOrderPage + 1; updatePaginatedOrders()"
-            [disabled]="currentOrderPage === totalOrderPages"
-            class="px-2 py-1 text-black border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
-          >
-            →
-          </button>
-        </div>
-        <div class="items-per-page flex items-center">
-          <label for="itemsPerPageOrders" class="mr-2">
-            Elementos por página:
-          </label>
-          <select
-            id="itemsPerPageOrders"
-            [(ngModel)]="itemsPerOrderPage"
-            (change)="updatePaginatedOrders()"
-            class="border border-gray-300 rounded-md p-1"
-          >
-            <option *ngFor="let size of [10, 15, 25, 50]" [value]="size">
-              {{ size }}
-            </option>
-          </select>
-        </div>
-      </div>
-      <div class="flex justify-end mt-4">
+            {{
+              order.order_payment_status === "upToDate"
+                ? "Al Día"
+                : order.order_payment_status === "overdue"
+                ? "En Mora"
+                : "Desconocido"
+            }}
+          </td>
+          <td class="p-3 border">
+            <!-- Mostrar abonos existentes -->
+            <div *ngIf="order.payments && order.payments.length > 0">
+              <ul>
+                <li *ngFor="let payment of order.payments">
+                  ${{ payment.amount }} - {{ payment.payment_date | date: 'dd-MM-yyyy' }}
+                </li>
+              </ul>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <!-- Paginación (sin cambios) -->
+    <div class="flex justify-between items-center mb-4">
+      <div class="pagination flex items-center">
         <button
-          class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
-          (click)="toggleOrders(null)"
+          (click)="currentOrderPage = currentOrderPage - 1; updatePaginatedOrders()"
+          [disabled]="currentOrderPage === 1"
+          class="px-2 py-1 text-black border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
         >
-          Cerrar
+          ←
+        </button>
+        <span class="mx-4 text-gray-700">
+          Página {{ currentOrderPage }} de {{ totalOrderPages }}
+        </span>
+        <button
+          (click)="currentOrderPage = currentOrderPage + 1; updatePaginatedOrders()"
+          [disabled]="currentOrderPage === totalOrderPages"
+          class="px-2 py-1 text-black border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+        >
+          →
         </button>
       </div>
+      <div class="items-per-page flex items-center">
+        <label for="itemsPerPageOrders" class="mr-2">
+          Elementos por página:
+        </label>
+        <select
+          id="itemsPerPageOrders"
+          [(ngModel)]="itemsPerOrderPage"
+          (change)="updatePaginatedOrders()"
+          class="border border-gray-300 rounded-md p-1"
+        >
+          <option *ngFor="let size of [10, 15, 25, 50]" [value]="size">
+            {{ size }}
+          </option>
+        </select>
+      </div>
     </div>
+    <div class="flex justify-end mt-4">
+      <button
+        class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
+        (click)="toggleOrders(null)"
+      >
+        Cerrar
+      </button>
+    </div>
+  </div>
   </div>
 
   <!-- Paginación de la tabla principal -->
