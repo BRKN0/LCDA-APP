@@ -10,6 +10,7 @@ interface Orders {
   id_order: string;
   order_type: string;
   name: string;
+  client_type: string;
   code: number;
   description: string;
   order_payment_status: string;
@@ -344,6 +345,7 @@ export class OrdersComponent implements OnInit {
         id_order: '',
         order_type: '',
         name: '',
+        client_type: '',
         description: '',
         order_payment_status: 'overdue',
         created_at: new Date().toISOString(),
@@ -396,6 +398,7 @@ export class OrdersComponent implements OnInit {
     this.newOrder = {
       order_type: newOrderForm.order_type,
       name: newOrderForm.name,
+      client_type: newOrderForm.client_type,
       description: newOrderForm.description,
       order_payment_status: newOrderForm.order_payment_status || 'overdue',
       created_at: newOrderForm.created_at || new Date().toISOString(),
