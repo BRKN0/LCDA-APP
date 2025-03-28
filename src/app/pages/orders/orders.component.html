@@ -104,12 +104,13 @@
           <th class="table-column-std">Código</th>
           <th class="table-column-std">Tipo</th>
           <th class="table-column-std">Cliente</th>
+          <th class="table-column-std">Tipo de cliente</th>
           <th class="table-column-std">Estado de pago</th>
           <th class="table-column-std">Estado de trabajo</th>
           <th class="table-column-std">Fecha</th>
           <th class="table-column-std">Total</th>
+          <th class="table-column-std">Confirmación</th>
           <th class="table-column-std">Acción</th>
-          <th class="table-column-std">Confirmación de Orden</th>
         </tr>
         <tbody>
           <tr *ngFor="let order of paginatedOrders">
@@ -126,6 +127,15 @@
               }}
             </td>
             <td>{{ order.name }}</td>
+            <td>
+              {{
+                order.client_type === "finall"
+                  ? "Final"
+                  : order.client_type === "intermediary"
+                  ? "Intermediario"
+                  : "Desconocido"
+              }}
+            </td>
             <td
               [ngClass]="{
                 'text-green-600': order.order_payment_status === 'upToDate',
@@ -163,21 +173,6 @@
             <td [class.invisible]="userRole != 'admin'">
               {{ order.total }}
             </td>
-            <td>
-              <button class="btn-details" (click)="selectOrder(order)">
-                Ver Detalles
-              </button>
-              <button class="btn-edit" (click)="editOrder(order)">
-                Editar
-              </button>
-              <button
-                *ngIf="userRole == 'admin'"
-                class="btn-delete"
-                (click)="deleteOrder(order)"
-              >
-                Eliminar
-              </button>
-            </td>
             <td
               [ngClass]="{
                 'text-green-600': order.order_confirmed_status === 'confirmed',
@@ -192,6 +187,21 @@
                   ? "En espera"
                   : "Desconocido"
               }}
+            </td>
+            <td>
+              <button class="btn-details" (click)="selectOrder(order)">
+                Ver Detalles
+              </button>
+              <button class="btn-edit" (click)="editOrder(order)">
+                Editar
+              </button>
+              <button
+                *ngIf="userRole == 'admin'"
+                class="btn-delete"
+                (click)="deleteOrder(order)"
+              >
+                Eliminar
+              </button>
             </td>
           </tr>
         </tbody>
@@ -565,6 +575,18 @@
           <option *ngFor="let client of clients" [value]="client.id_client">
             {{ client.name }}
           </option>
+        </select>
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Tipo de Cliente</label>
+        <select
+          [(ngModel)]="newOrder.client_type"
+          name="clie_type"
+          class="form-select mt-1 block w-full"
+          required
+        >
+          <option value="intermediary">Intermediario</option>
+          <option value="finall">Final</option>
         </select>
       </div>
       <div class="mb-4">
