@@ -107,6 +107,31 @@ export class OrdersComponent implements OnInit {
   paginatedOrders: Orders[] = [];
   // Subject para debounce (sin argumentos)
   private searchSubject = new Subject<void>();
+  //Calculator
+  showCalculator: boolean = false;
+  calculationType: 'prints' | 'cuts' | 'sales' | null = null;
+  clientType: 'intermediary' | 'final' | null = null;
+  // Valores de la impresión
+  lamination: boolean = false;
+  pPrint: boolean = false;
+  stamping: boolean = false;
+  assemble: boolean = false;
+  laminationValue: number = 2;
+  printValue: number = 1.2;
+  stampingValue: number = 1.2;
+  assembleValue: number = 1.2;
+  rollWidth: number = 0;
+  measurement: number = 0;
+  productNumber: number = 1;
+  // Valores para corte
+  materialValue: number = 0;
+  intermediaryPerMinute: number = 800;
+  finalPerMinute: number = 1000;
+  usageTime: number = 0;
+  calculatorResult: number = 0;
+  
+
+
 
   // Para añadir pedidos
   newOrder: Partial<Orders> = {};
@@ -501,5 +526,78 @@ export class OrdersComponent implements OnInit {
     const startIndex = Number((this.currentPage - 1) * this.itemsPerPage);
     const endIndex = startIndex + Number(this.itemsPerPage);
     this.paginatedOrders = this.filteredOrdersList.slice(startIndex, endIndex);
+  }
+
+  openCalculator(): void {
+    this.showCalculator = true;
+    this.calculationType = null;
+    this.resetForm();
+  }
+  
+  closeCalculator(): void {
+    this.showCalculator = false;
+    this.resetForm();
+  }
+  
+  resetForm(): void {
+    // General
+    this.calculatorResult = 0;
+    this.clientType = null;
+    // Prints
+    this.lamination = false;
+    this.pPrint = false;
+    this.stamping = false;
+    this.assemble = false;
+    this.rollWidth = 0;
+    this.measurement = 0;
+    this.productNumber = 1;
+    //Cuts
+    this.materialValue = 0;
+    this.usageTime = 0;
+  }
+
+  setValoresPorCliente(): void {
+    if (this.clientType === 'intermediary') {
+      this.laminationValue = 1.2;
+      this.printValue
+   = 2;
+      this.stampingValue = 1.2;
+      this.assembleValue = 1.2;
+    } else if (this.clientType === 'final') {
+      this.laminationValue = 1.5;
+      this.printValue
+   = 5;
+      this.stampingValue = 1.5;
+      this.assembleValue = 1.5;
+    }
+  }
+
+  calculatePrice(): void {
+    if(this.calculationType == 'prints'){
+      const base = this.rollWidth * this.measurement * this.productNumber;
+  
+      let factor = 0;
+    
+      if (this.lamination) factor += this.laminationValue;
+      if (this.pPrint) factor += this.printValue
+  ;
+      if (this.stamping) factor += this.stampingValue;
+      if (this.assemble) factor += this.assembleValue;
+    
+      this.calculatorResult = base * factor;
+    }else if(this.calculationType == 'cuts'){
+      let valorTiempo = 0;
+      if (this.usageTime <= 10) {
+        valorTiempo = 8000;
+      } else {
+        valorTiempo =
+          this.clientType === 'intermediary'
+            ? this.usageTime * this.intermediaryPerMinute
+            : this.usageTime * this.finalPerMinute;
+      }
+
+      this.calculatorResult = this.materialValue + valorTiempo;
+    }
+    
   }
 }
