@@ -147,7 +147,9 @@ export class OrdersComponent implements OnInit {
 
   // Para añadir pedidos
   newOrder: Partial<Orders> = {};
-
+  newCut: Partial<Cuts> = {};
+  newPrint: Partial<Prints> = {};
+  
   constructor(
     private readonly supabase: SupabaseService,
     private readonly zone: NgZone,

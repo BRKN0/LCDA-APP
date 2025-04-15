@@ -65,7 +65,6 @@
   >
     Calculadora
   </button>
-
 </div>
 
 <!-- Search bars -->
@@ -554,9 +553,13 @@
   *ngIf="showModal"
   class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
 >
-  <div class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto">
+  <div
+    class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto"
+  >
     <h3 class="text-lg font-bold mb-4">Pedido</h3>
+
     <form (ngSubmit)="addOrder(newOrder)">
+      <!-- Campos comunes -->
       <div class="mb-4">
         <label class="block text-gray-700">Tipo de Pedido</label>
         <select
@@ -632,186 +635,312 @@
           required
         />
       </div>
-      <div class="flex justify-end">
+
+      <!-- Campos específicos para Impresiones -->
+      <div *ngIf="newOrder.order_type === 'print'" class="mb-4 border-t pt-4">
+        <h4 class="font-semibold text-red-600">Datos de Impresión</h4>
+        <label class="block mt-2 text-gray-700">Material</label>
+        <input
+          [(ngModel)]="newPrint.material"
+          name="material"
+          class="form-input mt-1 block w-full"
+        />
+
+        <label class="block mt-2 text-gray-700">Tipo de Material</label>
+        <input
+          [(ngModel)]="newPrint.material_type"
+          name="material_type"
+          class="form-input mt-1 block w-full"
+        />
+
+        <label class="block mt-2 text-gray-700">Número de producto</label>
+        <input
+          [(ngModel)]="newPrint.product_number"
+          name="product_number"
+          class="form-input mt-1 block w-full"
+        />
+
+        <label class="block mt-2 text-gray-700">Material dañado</label>
+        <input
+          [(ngModel)]="newPrint.damaged_material"
+          name="damaged_material"
+          class="form-input mt-1 block w-full"
+        />
+
+        <!-- Checkboxes -->
+        <div class="flex gap-4 mt-2">
+          <label
+            ><input
+              type="checkbox"
+              [(ngModel)]="newPrint.laminating"
+              name="laminating"
+            />
+            Laminado</label
+          >
+          <label
+            ><input
+              type="checkbox"
+              [(ngModel)]="newPrint.die_cutting"
+              name="die_cutting"
+            />
+            Troquelado</label
+          >
+          <label
+            ><input
+              type="checkbox"
+              [(ngModel)]="newPrint.assembly"
+              name="assembly"
+            />
+            Ensamblado</label
+          >
+          <label
+            ><input
+              type="checkbox"
+              [(ngModel)]="newPrint.printing"
+              name="printing"
+            />
+            Impresión</label
+          >
+        </div>
+      </div>
+
+      <!-- Campos específicos para Cortes -->
+      <div *ngIf="newOrder.order_type === 'laser'" class="mb-4 border-t pt-4">
+        <h4 class="font-semibold text-red-600">Datos de Corte</h4>
+        <label class="block mt-2 text-gray-700">Tipo de Material</label>
+        <input
+          [(ngModel)]="newCut.material_type"
+          name="material_type"
+          class="form-input mt-1 block w-full"
+        />
+
+        <label class="block mt-2 text-gray-700">Color</label>
+        <input
+          [(ngModel)]="newCut.color"
+          name="color"
+          class="form-input mt-1 block w-full"
+        />
+
+        <label class="block mt-2 text-gray-700">Calibre</label>
+        <input
+          [(ngModel)]="newCut.caliber"
+          name="caliber"
+          class="form-input mt-1 block w-full"
+        />
+
+        <label class="block mt-2 text-gray-700">Alto</label>
+        <input
+          [(ngModel)]="newCut.height"
+          name="height"
+          class="form-input mt-1 block w-full"
+        />
+
+        <label class="block mt-2 text-gray-700">Ancho</label>
+        <input
+          [(ngModel)]="newCut.width"
+          name="width"
+          class="form-input mt-1 block w-full"
+        />
+
+        <label class="block mt-2 text-gray-700">Tiempo de corte</label>
+        <input
+          [(ngModel)]="newCut.cutting_time"
+          name="cutting_time"
+          class="form-input mt-1 block w-full"
+        />
+      </div>
+
+      <div class="flex justify-end mt-4">
         <button type="button" class="btn-danger" (click)="toggleAddOrderForm()">
           Cancelar
         </button>
-        <button type="submit" class="btn-success">Guardar Pedido</button>
+        <button type="submit" class="btn-success ml-2">Guardar Pedido</button>
       </div>
     </form>
   </div>
 </div>
 
-
 <!-- Modal Calculadora -->
 <div
-*ngIf="showCalculator"
-class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
+  *ngIf="showCalculator"
+  class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
 >
-<div class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto">
-  <h3 class="text-lg font-bold mb-4">Calculadora</h3>
+  <div
+    class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto"
+  >
+    <h3 class="text-lg font-bold mb-4">Calculadora</h3>
 
-  <!-- calculator type -->
-  <div class="mb-4">
-    <label class="block text-gray-700">¿Qué desea calcular?</label>
-    <select
-      [(ngModel)]="calculationType"
-      (change)="resetForm()"
-      class="form-select mt-1 block w-full"
-    >
-      <option [ngValue]="null">Seleccione</option>
-      <option value="prints">Impresión</option>
-      <option value="cuts">Corte</option>
-    </select>
-  </div>
-
-  <!-- client type -->
-  <div class="mb-4">
-    <label class="block text-gray-700">Tipo de Cliente:</label>
-    <select [(ngModel)]="clientType" 
-      (change)="setValoresPorCliente()" 
-      class="form-select mt-1 block w-full"
+    <!-- calculator type -->
+    <div class="mb-4">
+      <label class="block text-gray-700">¿Qué desea calcular?</label>
+      <select
+        [(ngModel)]="calculationType"
+        (change)="resetForm()"
+        class="form-select mt-1 block w-full"
       >
-      <option [ngValue]="null">Seleccione</option>
-      <option value="intermediary">Intermediario</option>
-      <option value="final">Final</option>
-    </select>
-  </div>
-
-  <!-- prints -->
-  <div *ngIf="calculationType === 'prints'">
-    <div class="grid grid-cols-2 gap-4 mb-4">
-      <div class="flex items-center">
-        <input type="checkbox" [(ngModel)]="lamination" class="mr-2" />
-        <span class="mr-2">Laminado</span>
-        <input
-          type="number"
-          [(ngModel)]="laminationValue"
-          min="0"
-          class="w-20 px-2 py-1 border rounded"
-        />
-      </div>
-      <div class="flex items-center">
-        <input type="checkbox" [(ngModel)]="pPrint" class="mr-2" />
-        <span class="mr-2">Impresión</span>
-        <input
-          type="number"
-          [(ngModel)]="printValue"
-          min="0"
-          class="w-20 px-2 py-1 border rounded"
-        />
-      </div>
-      <div class="flex items-center">
-        <input type="checkbox" [(ngModel)]="stamping" class="mr-2" />
-        <span class="mr-2">Troquelado</span>
-        <input
-          type="number"
-          [(ngModel)]="stampingValue"
-          min="0"
-          class="w-20 px-2 py-1 border rounded"
-        />
-      </div>
-      <div class="flex items-center">
-        <input type="checkbox" [(ngModel)]="assemble" class="mr-2" />
-        <span class="mr-2">Armado</span>
-        <input
-          type="number"
-          [(ngModel)]="assembleValue"
-          min="0"
-          class="w-20 px-2 py-1 border rounded"
-        />
-      </div>
-    </div>
-  
-    <div class="mb-4">
-      <label class="block text-gray-700">Ancho del rollo (cm):</label>
-      <input
-        type="number"
-        [(ngModel)]="rollWidth"
-        class="form-input mt-1 block w-full"
-      />
-    </div>
-  
-    <div class="mb-4">
-      <label class="block text-gray-700">Medida usada (cm):</label>
-      <input
-        type="number"
-        [(ngModel)]="measurement"
-        class="form-input mt-1 block w-full"
-      />
-    </div>
-  
-    <div class="mb-4">
-      <label class="block text-gray-700">Número de productos:</label>
-      <input
-        type="number"
-        [(ngModel)]="productNumber"
-        class="form-input mt-1 block w-full"
-      />
-    </div>
-  </div>
-  
-  <!-- cuts -->
-  <div *ngIf="calculationType === 'cuts'">
-    <div class="mb-4">
-      <label class="block text-gray-700">Valor del material ($):</label>
-      <input
-        type="number"
-        [(ngModel)]="materialValue"
-        min="0"
-        class="form-input mt-1 block w-full"
-      />
+        <option [ngValue]="null">Seleccione</option>
+        <option value="prints">Impresión</option>
+        <option value="cuts">Corte</option>
+      </select>
     </div>
 
+    <!-- client type -->
     <div class="mb-4">
-      <label class="block text-gray-700">Tiempo de uso (minutos):</label>
-      <input
-        type="number"
-        [(ngModel)]="usageTime"
-        min="0"
-        class="form-input mt-1 block w-full"
-      />
+      <label class="block text-gray-700">Tipo de Cliente:</label>
+      <select
+        [(ngModel)]="clientType"
+        (change)="setValoresPorCliente()"
+        class="form-select mt-1 block w-full"
+      >
+        <option [ngValue]="null">Seleccione</option>
+        <option value="intermediary">Intermediario</option>
+        <option value="final">Final</option>
+      </select>
     </div>
-  </div>
 
-  <div class="mb-4 grid grid-cols-1 gap-2">
-    <div *ngIf="clientType === 'intermediary'">
-      <label class="block text-gray-700">Valor por minuto (intermediario):</label>
-      <input
-        type="number"
-        [(ngModel)]="intermediaryPerMinute"
-        min="0"
-        class="form-input mt-1 block w-full"
-      />
-    </div>
-    <div *ngIf="clientType === 'final'">
-      <label class="block text-gray-700">Valor por minuto (cliente final):</label>
-      <input
-        type="number"
-        [(ngModel)]="finalPerMinute"
-        min="0"
-        class="form-input mt-1 block w-full"
-      />
-    </div>
-  </div>
+    <!-- prints -->
+    <div *ngIf="calculationType === 'prints'">
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div class="flex items-center">
+          <input type="checkbox" [(ngModel)]="lamination" class="mr-2" />
+          <span class="mr-2">Laminado</span>
+          <input
+            type="number"
+            [(ngModel)]="laminationValue"
+            min="0"
+            class="w-20 px-2 py-1 border rounded"
+          />
+        </div>
+        <div class="flex items-center">
+          <input type="checkbox" [(ngModel)]="pPrint" class="mr-2" />
+          <span class="mr-2">Impresión</span>
+          <input
+            type="number"
+            [(ngModel)]="printValue"
+            min="0"
+            class="w-20 px-2 py-1 border rounded"
+          />
+        </div>
+        <div class="flex items-center">
+          <input type="checkbox" [(ngModel)]="stamping" class="mr-2" />
+          <span class="mr-2">Troquelado</span>
+          <input
+            type="number"
+            [(ngModel)]="stampingValue"
+            min="0"
+            class="w-20 px-2 py-1 border rounded"
+          />
+        </div>
+        <div class="flex items-center">
+          <input type="checkbox" [(ngModel)]="assemble" class="mr-2" />
+          <span class="mr-2">Armado</span>
+          <input
+            type="number"
+            [(ngModel)]="assembleValue"
+            min="0"
+            class="w-20 px-2 py-1 border rounded"
+          />
+        </div>
+      </div>
 
-  <div class="flex justify-end gap-2">
-    <button
-      class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
-      (click)="closeCalculator()"
+      <div class="mb-4">
+        <label class="block text-gray-700">Ancho del rollo (cm):</label>
+        <input
+          type="number"
+          [(ngModel)]="rollWidth"
+          class="form-input mt-1 block w-full"
+        />
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-gray-700">Medida usada (cm):</label>
+        <input
+          type="number"
+          [(ngModel)]="measurement"
+          class="form-input mt-1 block w-full"
+        />
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-gray-700">Número de productos:</label>
+        <input
+          type="number"
+          [(ngModel)]="productNumber"
+          class="form-input mt-1 block w-full"
+        />
+      </div>
+    </div>
+
+    <!-- cuts -->
+    <div *ngIf="calculationType === 'cuts'">
+      <div class="mb-4">
+        <label class="block text-gray-700">Valor del material ($):</label>
+        <input
+          type="number"
+          [(ngModel)]="materialValue"
+          min="0"
+          class="form-input mt-1 block w-full"
+        />
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-gray-700">Tiempo de uso (minutos):</label>
+        <input
+          type="number"
+          [(ngModel)]="usageTime"
+          min="0"
+          class="form-input mt-1 block w-full"
+        />
+      </div>
+    </div>
+
+    <div class="mb-4 grid grid-cols-1 gap-2">
+      <div *ngIf="clientType === 'intermediary'">
+        <label class="block text-gray-700"
+          >Valor por minuto (intermediario):</label
+        >
+        <input
+          type="number"
+          [(ngModel)]="intermediaryPerMinute"
+          min="0"
+          class="form-input mt-1 block w-full"
+        />
+      </div>
+      <div *ngIf="clientType === 'final'">
+        <label class="block text-gray-700"
+          >Valor por minuto (cliente final):</label
+        >
+        <input
+          type="number"
+          [(ngModel)]="finalPerMinute"
+          min="0"
+          class="form-input mt-1 block w-full"
+        />
+      </div>
+    </div>
+
+    <div class="flex justify-end gap-2">
+      <button
+        class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
+        (click)="closeCalculator()"
+      >
+        Cerrar
+      </button>
+      <button
+        class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+        (click)="calculatePrice()"
+      >
+        Calcular
+      </button>
+    </div>
+
+    <div
+      *ngIf="calculatorResult > 0"
+      class="mt-4 p-4 bg-green-100 border border-green-400 rounded text-green-700"
     >
-      Cerrar
-    </button>
-    <button
-      class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
-      (click)="calculatePrice()"
-    >
-      Calcular
-    </button>
+      <p class="font-semibold">
+        Valor calculado: ${{ calculatorResult | number : "1.0-2" }}
+      </p>
+    </div>
   </div>
-
-  <div *ngIf="calculatorResult > 0" class="mt-4 p-4 bg-green-100 border border-green-400 rounded text-green-700">
-    <p class="font-semibold">Valor calculado: ${{ calculatorResult | number:'1.0-2' }}</p>
-  </div>
-</div>
 </div>
