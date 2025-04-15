@@ -3,6 +3,7 @@ import { MainBannerComponent } from '../main-banner/main-banner.component';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { SupabaseService } from '../../services/supabase.service';
+import { RoleService } from '../../services/role.service';
 
 interface Employee {
   id_employee: string;
@@ -53,6 +54,9 @@ interface Employee_benefits {
   styleUrl: './employees.component.scss',
 })
 export class EmployeesComponent implements OnInit {
+  userId: string | null = null;
+  userRole: string | null = null;
+  userEmail: string | undefined = '';
   showDetailsModal = false;
   showDetails = false;
   showBenefits = false;
@@ -78,25 +82,30 @@ export class EmployeesComponent implements OnInit {
   totalPages: number = 1; // Total de páginas
   totalLiquidationPages: number = 1;
   totalBenefitPages: number = 1;
-  paginatedLiquidations: Employee_liquidations[] = []; 
+  paginatedLiquidations: Employee_liquidations[] = [];
   paginatedBenefits: Employee_benefits[] = [];
   paginatedEmployees: Employee[] = []; // Lista paginada
 
   constructor(
     private readonly supabase: SupabaseService,
-    private readonly zone: NgZone
+    private readonly zone: NgZone,
+    private readonly roleService: RoleService
   ) {}
 
   async ngOnInit(): Promise<void> {
     this.supabase.authChanges((_, session) => {
       if (session) {
         this.zone.run(() => {
+          this.userId = session.user.id;
+          this.roleService.fetchAndSetUserRole(this.userId);
+          this.roleService.role$.subscribe((role) => {
+            this.userRole = role;
+          });
           this.getEmployees();
         });
       }
     });
   }
-
   async getEmployees() {
     this.loading = true;
     const { data, error } = await this.supabase.from('employees').select(`*,
@@ -116,7 +125,7 @@ export class EmployeesComponent implements OnInit {
         ? [employee.employee_liquidations]
         : [],
     })) as Employee[];
-    console.log(this.Employees)
+    console.log(this.Employees);
     this.searchEmployee();
     this.loading = false;
   }
@@ -194,23 +203,40 @@ export class EmployeesComponent implements OnInit {
     this.showDetails = !this.showDetails;
   }
 
-  
   updatePaginatedLiquidations(): void {
     if (this.selectedEmployeeDetails?.employee_liquidations?.length) {
-      const startIndex = Number((this.currentLiquidationPage - 1) * this.itemsPerLiquidationPage);
+      const startIndex = Number(
+        (this.currentLiquidationPage - 1) * this.itemsPerLiquidationPage
+      );
       const endIndex = startIndex + Number(this.itemsPerLiquidationPage);
-      this.paginatedLiquidations = this.selectedEmployeeDetails?.employee_liquidations.slice(startIndex, endIndex) || [];
-      this.totalLiquidationPages = Math.ceil((this.selectedEmployeeDetails?.employee_liquidations.length || 0) / this.itemsPerLiquidationPage);
+      this.paginatedLiquidations =
+        this.selectedEmployeeDetails?.employee_liquidations.slice(
+          startIndex,
+          endIndex
+        ) || [];
+      this.totalLiquidationPages = Math.ceil(
+        (this.selectedEmployeeDetails?.employee_liquidations.length || 0) /
+          this.itemsPerLiquidationPage
+      );
     } else {
       this.totalPages = 0;
     }
   }
   updatePaginatedBenefits(): void {
     if (this.selectedEmployeeDetails?.employee_benefits?.length) {
-      const startIndex = Number((this.currentBenefitPage - 1) * this.itemsPerBenefitPage);
+      const startIndex = Number(
+        (this.currentBenefitPage - 1) * this.itemsPerBenefitPage
+      );
       const endIndex = startIndex + Number(this.itemsPerBenefitPage);
-      this.paginatedBenefits = this.selectedEmployeeDetails?.employee_benefits.slice(startIndex, endIndex) || [];
-      this.totalBenefitPages = Math.ceil((this.selectedEmployeeDetails?.employee_benefits.length || 0) / this.itemsPerLiquidationPage);
+      this.paginatedBenefits =
+        this.selectedEmployeeDetails?.employee_benefits.slice(
+          startIndex,
+          endIndex
+        ) || [];
+      this.totalBenefitPages = Math.ceil(
+        (this.selectedEmployeeDetails?.employee_benefits.length || 0) /
+          this.itemsPerLiquidationPage
+      );
     } else {
       this.totalPages = 0;
     }

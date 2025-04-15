@@ -375,13 +375,13 @@ export class ClientsComponent implements OnInit {
     if (!this.selectedClientData) return;
 
     const clientToSave = {
-      name: this.selectedClientData.name,
+      name: this.selectedClientData.name || null,
       document_type: this.selectedClientData.document_type,
-      document_number: this.selectedClientData.document_number,
+      document_number: this.selectedClientData.document_number || null,
       cellphone: this.selectedClientData.cellphone,
       status: this.selectedClientData.status || 'upToDate',
-      nit: this.selectedClientData.nit,
-      company_name: this.selectedClientData.company_name || 'N/A',
+      nit: this.selectedClientData.nit || null,
+      company_name: this.selectedClientData.company_name || null,
       email: this.selectedClientData.email,
       debt: this.selectedClientData.debt || 0,
       address: this.selectedClientData.address,

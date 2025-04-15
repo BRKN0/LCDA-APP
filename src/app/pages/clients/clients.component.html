@@ -48,7 +48,6 @@
         <th class="table-column-std">Nombre</th>
         <th class="table-column-std">Correo</th>
         <th class="table-column-std">NIT / CC</th>
-        <th class="table-column-std">Empresa</th>
         <th class="table-column-std">Estado</th>
         <th class="w-1/6">Acciones</th>
       </tr>
@@ -59,13 +58,10 @@
         [class.border-red-500]="client.status === 'overdue'"
         [class.border-green-500]="client.status === 'upToDate'"
       >
-        <td>{{ client.name }}</td>
+        <td>{{ client.company_name ?? client.name }}</td>
         <td>{{client.email}}</td>
         <td>
           {{ client.nit ?? client.document_number }}
-        </td>
-        <td>
-          {{ client.company_name ?? "N/A" }}
         </td>
         <td
           [class.text-green-600]="client.status === 'upToDate'"
