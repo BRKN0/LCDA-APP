@@ -39,7 +39,11 @@
       <!-- Usuario -->
     </ng-template>
     <ng-template #signOutButton>
-      <div *ngIf="userRole == 'admin'" class="relative nav-item2" (clickOutside)="closeFinanceDropdown()">
+      <div
+        *ngIf="userRole == 'admin'"
+        class="relative nav-item2"
+        (clickOutside)="closeFinanceDropdown()"
+      >
         <!-- Finance Button -->
         <div
           class="cursor-pointer flex items-center"
@@ -76,15 +80,27 @@
           </li>
         </ul>
       </div>
-      <div *ngIf="userRole == 'admin'" class="nav-item cursor-pointer" (click)="goToInventory()">
+      <div
+        *ngIf="userRole == 'admin'"
+        class="nav-item cursor-pointer"
+        (click)="goToInventory()"
+      >
         <i class="fas fa-box"></i>
         <span>Inventario</span>
       </div>
-      <div *ngIf="userRole == 'admin'" class="nav-item cursor-pointer" (click)="goToClients()">
+      <div
+        *ngIf="userRole == 'admin'"
+        class="nav-item cursor-pointer"
+        (click)="goToClients()"
+      >
         <i class="fas fa-users"></i>
         <span>Clientes</span>
       </div>
-      <div *ngIf="userRole == 'admin'" class="nav-item cursor-pointer" (click)="goToInvoices()">
+      <div
+        *ngIf="userRole == 'admin'"
+        class="nav-item cursor-pointer"
+        (click)="goToInvoices()"
+      >
         <i class="fas fa-users"></i>
         <span>Facturas</span>
       </div>
@@ -92,11 +108,19 @@
         <i class="fas fa-users"></i>
         <span>Pedidos</span>
       </div>
-      <div *ngIf="userRole == 'admin'" class="nav-item cursor-pointer" (click)="goToExpenses()">
+      <div
+        *ngIf="userRole == 'admin'"
+        class="nav-item cursor-pointer"
+        (click)="goToExpenses()"
+      >
         <i class="fas fa-users"></i>
         <span>Egresos</span>
       </div>
-      <div *ngIf="userRole == 'admin'" class="nav-item cursor-pointer" (click)="goToEmployees()">
+      <div
+        *ngIf="userRole == 'admin'"
+        class="nav-item cursor-pointer"
+        (click)="goToEmployees()"
+      >
         <i class="fas fa-users"></i>
         <span>Empleados</span>
       </div>
@@ -107,14 +131,18 @@
         Cerrar sesión
       </button>
       <!-- Notifications Button -->
-      <div class="nav-item cursor-pointer" (click)="goToNotifications()">
+      <div
+        class="nav-item relative cursor-pointer"
+        (click)="goToNotifications()"
+      >
+        <!-- Bell Icon -->
         <svg
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
           viewBox="0 0 24 24"
           stroke-width="1.5"
           stroke="currentColor"
-          class="size-6 absolute left"
+          class="size-6"
         >
           <path
             stroke-linecap="round"
@@ -122,6 +150,12 @@
             d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"
           />
         </svg>
+
+        <!-- Red dot -->
+        <span
+          *ngIf="newNotification"
+          class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-600"
+        ></span>
       </div>
     </ng-template>
   </div>

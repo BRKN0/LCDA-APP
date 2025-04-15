@@ -19,6 +19,7 @@ export class MainBannerComponent implements OnInit {
   userId: string | null = null;
   message: string | null = null;
   financeDropdownOpen = false;
+  newNotification = false;
   constructor(
     private readonly supabase: SupabaseService,
     private readonly roleService: RoleService,
@@ -71,13 +72,15 @@ export class MainBannerComponent implements OnInit {
       if (session && !this.userId) {
         this.zone.run(() => {
           this.userId = session.user.id;
-          this.roleService.fetchAndSetUserRole(this.userId)
+          this.roleService.fetchAndSetUserRole(this.userId);
           this.roleService.role$.subscribe((role) => {
             this.userRole = role;
           });
+          this.getNotifications();
         });
       }
     });
+
     /* I honestly don't even know what this is supposed to do here maybe it's important?
     const type = this.route.snapshot.queryParamMap.get('type');
     const token = this.route.snapshot.queryParamMap.get('token');
@@ -108,6 +111,23 @@ export class MainBannerComponent implements OnInit {
       });
     }
     */
+  }
+  async getNotifications() {
+    const { error, data } = await this.supabase
+      .from('notifications')
+      .select('*')
+      .eq('id_user', this.userId);
+    if (error) {
+      return;
+    }
+    console.log(this.userId);
+    if (data.length > 0) {
+      console.log(data);
+      this.newNotification = true;
+    } else {
+      console.log(data);
+      this.newNotification = false;
+    }
   }
   toggleFinanceDropdown(event: MouseEvent): void {
     event.stopPropagation(); // Prevents the document click listener from firing
