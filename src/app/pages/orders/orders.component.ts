@@ -26,6 +26,7 @@ interface Orders {
   total: string | number;
   amount: string | number;
   id_client: string;
+  payments?: Payment[];
 }
 interface Notifications {
   id_notification: string;
@@ -64,6 +65,13 @@ interface Prints {
   damaged_material: string;
   notes: string;
   id_order: string;
+}
+
+interface Payment {
+  id_payment?: number;
+  id_order: string;
+  amount: number;
+  payment_date?: string;
 }
 
 @Component({
@@ -105,6 +113,10 @@ export class OrdersComponent implements OnInit {
   itemsPerPage: number = 10;
   totalPages: number = 1;
   paginatedOrders: Orders[] = [];
+  newPaymentAmount: number = 0;
+  showEditPayment: boolean = false;
+  selectedPayment: Payment | null = null;
+  notificationMessage: string | null = null;
   // Subject para debounce (sin argumentos)
   private searchSubject = new Subject<void>();
   //Calculator
@@ -177,7 +189,7 @@ export class OrdersComponent implements OnInit {
       }
       const { data, error } = await this.supabase
         .from('orders')
-        .select('*')
+        .select('*, payments(*)')
         .eq('order_type', this.order_role_filter);
 
       if (error) {
@@ -230,6 +242,223 @@ export class OrdersComponent implements OnInit {
       this.clients = data || [];
     } catch (error) {
       console.error('Error inesperado al obtener clientes:', error);
+    }
+  }
+
+  // Método para mostrar una notificación temporal
+  showNotification(message: string) {
+    this.notificationMessage = message;
+    setTimeout(() => {
+      this.notificationMessage = null;
+    }, 3000); // El mensaje desaparece después de 3 segundos
+  }
+
+  // Calculate the total payments for an order
+  getTotalPayments(order: Orders): number {
+    return order.payments && Array.isArray(order.payments)
+      ? order.payments.reduce((sum, p) => sum + p.amount, 0)
+      : 0;
+  }
+
+  async addPayment(order: Orders, amount: number): Promise<void> {
+    if (!order || !order.id_order || amount <= 0) {
+      this.showNotification('Por favor, ingrese un monto válido.');
+      return;
+    }
+
+    // Calcular el monto pendiente
+    const total = parseFloat(String(order.total)) || 0;
+    const totalPaid = this.getTotalPayments(order);
+    const remainingBalance = total - totalPaid;
+
+    // Validar que el abono no exceda el monto pendiente
+    if (amount > remainingBalance) {
+      this.showNotification(`El abono no puede exceder el monto pendiente de $${remainingBalance.toFixed(2)}.`);
+      return;
+    }
+
+    const payment: Payment = {
+      id_order: order.id_order,
+      amount: amount,
+    };
+
+    try {
+      // Insertar el abono
+      const { error: insertError } = await this.supabase
+        .from('payments')
+        .insert([payment]);
+
+      if (insertError) {
+        console.error('Error al añadir el abono:', insertError);
+        this.showNotification('Error al añadir el abono.');
+        return;
+      }
+
+      // Obtener la deuda actual del cliente
+      const { data: clientData, error: clientError } = await this.supabase
+        .from('clients')
+        .select('debt')
+        .eq('id_client', order.id_client)
+        .single();
+
+      if (clientError || !clientData) {
+        console.error('Error al obtener la deuda del cliente:', clientError);
+        this.showNotification('Error al actualizar la deuda del cliente.');
+        return;
+      }
+
+      const currentDebt = clientData.debt || 0;
+
+      // Reducir la deuda del cliente
+      const { error: updateError } = await this.supabase
+        .from('clients')
+        .update({ debt: currentDebt - amount })
+        .eq('id_client', order.id_client);
+
+      if (updateError) {
+        console.error('Error al actualizar la deuda:', updateError);
+        this.showNotification('Error al actualizar la deuda del cliente.');
+        return;
+      }
+
+      // Actualizar localmente los datos
+      if (!order.payments) {
+        order.payments = [];
+      }
+      order.payments.push({ ...payment, payment_date: new Date().toISOString() });
+
+      // Actualizar el estado de pago del pedido y la factura
+      const totalPaid = order.payments.reduce((sum, p) => sum + p.amount, 0);
+      const orderTotal = parseFloat(String(order.total)) || 0;
+      const newStatus = totalPaid >= orderTotal ? 'upToDate' : 'overdue';
+
+      // Actualizar el estado en la tabla orders
+      await this.supabase
+        .from('orders')
+        .update({ order_payment_status: newStatus })
+        .eq('id_order', order.id_order);
+
+      // Actualizar el estado en la tabla invoices
+      await this.supabase
+        .from('invoices')
+        .update({ invoice_status: newStatus })
+        .eq('id_order', order.id_order);
+
+      // Actualizar localmente el estado
+      order.order_payment_status = newStatus;
+      if (this.selectedOrder) {
+        this.selectedOrder.order_payment_status = newStatus;
+      }
+
+      this.newPaymentAmount = 0; // Resetear el campo
+      this.showNotification('Abono añadido correctamente.');
+    } catch (error) {
+      console.error('Error inesperado:', error);
+      this.showNotification('Ocurrió un error inesperado.');
+    }
+  }
+
+  async updatePayment(): Promise<void> {
+    if (!this.selectedPayment || !this.selectedPayment.id_payment) {
+      this.showNotification('No se ha seleccionado un abono válido.');
+      return;
+    }
+
+    try {
+      // Obtener el abono original para calcular la diferencia
+      const { data: originalPayment, error: fetchError } = await this.supabase
+        .from('payments')
+        .select('amount')
+        .eq('id_payment', this.selectedPayment.id_payment)
+        .single();
+
+      if (fetchError || !originalPayment) {
+        console.error('Error al obtener el abono original:', fetchError);
+        this.showNotification('Error al obtener el abono original.');
+        return;
+      }
+
+      const originalAmount = originalPayment.amount;
+      const newAmount = this.selectedPayment.amount;
+      const difference = newAmount - originalAmount;
+
+      // Actualizar el abono
+      const { error: updateError } = await this.supabase
+        .from('payments')
+        .update({ amount: newAmount })
+        .eq('id_payment', this.selectedPayment.id_payment);
+
+      if (updateError) {
+        console.error('Error al actualizar el abono:', updateError);
+        this.showNotification('Error al actualizar el abono.');
+        return;
+      }
+
+      // Obtener la deuda actual del cliente
+      const { data: clientData, error: clientError } = await this.supabase
+        .from('clients')
+        .select('debt')
+        .eq('id_client', this.selectedOrder!.id_client)
+        .single();
+
+      if (clientError || !clientData) {
+        console.error('Error al obtener la deuda del cliente:', clientError);
+        this.showNotification('Error al actualizar la deuda del cliente.');
+        return;
+      }
+
+      const currentDebt = clientData.debt || 0;
+
+      // Ajustar la deuda del cliente según la diferencia
+      const { error: debtError } = await this.supabase
+        .from('clients')
+        .update({ debt: currentDebt + difference
+
+   })
+        .eq('id_client', this.selectedOrder!.id_client);
+
+      if (debtError) {
+        console.error('Error al actualizar la deuda:', debtError);
+        this.showNotification('Error al actualizar la deuda del cliente.');
+        return;
+      }
+
+      // Actualizar localmente los datos
+      if (this.selectedOrder && this.selectedOrder.payments) {
+        const paymentIndex = this.selectedOrder.payments.findIndex(
+          (p) => p.id_payment === this.selectedPayment!.id_payment
+        );
+        if (paymentIndex !== -1) {
+          this.selectedOrder.payments[paymentIndex] = { ...this.selectedPayment };
+        }
+
+        // Actualizar el estado de pago del pedido y la factura
+        const totalPaid = this.selectedOrder.payments.reduce((sum, p) => sum + p.amount, 0);
+        const orderTotal = parseFloat(String(this.selectedOrder.total)) || 0;
+        const newStatus = totalPaid >= orderTotal ? 'upToDate' : 'overdue';
+
+        // Actualizar el estado en la tabla orders
+        await this.supabase
+          .from('orders')
+          .update({ order_payment_status: newStatus })
+          .eq('id_order', this.selectedOrder.id_order);
+
+        // Actualizar el estado en la tabla invoices
+        await this.supabase
+          .from('invoices')
+          .update({ invoice_status: newStatus })
+          .eq('id_order', this.selectedOrder.id_order);
+
+        // Actualizar localmente el estado
+        this.selectedOrder.order_payment_status = newStatus;
+      }
+
+      this.showEditPayment = false;
+      this.selectedPayment = null;
+      this.showNotification('Abono actualizado correctamente.');
+    } catch (error) {
+      console.error('Error inesperado:', error);
+      this.showNotification('Ocurrió un error inesperado.');
     }
   }
 
@@ -417,9 +646,29 @@ export class OrdersComponent implements OnInit {
       (client) => client.id_client === newOrderForm.id_client
     );
     newOrderForm.name = selectedClient ? selectedClient.name : '';
-    // Everytime you use a constant used for this you get closer to hell, please stop
-    // Like what was even the point? just use newOrder instead of making a useless constant
-    // Also, why name the new order coming from the form the same as the Partial Object
+
+    // Obtener detalles del cliente (deuda y límite de crédito)
+    const { data: clientData, error: clientError } = await this.supabase
+      .from('clients')
+      .select('debt, credit_limit')
+      .eq('id_client', newOrderForm.id_client)
+      .single();
+
+    if (clientError || !clientData) {
+      console.error('Error al obtener detalles del cliente:', clientError);
+      alert('Error al verificar el cliente.');
+      return;
+    }
+
+    const currentDebt = clientData.debt || 0;
+    const creditLimit = clientData.credit_limit || 0;
+    const orderAmount = parseFloat(newOrderForm.total as string) || 0;
+
+    if (currentDebt + orderAmount > creditLimit && creditLimit !== 0) {
+      alert('El cliente ha alcanzado o excederá su límite de crédito.');
+      return;
+    }
+
     this.newOrder = {
       order_type: newOrderForm.order_type,
       name: newOrderForm.name,
@@ -439,14 +688,15 @@ export class OrdersComponent implements OnInit {
       order_delivery_status: newOrderForm.order_delivery_status,
       notes: newOrderForm.notes,
     };
-    if (this.isEditing == true) {
+
+    if (this.isEditing) {
       this.newOrder.id_order = newOrderForm.id_order;
       const { error } = await this.supabase
         .from('orders')
         .update([this.newOrder])
         .eq('id_order', this.newOrder.id_order);
       if (error) {
-        console.error('Error al añadir el pedido:', error);
+        console.error('Error al actualizar el pedido:', error);
         return;
       }
       this.getOrders();
@@ -462,12 +712,25 @@ export class OrdersComponent implements OnInit {
       }
       this.newOrder.id_order = data[0].id_order;
       this.newOrder.code = data[0].code;
-      console.log(this.newOrder);
+
+      // Actualizar la deuda del cliente
+      const { error: updateError } = await this.supabase
+        .from('clients')
+        .update({ debt: currentDebt + orderAmount })
+        .eq('id_client', newOrderForm.id_client);
+
+      if (updateError) {
+        console.error('Error al actualizar la deuda:', updateError);
+        alert('Error al actualizar la deuda del cliente.');
+        return;
+      }
+
       this.createNotification(this.newOrder);
       this.getOrders();
       this.toggleAddOrderForm();
     }
   }
+
   async createNotification(addedOrder: Partial<Orders>) {
     this.notificationDesc = 'Nuevo pedido: ' + addedOrder.description + '. Codigo: ' + addedOrder.code;
     if (addedOrder.order_type == 'print') {

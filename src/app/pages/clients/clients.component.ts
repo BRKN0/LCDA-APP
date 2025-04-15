@@ -5,6 +5,7 @@ import { MainBannerComponent } from '../main-banner/main-banner.component';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import { SupabaseService } from '../../services/supabase.service';
+import { RoleService } from '../../services/role.service';
 
 interface Orders {
   id_order: string;
@@ -25,6 +26,7 @@ interface Orders {
   total: string;
   amount: string;
   id_client: string;
+  payments?: Payment[];
 }
 
 interface Client {
@@ -39,11 +41,19 @@ interface Client {
   email: string;
   status: string;
   debt: number;
+  credit_limit: number;
   address: string;
   city: string;
   province: string;
   postal_code: string;
   orders?: Orders[];
+}
+
+interface Payment {
+  id_payment?: number;
+  id_order: string;
+  amount: number;
+  payment_date?: string;
 }
 
 @Component({
@@ -58,8 +68,12 @@ export class ClientsComponent implements OnInit {
   filteredClients: Client[] = [];
   selectedClient: Client | null = null;
   showOrders = false;
+  newPaymentAmount: number = 0;
+  newPaymentAmounts: { [key: string]: number } = {};
   showClientModal = false; // Nueva variable para controlar el modal del cliente
   showDetails = false; // Nueva variable para controlar la visibilidad de los detalles
+  userId: string | null = null;
+  userRole: string | null = null;
   loading = true;
   searchQuery: string = '';
   filterDebt: boolean = false;
@@ -101,58 +115,68 @@ export class ClientsComponent implements OnInit {
 
   constructor(
     private readonly supabase: SupabaseService,
-    private readonly zone: NgZone
+    private readonly zone: NgZone,
+    private readonly roleService: RoleService
   ) {}
 
-  async ngOnInit(): Promise<void> {
-    this.supabase.authChanges((_, session) => {
-      if (session) {
-        this.zone.run(() => {
-          this.getClients();
-        });
-      }
-    });
-  }
-
-  async getClients() {
-    this.loading = true;
-    const { error, data } = await this.supabase.from('clients').select(
-      `*,
-        orders(
-        id_order,
-        order_type,
-        name,
-        description,
-        order_payment_status,
-        order_payment_status,
-        created_at,
-        order_quantity,
-        unitary_value,
-        iva,
-        subtotal,
-        total,
-        amount,
-        id_client,
-        code)`
-    );
-
-    if (error) {
-      return;
+    async ngOnInit(): Promise<void> {
+      this.supabase.authChanges((_, session) => {
+        if (session) {
+          this.zone.run(() => {
+            this.userId = session.user.id; // Añadir userId como propiedad si no existe
+            this.roleService.fetchAndSetUserRole(this.userId);
+            this.roleService.role$.subscribe((role) => {
+              this.userRole = role;
+            });
+            this.getClients();
+          });
+        }
+      });
     }
 
-    this.clients = [...data].map((client) => ({
-      ...client,
-      orders: Array.isArray(client.orders)
-        ? client.orders
-        : client.orders
-        ? [client.orders]
-        : [], // Normalize the orders array
-    })) as Client[];
+    async getClients() {
+      this.loading = true;
+      const { error, data } = await this.supabase.from('clients').select(
+        `*,
+        orders(
+          id_order,
+          order_type,
+          name,
+          description,
+          order_payment_status,
+          created_at,
+          order_quantity,
+          unitary_value,
+          iva,
+          subtotal,
+          total,
+          amount,
+          id_client,
+          code,
+          payments(*)
+        )`
+      );
 
-    this.filteredClients = this.clients; // Initialize the filtered clients list
-    this.updatePaginatedClients();
-    this.loading = false;
-  }
+      if (error) {
+        console.error('Error al obtener clientes:', error);
+        this.loading = false;
+        return;
+      }
+
+      this.clients = data.map((client) => ({
+        ...client,
+        orders: Array.isArray(client.orders)
+          ? client.orders.map((order: { payments: any; }) => ({
+              ...order,
+              payments: Array.isArray(order.payments) ? order.payments : [],
+            }))
+          : [],
+      })) as Client[];
+
+      this.filteredClients = this.clients;
+      this.updatePaginatedClients();
+      this.loading = false;
+    }
 
   searchClient() {
     // Filt the names and debs of the clients
@@ -201,10 +225,120 @@ export class ClientsComponent implements OnInit {
       this.selectedClient = client; // Asigna el cliente seleccionado
       this.showOrders = true; // Abre la ventana modal
       this.currentOrderPage = 1;
+      this.newPaymentAmounts = {};
       this.updatePaginatedOrders();
     } else {
       // Cierra la ventana modal y limpia el cliente seleccionado
       this.showOrders = false;
+    }
+  }
+
+  async updateCreditLimit(client: Client | null): Promise<void> {
+    if (!client || !client.id_client) {
+      alert('No se ha seleccionado un cliente válido.');
+      return;
+    }
+
+    try {
+      const { error } = await this.supabase
+        .from('clients')
+        .update({ credit_limit: client.credit_limit })
+        .eq('id_client', client.id_client);
+
+      if (error) {
+        console.error('Error actualizando el límite de crédito:', error);
+        alert('Error al actualizar el límite de crédito.');
+        return;
+      }
+
+      alert('Límite de crédito actualizado correctamente.');
+    } catch (error) {
+      console.error('Error inesperado:', error);
+      alert('Ocurrió un error inesperado.');
+    }
+  }
+
+  async addPayment(order: Orders, amount: number): Promise<void> {
+    if (!order || !order.id_order || amount <= 0) {
+      alert('Por favor, ingrese un monto válido.');
+      return;
+    }
+
+    const payment: Payment = {
+      id_order: order.id_order,
+      amount: amount,
+    };
+
+    try {
+      // Insertar el abono
+      const { error: insertError } = await this.supabase
+        .from('payments')
+        .insert([payment]);
+
+      if (insertError) {
+        console.error('Error al añadir el abono:', insertError);
+        alert('Error al añadir el abono.');
+        return;
+      }
+
+      // Obtener la deuda actual del cliente
+      const { data: clientData, error: clientError } = await this.supabase
+        .from('clients')
+        .select('debt')
+        .eq('id_client', order.id_client)
+        .single();
+
+      if (clientError || !clientData) {
+        console.error('Error al obtener la deuda del cliente:', clientError);
+        alert('Error al actualizar la deuda del cliente.');
+        return;
+      }
+
+      const currentDebt = clientData.debt || 0;
+
+      // Reducir la deuda del cliente
+      const { error: updateError } = await this.supabase
+        .from('clients')
+        .update({ debt: currentDebt - amount })
+        .eq('id_client', order.id_client);
+
+      if (updateError) {
+        console.error('Error al actualizar la deuda:', updateError);
+        alert('Error al actualizar la deuda del cliente.');
+        return;
+      }
+
+      // Actualizar localmente los datos del pedido
+      if (!order.payments) {
+        order.payments = [];
+      }
+      order.payments.push({ ...payment, payment_date: new Date().toISOString() });
+
+      // Actualizar el estado de pago del pedido si está completamente pagado
+      const totalPaid = order.payments.reduce((sum, p) => sum + p.amount, 0);
+      const orderTotal = parseFloat(order.total) || 0;
+      if (totalPaid >= orderTotal) {
+        order.order_payment_status = 'upToDate';
+        await this.supabase
+          .from('orders')
+          .update({ order_payment_status: 'upToDate' })
+          .eq('id_order', order.id_order);
+      } else {
+        order.order_payment_status = 'overdue';
+        await this.supabase
+          .from('orders')
+          .update({ order_payment_status: 'overdue' })
+          .eq('id_order', order.id_order);
+      }
+
+      // NO recargar los datos completos para evitar cerrar el modal
+      // await this.getOrders(); // Comentamos esta línea
+
+      this.newPaymentAmount = 0; // Resetear el campo
+      alert('Abono añadido correctamente.');
+    } catch (error) {
+      console.error('Error inesperado:', error);
+      alert('Ocurrió un error inesperado.');
     }
   }
 
