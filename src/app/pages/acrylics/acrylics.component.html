@@ -22,6 +22,15 @@
     <option value="1/32 (Treintaydosavo de Lámina)">1/32 (Treintaydosavo de Lámina)</option>
   </select>
 
+  <!-- Barra de búsqueda -->
+  <input
+    type="text"
+    [(ngModel)]="searchTerm"
+    (input)="onSearchChange()"
+    placeholder="Buscar por ancho, alto, color o calibre..."
+    class="border border-gray-300 rounded-md p-1 w-64"
+  />
+
   <!-- Botón para añadir acrílico -->
   <button
     class="bg-red-500 text-white px-6 py-2 rounded-full hover:bg-red-700"
