@@ -80,6 +80,61 @@
           </li>
         </ul>
       </div>
+
+      <div
+        *ngIf="userRole == 'admin'"
+        class="relative nav-item2"
+        (clickOutside)="closeInventoryDropdown()"
+      >
+        <!-- Finance Button -->
+        <div
+          class="cursor-pointer flex items-center"
+          (click)="toggleInventoryDropdown($event)"
+        >
+          <i class="fas fa-dollar-sign"></i>
+          <span>InventarioSeparado</span>
+          <i
+            class="ml-2 fas"
+            [ngClass]="{
+              'fa-chevron-down': !inventoryDropdownOpen,
+              'fa-chevron-up': inventoryDropdownOpen
+            }"
+          ></i>
+        </div>
+
+        <!-- Dropdown Menu -->
+        <ul
+          *ngIf="inventoryDropdownOpen"
+          class="absolute bg-white shadow-lg rounded-md mt-2 w-40 z-10"
+          style="left: 0"
+        >
+          <li
+            class="p-2 hover:bg-gray-200 cursor-pointer"
+            (click)="goToAcrylics(); closeInventoryDropdown()"
+          >
+            Acrilicos
+          </li>
+          <li
+            class="p-2 hover:bg-gray-200 cursor-pointer"
+            (click)="goToMdf(); closeInventoryDropdown()"
+          >
+            MDF
+          </li>
+          <li
+            class="p-2 hover:bg-gray-200 cursor-pointer"
+            (click)="goTopolystyrene(); closeInventoryDropdown()"
+          >
+            Poliestireno
+          </li>
+          <li
+            class="p-2 hover:bg-gray-200 cursor-pointer"
+            (click)="goToVinylCuts(); closeInventoryDropdown()"
+          >
+            Vinilo de corte
+          </li>
+        </ul>
+      </div>
+
       <div
         *ngIf="userRole == 'admin'"
         class="nav-item cursor-pointer"
