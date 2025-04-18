@@ -109,6 +109,7 @@ export class InvoiceComponent implements OnInit {
     company_name: '',
     cellphone: '',
     address: '',
+    status: ''
   };
 
   constructor(
@@ -1043,6 +1044,7 @@ export class InvoiceComponent implements OnInit {
       company_name: '',
       cellphone: '',
       address: '',
+      status: ''
     };
   }
 }

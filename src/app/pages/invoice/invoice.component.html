@@ -414,6 +414,18 @@
           class="form-input"
         />
       </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Estado</label>
+        <select
+          [(ngModel)]="newClient.status"
+          name="status"
+          class="form-select mt-1 block w-full"
+          required
+        >
+          <option value="upToDate">Al Día</option>
+          <option value="overdue">En Mora</option>
+        </select>
+      </div>
       <div class="flex justify-end">
         <button
           type="button"
@@ -433,7 +445,6 @@
   </div>
 </div>
 
-<!-- Show details of the selected invoice in float window -->
 <!-- Show details of the selected invoice in float window -->
 <div
   *ngIf="selectedInvoiceDetails && selectedInvoiceDetails.length > 0"
