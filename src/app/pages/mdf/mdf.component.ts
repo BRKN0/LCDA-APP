@@ -26,14 +26,20 @@ interface mdf {
 export class MDFComponent implements OnInit {
 
   mdfItems: mdf[] = [];
+  filteredMdfItems: mdf[] = []; // Para soportar filtros futuros
+  paginatedMdfItems: mdf[] = []; // Para paginación
   selectedMdf: mdf | null = null;
   showModal: boolean = false;
   newMdf: mdf = { id_mdf: '', thickness: '', cost: 0, freight: 0, created_at: '' };
   formMdf: mdf; // Nueva propiedad para el formulario
   loading = true;
 
-  constructor(private readonly supabase: SupabaseService) {this.formMdf = { ...this.newMdf };}
+  // Paginación
+  currentPage: number = 1;
+  itemsPerPage: number = 10;
+  totalPages: number = 1;
 
+  constructor(private readonly supabase: SupabaseService) {this.formMdf = { ...this.newMdf };}
 
   ngOnInit(): void {
     this.getMdfItems();
@@ -51,8 +57,10 @@ export class MDFComponent implements OnInit {
       alert ('Error al cargar los datos.');
       return;
     }
-    this.loading = false;
     this.mdfItems = data || [];
+    this.filteredMdfItems = this.mdfItems; // Inicialmente, no hay filtros
+    this.updatePaginatedMdfItems();
+    this.loading = false;
   }
 
   // Modificar openModal para manejar formMdf
@@ -185,5 +193,14 @@ export class MDFComponent implements OnInit {
 
   calculateOneEighth30x45(enter25: number): number {
     return (enter25 / 32) * 1.9;
+  }
+
+  // Paginación
+  updatePaginatedMdfItems(): void {
+    this.totalPages = Math.max(1, Math.ceil(this.filteredMdfItems.length / this.itemsPerPage));
+    this.currentPage = Math.min(Math.max(this.currentPage, 1), this.totalPages);
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    const endIndex = startIndex + this.itemsPerPage;
+    this.paginatedMdfItems = this.filteredMdfItems.slice(startIndex, endIndex);
   }
 }
