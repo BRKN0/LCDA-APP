@@ -5,9 +5,8 @@
   <p>Cargando inventario...</p>
 </div>
 
-
-<!-- Selección de formato -->
-<div class="flex items-center space-x-4 mb-4">
+<!-- Selección de formato y botón de acción -->
+<div *ngIf="!loading" class="flex items-center space-x-4 mb-4">
   <label for="format" class="font-semibold">Formato:</label>
   <select
     id="format"
@@ -33,41 +32,92 @@
 </div>
 
 <!-- Tabla de acrílico -->
-<table class="table-std">
-  <thead>
-    <tr>
-      <th class="table-column-std">Ancho (cm)</th>
-      <th class="table-column-std">Alto (cm)</th>
-      <th class="table-column-std">Color</th>
-      <th class="table-column-std">Calibre (mm)</th>
-      <th class="table-column-std">Precio Costo Lámina 2025</th>
-      <th class="table-column-std">Precio con 30% Utilidad 2025</th>
-      <th class="table-column-std">Margen Aplicado</th>
-      <th class="table-column-std">Precio más el Margen</th>
-      <th class="table-column-std">Precio Final sin IVA</th>
-      <th class="table-column-std">IVA (19%)</th>
-      <th class="table-column-std">Precio con IVA</th>
-      <th class="table-column-std">Acciones</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr *ngFor="let acrylic of acrylicItems">
-      <td class="table-column-std">{{ acrylic.width }}</td>
-      <td class="table-column-std">{{ acrylic.height }}</td>
-      <td class="table-column-std">{{ acrylic.color }}</td>
-      <td class="table-column-std">{{ acrylic.gauge }}</td>
-      <td class="table-column-std">${{ acrylic.cost_price.toLocaleString() }}</td>
-      <td class="table-column-std">${{ calculateBasePriceWith30PercentProfit(acrylic.cost_price).toLocaleString() }}</td>
-      <td class="table-column-std">{{ (getAppliedMargin() * 100).toFixed(0) }}%</td>
-      <td class="table-column-std">${{ calculateAdjustedPriceWith30PercentProfit(acrylic.cost_price).toLocaleString() }}</td>
-      <td class="table-column-std">${{ calculatePriceWithMargin(calculateAdjustedPriceWith30PercentProfit(acrylic.cost_price)).toLocaleString() }}</td>
-      <td class="table-column-std">${{ calculateIva(calculateFinalPriceWithoutIva(calculatePriceWithMargin(calculateAdjustedPriceWith30PercentProfit(acrylic.cost_price)))).toLocaleString() }}</td>
-      <td class="table-column-std">${{ calculatePriceWithIva(calculateFinalPriceWithoutIva(calculatePriceWithMargin(calculateAdjustedPriceWith30PercentProfit(acrylic.cost_price))), calculateIva(calculateFinalPriceWithoutIva(calculatePriceWithMargin(calculateAdjustedPriceWith30PercentProfit(acrylic.cost_price))))).toLocaleString() }}</td>
-        <button class="btn-edit" (click)="openModal(acrylic)">Editar</button>
-        <button class="btn-delete" (click)="deleteAcrylic(acrylic.id_acrylics)">Eliminar</button>
-    </tr>
-  </tbody>
-</table>
+<div *ngIf="!loading">
+  <div *ngIf="paginatedAcrylicItems.length > 0">
+    <div class="table-container">
+      <table class="table-std">
+        <thead>
+          <tr>
+            <th class="table-column-std">Ancho</th>
+            <th class="table-column-std">Alto</th>
+            <th class="table-column-std">Color</th>
+            <th class="table-column-std">Calibre</th>
+            <th class="table-column-std">Costo</th>
+            <th class="table-column-std">30% Util.</th>
+            <th class="table-column-std">Margen</th>
+            <th class="table-column-std">+Margen</th>
+            <th class="table-column-std">Sin IVA</th>
+            <th class="table-column-std">IVA</th>
+            <th class="table-column-std">Con IVA</th>
+            <th class="table-column-std">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let acrylic of paginatedAcrylicItems">
+            <td class="table-column-std">{{ acrylic.width }}</td>
+            <td class="table-column-std">{{ acrylic.height }}</td>
+            <td class="table-column-std">{{ acrylic.color }}</td>
+            <td class="table-column-std">{{ acrylic.gauge }}</td>
+            <td class="table-column-std">${{ acrylic.cost_price.toLocaleString() }}</td>
+            <td class="table-column-std">${{ calculateBasePriceWith30PercentProfit(acrylic.cost_price).toLocaleString() }}</td>
+            <td class="table-column-std">{{ (getAppliedMargin() * 100).toFixed(0) }}%</td>
+            <td class="table-column-std">${{ calculateAdjustedPriceWith30PercentProfit(acrylic.cost_price).toLocaleString() }}</td>
+            <td class="table-column-std">${{ calculatePriceWithMargin(calculateAdjustedPriceWith30PercentProfit(acrylic.cost_price)).toLocaleString() }}</td>
+            <td class="table-column-std">${{ calculateIva(calculateFinalPriceWithoutIva(calculatePriceWithMargin(calculateAdjustedPriceWith30PercentProfit(acrylic.cost_price)))).toLocaleString() }}</td>
+            <td class="table-column-std">${{ calculatePriceWithIva(calculateFinalPriceWithoutIva(calculatePriceWithMargin(calculateAdjustedPriceWith30PercentProfit(acrylic.cost_price))), calculateIva(calculateFinalPriceWithoutIva(calculatePriceWithMargin(calculateAdjustedPriceWith30PercentProfit(acrylic.cost_price))))).toLocaleString() }}</td>
+            <td class="table-column-std">
+              <button class="btn-edit" (click)="openModal(acrylic)">Editar</button>
+              <button class="btn-delete" (click)="deleteAcrylic(acrylic.id_acrylics)">Eliminar</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Controles de paginación -->
+    <div class="flex justify-between items-center mb-4">
+      <div class="pagination flex items-center">
+        <button
+          (click)="currentPage = currentPage - 1; updatePaginatedAcrylicItems()"
+          [disabled]="currentPage === 1"
+          class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+        >
+          ←
+        </button>
+        <span class="mx-4 text-gray-700">
+          Página {{ currentPage }} de {{ totalPages }}
+        </span>
+        <button
+          (click)="currentPage = currentPage + 1; updatePaginatedAcrylicItems()"
+          [disabled]="currentPage === totalPages"
+          class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+        >
+          →
+        </button>
+      </div>
+
+      <!-- Selector de elementos por página -->
+      <div class="items-per-page flex items-center">
+        <label for="itemsPerPage" class="mr-2">Elementos por página:</label>
+        <select
+          id="itemsPerPage"
+          [(ngModel)]="itemsPerPage"
+          (change)="currentPage = 1; updatePaginatedAcrylicItems()"
+          class="border border-gray-300 rounded-md p-1"
+        >
+          <option *ngFor="let size of [2, 10, 15, 20]" [ngValue]="size">
+            {{ size }}
+          </option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mensaje cuando no hay datos -->
+  <div *ngIf="paginatedAcrylicItems.length === 0" class="p-4 text-center text-gray-600">
+    <p>No hay datos disponibles para Acrílicos.</p>
+  </div>
+</div>
 
 <!-- Modal para crear/editar acrílico -->
 <div

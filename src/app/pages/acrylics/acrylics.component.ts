@@ -26,12 +26,18 @@ interface Acrylic {
 
 export class AcrylicsComponent implements OnInit {
   acrylicItems: Acrylic[] = [];
+  filteredAcrylicItems: Acrylic[] = [];
+  paginatedAcrylicItems: Acrylic[] = [];
   selectedAcrylic: Acrylic | null = null;
   showModal: boolean = false;
   formAcrylic: Acrylic;
-  notification: string = '';
   selectedFormat: string = '1 Lámina'; // Valor inicial del formato
   loading = true;
+
+  // Paginación
+  currentPage: number = 1;
+  itemsPerPage: number = 10;
+  totalPages: number = 1;
 
   // Mapa de formatos a sus factores y márgenes
   private formatFactors: { [key: string]: { factor: number; margin: number } } = {
@@ -67,8 +73,11 @@ export class AcrylicsComponent implements OnInit {
       alert ('Error al cargar los datos.');
       return;
     }
-    this.loading = false;
     this.acrylicItems = data || [];
+    this.filteredAcrylicItems = [...this.acrylicItems];
+    this.currentPage = 1; // Reiniciamos la página al cargar nuevos datos
+    this.updatePaginatedAcrylicItems();
+    this.loading = false;
   }
 
   openModal(acrylic?: Acrylic): void {
@@ -199,4 +208,27 @@ export class AcrylicsComponent implements OnInit {
   calculatePriceWithIva(finalPriceWithoutIva: number, iva: number): number {
     return finalPriceWithoutIva + iva;
   }
+
+  // Paginación
+  updatePaginatedAcrylicItems(): void {
+    // Aseguramos que filteredAcrylicItems esté actualizado
+    this.filteredAcrylicItems = [...this.acrylicItems];
+
+    // Aseguramos que itemsPerPage sea un número
+    const itemsPerPageNum = Number(this.itemsPerPage);
+
+    // Calculamos el total de páginas
+    this.totalPages = Math.max(1, Math.ceil(this.filteredAcrylicItems.length / itemsPerPageNum));
+
+    // Aseguramos que currentPage esté dentro de los límites
+    this.currentPage = Math.min(Math.max(this.currentPage, 1), this.totalPages);
+
+    // Calculamos los índices de inicio y fin
+    const startIndex = (this.currentPage - 1) * itemsPerPageNum;
+    const endIndex = startIndex + itemsPerPageNum;
+
+    // Actualizamos paginatedAcrylicItems con el subconjunto correcto
+    this.paginatedAcrylicItems = this.filteredAcrylicItems.slice(startIndex, endIndex);
+  }
 }
+
