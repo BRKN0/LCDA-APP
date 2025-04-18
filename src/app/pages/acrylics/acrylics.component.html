@@ -1,1 +1,154 @@
 <app-main-banner></app-main-banner>
+
+<!-- Indicador de carga -->
+<div *ngIf="loading" class="p-4 text-center text-gray-600">
+  <p>Cargando inventario...</p>
+</div>
+
+
+<!-- Selección de formato -->
+<div class="flex items-center space-x-4 mb-4">
+  <label for="format" class="font-semibold">Formato:</label>
+  <select
+    id="format"
+    [(ngModel)]="selectedFormat"
+    class="border border-gray-300 rounded-md p-1"
+  >
+    <option value="1 Lámina">1 Lámina</option>
+    <option value="1/2 (Media Lámina)">1/2 (Media Lámina)</option>
+    <option value="1/3 (Tercio de Lámina)">1/3 (Tercio de Lámina)</option>
+    <option value="1/4 (Cuarto de Lámina)">1/4 (Cuarto de Lámina)</option>
+    <option value="1/8 (Octavo de Lámina)">1/8 (Octavo de Lámina)</option>
+    <option value="1/16 (Dieciseisavo de Lámina)">1/16 (Dieciseisavo de Lámina)</option>
+    <option value="1/32 (Treintaydosavo de Lámina)">1/32 (Treintaydosavo de Lámina)</option>
+  </select>
+
+  <!-- Botón para añadir acrílico -->
+  <button
+    class="bg-red-500 text-white px-6 py-2 rounded-full hover:bg-red-700"
+    (click)="openModal()"
+  >
+    Añadir Acrílico
+  </button>
+</div>
+
+<!-- Tabla de acrílico -->
+<table class="table-std">
+  <thead>
+    <tr>
+      <th class="table-column-std">Ancho (cm)</th>
+      <th class="table-column-std">Alto (cm)</th>
+      <th class="table-column-std">Color</th>
+      <th class="table-column-std">Calibre (mm)</th>
+      <th class="table-column-std">Precio Costo Lámina 2025</th>
+      <th class="table-column-std">Precio con 30% Utilidad 2025</th>
+      <th class="table-column-std">Margen Aplicado</th>
+      <th class="table-column-std">Precio más el Margen</th>
+      <th class="table-column-std">Precio Final sin IVA</th>
+      <th class="table-column-std">IVA (19%)</th>
+      <th class="table-column-std">Precio con IVA</th>
+      <th class="table-column-std">Acciones</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let acrylic of acrylicItems">
+      <td class="table-column-std">{{ acrylic.width }}</td>
+      <td class="table-column-std">{{ acrylic.height }}</td>
+      <td class="table-column-std">{{ acrylic.color }}</td>
+      <td class="table-column-std">{{ acrylic.gauge }}</td>
+      <td class="table-column-std">${{ acrylic.cost_price.toLocaleString() }}</td>
+      <td class="table-column-std">${{ calculateBasePriceWith30PercentProfit(acrylic.cost_price).toLocaleString() }}</td>
+      <td class="table-column-std">{{ (getAppliedMargin() * 100).toFixed(0) }}%</td>
+      <td class="table-column-std">${{ calculateAdjustedPriceWith30PercentProfit(acrylic.cost_price).toLocaleString() }}</td>
+      <td class="table-column-std">${{ calculatePriceWithMargin(calculateAdjustedPriceWith30PercentProfit(acrylic.cost_price)).toLocaleString() }}</td>
+      <td class="table-column-std">${{ calculateIva(calculateFinalPriceWithoutIva(calculatePriceWithMargin(calculateAdjustedPriceWith30PercentProfit(acrylic.cost_price)))).toLocaleString() }}</td>
+      <td class="table-column-std">${{ calculatePriceWithIva(calculateFinalPriceWithoutIva(calculatePriceWithMargin(calculateAdjustedPriceWith30PercentProfit(acrylic.cost_price))), calculateIva(calculateFinalPriceWithoutIva(calculatePriceWithMargin(calculateAdjustedPriceWith30PercentProfit(acrylic.cost_price))))).toLocaleString() }}</td>
+        <button class="btn-edit" (click)="openModal(acrylic)">Editar</button>
+        <button class="btn-delete" (click)="deleteAcrylic(acrylic.id_acrylics)">Eliminar</button>
+    </tr>
+  </tbody>
+</table>
+
+<!-- Modal para crear/editar acrílico -->
+<div
+  *ngIf="showModal"
+  class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
+>
+  <div
+    class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto"
+  >
+    <h3 class="text-lg font-bold mb-4">
+      {{ selectedAcrylic ? 'Editar Acrílico' : 'Añadir Nuevo Acrílico' }}
+    </h3>
+    <form (ngSubmit)="saveAcrylic()">
+      <div class="mb-4">
+        <label class="block text-gray-700">Ancho (cm)</label>
+        <input
+          type="number"
+          [(ngModel)]="formAcrylic.width"
+          name="width"
+          class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+          placeholder="Ej. 120"
+          required
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Alto (cm)</label>
+        <input
+          type="number"
+          [(ngModel)]="formAcrylic.height"
+          name="height"
+          class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+          placeholder="Ej. 90"
+          required
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Color</label>
+        <select
+          [(ngModel)]="formAcrylic.color"
+          name="color"
+          class="form-select mt-1 block w-full border border-gray-300 rounded-md"
+          required
+        >
+          <option value="Cristal y Opal">Cristal y Opal</option>
+          <option value="Color Rojo">Color Rojo</option>
+          <option value="Humo">Humo</option>
+          <option value="Espejo">Espejo</option>
+          <option value="Metalizados">Metalizados</option>
+        </select>
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Calibre (mm)</label>
+        <input
+          type="number"
+          step="0.1"
+          [(ngModel)]="formAcrylic.gauge"
+          name="gauge"
+          class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+          placeholder="Ej. 1.5"
+          required
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Precio Costo Lámina 2025</label>
+        <input
+          type="number"
+          [(ngModel)]="formAcrylic.cost_price"
+          name="cost_price"
+          class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+          placeholder="Ej. 171200"
+          required
+        />
+      </div>
+      <div class="flex justify-end">
+        <button type="button" class="btn-danger" (click)="closeModal()">
+          Cancelar
+        </button>
+        <button type="submit" class="btn-success">
+          {{ selectedAcrylic ? 'Actualizar' : 'Guardar Acrílico' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
