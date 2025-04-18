@@ -28,6 +28,24 @@ interface Orders {
   id_client: string;
   payments?: Payment[];
 }
+
+interface Client {
+  id_client: string;
+  name: string;
+  document_type: string;
+  document_number: string;
+  cellphone: string;
+  nit: string;
+  company_name: string;
+  email: string;
+  status: string;
+  debt: number;
+  address: string;
+  city: string;
+  province: string;
+  postal_code: string;
+}
+
 interface Notifications {
   id_notification: string;
   created_at: string;
@@ -82,6 +100,7 @@ interface Payment {
   styleUrls: ['./orders.component.scss'],
 })
 export class OrdersComponent implements OnInit {
+  clients: Client[] = [];
   notificationToInsert: Partial<Notifications> = {};
   orderToInsert: Partial<Orders> = {};
   notificationDesc: string = '';
@@ -94,7 +113,6 @@ export class OrdersComponent implements OnInit {
   selectedOrderTypeDetail: any | null = null;
   order: Orders | null = null;
   filteredOrdersList: Orders[] = [];
-  clients: { id_client: string; name: string }[] = [];
   selectedOrder: Orders | null = null;
   selectedOrderDetails: Orders[] | null = null;
   noResultsFound: boolean = false;
@@ -141,7 +159,9 @@ export class OrdersComponent implements OnInit {
   finalPerMinute: number = 1000;
   usageTime: number = 0;
   calculatorResult: number = 0;
-  
+  showAddClientModal = false;
+  filteredClients: Client[] = [];
+
 
 
 
@@ -149,7 +169,18 @@ export class OrdersComponent implements OnInit {
   newOrder: Partial<Orders> = {};
   newCut: Partial<Cuts> = {};
   newPrint: Partial<Prints> = {};
-  
+
+  newClient = {
+    name: '',
+    email: '',
+    document_type: '',
+    document_number: '',
+    company_name: '',
+    cellphone: '',
+    address: '',
+    status: ''
+  };
+
   constructor(
     private readonly supabase: SupabaseService,
     private readonly zone: NgZone,
@@ -233,18 +264,50 @@ export class OrdersComponent implements OnInit {
   }
 
   async getClients(): Promise<void> {
-    try {
-      const { data, error } = await this.supabase
-        .from('clients')
-        .select('id_client, name');
-      if (error) {
-        console.error('Error al obtener los clientes:', error);
-        return;
-      }
-      this.clients = data || [];
-    } catch (error) {
-      console.error('Error inesperado al obtener clientes:', error);
+    const { data, error } = await this.supabase.from('clients').select('*');
+    if (error) {
+      console.error('Error fetching clients:', error);
+      return;
     }
+    this.clients = data;
+    this.filteredClients = [...this.clients]; // Inicializa los clientes filtrados
+  }
+
+  openAddClientModal(): void {
+    this.showAddClientModal = true;
+  }
+
+  closeAddClientModal(): void {
+    this.showAddClientModal = false;
+    this.newClient = {
+      name: '',
+      email: '',
+      document_type: '',
+      document_number: '',
+      company_name: '',
+      cellphone: '',
+      address: '',
+      status: ''
+    };
+  }
+
+  async saveNewClient(): Promise<void> {
+    if (!this.newClient.name || !this.newClient.email || !this.newClient.document_type || !this.newClient.document_number) {
+      alert('Por favor, complete todos los campos obligatorios.');
+      return;
+    }
+
+    const { data, error } = await this.supabase.from('clients').insert([this.newClient]);
+
+    if (error) {
+      console.error('Error añadiendo el cliente:', error);
+      alert('Error al añadir el cliente.');
+      return;
+    }
+
+    alert('Cliente añadido correctamente.');
+    this.closeAddClientModal();
+    await this.getClients(); // Recargar la lista de clientes
   }
 
   // Método para mostrar una notificación temporal
@@ -798,12 +861,12 @@ export class OrdersComponent implements OnInit {
     this.calculationType = null;
     this.resetForm();
   }
-  
+
   closeCalculator(): void {
     this.showCalculator = false;
     this.resetForm();
   }
-  
+
   resetForm(): void {
     // General
     this.calculatorResult = 0;
@@ -840,15 +903,15 @@ export class OrdersComponent implements OnInit {
   calculatePrice(): void {
     if(this.calculationType == 'prints'){
       const base = this.rollWidth * this.measurement * this.productNumber;
-  
+
       let factor = 0;
-    
+
       if (this.lamination) factor += this.laminationValue;
       if (this.pPrint) factor += this.printValue
   ;
       if (this.stamping) factor += this.stampingValue;
       if (this.assemble) factor += this.assembleValue;
-    
+
       this.calculatorResult = base * factor;
     }else if(this.calculationType == 'cuts'){
       let valorTiempo = 0;
@@ -863,6 +926,6 @@ export class OrdersComponent implements OnInit {
 
       this.calculatorResult = this.materialValue + valorTiempo;
     }
-    
+
   }
 }
