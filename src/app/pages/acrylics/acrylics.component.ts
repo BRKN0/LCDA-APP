@@ -33,6 +33,7 @@ export class AcrylicsComponent implements OnInit {
   formAcrylic: Acrylic;
   selectedFormat: string = '1 Lámina'; // Valor inicial del formato
   loading = true;
+  searchTerm: string = ''; // Nueva propiedad para el término de búsqueda
 
   // Paginación
   currentPage: number = 1;
@@ -211,13 +212,17 @@ export class AcrylicsComponent implements OnInit {
 
   // Paginación
   updatePaginatedAcrylicItems(): void {
-    // Aseguramos que filteredAcrylicItems esté actualizado
-    this.filteredAcrylicItems = [...this.acrylicItems];
+    // Filtramos los elementos según el término de búsqueda
+    const term = this.searchTerm.toLowerCase().trim();
+    this.filteredAcrylicItems = this.acrylicItems.filter(acrylic =>
+      acrylic.width.toString().includes(term) ||
+      acrylic.height.toString().includes(term) ||
+      acrylic.color.toLowerCase().includes(term) ||
+      acrylic.gauge.toString().includes(term)
+    );
 
-    // Aseguramos que itemsPerPage sea un número
+    // Calculamos el total de páginas con los elementos filtrados
     const itemsPerPageNum = Number(this.itemsPerPage);
-
-    // Calculamos el total de páginas
     this.totalPages = Math.max(1, Math.ceil(this.filteredAcrylicItems.length / itemsPerPageNum));
 
     // Aseguramos que currentPage esté dentro de los límites
@@ -229,6 +234,12 @@ export class AcrylicsComponent implements OnInit {
 
     // Actualizamos paginatedAcrylicItems con el subconjunto correcto
     this.paginatedAcrylicItems = this.filteredAcrylicItems.slice(startIndex, endIndex);
+  }
+
+  // Método para manejar cambios en el término de búsqueda
+  onSearchChange(): void {
+    this.currentPage = 1; // Reiniciamos la página al buscar
+    this.updatePaginatedAcrylicItems();
   }
 }
 
