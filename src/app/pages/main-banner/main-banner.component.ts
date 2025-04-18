@@ -19,6 +19,7 @@ export class MainBannerComponent implements OnInit {
   userId: string | null = null;
   message: string | null = null;
   financeDropdownOpen = false;
+  inventoryDropdownOpen = false;
   newNotification = false;
   constructor(
     private readonly supabase: SupabaseService,
@@ -42,6 +43,18 @@ export class MainBannerComponent implements OnInit {
   }
   goToInventory() {
     this.router.navigate(['/inventory']); // Redirect to inventory route
+  }
+  goToAcrylics() {
+    this.router.navigate(['/acrylics']); // Redirect to acrylics route
+  }
+  goToMdf() {
+    this.router.navigate(['/mdf']); // Redirect to mdf route
+  }
+  goTopolystyrene() {
+    this.router.navigate(['/polystyrene']); // Redirect to polystyrene route
+  }
+  goToVinylCuts() {
+    this.router.navigate(['/vinyl-cuts']); // Redirect to vinyl-cuts route
   }
   goToClients() {
     this.router.navigate(['/clients']); // Redirect to clients route
@@ -135,6 +148,13 @@ export class MainBannerComponent implements OnInit {
   }
   async closeFinanceDropdown() {
     this.financeDropdownOpen = false;
+  }
+  toggleInventoryDropdown(event: MouseEvent): void {
+    event.stopPropagation(); // Prevents the document click listener from firing
+    this.inventoryDropdownOpen = !this.inventoryDropdownOpen;
+  }
+  async closeInventoryDropdown() {
+    this.inventoryDropdownOpen = false;
   }
   // Detect clicks outside of dropdown
   @HostListener('document:click', ['$event'])
