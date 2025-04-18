@@ -5,8 +5,17 @@
   <p>Cargando inventario...</p>
 </div>
 
-<!-- Action buttons -->
-<div *ngIf="!loading" class="actionclass-buttons mb-4">
+<!-- Action buttons y barra de búsqueda -->
+<div *ngIf="!loading" class="actionclass-buttons mb-4 flex items-center space-x-4">
+  <!-- Barra de búsqueda -->
+  <input
+    type="text"
+    [(ngModel)]="searchTerm"
+    (input)="onSearchChange()"
+    placeholder="Buscar por grosor, costo o flete..."
+    class="border border-gray-300 rounded-md p-1 w-64"
+  />
+
   <button
     class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-700"
     (click)="openModal()"

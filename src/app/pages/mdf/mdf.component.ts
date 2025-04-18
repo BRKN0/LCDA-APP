@@ -33,6 +33,7 @@ export class MDFComponent implements OnInit {
   newMdf: mdf = { id_mdf: '', thickness: '', cost: 0, freight: 0, created_at: '' };
   formMdf: mdf; // Nueva propiedad para el formulario
   loading = true;
+  searchTerm: string = ''; // Nueva propiedad para el término de búsqueda
 
   // Paginación
   currentPage: number = 1;
@@ -197,10 +198,26 @@ export class MDFComponent implements OnInit {
 
   // Paginación
   updatePaginatedMdfItems(): void {
-    this.totalPages = Math.max(1, Math.ceil(this.filteredMdfItems.length / this.itemsPerPage));
+    // Filtramos los elementos según el término de búsqueda
+    const term = this.searchTerm.toLowerCase().trim();
+    this.filteredMdfItems = this.mdfItems.filter(mdf =>
+      mdf.thickness.toLowerCase().includes(term) ||
+      mdf.cost.toString().includes(term) ||
+      mdf.freight.toString().includes(term)
+    );
+
+    // Calculamos el total de páginas con los elementos filtrados
+    const itemsPerPageNum = Number(this.itemsPerPage);
+    this.totalPages = Math.max(1, Math.ceil(this.filteredMdfItems.length / itemsPerPageNum));
     this.currentPage = Math.min(Math.max(this.currentPage, 1), this.totalPages);
-    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
-    const endIndex = startIndex + this.itemsPerPage;
+    const startIndex = (this.currentPage - 1) * itemsPerPageNum;
+    const endIndex = startIndex + itemsPerPageNum;
     this.paginatedMdfItems = this.filteredMdfItems.slice(startIndex, endIndex);
+  }
+
+  // Método para manejar cambios en el término de búsqueda
+  onSearchChange(): void {
+    this.currentPage = 1; // Reiniciamos la página al buscar
+    this.updatePaginatedMdfItems();
   }
 }
