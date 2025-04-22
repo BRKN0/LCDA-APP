@@ -290,12 +290,9 @@ export class OrdersComponent implements OnInit {
 
   async saveNewClient(): Promise<void> {
     if (
-      !this.newClient.name ||
-      !this.newClient.email ||
-      !this.newClient.document_type ||
-      !this.newClient.document_number
+      !this.newClient.name
     ) {
-      alert('Por favor, complete todos los campos obligatorios.');
+      alert('Por favor, escriba un nombre para el cliente.');
       return;
     }
 
