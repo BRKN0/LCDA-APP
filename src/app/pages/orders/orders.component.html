@@ -644,7 +644,7 @@
       </div>
 
       <!-- Campos específicos para Impresiones -->
-      <div *ngIf="newOrder.order_type === 'print'" class="mb-4 border-t pt-4">
+      <div *ngIf="newOrder.order_type === 'print' && userRole != 'admin'" class="mb-4 border-t pt-4">
         <h4 class="font-semibold text-red-600">Datos de Impresión</h4>
         <label class="block mt-2 text-gray-700">Material</label>
         <input
@@ -712,7 +712,7 @@
       </div>
 
       <!-- Campos específicos para Cortes -->
-      <div *ngIf="newOrder.order_type === 'laser'" class="mb-4 border-t pt-4">
+      <div *ngIf="newOrder.order_type === 'laser' && userRole != 'admin'" class="mb-4 border-t pt-4">
         <h4 class="font-semibold text-red-600">Datos de Corte</h4>
         <label class="block mt-2 text-gray-700">Tipo de Material</label>
         <input
