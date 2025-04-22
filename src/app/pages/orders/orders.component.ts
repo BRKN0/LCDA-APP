@@ -141,15 +141,12 @@ export class OrdersComponent implements OnInit {
   finalPerMinute: number = 1000;
   usageTime: number = 0;
   calculatorResult: number = 0;
-  
-
-
 
   // Para añadir pedidos
   newOrder: Partial<Orders> = {};
   newCut: Partial<Cuts> = {};
   newPrint: Partial<Prints> = {};
-  
+
   constructor(
     private readonly supabase: SupabaseService,
     private readonly zone: NgZone,
@@ -275,7 +272,11 @@ export class OrdersComponent implements OnInit {
 
     // Validar que el abono no exceda el monto pendiente
     if (amount > remainingBalance) {
-      this.showNotification(`El abono no puede exceder el monto pendiente de $${remainingBalance.toFixed(2)}.`);
+      this.showNotification(
+        `El abono no puede exceder el monto pendiente de $${remainingBalance.toFixed(
+          2
+        )}.`
+      );
       return;
     }
 
@@ -327,7 +328,10 @@ export class OrdersComponent implements OnInit {
       if (!order.payments) {
         order.payments = [];
       }
-      order.payments.push({ ...payment, payment_date: new Date().toISOString() });
+      order.payments.push({
+        ...payment,
+        payment_date: new Date().toISOString(),
+      });
 
       // Actualizar el estado de pago del pedido y la factura
       const totalPaid = order.payments.reduce((sum, p) => sum + p.amount, 0);
@@ -414,9 +418,7 @@ export class OrdersComponent implements OnInit {
       // Ajustar la deuda del cliente según la diferencia
       const { error: debtError } = await this.supabase
         .from('clients')
-        .update({ debt: currentDebt + difference
-
-   })
+        .update({ debt: currentDebt + difference })
         .eq('id_client', this.selectedOrder!.id_client);
 
       if (debtError) {
@@ -431,11 +433,16 @@ export class OrdersComponent implements OnInit {
           (p) => p.id_payment === this.selectedPayment!.id_payment
         );
         if (paymentIndex !== -1) {
-          this.selectedOrder.payments[paymentIndex] = { ...this.selectedPayment };
+          this.selectedOrder.payments[paymentIndex] = {
+            ...this.selectedPayment,
+          };
         }
 
         // Actualizar el estado de pago del pedido y la factura
-        const totalPaid = this.selectedOrder.payments.reduce((sum, p) => sum + p.amount, 0);
+        const totalPaid = this.selectedOrder.payments.reduce(
+          (sum, p) => sum + p.amount,
+          0
+        );
         const orderTotal = parseFloat(String(this.selectedOrder.total)) || 0;
         const newStatus = totalPaid >= orderTotal ? 'upToDate' : 'overdue';
 
@@ -542,28 +549,36 @@ export class OrdersComponent implements OnInit {
 
   async selectOrder(order: Orders) {
     this.loadingDetails = true;
+    this.selectedOrderTypeDetail = []; // Reiniciar
+
     if (order.order_type === 'print') {
       const { data, error } = await this.supabase
         .from('prints')
         .select('*')
         .eq('id_order', order.id_order);
+
       if (error) {
         console.log(error);
+      } else {
+        this.selectedOrderTypeDetail = data;
       }
-      this.selectedOrderTypeDetail = data as Prints[];
     } else if (order.order_type === 'laser') {
       const { data, error } = await this.supabase
         .from('cuts')
         .select('*')
         .eq('id_order', order.id_order);
+
       if (error) {
         console.log(error);
+      } else {
+        this.selectedOrderTypeDetail = data;
       }
-      this.selectedOrderTypeDetail = data as Cuts[];
     }
+
     this.selectedOrderDetails = [order];
     this.loadingDetails = false;
   }
+
   async toggleOrderConfirmedStatus(order: Orders) {
     order.order_confirmed_status =
       order.order_confirmed_status === 'confirmed'
@@ -621,12 +636,35 @@ export class OrdersComponent implements OnInit {
     this.showModal = !this.showModal;
   }
 
-  editOrder(order: Orders): void {
-    // Cargar los datos del pedido seleccionado en el formulario
+  async editOrder(order: Orders): Promise<void> {
+    this.isEditing = true;
+    this.showModal = true;
+
+    // Llenar los campos comunes
     this.newOrder = { ...order };
-    this.newOrder.created_at = this.formatDateForInput(order.created_at); // Formatear la fecha
-    this.isEditing = true; // Indicar que estamos editando
-    this.showModal = true; // Mostrar el modal
+
+    // Obtener detalles específicos si es corte o impresión
+    if (order.order_type === 'print') {
+      const { data, error } = await this.supabase
+        .from('prints')
+        .select('*')
+        .eq('id_order', order.id_order)
+        .maybeSingle();
+
+      if (!error && data) {
+        this.newPrint = { ...data };
+      }
+    } else if (order.order_type === 'laser') {
+      const { data, error } = await this.supabase
+        .from('cuts')
+        .select('*')
+        .eq('id_order', order.id_order)
+        .maybeSingle();
+
+      if (!error && data) {
+        this.newCut = { ...data };
+      }
+    }
   }
 
   async deleteOrder(order: Orders): Promise<void> {
@@ -692,49 +730,95 @@ export class OrdersComponent implements OnInit {
     };
 
     if (this.isEditing) {
+      if (!newOrderForm.id_order) {
+        console.error('ID del pedido no definido para actualizar.');
+        alert('Error: No se puede actualizar un pedido sin ID.');
+        return;
+      }
+
       this.newOrder.id_order = newOrderForm.id_order;
+
       const { error } = await this.supabase
         .from('orders')
         .update([this.newOrder])
         .eq('id_order', this.newOrder.id_order);
+
       if (error) {
         console.error('Error al actualizar el pedido:', error);
         return;
       }
+
+      if (this.newOrder.order_type === 'print') {
+        const printData = { ...this.newPrint };
+        const { error: printError } = await this.supabase
+          .from('prints')
+          .upsert([{ ...printData, id_order: this.newOrder.id_order }]);
+        if (printError) {
+          console.error('Error actualizando impresión:', printError);
+          return;
+        }
+      } else if (this.newOrder.order_type === 'laser') {
+        const cutData = { ...this.newCut };
+        const { error: cutError } = await this.supabase
+          .from('cuts')
+          .upsert([{ ...cutData, id_order: this.newOrder.id_order }]);
+        if (cutError) {
+          console.error('Error actualizando corte:', cutError);
+          return;
+        }
+      }
+
       this.getOrders();
       this.toggleAddOrderForm();
-    } else {
+    } else if (!this.isEditing) {
       const { data, error } = await this.supabase
         .from('orders')
         .insert([this.newOrder])
         .select();
+
       if (error) {
         console.error('Error al añadir el pedido:', error);
         return;
       }
-      this.newOrder.id_order = data[0].id_order;
-      this.newOrder.code = data[0].code;
 
-      // Actualizar la deuda del cliente
-      const { error: updateError } = await this.supabase
-        .from('clients')
-        .update({ debt: currentDebt + orderAmount })
-        .eq('id_client', newOrderForm.id_client);
+      const insertedOrder = data[0];
+      this.newOrder.id_order = insertedOrder.id_order;
+      this.newOrder.code = insertedOrder.code;
 
-      if (updateError) {
-        console.error('Error al actualizar la deuda:', updateError);
-        alert('Error al actualizar la deuda del cliente.');
-        return;
+      if (this.newOrder.order_type === 'print') {
+        const printData = {
+          ...this.newPrint,
+          id_order: insertedOrder.id_order,
+        };
+        const { error: printError } = await this.supabase
+          .from('prints')
+          .insert([printData]);
+        if (printError) {
+          console.error('Error al insertar datos de impresión:', printError);
+          return;
+        }
+      } else if (this.newOrder.order_type === 'laser') {
+        const cutData = {
+          ...this.newCut,
+          id_order: insertedOrder.id_order,
+        };
+        const { error: cutError } = await this.supabase
+          .from('cuts')
+          .insert([cutData]);
+        if (cutError) {
+          console.error('Error al insertar datos de corte:', cutError);
+          return;
+        }
       }
-
-      this.createNotification(this.newOrder);
-      this.getOrders();
-      this.toggleAddOrderForm();
     }
   }
 
   async createNotification(addedOrder: Partial<Orders>) {
-    this.notificationDesc = 'Nuevo pedido: ' + addedOrder.description + '. Codigo: ' + addedOrder.code;
+    this.notificationDesc =
+      'Nuevo pedido: ' +
+      addedOrder.description +
+      '. Codigo: ' +
+      addedOrder.code;
     if (addedOrder.order_type == 'print') {
       this.notificationToInsert = {
         id_user: null,
@@ -798,12 +882,12 @@ export class OrdersComponent implements OnInit {
     this.calculationType = null;
     this.resetForm();
   }
-  
+
   closeCalculator(): void {
     this.showCalculator = false;
     this.resetForm();
   }
-  
+
   resetForm(): void {
     // General
     this.calculatorResult = 0;
@@ -824,33 +908,30 @@ export class OrdersComponent implements OnInit {
   setValoresPorCliente(): void {
     if (this.clientType === 'intermediary') {
       this.laminationValue = 1.2;
-      this.printValue
-   = 2;
+      this.printValue = 2;
       this.stampingValue = 1.2;
       this.assembleValue = 1.2;
     } else if (this.clientType === 'final') {
       this.laminationValue = 1.5;
-      this.printValue
-   = 5;
+      this.printValue = 5;
       this.stampingValue = 1.5;
       this.assembleValue = 1.5;
     }
   }
 
   calculatePrice(): void {
-    if(this.calculationType == 'prints'){
+    if (this.calculationType == 'prints') {
       const base = this.rollWidth * this.measurement * this.productNumber;
-  
+
       let factor = 0;
-    
+
       if (this.lamination) factor += this.laminationValue;
-      if (this.pPrint) factor += this.printValue
-  ;
+      if (this.pPrint) factor += this.printValue;
       if (this.stamping) factor += this.stampingValue;
       if (this.assemble) factor += this.assembleValue;
-    
+
       this.calculatorResult = base * factor;
-    }else if(this.calculationType == 'cuts'){
+    } else if (this.calculationType == 'cuts') {
       let valorTiempo = 0;
       if (this.usageTime <= 10) {
         valorTiempo = 8000;
@@ -863,6 +944,5 @@ export class OrdersComponent implements OnInit {
 
       this.calculatorResult = this.materialValue + valorTiempo;
     }
-    
   }
 }
