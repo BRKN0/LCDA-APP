@@ -1,0 +1,141 @@
+<app-main-banner></app-main-banner>
+
+<!-- Filtros de búsqueda -->
+<div class="flex items-center gap-4 mt-4 mb-2">
+    <div>
+      <label class="text-sm text-gray-700 mr-1">Filtrar por tipo:</label>
+      <select [(ngModel)]="searchType" (change)="updateFilteredVinylCuts()" class="border rounded p-1">
+        <option value="">-- Todos --</option>
+        <option *ngFor="let type of availableTypes" [value]="type">{{ type }}</option>
+      </select>
+    </div>
+    <div>
+      <label class="text-sm text-gray-700 mr-1">Buscar proveedor:</label>
+      <input type="text" [(ngModel)]="searchSupplier" (input)="updateFilteredVinylCuts()" class="border rounded p-1" />
+    </div>
+  </div>
+  
+  <!-- Botón para añadir nuevo -->
+  <div class="flex justify-end mb-4">
+    <button 
+        class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600" 
+        (click)="addVinylCut()"
+    >
+        Añadir Vinilo de Corte
+    </button>
+  </div>
+  
+  <!-- Tabla con paginación -->
+  <div *ngIf="!loading && filteredVinylCuts.length > 0">
+    <table class="table-std">
+      <thead>
+        <tr class="bg-gray-100">
+          <th class="table-column-std">Proveedor</th>
+          <th class="table-column-std">Tipo</th>
+          <th class="table-column-std">Unds/Mts</th>
+          <th class="table-column-std">Descripción</th>
+          <th class="table-column-std">Costo x Mt</th>
+          <th class="table-column-std">Venta x Mt</th>
+          <th class="table-column-std">Cm Lineal</th>
+          <th class="table-column-std">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of paginatedVinylCuts">
+          <td>{{ item.supplier }}</td>
+          <td>{{ item.type }}</td>
+          <td>{{ item.unds_mts }}</td>
+          <td>{{ item.description }}</td>
+          <td>{{ item.costXmt | currency:'COP' }}</td>
+          <td>{{ item.saleXmt | currency:'COP' }}</td>
+          <td>{{ item.linearCm | currency:'COP' }}</td>
+          <td>
+            <button class="btn-edit" (click)="editVinylCut(item)">Editar</button>
+            <button class="btn-delete" (click)="deleteVinylCut(item)">Eliminar</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  
+    <div class="flex justify-between items-center mb-4">
+      <!-- Controles de paginación -->
+      <div class="pagination flex items-center">
+        <button
+          (click)="currentPage = currentPage - 1; updatePaginatedVinylCuts()"
+          [disabled]="currentPage === 1"
+          class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+        >
+          &#8592;
+        </button>
+        <span class="mx-4 text-gray-700">
+          Página {{ currentPage }} de {{ totalPages }}
+        </span>
+        <button
+          (click)="currentPage = currentPage + 1; updatePaginatedVinylCuts()"
+          [disabled]="currentPage === totalPages"
+          class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+        >
+          &#8594;
+        </button>
+      </div>
+  
+      <!-- Selector de elementos por página -->
+      <div class="items-per-page flex items-center">
+        <label for="itemsPerPage" class="mr-2">Elementos por página:</label>
+        <select
+          id="itemsPerPage"
+          [(ngModel)]="itemsPerPage"
+          (change)="currentPage = 1; updatePaginatedVinylCuts()"
+          class="border border-gray-300 rounded-md p-1"
+        >
+          <option *ngFor="let size of [5, 10, 15, 20]" [value]="size">{{ size }}</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div *ngIf="!loading && filteredVinylCuts.length === 0" class="text-center mt-8 text-gray-600">
+    No se encontraron registros.
+  </div>
+  
+  <!-- Formulario modal -->
+  <div *ngIf="showModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
+    <div class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto">
+      <h3 class="text-lg font-bold mb-4">{{ isEditing ? 'Editar Vinilo de Corte' : 'Nuevo Vinilo de Corte' }}</h3>
+      <form (ngSubmit)="saveVinylCut()">
+        <div class="mb-4">
+          <label class="block text-gray-700">Proveedor</label>
+          <input type="text" [(ngModel)]="selectedVinylCut.supplier" name="supplier" class="form-input mt-1 block w-full" required />
+        </div>
+        <div class="mb-4">
+          <label class="block text-gray-700">Unds/Mts</label>
+          <input type="number" [(ngModel)]="selectedVinylCut.unds_mts" name="unds_mts" class="form-input mt-1 block w-full" required />
+        </div>
+        <div class="mb-4">
+          <label class="block text-gray-700">Tipo</label>
+          <input type="text" [(ngModel)]="selectedVinylCut.type" name="type" class="form-input mt-1 block w-full" required />
+        </div>
+        <div class="mb-4">
+          <label class="block text-gray-700">Descripción</label>
+          <input type="text" [(ngModel)]="selectedVinylCut.description" name="description" class="form-input mt-1 block w-full" />
+        </div>
+        <div class="mb-4">
+          <label class="block text-gray-700">Costo x metro</label>
+          <input type="number" [(ngModel)]="selectedVinylCut.costXmt" name="costXmt" class="form-input mt-1 block w-full" required />
+        </div>
+        <div class="mb-4">
+          <label class="block text-gray-700">Precio venta x metro</label>
+          <input type="number" [(ngModel)]="selectedVinylCut.saleXmt" name="saleXmt" class="form-input mt-1 block w-full" required />
+        </div>
+        <div class="mb-4">
+          <label class="block text-gray-700">Precio lineal x cm</label>
+          <input type="number" [value]="round(selectedVinylCut.saleXmt / 100)" disabled class="form-input mt-1 block w-full bg-gray-100" />
+        </div>
+        <div class="flex justify-end mt-6">
+          <button type="button" class="btn-danger" (click)="closeModal()">Cancelar</button>
+          <button type="submit" class="btn-success">
+            {{ isEditing ? 'Actualizar' : 'Guardar' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>

@@ -1,6 +1,10 @@
 import { Routes } from '@angular/router';
 import { LoginComponent } from './pages/login/login.component';
 import { InventoryComponent } from './pages/inventory/inventory.component';
+import { AcrylicsComponent } from './pages/acrylics/acrylics.component';
+import { MDFComponent } from './pages/mdf/mdf.component';
+import { PolystyreneComponent } from './pages/polystyrene/polystyrene.component';
+import { VinylCutsComponent } from './pages/vinyl-cuts/vinyl-cuts.component';
 import { HomeComponent } from './pages/home/home.component';
 import { ClientsComponent } from './pages/clients/clients.component';
 import { OrdersComponent } from './pages/orders/orders.component';
@@ -24,6 +28,22 @@ export const routes: Routes = [
   {
     path: 'inventory',
     loadComponent: () => InventoryComponent,
+  },
+  {
+    path: 'acrylics',
+    loadComponent: () => AcrylicsComponent,
+  },
+  {
+    path: 'mdf',
+    loadComponent: () => MDFComponent,
+  },
+  {
+    path: 'polystyrene',
+    loadComponent: () => PolystyreneComponent,
+  },
+  {
+    path: 'vinyl-cuts',
+    loadComponent: () => VinylCutsComponent,
   },
   {
     path: 'home',
