@@ -131,7 +131,7 @@ export class MainBannerComponent implements OnInit {
     let query = this.supabase.from('notifications').select('*');
   
     if (this.userRole === 'admin') {
-      query = query;
+      query = query.eq('id_user', this.userId);
     } 
     else if (this.userRole === 'prints_employee') {
       query = query.eq('type', 'prints');
