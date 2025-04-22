@@ -868,6 +868,7 @@ export class OrdersComponent implements OnInit {
           console.error('Error al insertar datos de impresión:', printError);
           return;
         }
+        this.createNotification(insertedOrder);
         this.toggleAddOrderForm();
         return;
       } else if (this.newOrder.order_type === 'laser') {
@@ -882,9 +883,11 @@ export class OrdersComponent implements OnInit {
           console.error('Error al insertar datos de corte:', cutError);
           return;
         }
+        this.createNotification(insertedOrder);
         this.toggleAddOrderForm();
         return;
       }
+      this.createNotification(insertedOrder);
       this.toggleAddOrderForm();
       return;
     }
