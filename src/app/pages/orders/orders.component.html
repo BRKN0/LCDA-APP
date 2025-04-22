@@ -482,7 +482,7 @@
             </p>
             <p>
               <strong>Dimensiones:</strong>
-              {{ selectedOrderTypeDetail[0].length }} X
+              {{ selectedOrderTypeDetail[0].height }} X
               {{ selectedOrderTypeDetail[0].width }}
             </p>
             <p>
@@ -493,7 +493,7 @@
         </ul>
       </div>
       <!-- Specific details for prints -->
-      <div *ngIf="selectedOrderDetails[0].order_type === 'prints'" class="my-6">
+      <div *ngIf="selectedOrderDetails[0].order_type === 'print'" class="my-6">
         <ul class="list-none">
           <li>
             <p>
@@ -741,7 +741,12 @@
           name="width"
           class="form-input mt-1 block w-full"
         />
-
+        <label class="block mt-2 text-gray-700">Cantidad</label>
+        <input
+          [(ngModel)]="newCut.quantity"
+          name="quantity"
+          class="form-input mt-1 block w-full"
+        />
         <label class="block mt-2 text-gray-700">Tiempo de corte</label>
         <input
           [(ngModel)]="newCut.cutting_time"
