@@ -33,394 +33,417 @@
     class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 mr-4"
     (click)="generateClientsKardex()"
   >
-  Generar Kardex
+    Generar Kardex
   </button>
 
-<!-- No clients found -->
-<div *ngIf="noResultsFound" class="p-4 text-center text-gray-600">
-  <p>No hay coincidencias con la busqueda.</p>
-</div>
-
-<div *ngIf="!loading && !noResultsFound">
-  <table class="table-std">
-    <thead>
-      <tr>
-        <th class="table-column-std">Nombre</th>
-        <th class="table-column-std">Correo</th>
-        <th class="table-column-std">NIT / CC</th>
-        <th class="table-column-std">Estado</th>
-        <th class="w-1/6">Acciones</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr
-        *ngFor="let client of paginatedClients"
-        [class.border-red-500]="client.status === 'overdue'"
-        [class.border-green-500]="client.status === 'upToDate'"
-      >
-        <td>{{ client.company_name ?? client.name }}</td>
-        <td>{{client.email}}</td>
-        <td>
-          {{ client.nit ?? client.document_number }}
-        </td>
-        <td
-          [class.text-green-600]="client.status === 'upToDate'"
-          [class.text-red-600]="client.status === 'overdue'"
-        >
-          {{
-            client.status === "upToDate"
-              ? "Al Día"
-              : client.status === "overdue"
-              ? "En Mora"
-              : "Desconocido"
-          }}
-        </td>
-        <td>
-          <button class="btn-details"
-            (click)="openClientModal(client); $event.stopPropagation()">
-            Detalles
-          </button>
-          <button class="btn-edit"
-            (click)="editClient(client); $event.stopPropagation()">
-            Editar
-          </button>
-          <button class="btn-delete"
-            (click)="deleteClient(client); $event.stopPropagation()">
-            Eliminar
-          </button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-
-  <!-- Modal para detalles del cliente -->
-  <div
-    *ngIf="showClientModal"
-    class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
-  >
-    <div class="bg-white rounded-lg shadow-lg p-6 w-3/4 max-h-screen overflow-y-auto">
-      <h3 class="text-lg font-bold mb-4">
-        Cliente: {{ selectedClient?.name }}
-      </h3>
-      <div class="flex space-x-4 mb-4">
-        <button
-          (click)="toggleOrders(selectedClient)"
-          class="bg-red-500 text-white p-2 rounded-md hover:bg-red-600"
-        >
-          Mostrar Pedidos
-        </button>
-        <button
-          class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
-          (click)="generatePDF()"
-        >
-          Descargar Extracto
-        </button>
-        <button
-          class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
-          (click)="toggleClientDetails()"
-        >
-          {{ showDetails ? "Ocultar Detalles" : "Mostrar Detalles" }}
-        </button>
-      </div>
-
-      <!-- Detalles del cliente -->
-      <div *ngIf="showDetails && selectedClient" class="details">
-        <p><strong>Teléfono:</strong> {{ selectedClient.cellphone }}</p>
-        <p><strong>Dirección:</strong> {{ selectedClient.address }}</p>
-        <p>
-          <strong>Deuda:</strong>
-          <span
-            [class.text-green-600]="selectedClient.debt === 0"
-            [class.text-red-600]="selectedClient.debt > 0"
-          >
-            {{
-              selectedClient.debt > 0
-                ? "$" + selectedClient.debt
-                : "Sin Deuda"
-            }}
-          </span>
-        </p>
-        <p><strong>Límite de Crédito:</strong> ${{ selectedClient.credit_limit }}</p>
-        <!-- Campo para editar el límite de crédito (solo admin) -->
-        <div *ngIf="userRole === 'admin' && selectedClient" class="mt-2">
-          <label for="creditLimit" class="block text-gray-700">Actualizar Límite de Crédito:</label>
-          <input
-            type="number"
-            id="creditLimit"
-            [(ngModel)]="selectedClient.credit_limit"
-            name="creditLimit"
-            class="border p-1 mt-1 block w-full"
-          />
-          <button
-            class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 mt-2"
-            (click)="updateCreditLimit(selectedClient)"
-          >
-            Guardar
-          </button>
-        </div>
-      </div>
-
-
-      <!-- Botón para cerrar el modal -->
-      <div class="flex justify-end mt-4">
-        <button
-          class="btn-danger"
-          (click)="closeClientModal()"
-        >
-          Cerrar
-        </button>
-      </div>
-    </div>
+  <!-- No clients found -->
+  <div *ngIf="noResultsFound" class="p-4 text-center text-gray-600">
+    <p>No hay coincidencias con la busqueda.</p>
   </div>
 
-  <!-- Modal para mostrar pedidos -->
-  <div
-  *ngIf="showOrders"
-  class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
-  >
-  <div class="bg-white rounded-lg shadow-lg p-6 w-3/4 max-h-screen overflow-y-auto">
-    <h3 class="text-lg font-bold mb-4">
-      Pedidos del Cliente: {{ selectedClient?.name }}
-    </h3>
-    <table class="w-full border-collapse">
+  <div *ngIf="!loading && !noResultsFound">
+    <table class="table-std">
       <thead>
-        <tr class="bg-gray-100">
-          <th class="p-3 border">#</th>
-          <th class="p-3 border">Fecha</th>
-          <th class="p-3 border">Detalles</th>
-          <th class="p-3 border">Total</th>
-          <th class="p-3 border">Estado de pago</th>
-          <th class="p-3 border">Abonos</th>
+        <tr>
+          <th class="table-column-std">Nombre</th>
+          <th class="table-column-std">Correo</th>
+          <th class="table-column-std">NIT / CC</th>
+          <th class="table-column-std">Estado</th>
+          <th class="w-1/6">Acciones</th>
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let order of paginatedOrders">
-          <td class="p-3 border">{{ order.code }}</td>
-          <td class="p-3 border">{{ order.created_at | date: 'dd-MM-yyyy' }}</td>
-          <td class="p-3 border">{{ order.description }}</td>
-          <td class="p-3 border">${{ order.total }}</td>
+        <tr
+          *ngFor="let client of paginatedClients"
+          [class.border-red-500]="client.status === 'overdue'"
+          [class.border-green-500]="client.status === 'upToDate'"
+        >
+          <td>
+            {{
+              client.company_name && client.company_name.trim() !== ""
+                ? client.company_name
+                : client.name
+            }}
+          </td>
+          <td>{{ client.email }}</td>
+          <td>
+            {{ client.nit ?? client.document_number }}
+          </td>
           <td
-            class="p-3 border"
-            [class.text-green-600]="order.order_payment_status === 'upToDate'"
-            [class.text-red-600]="order.order_payment_status === 'overdue'"
+            [class.text-green-600]="client.status === 'upToDate'"
+            [class.text-red-600]="client.status === 'overdue'"
           >
             {{
-              order.order_payment_status === "upToDate"
+              client.status === "upToDate"
                 ? "Al Día"
-                : order.order_payment_status === "overdue"
+                : client.status === "overdue"
                 ? "En Mora"
                 : "Desconocido"
             }}
           </td>
-          <td class="p-3 border">
-            <!-- Mostrar abonos existentes -->
-            <div *ngIf="order.payments && order.payments.length > 0">
-              <ul>
-                <li *ngFor="let payment of order.payments">
-                  ${{ payment.amount }} - {{ payment.payment_date | date: 'dd-MM-yyyy' }}
-                </li>
-              </ul>
-            </div>
+          <td>
+            <button
+              class="btn-details"
+              (click)="openClientModal(client); $event.stopPropagation()"
+            >
+              Detalles
+            </button>
+            <button
+              class="btn-edit"
+              (click)="editClient(client); $event.stopPropagation()"
+            >
+              Editar
+            </button>
+            <button
+              class="btn-delete"
+              (click)="deleteClient(client); $event.stopPropagation()"
+            >
+              Eliminar
+            </button>
           </td>
         </tr>
       </tbody>
     </table>
-    <!-- Paginación (sin cambios) -->
+
+    <!-- Modal para detalles del cliente -->
+    <div
+      *ngIf="showClientModal"
+      class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
+    >
+      <div
+        class="bg-white rounded-lg shadow-lg p-6 w-3/4 max-h-screen overflow-y-auto"
+      >
+        <h3 class="text-lg font-bold mb-4">
+          Cliente: {{ selectedClient?.name }}
+        </h3>
+        <div class="flex space-x-4 mb-4">
+          <button
+            (click)="toggleOrders(selectedClient)"
+            class="bg-red-500 text-white p-2 rounded-md hover:bg-red-600"
+          >
+            Mostrar Pedidos
+          </button>
+          <button
+            class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+            (click)="generatePDF()"
+          >
+            Descargar Extracto
+          </button>
+          <button
+            class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
+            (click)="toggleClientDetails()"
+          >
+            {{ showDetails ? "Ocultar Detalles" : "Mostrar Detalles" }}
+          </button>
+        </div>
+
+        <!-- Detalles del cliente -->
+        <div *ngIf="showDetails && selectedClient" class="details">
+          <p><strong>Teléfono:</strong> {{ selectedClient.cellphone }}</p>
+          <p><strong>Dirección:</strong> {{ selectedClient.address }}</p>
+          <p>
+            <strong>Deuda:</strong>
+            <span
+              [class.text-green-600]="selectedClient.debt === 0"
+              [class.text-red-600]="selectedClient.debt > 0"
+            >
+              {{
+                selectedClient.debt > 0
+                  ? "$" + selectedClient.debt
+                  : "Sin Deuda"
+              }}
+            </span>
+          </p>
+          <p>
+            <strong>Límite de Crédito:</strong> ${{
+              selectedClient.credit_limit
+            }}
+          </p>
+          <!-- Campo para editar el límite de crédito (solo admin) -->
+          <div *ngIf="userRole === 'admin' && selectedClient" class="mt-2">
+            <label for="creditLimit" class="block text-gray-700"
+              >Actualizar Límite de Crédito:</label
+            >
+            <input
+              type="number"
+              id="creditLimit"
+              [(ngModel)]="selectedClient.credit_limit"
+              name="creditLimit"
+              class="border p-1 mt-1 block w-full"
+            />
+            <button
+              class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 mt-2"
+              (click)="updateCreditLimit(selectedClient)"
+            >
+              Guardar
+            </button>
+          </div>
+        </div>
+
+        <!-- Botón para cerrar el modal -->
+        <div class="flex justify-end mt-4">
+          <button class="btn-danger" (click)="closeClientModal()">
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal para mostrar pedidos -->
+    <div
+      *ngIf="showOrders"
+      class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
+    >
+      <div
+        class="bg-white rounded-lg shadow-lg p-6 w-3/4 max-h-screen overflow-y-auto"
+      >
+        <h3 class="text-lg font-bold mb-4">
+          Pedidos del Cliente: {{ selectedClient?.name }}
+        </h3>
+        <table class="w-full border-collapse">
+          <thead>
+            <tr class="bg-gray-100">
+              <th class="p-3 border">#</th>
+              <th class="p-3 border">Fecha</th>
+              <th class="p-3 border">Detalles</th>
+              <th class="p-3 border">Total</th>
+              <th class="p-3 border">Estado de pago</th>
+              <th class="p-3 border">Abonos</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let order of paginatedOrders">
+              <td class="p-3 border">{{ order.code }}</td>
+              <td class="p-3 border">
+                {{ order.created_at | date : "dd-MM-yyyy" }}
+              </td>
+              <td class="p-3 border">{{ order.description }}</td>
+              <td class="p-3 border">${{ order.total }}</td>
+              <td
+                class="p-3 border"
+                [class.text-green-600]="
+                  order.order_payment_status === 'upToDate'
+                "
+                [class.text-red-600]="order.order_payment_status === 'overdue'"
+              >
+                {{
+                  order.order_payment_status === "upToDate"
+                    ? "Al Día"
+                    : order.order_payment_status === "overdue"
+                    ? "En Mora"
+                    : "Desconocido"
+                }}
+              </td>
+              <td class="p-3 border">
+                <!-- Mostrar abonos existentes -->
+                <div *ngIf="order.payments && order.payments.length > 0">
+                  <ul>
+                    <li *ngFor="let payment of order.payments">
+                      ${{ payment.amount }} -
+                      {{ payment.payment_date | date : "dd-MM-yyyy" }}
+                    </li>
+                  </ul>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <!-- Paginación (sin cambios) -->
+        <div class="flex justify-between items-center mb-4">
+          <div class="pagination flex items-center">
+            <button
+              (click)="
+                currentOrderPage = currentOrderPage - 1; updatePaginatedOrders()
+              "
+              [disabled]="currentOrderPage === 1"
+              class="px-2 py-1 text-black border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+            >
+              ←
+            </button>
+            <span class="mx-4 text-gray-700">
+              Página {{ currentOrderPage }} de {{ totalOrderPages }}
+            </span>
+            <button
+              (click)="
+                currentOrderPage = currentOrderPage + 1; updatePaginatedOrders()
+              "
+              [disabled]="currentOrderPage === totalOrderPages"
+              class="px-2 py-1 text-black border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+            >
+              →
+            </button>
+          </div>
+          <div class="items-per-page flex items-center">
+            <label for="itemsPerPageOrders" class="mr-2">
+              Elementos por página:
+            </label>
+            <select
+              id="itemsPerPageOrders"
+              [(ngModel)]="itemsPerOrderPage"
+              (change)="updatePaginatedOrders()"
+              class="border border-gray-300 rounded-md p-1"
+            >
+              <option *ngFor="let size of [10, 15, 25, 50]" [value]="size">
+                {{ size }}
+              </option>
+            </select>
+          </div>
+        </div>
+        <div class="flex justify-end mt-4">
+          <button
+            class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
+            (click)="toggleOrders(null)"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Paginación de la tabla principal -->
     <div class="flex justify-between items-center mb-4">
       <div class="pagination flex items-center">
         <button
-          (click)="currentOrderPage = currentOrderPage - 1; updatePaginatedOrders()"
-          [disabled]="currentOrderPage === 1"
-          class="px-2 py-1 text-black border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+          (click)="currentPage = currentPage - 1; updatePaginatedClients()"
+          [disabled]="currentPage === 1"
+          class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
         >
           ←
         </button>
         <span class="mx-4 text-gray-700">
-          Página {{ currentOrderPage }} de {{ totalOrderPages }}
+          Página {{ currentPage }} de {{ totalPages }}
         </span>
         <button
-          (click)="currentOrderPage = currentOrderPage + 1; updatePaginatedOrders()"
-          [disabled]="currentOrderPage === totalOrderPages"
-          class="px-2 py-1 text-black border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+          (click)="currentPage = currentPage + 1; updatePaginatedClients()"
+          [disabled]="currentPage === totalPages"
+          class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
         >
           →
         </button>
       </div>
       <div class="items-per-page flex items-center">
-        <label for="itemsPerPageOrders" class="mr-2">
-          Elementos por página:
-        </label>
+        <label for="itemsPerPage" class="mr-2">Elementos por página:</label>
         <select
-          id="itemsPerPageOrders"
-          [(ngModel)]="itemsPerOrderPage"
-          (change)="updatePaginatedOrders()"
+          id="itemsPerPage"
+          [(ngModel)]="itemsPerPage"
+          (change)="currentPage = 1; updatePaginatedClients()"
           class="border border-gray-300 rounded-md p-1"
         >
-          <option *ngFor="let size of [10, 15, 25, 50]" [value]="size">
+          <option *ngFor="let size of [2, 10, 15, 20]" [value]="size">
             {{ size }}
           </option>
         </select>
       </div>
     </div>
-    <div class="flex justify-end mt-4">
-      <button
-        class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
-        (click)="toggleOrders(null)"
-      >
-        Cerrar
-      </button>
-    </div>
-  </div>
-  </div>
 
-  <!-- Paginación de la tabla principal -->
-  <div class="flex justify-between items-center mb-4">
-    <div class="pagination flex items-center">
-      <button
-        (click)="currentPage = currentPage - 1; updatePaginatedClients()"
-        [disabled]="currentPage === 1"
-        class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+    <!-- Formulario para añadir/editar clientes (sin cambios) -->
+    <div
+      *ngIf="showModal"
+      class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
+    >
+      <div
+        class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto"
       >
-        ←
-      </button>
-      <span class="mx-4 text-gray-700">
-        Página {{ currentPage }} de {{ totalPages }}
-      </span>
-      <button
-        (click)="currentPage = currentPage + 1; updatePaginatedClients()"
-        [disabled]="currentPage === totalPages"
-        class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
-      >
-        →
-      </button>
-    </div>
-    <div class="items-per-page flex items-center">
-      <label for="itemsPerPage" class="mr-2">Elementos por página:</label>
-      <select
-        id="itemsPerPage"
-        [(ngModel)]="itemsPerPage"
-        (change)="currentPage = 1; updatePaginatedClients()"
-        class="border border-gray-300 rounded-md p-1"
-      >
-        <option *ngFor="let size of [2, 10, 15, 20]" [value]="size">
-          {{ size }}
-        </option>
-      </select>
-    </div>
-  </div>
-
-  <!-- Formulario para añadir/editar clientes (sin cambios) -->
-  <div
-    *ngIf="showModal"
-    class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
-  >
-    <div class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto">
-      <h3 class="text-lg font-bold mb-4">
-        {{ isEditing ? "Editar Cliente" : "Añadir Cliente" }}
-      </h3>
-      <form (ngSubmit)="saveClient()">
-        <div class="mb-4">
-          <label class="block text-gray-700">Nombre</label>
-          <input
-            [(ngModel)]="selectedClientData.name"
-            name="name"
-            class="form-input mt-1 block w-full"
-            required
-          />
-        </div>
-        <div class="mb-4">
-          <label class="block text-gray-700">Correo Electrónico</label>
-          <input
-            type="email"
-            [(ngModel)]="selectedClientData.email"
-            name="email"
-            class="form-input mt-1 block w-full"
-          />
-        </div>
-        <div class="mb-4">
-          <label class="block text-gray-700">Tipo de Documento</label>
-          <select
-            [(ngModel)]="selectedClientData.document_type"
-            name="order_type"
-            class="form-select mt-1 block w-full"
-          >
-            <option value="NIT">NIT</option>
-            <option value="civil registry">Registro civil</option>
-            <option value="identity card">Tarjeta de identidad</option>
-            <option value="citizenship card">Cédula de ciudadanía</option>
-            <option value="alien card">Tarjeta de extranjería</option>
-            <option value="foreigner's identity card">
-              Cédula de extranjería
-            </option>
-            <option value="passport">Pasaporte</option>
-            <option value="foreign identifiaction document">
-              Documento de identificación extranjero
-            </option>
-            <option value="NIT from another country">NIT de otro país</option>
-            <option value="NUIP">NUIP</option>
-          </select>
-        </div>
-        <div class="mb-4">
-          <label class="block text-gray-700">Identificación/Documento</label>
-          <input
-            [(ngModel)]="selectedClientData.document_number"
-            name="document_number"
-            class="form-input mt-1 block w-full"
-          />
-        </div>
-        <div class="mb-4">
-          <label class="block text-gray-700">Empresa</label>
-          <input
-            [(ngModel)]="selectedClientData.company_name"
-            name="company_name"
-            class="form-input mt-1 block w-full"
-          />
-        </div>
-        <div class="mb-4">
-          <label class="block text-gray-700">Teléfono</label>
-          <input
-            type="number"
-            [(ngModel)]="selectedClientData.cellphone"
-            name="cellphone"
-            class="form-input mt-1 block w-full"
-          />
-        </div>
-        <div class="mb-4">
-          <label class="block text-gray-700">Dirección</label>
-          <input
-            type="text"
-            [(ngModel)]="selectedClientData.address"
-            name="address"
-            class="form-input mt-1 block w-full"
-          />
-        </div>
-        <div class="mb-4">
-          <label class="block text-gray-700">Estado</label>
-          <select
-            [(ngModel)]="selectedClientData.status"
-            name="status"
-            class="form-select mt-1 block w-full"
-          >
-            <option value="upToDate">Al Día</option>
-            <option value="overdue">En Mora</option>
-          </select>
-        </div>
-        <div class="flex justify-end">
-          <button
-            type="button"
-            class="btn-danger"
-            (click)="closeModal()"
-          >
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            class="btn-success"
-          >
-            {{ isEditing ? "Actualizar Cliente" : "Guardar Cliente" }}
-          </button>
-        </div>
-      </form>
+        <h3 class="text-lg font-bold mb-4">
+          {{ isEditing ? "Editar Cliente" : "Añadir Cliente" }}
+        </h3>
+        <form (ngSubmit)="saveClient()">
+          <div class="mb-4">
+            <label class="block text-gray-700">Nombre</label>
+            <input
+              [(ngModel)]="selectedClientData.name"
+              name="name"
+              class="form-input mt-1 block w-full"
+              required
+            />
+          </div>
+          <div class="mb-4">
+            <label class="block text-gray-700">Correo Electrónico</label>
+            <input
+              type="email"
+              [(ngModel)]="selectedClientData.email"
+              name="email"
+              class="form-input mt-1 block w-full"
+            />
+          </div>
+          <div class="mb-4">
+            <label class="block text-gray-700">Tipo de Documento</label>
+            <select
+              [(ngModel)]="selectedClientData.document_type"
+              name="order_type"
+              class="form-select mt-1 block w-full"
+            >
+              <option value="NIT">NIT</option>
+              <option value="civil registry">Registro civil</option>
+              <option value="identity card">Tarjeta de identidad</option>
+              <option value="citizenship card">Cédula de ciudadanía</option>
+              <option value="alien card">Tarjeta de extranjería</option>
+              <option value="foreigner's identity card">
+                Cédula de extranjería
+              </option>
+              <option value="passport">Pasaporte</option>
+              <option value="foreign identifiaction document">
+                Documento de identificación extranjero
+              </option>
+              <option value="NIT from another country">NIT de otro país</option>
+              <option value="NUIP">NUIP</option>
+            </select>
+          </div>
+          <div class="mb-4">
+            <label class="block text-gray-700">Identificación/Documento</label>
+            <input
+              [(ngModel)]="selectedClientData.document_number"
+              name="document_number"
+              class="form-input mt-1 block w-full"
+            />
+          </div>
+          <div class="mb-4">
+            <label class="block text-gray-700">Empresa</label>
+            <input
+              [(ngModel)]="selectedClientData.company_name"
+              name="company_name"
+              class="form-input mt-1 block w-full"
+            />
+          </div>
+          <div class="mb-4">
+            <label class="block text-gray-700">Teléfono</label>
+            <input
+              type="number"
+              [(ngModel)]="selectedClientData.cellphone"
+              name="cellphone"
+              class="form-input mt-1 block w-full"
+            />
+          </div>
+          <div class="mb-4">
+            <label class="block text-gray-700">Dirección</label>
+            <input
+              type="text"
+              [(ngModel)]="selectedClientData.address"
+              name="address"
+              class="form-input mt-1 block w-full"
+            />
+          </div>
+          <div class="mb-4">
+            <label class="block text-gray-700">Estado</label>
+            <select
+              [(ngModel)]="selectedClientData.status"
+              name="status"
+              class="form-select mt-1 block w-full"
+            >
+              <option value="upToDate">Al Día</option>
+              <option value="overdue">En Mora</option>
+            </select>
+          </div>
+          <div class="flex justify-end">
+            <button type="button" class="btn-danger" (click)="closeModal()">
+              Cancelar
+            </button>
+            <button type="submit" class="btn-success">
+              {{ isEditing ? "Actualizar Cliente" : "Guardar Cliente" }}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 </div>
