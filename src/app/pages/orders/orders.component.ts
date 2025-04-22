@@ -162,9 +162,6 @@ export class OrdersComponent implements OnInit {
   showAddClientModal = false;
   filteredClients: Client[] = [];
 
-
-
-
   // Para añadir pedidos
   newOrder: Partial<Orders> = {};
   newCut: Partial<Cuts> = {};
@@ -178,7 +175,7 @@ export class OrdersComponent implements OnInit {
     company_name: '',
     cellphone: '',
     address: '',
-    status: ''
+    status: '',
   };
 
   constructor(
@@ -287,17 +284,24 @@ export class OrdersComponent implements OnInit {
       company_name: '',
       cellphone: '',
       address: '',
-      status: ''
+      status: '',
     };
   }
 
   async saveNewClient(): Promise<void> {
-    if (!this.newClient.name || !this.newClient.email || !this.newClient.document_type || !this.newClient.document_number) {
+    if (
+      !this.newClient.name ||
+      !this.newClient.email ||
+      !this.newClient.document_type ||
+      !this.newClient.document_number
+    ) {
       alert('Por favor, complete todos los campos obligatorios.');
       return;
     }
 
-    const { data, error } = await this.supabase.from('clients').insert([this.newClient]);
+    const { data, error } = await this.supabase
+      .from('clients')
+      .insert([this.newClient]);
 
     if (error) {
       console.error('Error añadiendo el cliente:', error);
@@ -863,6 +867,8 @@ export class OrdersComponent implements OnInit {
           console.error('Error al insertar datos de impresión:', printError);
           return;
         }
+        this.toggleAddOrderForm();
+        return;
       } else if (this.newOrder.order_type === 'laser') {
         const cutData = {
           ...this.newCut,
@@ -875,7 +881,11 @@ export class OrdersComponent implements OnInit {
           console.error('Error al insertar datos de corte:', cutError);
           return;
         }
+        this.toggleAddOrderForm();
+        return;
       }
+      this.toggleAddOrderForm();
+      return;
     }
   }
 
@@ -1010,6 +1020,5 @@ export class OrdersComponent implements OnInit {
 
       this.calculatorResult = this.materialValue + valorTiempo;
     }
-
   }
 }
