@@ -169,7 +169,18 @@ export class OrdersComponent implements OnInit {
   newOrder: Partial<Orders> = {};
   newCut: Partial<Cuts> = {};
   newPrint: Partial<Prints> = {};
-  
+
+  newClient = {
+    name: '',
+    email: '',
+    document_type: '',
+    document_number: '',
+    company_name: '',
+    cellphone: '',
+    address: '',
+    status: ''
+  };
+
   constructor(
     private readonly supabase: SupabaseService,
     private readonly zone: NgZone,
@@ -999,6 +1010,6 @@ export class OrdersComponent implements OnInit {
 
       this.calculatorResult = this.materialValue + valorTiempo;
     }
-    
+
   }
 }
