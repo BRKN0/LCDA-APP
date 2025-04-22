@@ -1,0 +1,179 @@
+<app-main-banner></app-main-banner>
+
+<!-- Indicador de carga -->
+<div *ngIf="loading" class="p-4 text-center text-gray-600">
+  <p>Cargando inventario...</p>
+</div>
+
+<!-- Action buttons y barra de búsqueda -->
+<div *ngIf="!loading" class="actionclass-buttons mb-4 flex items-center space-x-4">
+  <!-- Barra de búsqueda -->
+  <input
+    type="text"
+    [(ngModel)]="searchTerm"
+    (input)="onSearchChange()"
+    placeholder="Buscar por grosor, costo o flete..."
+    class="border border-gray-300 rounded-md p-1 w-64"
+  />
+
+  <button
+    class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-700"
+    (click)="openModal()"
+  >
+    Añadir MDF
+  </button>
+</div>
+
+<!-- Tabla de MDF -->
+<div *ngIf="!loading && paginatedMdfItems.length > 0">
+  <table class="table-std">
+    <thead>
+      <tr>
+        <th rowspan="2" class="table-column-std">MDF</th>
+        <th rowspan="2" class="table-column-std">C+F</th>
+        <th rowspan="2" class="table-column-std">Costo</th>
+        <th rowspan="2" class="table-column-std">Flete</th>
+        <th colspan="3" class="table-column-std">Entera</th>
+        <th rowspan="2" class="table-column-std">Media</th>
+        <th rowspan="2" class="table-column-std">1/3</th>
+        <th rowspan="2" class="table-column-std">1/4</th>
+        <th colspan="3" class="table-column-std">1/8</th>
+        <th rowspan="2" class="table-column-std">Acciones</th>
+      </tr>
+      <tr>
+        <th class="table-column-std">25%</th>
+        <th class="table-column-std">20%</th>
+        <th class="table-column-std">15%</th>
+        <th class="table-column-std">30x180 - 90x60</th>
+        <th class="table-column-std">1/16 45x60</th>
+        <th class="table-column-std">1/32 30x45</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let mdf of paginatedMdfItems">
+        <td class="table-column-std">{{ mdf.thickness }}</td>
+        <td class="table-column-std">${{ (mdf.cost + mdf.freight).toFixed(2) }}</td>
+        <td class="table-column-std">${{ mdf.cost.toFixed(2) }}</td>
+        <td class="table-column-std">${{ mdf.freight.toFixed(2) }}</td>
+        <!-- Entera -->
+        <td class="table-column-std">${{ calculateEntera25Percent(mdf.cost).toFixed(2) }}</td>
+        <td class="table-column-std">${{ calculateEntera20Percent(calculateEntera25Percent(mdf.cost)).toFixed(2) }}</td>
+        <td class="table-column-std">${{ calculateEntera15Percent(calculateEntera20Percent(calculateEntera25Percent(mdf.cost))).toFixed(2) }}</td>
+        <!-- Media -->
+        <td class="table-column-std">${{ calculateMedia(calculateEntera25Percent(mdf.cost)).toFixed(2) }}</td>
+        <!-- 1/3 -->
+        <td class="table-column-std">${{ calculateOneThird(calculateEntera25Percent(mdf.cost)).toFixed(2) }}</td>
+        <!-- 1/4 -->
+        <td class="table-column-std">${{ calculateOneFourth(calculateEntera25Percent(mdf.cost)).toFixed(2) }}</td>
+        <!-- 1/8 -->
+        <td class="table-column-std">${{ calculateOneEighth30x180(calculateEntera25Percent(mdf.cost)).toFixed(2) }}</td>
+        <td class="table-column-std">${{ calculateOneEighth90x60(calculateEntera25Percent(mdf.cost)).toFixed(2) }}</td>
+        <td class="table-column-std">${{ calculateOneEighth30x45(calculateEntera25Percent(mdf.cost)).toFixed(2) }}</td>
+        <!-- Acciones -->
+        <td class="table-column-std">
+          <button class="btn-edit" (click)="openModal(mdf)">Editar</button>
+          <button class="btn-delete" (click)="deleteMdf(mdf.id_mdf)">Eliminar</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Controles de paginación -->
+  <div class="flex justify-between items-center mb-4">
+    <div class="pagination flex items-center">
+      <button
+        (click)="currentPage = currentPage - 1; updatePaginatedMdfItems()"
+        [disabled]="currentPage === 1"
+        class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+      >
+        ←
+      </button>
+      <span class="mx-4 text-gray-700">
+        Página {{ currentPage }} de {{ totalPages }}
+      </span>
+      <button
+        (click)="currentPage = currentPage + 1; updatePaginatedMdfItems()"
+        [disabled]="currentPage === totalPages"
+        class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+      >
+        →
+      </button>
+    </div>
+
+    <!-- Selector de elementos por página -->
+    <div class="items-per-page flex items-center">
+      <label for="itemsPerPage" class="mr-2">Elementos por página:</label>
+      <select
+        id="itemsPerPage"
+        [(ngModel)]="itemsPerPage"
+        (change)="currentPage = 1; updatePaginatedMdfItems()"
+        class="border border-gray-300 rounded-md p-1"
+      >
+        <option *ngFor="let size of [2, 10, 15, 20]" [value]="size">
+          {{ size }}
+        </option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Mensaje cuando no hay datos -->
+  <div *ngIf="!loading && paginatedMdfItems.length === 0" class="p-4 text-center text-gray-600">
+  <p>No hay datos disponibles para MDF.</p>
+  </div>
+
+
+<!-- Modal para crear/editar MDF -->
+<div
+  *ngIf="showModal"
+  class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
+>
+  <div
+    class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto"
+  >
+    <h3 class="text-lg font-bold mb-4">
+      {{ selectedMdf ? 'Editar MDF' : 'Añadir Nuevo MDF' }}
+    </h3>
+    <form (ngSubmit)="saveMdf()">
+      <div class="mb-4">
+        <label class="block text-gray-700">Grosor</label>
+        <input
+          [(ngModel)]="formMdf.thickness"
+          name="thickness"
+          class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+          placeholder="Ej. 2.5mm"
+          required
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Costo</label>
+        <input
+          type="number"
+          [(ngModel)]="formMdf.cost"
+          name="cost"
+          class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+          placeholder="Costo"
+          required
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Flete</label>
+        <input
+          type="number"
+          [(ngModel)]="formMdf.freight"
+          name="freight"
+          class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+          placeholder="Flete"
+          required
+        />
+      </div>
+      <div class="flex justify-end">
+        <button type="button" class="btn-danger" (click)="closeModal()">
+          Cancelar
+        </button>
+        <button type="submit" class="btn-success">
+          {{ selectedMdf ? 'Actualizar' : 'Guardar MDF' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
