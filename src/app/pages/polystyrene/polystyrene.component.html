@@ -1,1 +1,200 @@
 <app-main-banner></app-main-banner>
+
+<div *ngIf="loading" class="p-4 text-center text-gray-600">
+    <p>Cargando datos de poliestireno...</p>
+  </div>
+  
+  <!-- Filtros -->
+  <div *ngIf="!loading" class="mb-4 flex flex-wrap gap-4">
+    <select [(ngModel)]="searchType" (change)="updateFilteredPolystyrenes()" class="border p-2 rounded">
+      <option value="">-- Todos los tipos --</option>
+      <option *ngFor="let type of availableTypes" [value]="type">{{ type }}</option>
+    </select>
+    <input
+      type="text"
+      placeholder="Buscar por calibre..."
+      [(ngModel)]="searchCaliber"
+      (input)="updateFilteredPolystyrenes()"
+      class="border border-gray-300 rounded-md p-2"
+    />
+  </div>
+  
+  <!-- Botón para agregar -->
+  <div class="mb-4">
+    <button
+      class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
+      (click)="addPolystyrene()"
+    >
+      + Añadir Poliestireno
+    </button>
+  </div>
+  
+  <!-- Tabla -->
+  <table class="table-std" *ngIf="!loading && filteredPolystyrenes.length > 0">
+    <thead>
+      <tr class="bg-gray-100">
+        <th class="table-column-std">Tipo</th>
+        <th class="table-column-std">Calibre</th>
+        <th class="table-column-std">Entera</th>
+        <th class="table-column-std">1/2</th>
+        <th class="table-column-std">1/4</th>
+        <th class="table-column-std">1/8</th>
+        <th class="table-column-std">1/16</th>
+        <th class="table-column-std">1/32</th>
+        <th class="table-column-std">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let item of paginatedPolystyrenes">
+        <td>{{ item.type }}</td>
+        <td>{{ item.caliber }}</td>
+        <td>{{ item.whole | currency:'COP' }}</td>
+        <td>{{ item.half | currency:'COP' }}</td>
+        <td>{{ item.quarter | currency:'COP' }}</td>
+        <td>{{ item.an_eighth | currency:'COP' }}</td>
+        <td>{{ item.one_sixteenth | currency:'COP' }}</td>
+        <td>{{ item.one_thirty_second | currency:'COP' }}</td>
+        <td>
+          <button (click)="editPolystyrene(item)" class="btn-edit">Editar</button>
+          <button (click)="deletePolystyrene(item)" class="btn-delete">Eliminar</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  
+  <!-- Sin resultados -->
+  <div *ngIf="!loading && filteredPolystyrenes.length === 0" class="p-4 text-center text-gray-600">
+    <p>No hay resultados para los filtros aplicados.</p>
+  </div>
+  
+  <!-- Paginación -->
+  <div class="flex justify-between items-center mb-4" *ngIf="!loading">
+    <div class="pagination flex items-center">
+      <button
+        (click)="currentPage = currentPage - 1; updatePaginatedPolystyrenes()"
+        [disabled]="currentPage === 1"
+        class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+      >
+        &#8592;
+      </button>
+      <span class="mx-4 text-gray-700">
+        Página {{ currentPage }} de {{ totalPages }}
+      </span>
+      <button
+        (click)="currentPage = currentPage + 1; updatePaginatedPolystyrenes()"
+        [disabled]="currentPage === totalPages"
+        class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+      >
+        &#8594;
+      </button>
+    </div>
+    <div class="items-per-page flex items-center">
+      <label for="itemsPerPage" class="mr-2">Elementos por página:</label>
+      <select
+        id="itemsPerPage"
+        [(ngModel)]="itemsPerPage"
+        (change)="currentPage = 1; updatePaginatedPolystyrenes()"
+        class="border border-gray-300 rounded-md p-1"
+      >
+        <option *ngFor="let size of [5, 10, 15, 20]" [value]="size">{{ size }}</option>
+      </select>
+    </div>
+  </div>
+  
+  <!-- Modal de creación / edición -->
+  <div *ngIf="showModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
+    <div class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto">
+      <h3 class="text-lg font-bold mb-4">{{ isEditing ? 'Editar Poliestireno' : 'Nuevo Poliestireno' }}</h3>
+      <form (ngSubmit)="savePolystyrene()">
+        <div class="mb-4">
+          <label class="block text-gray-700">Tipo</label>
+          <input type="text" [(ngModel)]="selectedPolystyrene.type" name="type" class="form-input mt-1 block w-full" required />
+        </div>
+        <div class="mb-4">
+          <label class="block text-gray-700">Calibre</label>
+          <input type="text" [(ngModel)]="selectedPolystyrene.caliber" name="caliber" class="form-input mt-1 block w-full" required />
+        </div>
+        <div class="mb-4">
+          <label class="block text-gray-700">Precio lámina entera (COP)</label>
+          <input type="number" [(ngModel)]="selectedPolystyrene.whole" name="whole" class="form-input mt-1 block w-full" required />
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-gray-700">1/2</label>
+            <div class="flex gap-2 items-center">
+              <input 
+                type="number" 
+                name="gainHalf"
+                [(ngModel)]="gainHalf" 
+                step="0.01" 
+                class="w-20 border p-1 rounded" 
+              />
+              <input type="number" [value]="round(selectedPolystyrene.whole / 2 * gainHalf)" disabled class="form-input block w-full bg-gray-100" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-gray-700">1/4</label>
+            <div class="flex gap-2 items-center">
+              <input 
+                type="number" 
+                name="gainQuarter"
+                [(ngModel)]="gainQuarter" 
+                step="0.01" 
+                class="w-20 border p-1 rounded" />
+              <input type="number" [value]="round(selectedPolystyrene.whole / 4 * gainQuarter)" disabled class="form-input block w-full bg-gray-100" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-gray-700">1/8</label>
+            <div class="flex gap-2 items-center">
+              <input 
+                type="number" 
+                name="gainEighth"
+                [(ngModel)]="gainEighth" 
+                step="0.01" 
+                class="w-20 border p-1 rounded" 
+                />
+              <input type="number" [value]="round(selectedPolystyrene.whole / 8 * gainEighth)" disabled class="form-input block w-full bg-gray-100" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-gray-700">1/16</label>
+            <div class="flex gap-2 items-center">
+              <input 
+                type="number" 
+                name="gainSixteenth"
+                [(ngModel)]="gainSixteenth" 
+                step="0.01" 
+                class="w-20 border p-1 rounded" 
+                />
+              <input type="number" [value]="round(selectedPolystyrene.whole / 16 * gainSixteenth)" disabled class="form-input block w-full bg-gray-100" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-gray-700">1/32</label>
+            <div class="flex gap-2 items-center">
+              <input 
+                type="number" 
+                name="gainThirtySecond"
+                [(ngModel)]="gainThirtySecond" 
+                step="0.01" 
+                class="w-20 border p-1 rounded" 
+                />
+              <input type="number" [value]="round(selectedPolystyrene.whole / 32 * gainThirtySecond)" disabled class="form-input block w-full bg-gray-100" />
+            </div>
+          </div>
+        </div>
+        <div class="flex justify-end mt-6">
+          <button type="button" class="text-sm text-blue-600 underline" (click)="resetGains()">
+            Restablecer márgenes por defecto
+          </button>
+          <div class="flex gap-4">
+            <button type="button" class="btn-danger" (click)="closeModal()">Cancelar</button>
+            <button type="submit" class="btn-success">
+              {{ isEditing ? 'Actualizar' : 'Guardar' }}
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
