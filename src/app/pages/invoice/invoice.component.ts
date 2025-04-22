@@ -142,8 +142,8 @@ export class InvoiceComponent implements OnInit {
   }
 
   async saveNewClient(): Promise<void> {
-    if (!this.newClient.name || !this.newClient.email || !this.newClient.document_type || !this.newClient.document_number) {
-      alert('Por favor, complete todos los campos obligatorios.');
+    if (!this.newClient.name) {
+      alert('Por favor, escriba un nombre para el cliente.');
       return;
     }
 
