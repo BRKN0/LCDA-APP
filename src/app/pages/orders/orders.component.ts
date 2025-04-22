@@ -704,6 +704,7 @@ export class OrdersComponent implements OnInit {
       };
     }
     this.showModal = !this.showModal;
+    this.getOrders();
   }
 
   async editOrder(order: Orders): Promise<void> {
