@@ -126,21 +126,36 @@ export class MainBannerComponent implements OnInit {
     */
   }
   async getNotifications() {
-    const { error, data } = await this.supabase
-      .from('notifications')
-      .select('*')
-      .eq('id_user', this.userId);
-    if (error) {
+    if (!this.userId || !this.userRole) return;
+  
+    let query = this.supabase.from('notifications').select('*');
+  
+    if (this.userRole === 'admin') {
+      query = query;
+    } 
+    else if (this.userRole === 'prints_employee') {
+      query = query.eq('type', 'prints');
+    } 
+
+    else if (this.userRole === 'cuts_employee') {
+      query = query.eq('type', 'cuts');
+    } 
+
+    else {
+      this.newNotification = false;
       return;
     }
-    console.log(this.userId);
-    if (data.length > 0) {
-      console.log(data);
-      this.newNotification = true;
-    } else {
-      console.log(data);
-      this.newNotification = false;
+  
+    const { error, data } = await query;
+  
+    if (error) {
+      console.error('Error obteniendo notificaciones:', error);
+      return;
     }
+  
+    console.log('Notificaciones:', data);
+  
+    this.newNotification = (data?.length ?? 0) > 0;
   }
   toggleFinanceDropdown(event: MouseEvent): void {
     event.stopPropagation(); // Prevents the document click listener from firing
