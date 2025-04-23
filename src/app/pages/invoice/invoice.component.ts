@@ -847,8 +847,8 @@ export class InvoiceComponent implements OnInit {
           city: '',
           province: '',
           postal_code: '',
-        },
-      },
+        } as Client,
+      } as Orders,
     };
     this.isEditing = false;
     this.showModal = true;
