@@ -163,18 +163,27 @@ export class NotificationsComponent implements OnInit {
     return description;
   }
   async generateReminder(reminderForm: Notifications): Promise<void> {
+    if (!this.userId) {
+      console.warn('El ID del usuario no está definido.');
+      return;
+    }
+
     const notificationToInsert = {
       description: reminderForm.description,
       type: 'reminder',
       due_date: reminderForm.due_date,
+      id_user: this.userId,
     };
+
     const { error } = await this.supabase
       .from('notifications')
       .insert([notificationToInsert]);
+
     if (error) {
       console.error('Error adding the notification: ', error);
       return;
     }
+
     this.showAddReminderForm = false;
     this.getNotifications();
   }
