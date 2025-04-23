@@ -23,12 +23,12 @@ interface Orders {
   description: string;
   order_payment_status: string;
   created_at: Date;
-  order_quantity: string;
-  unitary_value: string;
-  iva?: string;
-  subtotal?: string;
-  total?: string;
-  amount: string;
+  order_quantity: number;
+  unitary_value: number;
+  iva?: number;
+  subtotal?: number;
+  total?: number;
+  amount: number;
   id_client: string;
   client: Client;
   payments?: Payment[];
@@ -359,7 +359,7 @@ export class InvoiceComponent implements OnInit {
 
   // Calcular valores dinámicos para la factura
   calculateInvoiceValues(invoice: Invoice): { subtotal: number; iva: number; total: number } {
-    const amount = parseFloat(invoice.order.amount) || 0;
+    const amount = invoice.order.amount;
     const subtotal = amount;
     const iva = invoice.include_iva ? amount * this.IVA_RATE : 0;
     const total = subtotal + iva;
@@ -627,8 +627,8 @@ export class InvoiceComponent implements OnInit {
       return;
     }
 
-    const amount = parseFloat(invoice.order.amount) || 0;
-    const quantity = parseFloat(invoice.order.order_quantity) || 1;
+    const amount = invoice.order.amount;
+    const quantity = invoice.order.order_quantity;
     const unitaryValue = amount / quantity;
     const subtotal = amount;
     const iva = invoice.include_iva ? subtotal * this.IVA_RATE : 0;
@@ -816,7 +816,6 @@ export class InvoiceComponent implements OnInit {
       created_at: new Date().toISOString().split('T')[0],
       invoice_status: 'upToDate',
       id_order: '',
-      code: '',
       include_iva: true, // Por defecto, incluye IVA
       order: {
         id_order: '',
@@ -825,12 +824,12 @@ export class InvoiceComponent implements OnInit {
         description: '',
         order_payment_status: '',
         created_at: new Date(),
-        order_quantity: '',
-        unitary_value: '',
-        iva: '',
-        subtotal: '',
-        total: '',
-        amount: '',
+        order_quantity: 0,
+        unitary_value: 0,
+        iva: 0,
+        subtotal: 0,
+        total: 0,
+        amount: 0,
         id_client: '',
         client: {
           id_client: '',
@@ -947,7 +946,7 @@ export class InvoiceComponent implements OnInit {
       created_at: isoDate, // Usar la fecha ajustada
       invoice_status: this.selectedInvoice.invoice_status,
       id_order: this.selectedInvoice.order.id_order,
-      include_iva: this.selectedInvoice.includeIVA,
+      include_iva: this.selectedInvoice.include_iva,
     };
 
     // Agregar un console.log para depurar la fecha que se está enviando
@@ -961,7 +960,7 @@ export class InvoiceComponent implements OnInit {
             id_order: this.selectedInvoice.order.id_order,
             created_at: this.selectedInvoice.created_at,
             invoice_status: this.selectedInvoice.invoice_status,
-            include_iva: this.selectedInvoice.includeIVA,
+            include_iva: this.selectedInvoice.include_iva,
           })
           .eq('id_invoice', this.selectedInvoice.id_invoice);
 
