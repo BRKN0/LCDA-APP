@@ -183,7 +183,8 @@ export class ClientsComponent implements OnInit {
     this.filteredClients = this.clients.filter((client) => {
       const matchesSearchQuery = client.name
         .toLowerCase()
-        .includes(this.searchQuery.toLowerCase());
+        .includes(this.searchQuery.toLowerCase()) ||
+        (client.company_name && client.company_name.toLowerCase().includes(this.searchQuery.toLowerCase()));
       const matchesDebtFilter = !this.filterDebt || client.debt > 0;
 
       return matchesSearchQuery && matchesDebtFilter;
