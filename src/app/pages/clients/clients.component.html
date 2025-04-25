@@ -252,11 +252,18 @@
         <div class="flex justify-between items-center mb-4">
           <div class="pagination flex items-center">
             <button
+              (click)="currentPage = 1; updatePaginatedOrders()"
+              [disabled]="currentPage === 1"
+              class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+            >
+              &#8656;
+            </button>
+            <button
               (click)="
                 currentOrderPage = currentOrderPage - 1; updatePaginatedOrders()
               "
               [disabled]="currentOrderPage === 1"
-              class="px-2 py-1 text-black border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+              class="px-2 py-1 text-black border rounded-full disabled:opacity-50 flex items-center justify-center w-7 h-7"
             >
               ←
             </button>
@@ -268,9 +275,16 @@
                 currentOrderPage = currentOrderPage + 1; updatePaginatedOrders()
               "
               [disabled]="currentOrderPage === totalOrderPages"
-              class="px-2 py-1 text-black border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+              class="px-2 py-1 text-black border rounded-full disabled:opacity-50 flex items-center justify-center w-7 h-7"
             >
               →
+            </button>
+            <button
+              (click)="currentPage = totalPages; updatePaginatedOrders()"
+              [disabled]="currentPage === totalPages"
+              class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+            >
+              &#8658;
             </button>
           </div>
           <div class="items-per-page flex items-center">
@@ -291,7 +305,7 @@
         </div>
         <div class="flex justify-end mt-4">
           <button
-            class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
+            class="btn-danger"
             (click)="toggleOrders(null)"
           >
             Cerrar
@@ -304,9 +318,16 @@
     <div class="flex justify-between items-center mb-4">
       <div class="pagination flex items-center">
         <button
+          (click)="currentPage = 1; updatePaginatedClients()"
+          [disabled]="currentPage === 1"
+          class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+        >
+          &#8656;
+        </button>
+        <button
           (click)="currentPage = currentPage - 1; updatePaginatedClients()"
           [disabled]="currentPage === 1"
-          class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+          class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-7 h-7"
         >
           ←
         </button>
@@ -316,9 +337,16 @@
         <button
           (click)="currentPage = currentPage + 1; updatePaginatedClients()"
           [disabled]="currentPage === totalPages"
-          class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+          class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-7 h-7"
         >
           →
+        </button>
+        <button
+          (click)="currentPage = totalPages; updatePaginatedClients()"
+          [disabled]="currentPage === totalPages"
+          class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+        >
+          &#8658;
         </button>
       </div>
       <div class="items-per-page flex items-center">

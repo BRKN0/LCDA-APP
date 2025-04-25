@@ -176,9 +176,16 @@
     <!-- Controles de paginación -->
     <div class="pagination flex items-center">
       <button
+        (click)="currentPage = 1; updatePaginatedInvoices()"
+        [disabled]="currentPage === 1"
+        class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+      >
+        &#8656;
+      </button>
+      <button
         (click)="currentPage = currentPage - 1; updatePaginatedInvoices()"
         [disabled]="currentPage === 1"
-        class="btn-primary px-2 py-1 rounded-full disabled:bg-gray-300 disabled:cursor-not-allowed"
+        class="btn-primary flex items-center justify-center px-2 py-1 rounded-full disabled:bg-gray-300 disabled:cursor-not-allowed w-7 h-7"
       >
         ←
       </button>
@@ -186,9 +193,16 @@
       <button
         (click)="currentPage = currentPage + 1; updatePaginatedInvoices()"
         [disabled]="currentPage === totalPages"
-        class="btn-primary px-2 py-1 rounded-full disabled:bg-gray-300 disabled:cursor-not-allowed"
+        class="btn-primary flex items-center justify-center px-2 py-1 rounded-full disabled:bg-gray-300 disabled:cursor-not-allowed w-7 h-7"
       >
         →
+      </button>
+      <button
+        (click)="currentPage = totalPages; updatePaginatedInvoices()"
+        [disabled]="currentPage === totalPages"
+        class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+      >
+        &#8658;
       </button>
     </div>
 
