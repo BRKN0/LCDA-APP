@@ -8,7 +8,7 @@ describe('VinylCutsComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [VinylCutsComponent]
+      imports: [ CommonModule, VinylCutsComponent]
     })
     .compileComponents();
 

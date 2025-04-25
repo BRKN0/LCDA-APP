@@ -19,6 +19,7 @@ export class MainBannerComponent implements OnInit {
   userId: string | null = null;
   message: string | null = null;
   financeDropdownOpen = false;
+  priceDropdownOpen = false;
   inventoryDropdownOpen = false;
   newNotification = false;
   constructor(
@@ -43,6 +44,9 @@ export class MainBannerComponent implements OnInit {
   }
   goToInventory() {
     this.router.navigate(['/inventory']); // Redirect to inventory route
+  }
+  goToProducts() {
+    this.router.navigate(['/product']); // Redirect to product route
   }
   goToAcrylics() {
     this.router.navigate(['/acrylics']); // Redirect to acrylics route
@@ -164,6 +168,13 @@ export class MainBannerComponent implements OnInit {
   async closeFinanceDropdown() {
     this.financeDropdownOpen = false;
   }
+  togglePriceDropdown(event: MouseEvent): void {
+    event.stopPropagation(); // Prevents the document click listener from firing
+    this.priceDropdownOpen = !this.priceDropdownOpen;
+  }
+  async closePriceDropdown() {
+    this.priceDropdownOpen = false;
+  }
   toggleInventoryDropdown(event: MouseEvent): void {
     event.stopPropagation(); // Prevents the document click listener from firing
     this.inventoryDropdownOpen = !this.inventoryDropdownOpen;
@@ -177,6 +188,8 @@ export class MainBannerComponent implements OnInit {
     const clickedInside = (event.target as HTMLElement).closest('.nav-item');
     if (!clickedInside) {
       this.closeFinanceDropdown();
+      this.closePriceDropdown();
+      this.closeInventoryDropdown();
     }
   }
   goToBanks(): void {

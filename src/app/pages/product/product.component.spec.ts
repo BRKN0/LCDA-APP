@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { CommonModule } from '@angular/common';
-import { MDFComponent } from './mdf.component';
 
-describe('MDFComponent', () => {
-  let component: MDFComponent;
-  let fixture: ComponentFixture<MDFComponent>;
+import { ProductComponent } from './product.component';
+
+describe('ProductComponent', () => {
+  let component: ProductComponent;
+  let fixture: ComponentFixture<ProductComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [CommonModule, MDFComponent]
+      imports: [ProductComponent]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(MDFComponent);
+    fixture = TestBed.createComponent(ProductComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
