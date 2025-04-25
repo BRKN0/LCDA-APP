@@ -71,9 +71,16 @@
   <div class="flex justify-between items-center mb-4" *ngIf="!loading">
     <div class="pagination flex items-center">
       <button
+        (click)="currentPage = 1; updatePaginatedPolystyrenes()"
+        [disabled]="currentPage === 1"
+        class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+      >
+        &#8656;
+      </button>
+      <button
         (click)="currentPage = currentPage - 1; updatePaginatedPolystyrenes()"
         [disabled]="currentPage === 1"
-        class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+        class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-7 h-7"
       >
         &#8592;
       </button>
@@ -83,9 +90,16 @@
       <button
         (click)="currentPage = currentPage + 1; updatePaginatedPolystyrenes()"
         [disabled]="currentPage === totalPages"
-        class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+        class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-7 h-7"
       >
         &#8594;
+      </button>
+      <button
+        (click)="currentPage = totalPages; updatePaginatedPolystyrenes()"
+        [disabled]="currentPage === totalPages"
+        class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+      >
+        &#8658;
       </button>
     </div>
     <div class="items-per-page flex items-center">
