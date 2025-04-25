@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { LoginComponent } from './pages/login/login.component';
 import { InventoryComponent } from './pages/inventory/inventory.component';
+import { ProductComponent } from './pages/product/product.component';
 import { AcrylicsComponent } from './pages/acrylics/acrylics.component';
 import { MDFComponent } from './pages/mdf/mdf.component';
 import { PolystyreneComponent } from './pages/polystyrene/polystyrene.component';
@@ -28,6 +29,10 @@ export const routes: Routes = [
   {
     path: 'inventory',
     loadComponent: () => InventoryComponent,
+  },
+  {
+    path: 'product',
+    loadComponent: () => ProductComponent,
   },
   {
     path: 'acrylics',

@@ -8,7 +8,7 @@ describe('PolystyreneComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [PolystyreneComponent]
+      imports: [CommonModule, PolystyreneComponent]
     })
     .compileComponents();
 

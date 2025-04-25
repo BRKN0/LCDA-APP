@@ -8,7 +8,7 @@ describe('AcrylicsComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [AcrylicsComponent]
+      imports: [CommonModule, AcrylicsComponent]
     })
     .compileComponents();
 
