@@ -58,6 +58,7 @@ interface Notifications {
   due_date: string;
   id_user: string | null;
 }
+
 interface Cuts {
   id: string;
   material_type: string;
@@ -137,7 +138,7 @@ export class OrdersComponent implements OnInit {
   notificationMessage: string | null = null;
   // Subject para debounce (sin argumentos)
   private searchSubject = new Subject<void>();
-  //Calculator
+  // Calculator
   showCalculator: boolean = false;
   calculationType: 'prints' | 'cuts' | 'sales' | null = null;
   clientType: 'intermediary' | 'final' | null = null;
@@ -206,7 +207,9 @@ export class OrdersComponent implements OnInit {
 
   async getOrders(): Promise<void> {
     this.loading = true;
-    if (this.userRole != 'admin') {
+    let query = this.supabase.from('orders').select('*, payments(*)');
+
+    if (this.userRole !== 'admin') {
       switch (this.userRole) {
         case 'prints_employee':
           this.order_role_filter = 'print';
@@ -217,29 +220,19 @@ export class OrdersComponent implements OnInit {
         default:
           break;
       }
-      const { data, error } = await this.supabase
-        .from('orders')
-        .select('*, payments(*)')
-        .eq('order_type', this.order_role_filter);
-
-      if (error) {
-        console.error('Error al obtener los pedidos:', error);
-        this.loading = false;
-        return;
-      }
-      this.orders = data as Orders[];
-    } else {
-      const { data, error } = await this.supabase.from('orders').select('*');
-
-      if (error) {
-        console.error('Error al obtener los pedidos:', error);
-        this.loading = false;
-        return;
-      }
-      this.orders = data as Orders[];
+      query = query.eq('order_type', this.order_role_filter);
     }
-    console.log(this.orders);
-    // sorting orders by code
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Error al obtener los pedidos:', error);
+      this.loading = false;
+      return;
+    }
+    this.orders = data as Orders[];
+
+    // Sorting orders by code
     let n = this.orders.length;
     let swapped: boolean;
 
@@ -247,10 +240,7 @@ export class OrdersComponent implements OnInit {
       swapped = false;
       for (let i = 0; i < n - 1; i++) {
         if (this.orders[i].code < this.orders[i + 1].code) {
-          [this.orders[i], this.orders[i + 1]] = [
-            this.orders[i + 1],
-            this.orders[i],
-          ];
+          [this.orders[i], this.orders[i + 1]] = [this.orders[i + 1], this.orders[i]];
           swapped = true;
         }
       }
@@ -289,16 +279,12 @@ export class OrdersComponent implements OnInit {
   }
 
   async saveNewClient(): Promise<void> {
-    if (
-      !this.newClient.name
-    ) {
+    if (!this.newClient.name) {
       alert('Por favor, escriba un nombre para el cliente.');
       return;
     }
 
-    const { data, error } = await this.supabase
-      .from('clients')
-      .insert([this.newClient]);
+    const { data, error } = await this.supabase.from('clients').insert([this.newClient]);
 
     if (error) {
       console.error('Error añadiendo el cliente:', error);
@@ -340,9 +326,7 @@ export class OrdersComponent implements OnInit {
     // Validar que el abono no exceda el monto pendiente
     if (amount > remainingBalance) {
       this.showNotification(
-        `El abono no puede exceder el monto pendiente de $${remainingBalance.toFixed(
-          2
-        )}.`
+        `El abono no puede exceder el monto pendiente de $${remainingBalance.toFixed(2)}.`
       );
       return;
     }
@@ -354,15 +338,19 @@ export class OrdersComponent implements OnInit {
 
     try {
       // Insertar el abono
-      const { error: insertError } = await this.supabase
+      const { data, error: insertError } = await this.supabase
         .from('payments')
-        .insert([payment]);
+        .insert([payment])
+        .select();
 
-      if (insertError) {
+      if (insertError || !data || data.length === 0) {
         console.error('Error al añadir el abono:', insertError);
         this.showNotification('Error al añadir el abono.');
         return;
       }
+
+      const newPayment = data[0];
+      newPayment.payment_date = new Date().toISOString();
 
       // Obtener la deuda actual del cliente
       const { data: clientData, error: clientError } = await this.supabase
@@ -378,11 +366,12 @@ export class OrdersComponent implements OnInit {
       }
 
       const currentDebt = clientData.debt || 0;
+      const newDebt = currentDebt - amount;
 
       // Reducir la deuda del cliente
       const { error: updateError } = await this.supabase
         .from('clients')
-        .update({ debt: currentDebt - amount })
+        .update({ debt: newDebt, status: newDebt > 0 ? 'overdue' : 'upToDate' })
         .eq('id_client', order.id_client);
 
       if (updateError) {
@@ -395,39 +384,46 @@ export class OrdersComponent implements OnInit {
       if (!order.payments) {
         order.payments = [];
       }
-      order.payments.push({
-        ...payment,
-        payment_date: new Date().toISOString(),
-      });
+      order.payments.push(newPayment);
 
       // Actualizar el estado de pago del pedido y la factura
-      const totalPaid = order.payments.reduce((sum, p) => sum + p.amount, 0);
+      const updatedTotalPaid = this.getTotalPayments(order);
       const orderTotal = parseFloat(String(order.total)) || 0;
-      const newStatus = totalPaid >= orderTotal ? 'upToDate' : 'overdue';
+      const newStatus = updatedTotalPaid >= orderTotal && newDebt <= 0 ? 'upToDate' : 'overdue';
 
-      // Actualizar el estado en la tabla orders
+      // Actualizar estado en Supabase
       await this.supabase
         .from('orders')
         .update({ order_payment_status: newStatus })
         .eq('id_order', order.id_order);
 
-      // Actualizar el estado en la tabla invoices
       await this.supabase
         .from('invoices')
         .update({ invoice_status: newStatus })
         .eq('id_order', order.id_order);
 
-      // Actualizar localmente el estado
-      order.order_payment_status = newStatus;
-      if (this.selectedOrder) {
-        this.selectedOrder.order_payment_status = newStatus;
-      }
+      // Recargar los pedidos para reflejar el cambio en la interfaz
+      await this.getOrders();
 
       this.newPaymentAmount = 0; // Resetear el campo
       this.showNotification('Abono añadido correctamente.');
     } catch (error) {
       console.error('Error inesperado:', error);
       this.showNotification('Ocurrió un error inesperado.');
+    }
+  }
+
+  async markClientAsUpToDate(clientId: string): Promise<void> {
+    const { error: debtError } = await this.supabase
+      .from('clients')
+      .update({ debt: 0, status: 'upToDate' })
+      .eq('id_client', clientId);
+
+    if (debtError) {
+      console.error('Error al actualizar el cliente:', debtError);
+      this.showNotification('Error al marcar al cliente como "al día".');
+    } else {
+      this.showNotification('Cliente marcado como "al día". Deuda eliminada.');
     }
   }
 
@@ -481,11 +477,12 @@ export class OrdersComponent implements OnInit {
       }
 
       const currentDebt = clientData.debt || 0;
+      const newDebt = currentDebt + difference;
 
       // Ajustar la deuda del cliente según la diferencia
       const { error: debtError } = await this.supabase
         .from('clients')
-        .update({ debt: currentDebt + difference })
+        .update({ debt: newDebt, status: newDebt > 0 ? 'overdue' : 'upToDate' })
         .eq('id_client', this.selectedOrder!.id_client);
 
       if (debtError) {
@@ -494,24 +491,18 @@ export class OrdersComponent implements OnInit {
         return;
       }
 
-      // Actualizar localmente los datos
+      // Validar si el nuevo estado es 'upToDate' y si realmente está al día
       if (this.selectedOrder && this.selectedOrder.payments) {
         const paymentIndex = this.selectedOrder.payments.findIndex(
           (p) => p.id_payment === this.selectedPayment!.id_payment
         );
         if (paymentIndex !== -1) {
-          this.selectedOrder.payments[paymentIndex] = {
-            ...this.selectedPayment,
-          };
+          this.selectedOrder.payments[paymentIndex] = { ...this.selectedPayment };
         }
 
-        // Actualizar el estado de pago del pedido y la factura
-        const totalPaid = this.selectedOrder.payments.reduce(
-          (sum, p) => sum + p.amount,
-          0
-        );
+        const totalPaid = this.getTotalPayments(this.selectedOrder);
         const orderTotal = parseFloat(String(this.selectedOrder.total)) || 0;
-        const newStatus = totalPaid >= orderTotal ? 'upToDate' : 'overdue';
+        const newStatus = totalPaid >= orderTotal && newDebt <= 0 ? 'upToDate' : 'overdue';
 
         // Actualizar el estado en la tabla orders
         await this.supabase
@@ -525,8 +516,8 @@ export class OrdersComponent implements OnInit {
           .update({ invoice_status: newStatus })
           .eq('id_order', this.selectedOrder.id_order);
 
-        // Actualizar localmente el estado
-        this.selectedOrder.order_payment_status = newStatus;
+        // Recargar los pedidos para reflejar el cambio en la interfaz
+        await this.getOrders();
       }
 
       this.showEditPayment = false;
@@ -535,6 +526,122 @@ export class OrdersComponent implements OnInit {
     } catch (error) {
       console.error('Error inesperado:', error);
       this.showNotification('Ocurrió un error inesperado.');
+    }
+  }
+
+  async deleteOrder(order: Orders): Promise<void> {
+    if (confirm(`¿Eliminar orden #${order.code}?`)) {
+      try {
+        // Paso 1: Eliminar registros dependientes en 'prints' o 'cuts'
+        if (order.order_type === 'print') {
+          const { error: deletePrintsError } = await this.supabase
+            .from('prints')
+            .delete()
+            .eq('id_order', order.id_order);
+
+          if (deletePrintsError) {
+            console.error('Error al eliminar registros de prints:', deletePrintsError);
+            this.showNotification('Error al eliminar registros de prints.');
+            return;
+          }
+        } else if (order.order_type === 'laser') {
+          const { error: deleteCutsError } = await this.supabase
+            .from('cuts')
+            .delete()
+            .eq('id_order', order.id_order);
+
+          if (deleteCutsError) {
+            console.error('Error al eliminar registros de cuts:', deleteCutsError);
+            this.showNotification('Error al eliminar registros de cuts.');
+            return;
+          }
+        }
+
+        // Paso 2: Eliminar notificaciones asociadas
+        const { error: deleteNotificationsError } = await this.supabase
+          .from('notifications')
+          .delete()
+          .eq('id_order', order.id_order);
+
+        if (deleteNotificationsError) {
+          console.error('Error al eliminar notificaciones:', deleteNotificationsError);
+          this.showNotification('Error al eliminar notificaciones asociadas.');
+          return;
+        }
+
+        // Paso 3: Verificar y eliminar facturas asociadas
+        const { error: deleteInvoicesError } = await this.supabase
+          .from('invoices')
+          .delete()
+          .eq('id_order', order.id_order);
+
+        if (deleteInvoicesError) {
+          console.error('Error al eliminar facturas asociadas:', deleteInvoicesError);
+          this.showNotification('Error al eliminar facturas asociadas.');
+          return;
+        }
+
+        // Paso 4: Eliminar pagos asociados
+        const { error: deletePaymentsError } = await this.supabase
+          .from('payments')
+          .delete()
+          .eq('id_order', order.id_order);
+
+        if (deletePaymentsError) {
+          console.error('Error al eliminar pagos asociados:', deletePaymentsError);
+          this.showNotification('Error al eliminar pagos asociados.');
+          return;
+        }
+
+        // Paso 5: Actualizar la deuda del cliente
+        const orderTotal = parseFloat(String(order.total)) || 0;
+        const { data: clientData, error: clientError } = await this.supabase
+          .from('clients')
+          .select('debt')
+          .eq('id_client', order.id_client)
+          .single();
+
+        if (clientError || !clientData) {
+          console.error('Error al obtener la deuda del cliente:', clientError);
+          this.showNotification('Error al actualizar la deuda del cliente.');
+          return;
+        }
+
+        const currentDebt = clientData.debt || 0;
+        const newDebt = currentDebt - orderTotal;
+        const newStatus = newDebt > 0 ? 'overdue' : 'upToDate';
+
+        const { error: updateClientError } = await this.supabase
+          .from('clients')
+          .update({ debt: newDebt, status: newStatus })
+          .eq('id_client', order.id_client);
+
+        if (updateClientError) {
+          console.error('Error al actualizar la deuda del cliente:', updateClientError);
+          this.showNotification('Error al actualizar la deuda del cliente.');
+          return;
+        }
+
+        // Paso 6: Eliminar el pedido
+        const { error: deleteOrderError } = await this.supabase
+          .from('orders')
+          .delete()
+          .eq('id_order', order.id_order);
+
+        if (deleteOrderError) {
+          console.error('Error al eliminar el pedido:', deleteOrderError);
+          this.showNotification('Error al eliminar el pedido.');
+          return;
+        }
+
+        // Actualizar la lista localmente
+        this.orders = this.orders.filter((o) => o.id_order !== order.id_order);
+        this.updateFilteredOrders();
+        this.showNotification('Orden eliminada correctamente.');
+      } catch (error) {
+        console.error('Error inesperado al eliminar la orden:', error);
+        this.showNotification('Ocurrió un error inesperado al eliminar la orden.');
+      }
     }
   }
 
@@ -552,7 +659,7 @@ export class OrdersComponent implements OnInit {
 
     const { data, error } = await this.supabase
       .from('orders')
-      .select('*')
+      .select('*, payments(*)')
       .eq('code', this.searchQuery.trim());
 
     if (error) {
@@ -643,6 +750,7 @@ export class OrdersComponent implements OnInit {
     }
 
     this.selectedOrderDetails = [order];
+    this.selectedOrder = order;
     this.loadingDetails = false;
   }
 
@@ -659,6 +767,7 @@ export class OrdersComponent implements OnInit {
       console.error(error);
     }
   }
+
   async toggleOrderCompletionStatus(order: Orders) {
     const { error } = await this.supabase
       .from('orders')
@@ -668,6 +777,7 @@ export class OrdersComponent implements OnInit {
       console.error('Error actualizando estado:', error);
     }
   }
+
   async toggleOrderPaymentStatus(order: Orders) {
     const { error } = await this.supabase
       .from('orders')
@@ -677,6 +787,7 @@ export class OrdersComponent implements OnInit {
       console.error('Error actualizando estado:', error);
     }
   }
+
   toggleAddOrderForm(): void {
     if (!this.showModal) {
       this.newOrder = {
@@ -732,20 +843,6 @@ export class OrdersComponent implements OnInit {
       if (!error && data) {
         this.newCut = { ...data };
       }
-    }
-  }
-
-  async deleteOrder(order: Orders): Promise<void> {
-    if (confirm(`¿Eliminar orden #${order.code}?`)) {
-      const { error } = await this.supabase
-        .from('orders')
-        .delete()
-        .eq('id_order', order.id_order);
-      if (error) {
-        console.log('Failed to delete order: ', error);
-        return;
-      }
-      this.getOrders();
     }
   }
 
@@ -836,7 +933,7 @@ export class OrdersComponent implements OnInit {
         }
       }
 
-      this.getOrders();
+      await this.getOrders(); // Recargar pedidos después de actualizar
       this.toggleAddOrderForm();
     } else if (!this.isEditing) {
       const { data, error } = await this.supabase
@@ -866,8 +963,6 @@ export class OrdersComponent implements OnInit {
           return;
         }
         this.createNotification(insertedOrder);
-        this.toggleAddOrderForm();
-        return;
       } else if (this.newOrder.order_type === 'laser') {
         const cutData = {
           ...this.newCut,
@@ -881,12 +976,11 @@ export class OrdersComponent implements OnInit {
           return;
         }
         this.createNotification(insertedOrder);
-        this.toggleAddOrderForm();
-        return;
       }
+
+      await this.getOrders(); // Recargar pedidos después de agregar
       this.createNotification(insertedOrder);
       this.toggleAddOrderForm();
-      return;
     }
   }
 
@@ -929,6 +1023,7 @@ export class OrdersComponent implements OnInit {
       }
     }
   }
+
   private formatDateForInput(date: Date | string): string {
     const dateObj = new Date(date);
     const year = dateObj.getFullYear();
@@ -977,7 +1072,7 @@ export class OrdersComponent implements OnInit {
     this.rollWidth = 0;
     this.measurement = 0;
     this.productNumber = 1;
-    //Cuts
+    // Cuts
     this.materialValue = 0;
     this.usageTime = 0;
   }
