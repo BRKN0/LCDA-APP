@@ -21,12 +21,13 @@ interface Orders {
   created_at: string;
   order_quantity: string;
   unitary_value: string;
-  iva: string;
+  iva: number;
   subtotal: string;
   total: string;
   amount: string;
   id_client: string;
   payments?: Payment[];
+  include_iva?: boolean;
 }
 
 interface Client {
@@ -70,30 +71,25 @@ export class ClientsComponent implements OnInit {
   showOrders = false;
   newPaymentAmount: number = 0;
   newPaymentAmounts: { [key: string]: number } = {};
-  showClientModal = false; // Nueva variable para controlar el modal del cliente
-  showDetails = false; // Nueva variable para controlar la visibilidad de los detalles
+  showClientModal = false;
+  showDetails = false;
   userId: string | null = null;
   userRole: string | null = null;
   loading = true;
   searchQuery: string = '';
   filterDebt: boolean = false;
   noResultsFound: boolean = false;
-  // Variables de paginación
-  currentPage: number = 1; // Página actual
-  currentOrderPage: number =1;
-  itemsPerPage: number = 10; // Elementos por página
-  totalPages: number = 0; // Total de páginas
+  currentPage: number = 1;
+  currentOrderPage: number = 1;
+  itemsPerPage: number = 10;
+  totalPages: number = 0;
   totalOrderPages: number = 1;
   itemsPerOrderPage: number = 10;
-  paginatedClients: Client[] = []; // Lista paginada de clientes
-  paginatedOrders: Orders[] = []; // Lista paginada de pedidos
-
-  // Variables para formulario
-  selectedClientData: Partial<Client> = {}; // Cliente a editar o agregar
-  isEditing = false; // Controla si estamos editando
-  showModal = false; // Controla la visibilidad del modal
-
-  // Para añadir pedidos
+  paginatedClients: Client[] = [];
+  paginatedOrders: Orders[] = [];
+  selectedClientData: Partial<Client> = {};
+  isEditing = false;
+  showModal = false;
   newClient: Partial<Client> = {
     id_client: '',
     document_type: '',
@@ -112,6 +108,7 @@ export class ClientsComponent implements OnInit {
     postal_code: '',
   };
   showAddClientForm = false;
+  IVA_RATE = 0.19;
 
   constructor(
     private readonly supabase: SupabaseService,
@@ -119,92 +116,125 @@ export class ClientsComponent implements OnInit {
     private readonly roleService: RoleService
   ) {}
 
-    async ngOnInit(): Promise<void> {
-      this.supabase.authChanges((_, session) => {
-        if (session) {
-          this.zone.run(() => {
-            this.userId = session.user.id; // Añadir userId como propiedad si no existe
-            this.roleService.fetchAndSetUserRole(this.userId);
-            this.roleService.role$.subscribe((role) => {
-              this.userRole = role;
-            });
-            this.getClients();
+  async ngOnInit(): Promise<void> {
+    this.supabase.authChanges((_, session) => {
+      if (session) {
+        this.zone.run(() => {
+          this.userId = session.user.id;
+          this.roleService.fetchAndSetUserRole(this.userId);
+          this.roleService.role$.subscribe((role) => {
+            this.userRole = role;
           });
-        }
-      });
-    }
-
-    async getClients() {
-      this.loading = true;
-      const { error, data } = await this.supabase.from('clients').select(
-        `*,
-        orders(
-          id_order,
-          order_type,
-          name,
-          description,
-          order_payment_status,
-          created_at,
-          order_quantity,
-          unitary_value,
-          iva,
-          subtotal,
-          total,
-          amount,
-          id_client,
-          code,
-          payments(*)
-        )`
-      );
-
-      if (error) {
-        console.error('Error al obtener clientes:', error);
-        this.loading = false;
-        return;
+          this.getClients();
+        });
       }
+    });
+  }
 
-      this.clients = data.map((client) => ({
-        ...client,
-        orders: Array.isArray(client.orders)
-          ? client.orders.map((order: { payments: any; }) => ({
-              ...order,
-              payments: Array.isArray(order.payments) ? order.payments : [],
-            }))
-          : [],
-      })) as Client[];
+  async getClients() {
+    this.loading = true;
+    const { error, data } = await this.supabase.from('clients').select(
+      `*, orders(
+        id_order,
+        order_type,
+        name,
+        description,
+        order_payment_status,
+        created_at,
+        order_quantity,
+        unitary_value,
+        iva,
+        subtotal,
+        total,
+        amount,
+        id_client,
+        code,
+        payments(*)
+      )`
+    );
 
-      this.filteredClients = this.clients;
-      this.updatePaginatedClients();
+    if (error) {
+      console.error('Error al obtener clientes:', error);
       this.loading = false;
+      return;
     }
+
+    this.clients = data.map((client) => ({
+      ...client,
+      orders: Array.isArray(client.orders)
+        ? client.orders.map((order: { payments: any; include_iva?: boolean; iva: number }) => ({
+            ...order,
+            payments: Array.isArray(order.payments) ? order.payments : [],
+            include_iva: order.iva === 1,
+          }))
+        : [],
+    })) as Client[];
+
+    for (const client of this.clients) {
+      const totalDebt = this.calculateClientDebt(client);
+      const hasOverdueOrder = client.orders?.some(
+        (order) => order.order_payment_status === 'overdue'
+      );
+      const newStatus = totalDebt > 0 || hasOverdueOrder ? 'overdue' : 'upToDate';
+
+      if (client.debt !== totalDebt || client.status !== newStatus) {
+        client.debt = totalDebt;
+        client.status = newStatus;
+        await this.supabase
+          .from('clients')
+          .update({ debt: totalDebt, status: newStatus })
+          .eq('id_client', client.id_client);
+      }
+    }
+
+    this.filteredClients = this.clients;
+    this.updatePaginatedClients();
+    this.loading = false;
+  }
+
+  calculateClientDebt(client: Client): number {
+    if (!client.orders || client.orders.length === 0) return 0;
+
+    const totalOrders = client.orders.reduce((sum, order) => {
+      const orderTotal = this.calculateOrderTotal(order);
+      const totalPaid = order.payments?.reduce((paidSum, payment) => paidSum + payment.amount, 0) || 0;
+      return sum + (orderTotal - totalPaid);
+    }, 0);
+
+    return Math.max(0, totalOrders);
+  }
+
+  calculateOrderTotal(order: Orders): number {
+    const baseTotal = parseFloat(order.total) || 0;
+    if (order.include_iva) {
+      return baseTotal + baseTotal * this.IVA_RATE;
+    }
+    return baseTotal;
+  }
 
   searchClient() {
-    // Filt the names and debs of the clients
     this.filteredClients = this.clients.filter((client) => {
-      const matchesSearchQuery = client.name
-        .toLowerCase()
-        .includes(this.searchQuery.toLowerCase()) ||
-        (client.company_name && client.company_name.toLowerCase().includes(this.searchQuery.toLowerCase()));
-      const matchesDebtFilter = !this.filterDebt || client.debt > 0;
+      const matchesSearchQuery =
+        client.name.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
+        (client.company_name &&
+          client.company_name.toLowerCase().includes(this.searchQuery.toLowerCase()));
+      const matchesDebtFilter = !this.filterDebt || client.status === 'overdue';
 
       return matchesSearchQuery && matchesDebtFilter;
     });
 
-
     this.noResultsFound = this.filteredClients.length === 0;
-    this.currentPage = 1; // Reiniciar a la primera página
-    this.updatePaginatedClients(); // Actualizar la lista paginada
+    this.currentPage = 1;
+    this.updatePaginatedClients();
   }
 
-  // Abrir el modal del cliente
   openClientModal(client: Client) {
-    this.selectedClient = client;
+    this.selectedClient = { ...client }; // Clonar el cliente para evitar referencias directas
     this.showClientModal = true;
-    this.showDetails = false; // Detalles ocultos por defecto
-    this.showOrders = false; // Pedidos ocultos por defecto
+    this.showDetails = false;
+    this.showOrders = false;
   }
 
-  // Cerrar el modal del cliente
   closeClientModal() {
     this.showClientModal = false;
     this.selectedClient = null;
@@ -212,7 +242,6 @@ export class ClientsComponent implements OnInit {
     this.showOrders = false;
   }
 
-  // Mostrar/Ocultar detalles del cliente
   toggleClientDetails() {
     this.showDetails = !this.showDetails;
   }
@@ -223,13 +252,12 @@ export class ClientsComponent implements OnInit {
         console.error('Orders is not an array:', client.orders);
         return;
       }
-      this.selectedClient = client; // Asigna el cliente seleccionado
-      this.showOrders = true; // Abre la ventana modal
+      this.selectedClient = { ...client }; // Clonar el cliente
+      this.showOrders = true;
       this.currentOrderPage = 1;
       this.newPaymentAmounts = {};
       this.updatePaginatedOrders();
     } else {
-      // Cierra la ventana modal y limpia el cliente seleccionado
       this.showOrders = false;
     }
   }
@@ -271,7 +299,6 @@ export class ClientsComponent implements OnInit {
     };
 
     try {
-      // Insertar el abono
       const { error: insertError } = await this.supabase
         .from('payments')
         .insert([payment]);
@@ -282,61 +309,57 @@ export class ClientsComponent implements OnInit {
         return;
       }
 
-      // Obtener la deuda actual del cliente
-      const { data: clientData, error: clientError } = await this.supabase
-        .from('clients')
-        .select('debt')
-        .eq('id_client', order.id_client)
-        .single();
+      const orderTotal = this.calculateOrderTotal(order);
+      const totalPaid = (order.payments?.reduce((sum, p) => sum + p.amount, 0) || 0) + amount;
+      const newOrderStatus = totalPaid >= orderTotal ? 'upToDate' : 'overdue';
 
-      if (clientError || !clientData) {
-        console.error('Error al obtener la deuda del cliente:', clientError);
-        alert('Error al actualizar la deuda del cliente.');
-        return;
-      }
-
-      const currentDebt = clientData.debt || 0;
-
-      // Reducir la deuda del cliente
-      const { error: updateError } = await this.supabase
-        .from('clients')
-        .update({ debt: currentDebt - amount })
-        .eq('id_client', order.id_client);
-
-      if (updateError) {
-        console.error('Error al actualizar la deuda:', updateError);
-        alert('Error al actualizar la deuda del cliente.');
-        return;
-      }
-
-      // Actualizar localmente los datos del pedido
       if (!order.payments) {
         order.payments = [];
       }
       order.payments.push({ ...payment, payment_date: new Date().toISOString() });
 
-      // Actualizar el estado de pago del pedido si está completamente pagado
-      const totalPaid = order.payments.reduce((sum, p) => sum + p.amount, 0);
-      const orderTotal = parseFloat(order.total) || 0;
-      if (totalPaid >= orderTotal) {
-        order.order_payment_status = 'upToDate';
-        await this.supabase
-          .from('orders')
-          .update({ order_payment_status: 'upToDate' })
-          .eq('id_order', order.id_order);
-      } else {
-        order.order_payment_status = 'overdue';
-        await this.supabase
-          .from('orders')
-          .update({ order_payment_status: 'overdue' })
-          .eq('id_order', order.id_order);
+      await this.supabase
+        .from('orders')
+        .update({ order_payment_status: newOrderStatus })
+        .eq('id_order', order.id_order);
+
+      const client = this.clients.find((c) => c.id_client === order.id_client);
+      if (client) {
+        const totalDebt = this.calculateClientDebt(client);
+        const hasOverdueOrder = client.orders?.some((o) => o.order_payment_status === 'overdue');
+        const newStatus = totalDebt > 0 || hasOverdueOrder ? 'overdue' : 'upToDate';
+
+        if (client.debt !== totalDebt || client.status !== newStatus) {
+          client.debt = totalDebt;
+          client.status = newStatus;
+          await this.supabase
+            .from('clients')
+            .update({ debt: totalDebt, status: newStatus })
+            .eq('id_client', client.id_client);
+        }
+
+        // Actualizar la instancia local del cliente seleccionado
+        if (this.selectedClient && this.selectedClient.id_client === client.id_client) {
+          this.selectedClient.debt = totalDebt;
+          this.selectedClient.status = newStatus;
+          const updatedOrder = this.selectedClient.orders?.find(o => o.id_order === order.id_order);
+          if (updatedOrder) {
+            updatedOrder.order_payment_status = newOrderStatus;
+            updatedOrder.payments = order.payments;
+          }
+        }
+
+        // Actualizar la lista de clientes localmente
+        this.clients = this.clients.map(c =>
+          c.id_client === client.id_client ? { ...c, debt: totalDebt, status: newStatus, orders: client.orders } : c
+        );
+        this.filteredClients = [...this.clients]; // Reasignar para forzar cambio de detección
+        this.updatePaginatedClients();
       }
 
-      // NO recargar los datos completos para evitar cerrar el modal
-      // await this.getOrders(); // Comentamos esta línea
-
-      this.newPaymentAmount = 0; // Resetear el campo
+      this.newPaymentAmount = 0;
       alert('Abono añadido correctamente.');
+      this.updatePaginatedOrders();
     } catch (error) {
       console.error('Error inesperado:', error);
       alert('Ocurrió un error inesperado.');
@@ -364,14 +387,12 @@ export class ClientsComponent implements OnInit {
     this.showModal = true;
   }
 
-  // **Editar Cliente**
   editClient(client: Client): void {
     this.selectedClientData = { ...client };
     this.isEditing = true;
     this.showModal = true;
   }
 
-  // **Guardar Cliente (Insertar o Actualizar)**
   async saveClient(): Promise<void> {
     if (!this.selectedClientData) return;
 
@@ -393,7 +414,6 @@ export class ClientsComponent implements OnInit {
 
     try {
       if (this.isEditing) {
-        // **Actualizar cliente**
         const { error } = await this.supabase
           .from('clients')
           .update(clientToSave)
@@ -405,7 +425,6 @@ export class ClientsComponent implements OnInit {
         }
         alert('Cliente actualizado correctamente');
       } else {
-        // **Añadir nuevo cliente**
         const { error } = await this.supabase
           .from('clients')
           .insert([clientToSave]);
@@ -424,9 +443,8 @@ export class ClientsComponent implements OnInit {
     }
   }
 
-  // **Eliminar Cliente**
   async deleteClient(client: Client): Promise<void> {
-    if (confirm(`¿Eliminar el cliente ${client.name}?`)) {
+    if (confirm(`¿Eliminar el cliente ${client.company_name || client.name}?`)) {
       try {
         const { error } = await this.supabase
           .from('clients')
@@ -446,32 +464,27 @@ export class ClientsComponent implements OnInit {
     }
   }
 
-  // **Cerrar Modal**
   closeModal(): void {
     this.showModal = false;
     this.isEditing = false;
   }
 
-
-  // Method to generate PDF
   generatePDF(): void {
-    if(!this.selectedClient || !this.selectedClient.orders){
-      console.error("No hay datos de pedidos para exportar")
+    if (!this.selectedClient || !this.selectedClient.orders) {
+      console.error("No hay datos de pedidos para exportar");
       return;
     }
 
     const doc = new jsPDF();
 
-    //Add tittle
     doc.setFontSize(16);
-    doc.text(`Extracto de Cliente: ${this.selectedClient.name}`, 10, 10);
+    doc.text(`Extracto de Cliente: ${this.selectedClient.company_name || this.selectedClient.name}`, 10, 10);
 
-    //client details
     const orders = this.selectedClient.orders.map((order: any) => [
       order.code,
       order.created_at,
       order.description,
-      `$${order.total}`,
+      `$${this.calculateOrderTotal(order).toFixed(2)}`,
       order.order_payment_status === 'upToDate' ? 'Al Día' : 'En Mora',
       order.order_payment_status === 'upToDate' ? 'Al Día' : 'En Mora',
     ]);
@@ -482,11 +495,9 @@ export class ClientsComponent implements OnInit {
       startY: 40,
     });
 
-    //Save pdf
-    doc.save(`Extracto-${this.selectedClient.name}`);
+    doc.save(`Extracto-${this.selectedClient.company_name || this.selectedClient.name}`);
   }
 
-// Nueva función para generar el kardex de clientes
   generateClientsKardex(): void {
     console.log('Botón Generar Kardex clicado');
     try {
@@ -520,7 +531,6 @@ export class ClientsComponent implements OnInit {
 
       const csvRows = this.filteredClients.map((client) => {
         console.log('Procesando cliente:', client);
-        // Convertir debt a número y manejar casos no válidos
         const debtValue = typeof client.debt === 'number' ? client.debt : parseFloat(client.debt || '0');
         const formattedDebt = isNaN(debtValue) ? '0.00' : debtValue.toFixed(2);
 
@@ -561,7 +571,7 @@ export class ClientsComponent implements OnInit {
       alert('Ocurrió un error al generar el kardex');
     }
   }
-  //Paginacion
+
   paginateItems<T>(items: T[], page: number, itemsPerPage: number): T[] {
     const startIndex = (page - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
@@ -569,14 +579,9 @@ export class ClientsComponent implements OnInit {
   }
 
   updatePaginatedClients(): void {
-    // Calcular los índices de inicio y fin
     const startIndex = Number((this.currentPage - 1) * this.itemsPerPage);
     const endIndex = startIndex + Number(this.itemsPerPage);
-
-    // Obtener los clientes para la página actual
     this.paginatedClients = this.filteredClients.slice(startIndex, endIndex);
-
-    // Calcular el número total de páginas
     this.totalPages = Math.ceil(this.filteredClients.length / this.itemsPerPage);
 
     if (this.currentPage > this.totalPages) {
@@ -591,7 +596,7 @@ export class ClientsComponent implements OnInit {
       this.paginatedOrders = this.selectedClient?.orders.slice(startIndex, endIndex) || [];
       this.totalOrderPages = Math.ceil((this.selectedClient?.orders.length || 0) / this.itemsPerOrderPage);
     } else {
-      this.totalPages = 0;
+      this.totalOrderPages = 0;
     }
   }
 
@@ -609,13 +614,10 @@ export class ClientsComponent implements OnInit {
         return;
       }
 
-      // Actualizar localmente el estado del cliente sin necesidad de recargar todo
       client.status = newStatus;
-
       alert(`Estado actualizado a "${newStatus === 'upToDate' ? 'Al día' : 'En mora'}" correctamente`);
     } catch (error) {
       console.error('Error inesperado al actualizar estado:', error);
     }
   }
-
 }

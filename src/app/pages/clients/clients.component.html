@@ -218,12 +218,12 @@
                 {{ order.created_at | date : "dd-MM-yyyy" }}
               </td>
               <td class="p-3 border">{{ order.description }}</td>
-              <td class="p-3 border">${{ order.total }}</td>
+              <td class="p-3 border">
+                ${{ calculateOrderTotal(order).toFixed(2) }} {{ order.include_iva ? '' : '' }}
+              </td>
               <td
                 class="p-3 border"
-                [class.text-green-600]="
-                  order.order_payment_status === 'upToDate'
-                "
+                [class.text-green-600]="order.order_payment_status === 'upToDate'"
                 [class.text-red-600]="order.order_payment_status === 'overdue'"
               >
                 {{
@@ -244,11 +244,14 @@
                     </li>
                   </ul>
                 </div>
+                <div *ngIf="!order.payments || order.payments.length === 0">
+                  Sin abonos
+                </div>
               </td>
             </tr>
           </tbody>
         </table>
-        <!-- Paginación (sin cambios) -->
+        <!-- Paginación -->
         <div class="flex justify-between items-center mb-4">
           <div class="pagination flex items-center">
             <button
@@ -256,12 +259,10 @@
               [disabled]="currentPage === 1"
               class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
             >
-              &#8656;
+              ⇐
             </button>
             <button
-              (click)="
-                currentOrderPage = currentOrderPage - 1; updatePaginatedOrders()
-              "
+              (click)="currentOrderPage = currentOrderPage - 1; updatePaginatedOrders()"
               [disabled]="currentOrderPage === 1"
               class="px-2 py-1 text-black border rounded-full disabled:opacity-50 flex items-center justify-center w-7 h-7"
             >
@@ -271,9 +272,7 @@
               Página {{ currentOrderPage }} de {{ totalOrderPages }}
             </span>
             <button
-              (click)="
-                currentOrderPage = currentOrderPage + 1; updatePaginatedOrders()
-              "
+              (click)="currentOrderPage = currentOrderPage + 1; updatePaginatedOrders()"
               [disabled]="currentOrderPage === totalOrderPages"
               class="px-2 py-1 text-black border rounded-full disabled:opacity-50 flex items-center justify-center w-7 h-7"
             >
@@ -284,7 +283,7 @@
               [disabled]="currentPage === totalPages"
               class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
             >
-              &#8658;
+              ⇒
             </button>
           </div>
           <div class="items-per-page flex items-center">
@@ -322,7 +321,7 @@
           [disabled]="currentPage === 1"
           class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
         >
-          &#8656;
+          ⇐
         </button>
         <button
           (click)="currentPage = currentPage - 1; updatePaginatedClients()"
@@ -346,7 +345,7 @@
           [disabled]="currentPage === totalPages"
           class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
         >
-          &#8658;
+          ⇒
         </button>
       </div>
       <div class="items-per-page flex items-center">
@@ -364,7 +363,7 @@
       </div>
     </div>
 
-    <!-- Formulario para añadir/editar clientes (sin cambios) -->
+    <!-- Formulario para añadir/editar clientes -->
     <div
       *ngIf="showModal"
       class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
