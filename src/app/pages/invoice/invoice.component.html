@@ -255,6 +255,7 @@
           </div>
         </div>
         <button
+          *ngIf="!isEditing"
           type="button"
           class="btn-primary mt-2"
           (click)="openAddClientModal()"
