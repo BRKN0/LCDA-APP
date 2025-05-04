@@ -39,7 +39,7 @@
     <span class="ml-4">En Mora</span>
   </label>
   <!-- Filter date range y botón Añadir Factura, pegado a la derecha y alineado -->
-  <div class="flex items-center justify-between mt-4"> <!-- Cambié space-x-4 por justify-between y ajusté mt-4 -->
+  <div class="flex items-center justify-between mt-4">
     <div class="flex items-center space-x-4">
       <div>
         <label for="startDate" class="mr-2 font-semibold">Desde:</label>
@@ -153,7 +153,6 @@
           >
             Editar
           </button>
-
           <!-- Botón Eliminar -->
           <button
             class="btn-delete"
@@ -171,7 +170,6 @@
     <p>No hay coincidencias con la búsqueda.</p>
   </div>
 
-
   <div class="flex justify-between items-center mb-4">
     <!-- Controles de paginación -->
     <div class="pagination flex items-center">
@@ -180,7 +178,7 @@
         [disabled]="currentPage === 1"
         class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
       >
-        &#8656;
+        ⇐
       </button>
       <button
         (click)="currentPage = currentPage - 1; updatePaginatedInvoices()"
@@ -202,7 +200,7 @@
         [disabled]="currentPage === totalPages"
         class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
       >
-        &#8658;
+        ⇒
       </button>
     </div>
 
@@ -254,14 +252,6 @@
             </div>
           </div>
         </div>
-        <button
-          *ngIf="!isEditing"
-          type="button"
-          class="btn-primary mt-2"
-          (click)="openAddClientModal()"
-        >
-          Añadir nuevo cliente
-        </button>
       </div>
 
       <div class="mb-4">
@@ -277,16 +267,6 @@
           <option value="laser">Cortes</option>
           <option value="sales">Ventas</option>
         </select>
-      </div>
-      <div class="mb-4">
-        <label class="block text-gray-700">Fecha</label>
-        <input
-          type="date"
-          [(ngModel)]="selectedInvoice.created_at"
-          name="date"
-          class="form-input"
-          required
-        />
       </div>
       <div class="mb-4">
         <label class="inline-flex items-center">
