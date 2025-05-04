@@ -93,6 +93,7 @@
         <th class="p-3 border">Abonos</th>
         <th class="p-3 border">Falta por pagar</th>
         <th class="table-column-std">Estado</th>
+        <th class="table-column-std">Plazo de Pago</th>
         <th class="table-column-std">Acciones</th>
       </tr>
     </thead>
@@ -138,6 +139,9 @@
               ? "Al Día"
               : "Desconocido"
           }}
+        </td>
+        <td class="table-column-std">
+          {{ getRemainingPaymentTerm(invoice) > 0 ? getRemainingPaymentTerm(invoice) + ' días' : 'Vencido' }}
         </td>
         <td class="table-column-std">
           <button
@@ -254,7 +258,7 @@
         </div>
       </div>
 
-      <div class="mb-4">
+      <div class="mb-4" *ngIf="selectedInvoice">
         <label class="block text-gray-700">Tipo</label>
         <select
           [(ngModel)]="selectedInvoice.order.order_type"
@@ -268,7 +272,7 @@
           <option value="sales">Ventas</option>
         </select>
       </div>
-      <div class="mb-4">
+      <div class="mb-4" *ngIf="selectedInvoice">
         <label class="inline-flex items-center">
           <input
             type="checkbox"
@@ -279,7 +283,7 @@
           <span class="ml-2">Incluir IVA (19%)</span>
         </label>
       </div>
-      <div class="mb-4">
+      <div class="mb-4" *ngIf="selectedInvoice">
         <label class="block text-gray-700">Estado</label>
         <select
           [(ngModel)]="selectedInvoice.invoice_status"
@@ -291,7 +295,18 @@
           <option value="overdue">En Mora</option>
         </select>
       </div>
-      <div class="mb-4">
+      <div class="mb-4" *ngIf="selectedInvoice">
+        <label class="block text-gray-700">Plazo de Pago (días)</label>
+        <input
+          type="number"
+          [(ngModel)]="selectedInvoice.payment_term"
+          name="payment_term"
+          class="form-input"
+          min="1"
+          required
+        />
+      </div>
+      <div class="mb-4" *ngIf="selectedInvoice">
         <label class="block text-gray-700">Orden</label>
         <select
           [(ngModel)]="selectedInvoice.order.id_order"
@@ -480,6 +495,10 @@
                 ? "Al Día"
                 : "Desconocido"
             }}
+          </p>
+          <p>
+            <strong>Plazo de Pago:</strong>
+            {{ getRemainingPaymentTerm(selectedInvoiceDetails[0]) > 0 ? getRemainingPaymentTerm(selectedInvoiceDetails[0]) + ' días' : 'Vencido' }}
           </p>
         </div>
         <div class="text-right">

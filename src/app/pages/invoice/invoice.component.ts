@@ -8,10 +8,11 @@ import { SupabaseService } from '../../services/supabase.service';
 
 interface Invoice {
   id_invoice: string;
-  created_at: Date;
+  created_at: Date | string;
   invoice_status: string;
   id_order: string;
   code: string;
+  payment_term: number;
   order: Orders;
   include_iva: boolean;
 }
@@ -89,7 +90,7 @@ export class InvoiceComponent implements OnInit {
   showModal = false;
   showAddClientModal = false;
   showClientDropdown: boolean = false;
-  selectedInvoice: any | null = null;
+  selectedInvoice: Invoice | null = null;
   currentPage: number = 1;
   itemsPerPage: number = 10;
   totalPages: number = 1;
@@ -203,7 +204,7 @@ export class InvoiceComponent implements OnInit {
         const isAssigned = this.invoices.some(
           (invoice) =>
             invoice.id_order === order.id_order &&
-            (!this.isEditing || invoice.id_invoice !== this.selectedInvoice.id_invoice)
+            (!this.isEditing || (this.selectedInvoice && invoice.id_invoice !== this.selectedInvoice.id_invoice))
         );
         return matchesClient && matchesType && !isAssigned;
       });
@@ -644,6 +645,15 @@ export class InvoiceComponent implements OnInit {
     return Math.max(0, invoiceValues.total - totalPaid);
   }
 
+  public getRemainingPaymentTerm(invoice: Invoice): number {
+    const createdAt = new Date(invoice.created_at);
+    const dueDate = new Date(createdAt.getTime() + invoice.payment_term * 24 * 60 * 60 * 1000);
+    const currentDate = new Date();
+    const diffTime = dueDate.getTime() - currentDate.getTime();
+    const remainingDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return remainingDays; // Permitimos valores negativos para depuración
+  }
+
   formatNumber(value: number): string {
     return value.toFixed(2);
   }
@@ -829,7 +839,9 @@ export class InvoiceComponent implements OnInit {
       created_at: new Date().toISOString(),
       invoice_status: 'upToDate',
       id_order: '',
+      code: '',
       include_iva: true,
+      payment_term: 30, // Valor predeterminado al crear una nueva factura
       order: {
         id_order: '',
         order_type: 'print',
@@ -871,20 +883,15 @@ export class InvoiceComponent implements OnInit {
   }
 
   editInvoice(invoice: Invoice): void {
-    this.selectedInvoice = { ...invoice };
-    this.selectedInvoice.created_at = this.formatDateForInput(invoice.created_at);
+    this.selectedInvoice = {
+      ...invoice,
+      created_at: invoice.created_at, // Aseguramos que created_at no se modifique
+      payment_term: invoice.payment_term || 30, // Aseguramos que payment_term tenga el valor correcto
+    };
     this.isEditing = true;
     this.showModal = true;
     this.clientSearchQuery = `${invoice.order.client.name} (${invoice.order.client.company_name || 'Sin empresa'})`;
     this.updateClientOrders();
-  }
-
-  private formatDateForInput(date: Date | string): string {
-    const dateObj = new Date(date);
-    const year = dateObj.getFullYear();
-    const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
-    const day = dateObj.getDate().toString().padStart(2, '0');
-    return `${year}-${month}-${day}`;
   }
 
   async validateOrderExists(orderId: string): Promise<boolean> {
@@ -918,6 +925,11 @@ export class InvoiceComponent implements OnInit {
     if (!this.selectedInvoice.order.id_order) {
       alert('Por favor, seleccione una orden válida.');
       this.closeModal();
+      return;
+    }
+
+    if (!this.selectedInvoice.payment_term || this.selectedInvoice.payment_term < 1) {
+      this.showNotification('El plazo de pago debe ser un número mayor o igual a 1.');
       return;
     }
 
@@ -963,24 +975,6 @@ export class InvoiceComponent implements OnInit {
       return;
     }
 
-    const selectedDate = this.selectedInvoice.created_at;
-    const dateParts = selectedDate.split('-');
-    const year = parseInt(dateParts[0], 10);
-    const month = parseInt(dateParts[1], 10) - 1;
-    const day = parseInt(dateParts[2], 10);
-    const adjustedDate = new Date(Date.UTC(year, month, day, 0, 0, 0));
-    const isoDate = adjustedDate.toISOString();
-
-    const invoiceToSave = {
-      code: this.selectedInvoice.code || null,
-      created_at: this.isEditing
-        ? this.selectedInvoice.created_at // Mantener fecha existente al editar
-        : new Date().toISOString(), // Fecha automática al crear
-      invoice_status: this.selectedInvoice.invoice_status,
-      id_order: this.selectedInvoice.order.id_order,
-      include_iva: this.selectedInvoice.include_iva,
-    };
-
     try {
       let newStatus = 'upToDate';
       let newDebt = 0;
@@ -992,13 +986,6 @@ export class InvoiceComponent implements OnInit {
 
       // Determinar nuevo estado
       newStatus = remainingBalance <= 0 ? 'upToDate' : 'overdue';
-
-      // Actualizar estado de la factura y del pedido
-      invoiceToSave.invoice_status = newStatus;
-      await this.supabase
-        .from('orders')
-        .update({ order_payment_status: newStatus })
-        .eq('id_order', this.selectedInvoice.order.id_order);
 
       // Actualizar deuda del cliente
       const { data: clientData, error: clientError } = await this.supabase
@@ -1013,7 +1000,7 @@ export class InvoiceComponent implements OnInit {
       }
 
       const currentDebt = clientData.debt || 0;
-      newDebt = currentDebt + remainingBalance;
+      newDebt = this.isEditing ? currentDebt : currentDebt + remainingBalance;
       await this.supabase
         .from('clients')
         .update({
@@ -1024,13 +1011,15 @@ export class InvoiceComponent implements OnInit {
 
       // Guardar o actualizar la factura
       if (this.isEditing) {
+        // Al editar, no incluimos created_at en la actualización para evitar que se modifique
         const { error } = await this.supabase
           .from('invoices')
           .update({
             id_order: this.selectedInvoice.order.id_order,
-            created_at: this.selectedInvoice.created_at,
             invoice_status: newStatus,
             include_iva: this.selectedInvoice.include_iva,
+            payment_term: this.selectedInvoice.payment_term,
+            code: this.selectedInvoice.code || null,
           })
           .eq('id_invoice', this.selectedInvoice.id_invoice);
 
@@ -1042,6 +1031,16 @@ export class InvoiceComponent implements OnInit {
 
         alert('Factura actualizada correctamente.');
       } else {
+        // Al crear una nueva factura, sí incluimos created_at
+        const invoiceToSave = {
+          code: this.selectedInvoice.code || null,
+          created_at: new Date().toISOString(),
+          invoice_status: newStatus,
+          id_order: this.selectedInvoice.order.id_order,
+          include_iva: this.selectedInvoice.include_iva,
+          payment_term: this.selectedInvoice.payment_term,
+        };
+
         const { data, error } = await this.supabase.from('invoices').insert([invoiceToSave]).select();
         if (error) {
           console.error('Error añadiendo la factura:', error);
@@ -1051,6 +1050,12 @@ export class InvoiceComponent implements OnInit {
 
         alert('Factura añadida correctamente.');
       }
+
+      // Actualizar estado del pedido
+      await this.supabase
+        .from('orders')
+        .update({ order_payment_status: newStatus })
+        .eq('id_order', this.selectedInvoice.order.id_order);
 
       await this.getInvoices();
       await this.loadOrders();
