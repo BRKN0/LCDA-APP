@@ -826,7 +826,7 @@ export class InvoiceComponent implements OnInit {
   addNewInvoice(): void {
     this.selectedInvoice = {
       id_invoice: '',
-      created_at: new Date().toISOString().split('T')[0],
+      created_at: new Date().toISOString(),
       invoice_status: 'upToDate',
       id_order: '',
       include_iva: true,
@@ -973,7 +973,9 @@ export class InvoiceComponent implements OnInit {
 
     const invoiceToSave = {
       code: this.selectedInvoice.code || null,
-      created_at: isoDate,
+      created_at: this.isEditing
+        ? this.selectedInvoice.created_at // Mantener fecha existente al editar
+        : new Date().toISOString(), // Fecha automática al crear
       invoice_status: this.selectedInvoice.invoice_status,
       id_order: this.selectedInvoice.order.id_order,
       include_iva: this.selectedInvoice.include_iva,
