@@ -19,6 +19,7 @@ interface Orders {
   order_delivery_status: string;
   notes: string;
   created_at: string;
+  delivery_date: string;
   order_quantity: string;
   unitary_value: string | number;
   iva: string | number;
@@ -93,6 +94,17 @@ interface Payment {
   payment_date?: string;
 }
 
+interface Invoice {
+  id_invoice: string;
+  created_at: string;
+  invoice_status: string;
+  id_order: string;
+  code: string;
+  payment_term: number;
+  include_iva: boolean;
+  due_date: string; // Nueva columna para almacenar la fecha de vencimiento
+}
+
 @Component({
   selector: 'app-orders',
   standalone: true,
@@ -123,11 +135,9 @@ export class OrdersComponent implements OnInit {
   searchByNameQuery: string = '';
   startDate: string = '';
   endDate: string = '';
-  // Checkboxes
   showPrints: boolean = true;
   showCuts: boolean = true;
   showSales: boolean = true;
-  // Paginación
   currentPage: number = 1;
   itemsPerPage: number = 10;
   totalPages: number = 1;
@@ -136,13 +146,10 @@ export class OrdersComponent implements OnInit {
   showEditPayment: boolean = false;
   selectedPayment: Payment | null = null;
   notificationMessage: string | null = null;
-  // Subject para debounce (sin argumentos)
   private searchSubject = new Subject<void>();
-  // Calculator
   showCalculator: boolean = false;
   calculationType: 'prints' | 'cuts' | 'sales' | null = null;
   clientType: 'intermediary' | 'final' | null = null;
-  // Valores de la impresión
   lamination: boolean = false;
   pPrint: boolean = false;
   stamping: boolean = false;
@@ -154,7 +161,6 @@ export class OrdersComponent implements OnInit {
   rollWidth: number = 0;
   measurement: number = 0;
   productNumber: number = 1;
-  // Valores para corte
   materialValue: number = 0;
   intermediaryPerMinute: number = 800;
   finalPerMinute: number = 1000;
@@ -162,8 +168,6 @@ export class OrdersComponent implements OnInit {
   calculatorResult: number = 0;
   showAddClientModal = false;
   filteredClients: Client[] = [];
-
-  // Para añadir pedidos
   newOrder: Partial<Orders> = {};
   newCut: Partial<Cuts> = {};
   newPrint: Partial<Prints> = {};
@@ -232,7 +236,6 @@ export class OrdersComponent implements OnInit {
     }
     this.orders = data as Orders[];
 
-    // Sorting orders by code
     let n = this.orders.length;
     let swapped: boolean;
 
@@ -246,7 +249,7 @@ export class OrdersComponent implements OnInit {
       }
       n--;
     } while (swapped);
-    this.updateFilteredOrders(); // Filtrar después de cargar los datos
+    this.updateFilteredOrders();
     this.loading = false;
   }
 
@@ -257,7 +260,7 @@ export class OrdersComponent implements OnInit {
       return;
     }
     this.clients = data;
-    this.filteredClients = [...this.clients]; // Inicializa los clientes filtrados
+    this.filteredClients = [...this.clients];
   }
 
   openAddClientModal(): void {
@@ -294,18 +297,16 @@ export class OrdersComponent implements OnInit {
 
     alert('Cliente añadido correctamente.');
     this.closeAddClientModal();
-    await this.getClients(); // Recargar la lista de clientes
+    await this.getClients();
   }
 
-  // Método para mostrar una notificación temporal
   showNotification(message: string) {
     this.notificationMessage = message;
     setTimeout(() => {
       this.notificationMessage = null;
-    }, 3000); // El mensaje desaparece después de 3 segundos
+    }, 3000);
   }
 
-  // Calculate the total payments for an order
   getTotalPayments(order: Orders): number {
     return order.payments && Array.isArray(order.payments)
       ? order.payments.reduce((sum, p) => sum + p.amount, 0)
@@ -318,12 +319,10 @@ export class OrdersComponent implements OnInit {
       return;
     }
 
-    // Calcular el monto pendiente
     const total = parseFloat(String(order.total)) || 0;
     const totalPaid = this.getTotalPayments(order);
     const remainingBalance = total - totalPaid;
 
-    // Validar que el abono no exceda el monto pendiente
     if (amount > remainingBalance) {
       this.showNotification(
         `El abono no puede exceder el monto pendiente de $${remainingBalance.toFixed(2)}.`
@@ -337,7 +336,6 @@ export class OrdersComponent implements OnInit {
     };
 
     try {
-      // Insertar el abono
       const { data, error: insertError } = await this.supabase
         .from('payments')
         .insert([payment])
@@ -352,7 +350,6 @@ export class OrdersComponent implements OnInit {
       const newPayment = data[0];
       newPayment.payment_date = new Date().toISOString();
 
-      // Obtener la deuda actual del cliente
       const { data: clientData, error: clientError } = await this.supabase
         .from('clients')
         .select('debt')
@@ -368,7 +365,6 @@ export class OrdersComponent implements OnInit {
       const currentDebt = clientData.debt || 0;
       const newDebt = currentDebt - amount;
 
-      // Reducir la deuda del cliente
       const { error: updateError } = await this.supabase
         .from('clients')
         .update({ debt: newDebt, status: newDebt > 0 ? 'overdue' : 'upToDate' })
@@ -380,18 +376,15 @@ export class OrdersComponent implements OnInit {
         return;
       }
 
-      // Actualizar localmente los datos
       if (!order.payments) {
         order.payments = [];
       }
       order.payments.push(newPayment);
 
-      // Actualizar el estado de pago del pedido y la factura
       const updatedTotalPaid = this.getTotalPayments(order);
       const orderTotal = parseFloat(String(order.total)) || 0;
       const newStatus = updatedTotalPaid >= orderTotal && newDebt <= 0 ? 'upToDate' : 'overdue';
 
-      // Actualizar estado en Supabase
       await this.supabase
         .from('orders')
         .update({ order_payment_status: newStatus })
@@ -402,10 +395,9 @@ export class OrdersComponent implements OnInit {
         .update({ invoice_status: newStatus })
         .eq('id_order', order.id_order);
 
-      // Recargar los pedidos para reflejar el cambio en la interfaz
       await this.getOrders();
 
-      this.newPaymentAmount = 0; // Resetear el campo
+      this.newPaymentAmount = 0;
       this.showNotification('Abono añadido correctamente.');
     } catch (error) {
       console.error('Error inesperado:', error);
@@ -434,7 +426,6 @@ export class OrdersComponent implements OnInit {
     }
 
     try {
-      // Obtener el abono original para calcular la diferencia
       const { data: originalPayment, error: fetchError } = await this.supabase
         .from('payments')
         .select('amount')
@@ -451,7 +442,6 @@ export class OrdersComponent implements OnInit {
       const newAmount = this.selectedPayment.amount;
       const difference = newAmount - originalAmount;
 
-      // Actualizar el abono
       const { error: updateError } = await this.supabase
         .from('payments')
         .update({ amount: newAmount })
@@ -463,7 +453,6 @@ export class OrdersComponent implements OnInit {
         return;
       }
 
-      // Obtener la deuda actual del cliente
       const { data: clientData, error: clientError } = await this.supabase
         .from('clients')
         .select('debt')
@@ -479,7 +468,6 @@ export class OrdersComponent implements OnInit {
       const currentDebt = clientData.debt || 0;
       const newDebt = currentDebt + difference;
 
-      // Ajustar la deuda del cliente según la diferencia
       const { error: debtError } = await this.supabase
         .from('clients')
         .update({ debt: newDebt, status: newDebt > 0 ? 'overdue' : 'upToDate' })
@@ -491,7 +479,6 @@ export class OrdersComponent implements OnInit {
         return;
       }
 
-      // Validar si el nuevo estado es 'upToDate' y si realmente está al día
       if (this.selectedOrder && this.selectedOrder.payments) {
         const paymentIndex = this.selectedOrder.payments.findIndex(
           (p) => p.id_payment === this.selectedPayment!.id_payment
@@ -504,19 +491,16 @@ export class OrdersComponent implements OnInit {
         const orderTotal = parseFloat(String(this.selectedOrder.total)) || 0;
         const newStatus = totalPaid >= orderTotal && newDebt <= 0 ? 'upToDate' : 'overdue';
 
-        // Actualizar el estado en la tabla orders
         await this.supabase
           .from('orders')
           .update({ order_payment_status: newStatus })
           .eq('id_order', this.selectedOrder.id_order);
 
-        // Actualizar el estado en la tabla invoices
         await this.supabase
           .from('invoices')
           .update({ invoice_status: newStatus })
           .eq('id_order', this.selectedOrder.id_order);
 
-        // Recargar los pedidos para reflejar el cambio en la interfaz
         await this.getOrders();
       }
 
@@ -532,7 +516,6 @@ export class OrdersComponent implements OnInit {
   async deleteOrder(order: Orders): Promise<void> {
     if (confirm(`¿Eliminar orden #${order.code}?`)) {
       try {
-        // Paso 1: Eliminar registros dependientes en 'prints' o 'cuts'
         if (order.order_type === 'print') {
           const { error: deletePrintsError } = await this.supabase
             .from('prints')
@@ -557,7 +540,6 @@ export class OrdersComponent implements OnInit {
           }
         }
 
-        // Paso 2: Eliminar notificaciones asociadas
         const { error: deleteNotificationsError } = await this.supabase
           .from('notifications')
           .delete()
@@ -569,7 +551,6 @@ export class OrdersComponent implements OnInit {
           return;
         }
 
-        // Paso 3: Verificar y eliminar facturas asociadas
         const { error: deleteInvoicesError } = await this.supabase
           .from('invoices')
           .delete()
@@ -581,7 +562,6 @@ export class OrdersComponent implements OnInit {
           return;
         }
 
-        // Paso 4: Eliminar pagos asociados
         const { error: deletePaymentsError } = await this.supabase
           .from('payments')
           .delete()
@@ -593,7 +573,6 @@ export class OrdersComponent implements OnInit {
           return;
         }
 
-        // Paso 5: Actualizar la deuda del cliente
         const orderTotal = parseFloat(String(order.total)) || 0;
         const { data: clientData, error: clientError } = await this.supabase
           .from('clients')
@@ -622,7 +601,6 @@ export class OrdersComponent implements OnInit {
           return;
         }
 
-        // Paso 6: Eliminar el pedido
         const { error: deleteOrderError } = await this.supabase
           .from('orders')
           .delete()
@@ -634,7 +612,6 @@ export class OrdersComponent implements OnInit {
           return;
         }
 
-        // Actualizar la lista localmente
         this.orders = this.orders.filter((o) => o.id_order !== order.id_order);
         this.updateFilteredOrders();
         this.showNotification('Orden eliminada correctamente.');
@@ -645,14 +622,12 @@ export class OrdersComponent implements OnInit {
     }
   }
 
-  // Llamada en (input) de ambos campos sin pasar parámetros
   onSearchInputChange(): void {
     this.searchSubject.next();
   }
 
   async onSearch(): Promise<void> {
     if (!this.searchQuery.trim()) {
-      // Si no hay búsqueda por número, volver al filtrado normal
       this.updateFilteredOrders();
       return;
     }
@@ -664,7 +639,7 @@ export class OrdersComponent implements OnInit {
 
     if (error) {
       console.error('Error al buscar la orden:', error);
-      this.noResultsFound = true; // Mostrar mensaje en caso de error
+      this.noResultsFound = true;
       this.filteredOrdersList = [];
       this.updatePaginatedOrder();
       return;
@@ -672,13 +647,12 @@ export class OrdersComponent implements OnInit {
 
     this.filteredOrdersList = data as Orders[];
     this.noResultsFound =
-      this.searchQuery.trim() !== '' && (!data || data.length === 0); // Activar mensaje si no hay resultados
-    this.currentPage = 1; // Reiniciar paginación
+      this.searchQuery.trim() !== '' && (!data || data.length === 0);
+    this.currentPage = 1;
     this.updatePaginatedOrder();
   }
 
   updateFilteredOrders(): void {
-    // Verificar si todos los checkboxes de tipo están desactivados
     const allTypeCheckboxesOff =
       !this.showPrints && !this.showCuts && !this.showSales;
 
@@ -698,12 +672,10 @@ export class OrdersComponent implements OnInit {
           .toLowerCase()
           .includes(this.searchByNameQuery.toLowerCase().trim());
 
-      // Si todos los checkboxes de tipo están desactivados, mostrar todos los pedidos
       if (allTypeCheckboxesOff) {
         return matchesDateRange && matchesNameSearch;
       }
 
-      // Filtros normales si hay al menos un checkbox de tipo activado
       const isPrintsFilter = this.showPrints && order.order_type === 'print';
       const isCutsFilter = this.showCuts && order.order_type === 'laser';
       const isSalesFilter = this.showSales && order.order_type === 'sales';
@@ -713,17 +685,16 @@ export class OrdersComponent implements OnInit {
       return matchesType && matchesDateRange && matchesNameSearch;
     });
 
-    // Activar noResultsFound solo si hay una búsqueda por nombre y no hay resultados
     this.noResultsFound =
       this.searchByNameQuery.trim() !== '' &&
       this.filteredOrdersList.length === 0;
-    this.currentPage = 1; // Reiniciar a la primera página
-    this.updatePaginatedOrder(); // Actualizar la lista paginada
+    this.currentPage = 1;
+    this.updatePaginatedOrder();
   }
 
   async selectOrder(order: Orders) {
     this.loadingDetails = true;
-    this.selectedOrderTypeDetail = []; // Reiniciar
+    this.selectedOrderTypeDetail = [];
 
     if (order.order_type === 'print') {
       const { data, error } = await this.supabase
@@ -798,6 +769,7 @@ export class OrdersComponent implements OnInit {
         description: '',
         order_payment_status: 'overdue',
         created_at: new Date().toISOString(),
+        delivery_date: '',
         order_quantity: '',
         unitary_value: '',
         iva: '',
@@ -819,10 +791,8 @@ export class OrdersComponent implements OnInit {
     this.isEditing = true;
     this.showModal = true;
 
-    // Llenar los campos comunes
     this.newOrder = { ...order };
 
-    // Obtener detalles específicos si es corte o impresión
     if (order.order_type === 'print') {
       const { data, error } = await this.supabase
         .from('prints')
@@ -852,7 +822,6 @@ export class OrdersComponent implements OnInit {
     );
     newOrderForm.name = selectedClient ? selectedClient.name : '';
 
-    // Obtener detalles del cliente (deuda y límite de crédito)
     const { data: clientData, error: clientError } = await this.supabase
       .from('clients')
       .select('debt, credit_limit')
@@ -881,6 +850,7 @@ export class OrdersComponent implements OnInit {
       description: newOrderForm.description,
       order_payment_status: newOrderForm.order_payment_status || 'overdue',
       created_at: newOrderForm.created_at || new Date().toISOString(),
+      delivery_date: newOrderForm.delivery_date,
       order_quantity: newOrderForm.order_quantity,
       unitary_value: newOrderForm.unitary_value || 0,
       iva: newOrderForm.iva || 0,
@@ -893,6 +863,14 @@ export class OrdersComponent implements OnInit {
       order_delivery_status: newOrderForm.order_delivery_status,
       notes: newOrderForm.notes,
     };
+
+    // Calcular due_date para la factura: delivery_date + payment_term
+    const deliveryDate = newOrderForm.delivery_date
+      ? new Date(newOrderForm.delivery_date)
+      : new Date();
+    const paymentTerm = 0; // Plazo predeterminado de 30 días
+    const dueDate = new Date(deliveryDate.getTime() + paymentTerm * 24 * 60 * 60 * 1000);
+    const dueDateISOString = dueDate.toISOString();
 
     if (this.isEditing) {
       if (!newOrderForm.id_order) {
@@ -933,9 +911,36 @@ export class OrdersComponent implements OnInit {
         }
       }
 
-      await this.getOrders(); // Recargar pedidos después de actualizar
+      // Actualizar la factura asociada
+      const { data: existingInvoice, error: invoiceError } = await this.supabase
+        .from('invoices')
+        .select('*')
+        .eq('id_order', this.newOrder.id_order)
+        .single();
+
+      if (invoiceError && invoiceError.code !== 'PGRST116') {
+        console.error('Error al buscar factura existente:', invoiceError);
+        return;
+      }
+
+      if (existingInvoice) {
+        const updatedInvoice: Partial<Invoice> = {
+          due_date: dueDateISOString,
+        };
+        const { error: updateInvoiceError } = await this.supabase
+          .from('invoices')
+          .update(updatedInvoice)
+          .eq('id_order', this.newOrder.id_order);
+
+        if (updateInvoiceError) {
+          console.error('Error al actualizar la factura:', updateInvoiceError);
+          return;
+        }
+      }
+
+      await this.getOrders();
       this.toggleAddOrderForm();
-    } else if (!this.isEditing) {
+    } else {
       const { data, error } = await this.supabase
         .from('orders')
         .insert([this.newOrder])
@@ -978,7 +983,53 @@ export class OrdersComponent implements OnInit {
         this.createNotification(insertedOrder);
       }
 
-      await this.getOrders(); // Recargar pedidos después de agregar
+      // Crear factura asociada
+      const newInvoice: Partial<Invoice> = {
+        created_at: new Date().toISOString(),
+        invoice_status: 'overdue',
+        id_order: insertedOrder.id_order,
+        code: insertedOrder.code.toString(),
+        payment_term: paymentTerm,
+        include_iva: true,
+        due_date: dueDateISOString,
+      };
+
+      const { error: invoiceInsertError } = await this.supabase
+        .from('invoices')
+        .insert([newInvoice]);
+
+      if (invoiceInsertError) {
+        console.error('Error al crear la factura:', invoiceInsertError);
+        return;
+      }
+
+      // Actualizar la deuda del cliente
+      const { data: clientData, error: clientUpdateError } = await this.supabase
+        .from('clients')
+        .select('debt')
+        .eq('id_client', insertedOrder.id_client)
+        .single();
+
+      if (clientUpdateError || !clientData) {
+        console.error('Error al obtener la deuda del cliente:', clientUpdateError);
+        return;
+      }
+
+      const currentDebt = clientData.debt || 0;
+      const newDebt = currentDebt + parseFloat(insertedOrder.total as string);
+      const newClientStatus = newDebt > 0 ? 'overdue' : 'upToDate';
+
+      const { error: updateClientError } = await this.supabase
+        .from('clients')
+        .update({ debt: newDebt, status: newClientStatus })
+        .eq('id_client', insertedOrder.id_client);
+
+      if (updateClientError) {
+        console.error('Error al actualizar la deuda del cliente:', updateClientError);
+        return;
+      }
+
+      await this.getOrders();
       this.createNotification(insertedOrder);
       this.toggleAddOrderForm();
     }
@@ -1061,10 +1112,8 @@ export class OrdersComponent implements OnInit {
   }
 
   resetForm(): void {
-    // General
     this.calculatorResult = 0;
     this.clientType = null;
-    // Prints
     this.lamination = false;
     this.pPrint = false;
     this.stamping = false;
@@ -1072,7 +1121,6 @@ export class OrdersComponent implements OnInit {
     this.rollWidth = 0;
     this.measurement = 0;
     this.productNumber = 1;
-    // Cuts
     this.materialValue = 0;
     this.usageTime = 0;
   }
@@ -1116,5 +1164,14 @@ export class OrdersComponent implements OnInit {
 
       this.calculatorResult = this.materialValue + valorTiempo;
     }
+  }
+
+  public getRemainingDeliveryDays(order: Orders): number {
+    if (!order.delivery_date) return 0;
+    const deliveryDate = new Date(order.delivery_date);
+    const currentDate = new Date();
+    const diffTime = deliveryDate.getTime() - currentDate.getTime();
+    const remainingDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return remainingDays;
   }
 }

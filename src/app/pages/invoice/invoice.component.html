@@ -296,17 +296,6 @@
         </select>
       </div>
       <div class="mb-4" *ngIf="selectedInvoice">
-        <label class="block text-gray-700">Plazo de Pago (días)</label>
-        <input
-          type="number"
-          [(ngModel)]="selectedInvoice.payment_term"
-          name="payment_term"
-          class="form-input"
-          min="1"
-          required
-        />
-      </div>
-      <div class="mb-4" *ngIf="selectedInvoice">
         <label class="block text-gray-700">Orden</label>
         <select
           [(ngModel)]="selectedInvoice.order.id_order"
