@@ -114,6 +114,8 @@
           <th class="table-column-std">Estado de pago</th>
           <th class="table-column-std">Estado de trabajo</th>
           <th class="table-column-std">Fecha</th>
+          <th class="table-column-std">Fecha de Entrega</th> <!-- New column -->
+          <th class="table-column-std">Días Restantes</th> <!-- New column -->
           <th class="table-column-std">Total</th>
           <th class="table-column-std">Confirmación</th>
           <th class="table-column-std">Acción</th>
@@ -174,8 +176,16 @@
                 <option value="inProgress">En progreso</option>
               </select>
             </td>
-
             <td>{{ order.created_at | date : "dd-MM-yyyy" }}</td>
+            <td>{{ order.delivery_date ? (order.delivery_date | date : "dd-MM-yyyy") : "No especificado" }}</td> <!-- Display delivery date -->
+            <td
+              [ngClass]="{
+                'text-green-600': getRemainingDeliveryDays(order) > 0,
+                'text-red-600': getRemainingDeliveryDays(order) <= 0
+              }"
+            >
+              {{ getRemainingDeliveryDays(order) > 0 ? getRemainingDeliveryDays(order) + " días" : "Vencido" }}
+            </td> <!-- Display remaining days -->
             <td [class.invisible]="userRole != 'admin'">
               {{ order.total }}
             </td>
@@ -219,6 +229,8 @@
         <th class="table-column-std">Estado de pago</th>
         <th class="table-column-std">Estado de trabajo</th>
         <th class="table-column-std">Fecha</th>
+        <th class="table-column-std">Fecha de Entrega</th> <!-- New column -->
+        <th class="table-column-std">Días Restantes</th> <!-- New column -->
         <th class="table-column-std">Acción</th>
         <th class="table-column-std">Confirmación de Orden</th>
         <tbody>
@@ -269,6 +281,15 @@
               </select>
             </td>
             <td>{{ order.created_at | date : "dd-MM-yyyy" }}</td>
+            <td>{{ order.delivery_date ? (order.delivery_date | date : "dd-MM-yyyy") : "No especificado" }}</td> <!-- Display delivery date -->
+            <td
+              [ngClass]="{
+                'text-green-600': getRemainingDeliveryDays(order) > 0,
+                'text-red-600': getRemainingDeliveryDays(order) <= 0
+              }"
+            >
+              {{ getRemainingDeliveryDays(order) > 0 ? getRemainingDeliveryDays(order) + " días" : "Vencido" }}
+            </td> <!-- Display remaining days -->
             <td>
               <button class="btn-details" (click)="selectOrder(order)">
                 Ver Detalles
@@ -284,7 +305,6 @@
                 Eliminar
               </button>
             </td>
-
             <td>
               <label>
                 <input
@@ -314,14 +334,14 @@
       [disabled]="currentPage === 1"
       class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
     >
-      &#8656;
+      ⇐
     </button>
     <button
       (click)="currentPage = currentPage - 1; updatePaginatedOrder()"
       [disabled]="currentPage === 1"
       class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-7 h-7"
     >
-      &#8592;
+      ←
     </button>
     <span class="mx-4 text-gray-700">
       Página {{ currentPage }} de {{ totalPages }}
@@ -331,14 +351,14 @@
       [disabled]="currentPage === totalPages"
       class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-7 h-7"
     >
-      &#8594;
+      →
     </button>
     <button
       (click)="currentPage = totalPages; updatePaginatedOrder()"
       [disabled]="currentPage === totalPages"
       class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
     >
-      &#8658;
+      ⇒
     </button>
   </div>
 
@@ -371,7 +391,7 @@
       class="absolute top-4 right-4 text-gray-600 hover:text-black font-bold text-xl"
       (click)="selectedOrderDetails = null"
     >
-      &times;
+      ×
     </button>
     <h2 class="text-xl font-bold">Detalles de Pedido</h2>
     <!-- Printable Invoice Layout -->
@@ -384,6 +404,10 @@
           <p>
             <strong>Fecha:</strong>
             {{ selectedOrderDetails[0].created_at | date : "dd-MM-yyyy" }}
+          </p>
+          <p>
+            <strong>Fecha de Entrega:</strong>
+            {{ selectedOrderDetails[0].delivery_date ? (selectedOrderDetails[0].delivery_date | date : "dd-MM-yyyy") : "No especificado" }}
           </p>
           <p>
             <strong>Estado de trabajo:</strong>
@@ -643,6 +667,16 @@
         <input
           [(ngModel)]="newOrder.notes"
           name="notes"
+          class="form-input mt-1 block w-full"
+          required
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Fecha de Entrega</label>
+        <input
+          type="date"
+          [(ngModel)]="newOrder.delivery_date"
+          name="delivery_date"
           class="form-input mt-1 block w-full"
           required
         />
@@ -911,170 +945,140 @@
         (change)="resetForm()"
         class="form-select mt-1 block w-full"
       >
-        <option [ngValue]="null">Seleccione</option>
-        <option value="prints">Impresión</option>
-        <option value="cuts">Corte</option>
+        <option [ngValue]="null">Seleccione una opción</option>
+        <option value="prints">Impresiones</option>
+        <option value="cuts">Cortes</option>
+        <option value="sales">Ventas</option>
       </select>
     </div>
 
-    <!-- client type -->
-    <div class="mb-4">
-      <label class="block text-gray-700">Tipo de Cliente:</label>
+    <!-- Tipo de cliente -->
+    <div class="mb-4" *ngIf="calculationType">
+      <label class="block text-gray-700">Tipo de Cliente</label>
       <select
         [(ngModel)]="clientType"
         (change)="setValoresPorCliente()"
         class="form-select mt-1 block w-full"
       >
-        <option [ngValue]="null">Seleccione</option>
+        <option [ngValue]="null">Seleccione un tipo</option>
         <option value="intermediary">Intermediario</option>
         <option value="final">Final</option>
       </select>
     </div>
 
-    <!-- prints -->
+    <!-- Calculadora de impresiones -->
     <div *ngIf="calculationType === 'prints'">
-      <div class="grid grid-cols-2 gap-4 mb-4">
-        <div class="flex items-center">
-          <input type="checkbox" [(ngModel)]="lamination" class="mr-2" />
-          <span class="mr-2">Laminado</span>
-          <input
-            type="number"
-            [(ngModel)]="laminationValue"
-            min="0"
-            class="w-20 px-2 py-1 border rounded"
-          />
-        </div>
-        <div class="flex items-center">
-          <input type="checkbox" [(ngModel)]="pPrint" class="mr-2" />
-          <span class="mr-2">Impresión</span>
-          <input
-            type="number"
-            [(ngModel)]="printValue"
-            min="0"
-            class="w-20 px-2 py-1 border rounded"
-          />
-        </div>
-        <div class="flex items-center">
-          <input type="checkbox" [(ngModel)]="stamping" class="mr-2" />
-          <span class="mr-2">Troquelado</span>
-          <input
-            type="number"
-            [(ngModel)]="stampingValue"
-            min="0"
-            class="w-20 px-2 py-1 border rounded"
-          />
-        </div>
-        <div class="flex items-center">
-          <input type="checkbox" [(ngModel)]="assemble" class="mr-2" />
-          <span class="mr-2">Armado</span>
-          <input
-            type="number"
-            [(ngModel)]="assembleValue"
-            min="0"
-            class="w-20 px-2 py-1 border rounded"
-          />
-        </div>
-      </div>
-
       <div class="mb-4">
-        <label class="block text-gray-700">Ancho del rollo (cm):</label>
+        <label class="block text-gray-700">Ancho del rollo (m)</label>
         <input
           type="number"
           [(ngModel)]="rollWidth"
+          name="rollWidth"
           class="form-input mt-1 block w-full"
+          (change)="calculatePrice()"
         />
       </div>
-
       <div class="mb-4">
-        <label class="block text-gray-700">Medida usada (cm):</label>
+        <label class="block text-gray-700">Medición (m)</label>
         <input
           type="number"
           [(ngModel)]="measurement"
+          name="measurement"
           class="form-input mt-1 block w-full"
+          (change)="calculatePrice()"
         />
       </div>
-
       <div class="mb-4">
-        <label class="block text-gray-700">Número de productos:</label>
+        <label class="block text-gray-700">Número de productos</label>
         <input
           type="number"
           [(ngModel)]="productNumber"
+          name="productNumber"
           class="form-input mt-1 block w-full"
+          (change)="calculatePrice()"
         />
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Opciones</label>
+        <div class="flex gap-4 mt-2">
+          <label
+            ><input
+              type="checkbox"
+              [(ngModel)]="lamination"
+              name="lamination"
+              (change)="calculatePrice()"
+            />
+            Laminado</label
+          >
+          <label
+            ><input
+              type="checkbox"
+              [(ngModel)]="pPrint"
+              name="pPrint"
+              (change)="calculatePrice()"
+            />
+            Impresión</label
+          >
+          <label
+            ><input
+              type="checkbox"
+              [(ngModel)]="stamping"
+              name="stamping"
+              (change)="calculatePrice()"
+            />
+            Troquelado</label
+          >
+          <label
+            ><input
+              type="checkbox"
+              [(ngModel)]="assemble"
+              name="assemble"
+              (change)="calculatePrice()"
+            />
+            Ensamblado</label
+          >
+        </div>
       </div>
     </div>
 
-    <!-- cuts -->
+    <!-- Calculadora de cortes -->
     <div *ngIf="calculationType === 'cuts'">
       <div class="mb-4">
-        <label class="block text-gray-700">Valor del material ($):</label>
+        <label class="block text-gray-700">Valor del material</label>
         <input
           type="number"
           [(ngModel)]="materialValue"
-          min="0"
+          name="materialValue"
           class="form-input mt-1 block w-full"
+          (change)="calculatePrice()"
         />
       </div>
-
       <div class="mb-4">
-        <label class="block text-gray-700">Tiempo de uso (minutos):</label>
+        <label class="block text-gray-700">Tiempo de uso (min)</label>
         <input
           type="number"
           [(ngModel)]="usageTime"
-          min="0"
+          name="usageTime"
           class="form-input mt-1 block w-full"
+          (change)="calculatePrice()"
         />
       </div>
-
-      <div class="mb-4 grid grid-cols-1 gap-2">
-        <div *ngIf="clientType === 'intermediary'">
-          <label class="block text-gray-700"
-            >Valor por minuto (intermediario):</label
-          >
-          <input
-            type="number"
-            [(ngModel)]="intermediaryPerMinute"
-            min="0"
-            class="form-input mt-1 block w-full"
-          />
-        </div>
-        <div *ngIf="clientType === 'final'">
-          <label class="block text-gray-700"
-            >Valor por minuto (cliente final):</label
-          >
-          <input
-            type="number"
-            [(ngModel)]="finalPerMinute"
-            min="0"
-            class="form-input mt-1 block w-full"
-          />
-        </div>
-      </div>
     </div>
 
+    <!-- Resultado -->
+    <div class="mb-4" *ngIf="calculatorResult > 0">
+      <p class="font-bold">Resultado: {{ calculatorResult }} COP</p>
+    </div>
 
-    <div class="flex justify-end gap-2">
-      <button
-        class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
-        (click)="closeCalculator()"
-      >
+    <div class="flex justify-end mt-4">
+      <button type="button" class="btn-danger" (click)="closeCalculator()">
         Cerrar
       </button>
-      <button
-        class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
-        (click)="calculatePrice()"
-      >
-        Calcular
-      </button>
-    </div>
-
-    <div
-      *ngIf="calculatorResult > 0"
-      class="mt-4 p-4 bg-green-100 border border-green-400 rounded text-green-700"
-    >
-      <p class="font-semibold">
-        Valor calculado: ${{ calculatorResult | number : "1.0-2" }}
-      </p>
     </div>
   </div>
+</div>
+
+<!-- Notificación temporal -->
+<div *ngIf="notificationMessage" class="fixed top-4 right-4 bg-green-500 text-white p-2 rounded shadow-md z-50">
+  {{ notificationMessage }}
 </div>
