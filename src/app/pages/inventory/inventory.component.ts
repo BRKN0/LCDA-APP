@@ -29,6 +29,11 @@ export class InventoryComponent implements OnInit {
   isEditing: boolean = false;
   inventory: InventoryItem[] = [];
   filteredInventory: InventoryItem[] = [];
+  materialStatus = [
+    { value: 'out', label: 'Fuera de Stock'},
+    { value: 'low', label: 'Stock Bajo'},
+    { value: 'ok', label: 'En Stock'},
+  ]
   selectedItem: InventoryItem = {
     id_material: '',
     category: '',
@@ -164,7 +169,11 @@ export class InventoryComponent implements OnInit {
           }
         : item;
   }
-
+  getMaterialStatusLabel(type: string | null): string {
+    const found = this.materialStatus.find(r => r.value === type);
+    if (found) return found.label;
+    return 'Desconocido';
+  }
   generateKardex(): void {
     const currentDate = new Date().toISOString().split('T')[0];
     const csvHeader = [

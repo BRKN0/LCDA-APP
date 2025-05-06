@@ -18,10 +18,11 @@ interface Employee {
   city: string;
   department: string;
   postal_code: number;
-  employee_type: string;
+  employee_type: string | null;
   salary: number;
   employee_liquidations?: Employee_liquidations[];
   employee_benefits?: Employee_benefits[];
+  id_user: string;
 }
 
 interface Employee_liquidations {
@@ -56,6 +57,14 @@ interface Employee_benefits {
 export class EmployeesComponent implements OnInit {
   userId: string | null = null;
   userRole: string | null = null;
+  employeeRole: string | null = null;
+  availableEmployeeRoles = [
+    { value: 'cuts_employee', label: 'Empleado de cortes' },
+    { value: 'prints_employee', label: 'Empleado de impresiones' },
+    { value: 'counter_employee', label: 'Contador' },
+    { value: 'seller_employee', label: 'Vendedor' },
+    { value: 'scheduled_employee', label: 'Agendador' }
+  ];
   userEmail: string | undefined = '';
   showDetailsModal = false;
   showDetails = false;
@@ -116,7 +125,6 @@ export class EmployeesComponent implements OnInit {
       console.log(error);
       return;
     }
-
     this.Employees = [...data].map((employee) => ({
       ...employee,
       employee_liquidations: Array.isArray(employee.employee_liquidations)
@@ -125,9 +133,64 @@ export class EmployeesComponent implements OnInit {
         ? [employee.employee_liquidations]
         : [],
     })) as Employee[];
+    // Making sure that employee type is the same as the related user role in case of desync
+    for (let index = 0; index < this.Employees.length; index++) {
+      if (this.Employees[index].id_user) {
+        this.roleService.fetchAndSetUserRole(this.Employees[index].id_user);
+        this.roleService.role$.subscribe((role) => {
+          this.Employees[index].employee_type = role;
+        });
+      }
+    }
     console.log(this.Employees);
     this.searchEmployee();
     this.loading = false;
+  }
+  getEmployeeTypeLabel(type: string | null): string {
+    const found = this.availableEmployeeRoles.find(r => r.value === type);
+    if (found) return found.label;
+    if (type === 'admin') return 'Administrador';
+    return 'Desconocido';
+  }
+  // This changes both employee_type and user_role to match
+  async toggleEmployeeType(employee: Employee) {
+    const { error: empError } = await this.supabase
+      .from('employees')
+      .update({ employee_type: employee.employee_type })
+      .eq('id_employee', employee.id_employee);
+
+    if (empError) {
+      console.error('Error actualizando el tipo de empleado:', empError);
+      return;
+    }
+
+    if (employee.id_user) {
+      const { data: roleData, error: roleError } = await this.supabase
+        .from('roles')
+        .select('id')
+        .eq('name', employee.employee_type)
+        .single();
+
+      if (roleError) {
+        console.error('Error obteniendo el rol:', roleError);
+        return;
+      }
+
+      const userToUpdate = {
+        id: employee.id_user,
+        id_role: roleData.id,
+      };
+
+      const { error: userError } = await this.supabase
+        .from('users')
+        .update(userToUpdate)
+        .eq('id', userToUpdate.id);
+
+      if (userError) {
+        console.error('Error actualizando el rol del usuario:', userError);
+        return;
+      }
+    }
   }
 
   //Filtros
