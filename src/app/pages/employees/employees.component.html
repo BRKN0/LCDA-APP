@@ -76,15 +76,27 @@
         <td>{{ employee.salary }}</td>
         <td>{{ employee.created_at | date : "dd-MM-yyyy" }}</td>
         <td>
-          {{ 
-            { 
-              cutter: "Empleado de cortes", 
-              printer: "Empleado de impresiones",
-              counter: "Contador",
-              seller: "Vendedor",
-              scheduled: "Agendador", 
-            }[employee.employee_type] || "Desconocido" 
-          }}
+          <select
+            class="border rounded p-1"
+            [(ngModel)]="employee.employee_type"
+            (change)="toggleEmployeeType(employee)"
+          >
+            <option
+              [value]="employee.employee_type"
+              disabled
+              *ngIf="employee.employee_type === 'admin'"
+            >
+              Administrador
+            </option>
+            <!-- Just for testing will remove later -->
+            <option
+              *ngFor="let role of availableEmployeeRoles"
+              [value]="role.value"
+              [selected]="employee.employee_type === role.value"
+            >
+              {{ role.label }}
+            </option>
+          </select>
         </td>
         <td>
           <button class="btn-details" (click)="openDetailsModal(employee)">
@@ -186,6 +198,24 @@
             class="form-input mt-1 block w-full border border-gray-300 rounded-md"
           />
         </div>
+        <div>
+          <label class="block text-gray-700">Tipo de Empleado</label>
+          <select
+          type="text"
+          [(ngModel)]="selectedEmployee.employee_type"
+          name="employee_type"
+          class="form-input mt-1 block w-full"
+          required
+        >
+          <option
+            *ngFor="let employee_type of availableEmployeeRoles"
+            [value]="employee_type.value"
+            [selected]="selectedEmployee.employee_type === employee_type.value"
+          >
+            {{ employee_type.label }}
+          </option>
+        </select>
+        </div>
         <div class="mb-4">
           <label class="block text-gray-700">Numero de identidad</label>
           <input
@@ -266,21 +296,6 @@
             required
           />
         </div>
-        <div class="mb-4">
-          <label class="block text-gray-700">Tipo de empleado</label>
-          <select
-            [(ngModel)]="selectedEmployee.employee_type"
-            name="type_employee"
-            class="form-select mt-1 block w-full"
-            required
-          >
-            <option value="printer">Impresiones</option>
-            <option value="cutter">Corte laser</option>
-            <option value="counter">Contador</option>
-            <option value="seller">Vendedor</option>
-            <option value="scheduled">Agendador</option>
-          </select>
-        </div>
         <div class="flex justify-end">
           <button type="button" class="btn-danger" (click)="closeModal()">
             Cancelar
@@ -292,7 +307,7 @@
       </form>
     </div>
   </div>
-  <!-- Modal para detalles del cliente -->
+  <!-- Modal para detalles del empleado -->
   <div
     *ngIf="showDetailsModal && selectedEmployeeDetails"
     class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
@@ -302,7 +317,10 @@
     >
       <h3 class="text-lg mb-4">
         <p><strong>Cliente:</strong> {{ selectedEmployeeDetails.name }}</p>
-        <p><strong>Numero de Identificación:</strong>{{ selectedEmployeeDetails.id_number }}</p>
+        <p>
+          <strong>Numero de Identificación:</strong
+          >{{ selectedEmployeeDetails.id_number }}
+        </p>
         <p><strong>Email:</strong> {{ selectedEmployeeDetails.email }}</p>
         <p><strong>Telefono:</strong> {{ selectedEmployeeDetails.phone }}</p>
       </h3>
@@ -327,11 +345,11 @@
         </button>
       </div>
 
-      <!-- Detalles del cliente -->
+      <!-- Detalles del Empleado -->
       <div *ngIf="showDetails" class="details">
         <p>
           <strong>Tipo de Empleado:</strong>
-          {{ selectedEmployeeDetails.employee_type }}
+          {{ getEmployeeTypeLabel(selectedEmployeeDetails.employee_type) }}
         </p>
         <p><strong>Salario:</strong> {{ selectedEmployeeDetails.salary }}</p>
         <p>
@@ -362,7 +380,9 @@
     *ngIf="showLiquidations"
     class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
   >
-    <div class="bg-white rounded-lg shadow-lg p-6 w-3/4 max-h-screen overflow-y-auto">
+    <div
+      class="bg-white rounded-lg shadow-lg p-6 w-3/4 max-h-screen overflow-y-auto"
+    >
       <h3 class="text-lg font-bold mb-4">
         Liquidaciones del Empleado: {{ selectedEmployeeDetails?.name }}
       </h3>
@@ -380,14 +400,17 @@
             <td class="p-3 border">{{ liquidations.code }}</td>
             <td class="p-3 border">{{ liquidations.notes }}</td>
             <td class="p-3 border">{{ liquidations.total_amount }}</td>
-            <td class="p-3 border"> {{liquidations.liquidation_date}}</td>
+            <td class="p-3 border">{{ liquidations.liquidation_date }}</td>
           </tr>
         </tbody>
       </table>
       <div class="flex justify-between items-center mb-4">
         <div class="pagination flex items-center">
           <button
-            (click)="currentLiquidationPage = currentLiquidationPage - 1; updatePaginatedLiquidations()"
+            (click)="
+              currentLiquidationPage = currentLiquidationPage - 1;
+              updatePaginatedLiquidations()
+            "
             [disabled]="currentLiquidationPage === 1"
             class="px-2 py-1 text-black border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
           >
@@ -397,7 +420,10 @@
             Página {{ currentLiquidationPage }} de {{ totalLiquidationPages }}
           </span>
           <button
-            (click)="currentLiquidationPage = currentLiquidationPage + 1; updatePaginatedLiquidations()"
+            (click)="
+              currentLiquidationPage = currentLiquidationPage + 1;
+              updatePaginatedLiquidations()
+            "
             [disabled]="currentLiquidationPage === totalLiquidationPages"
             class="px-2 py-1 text-black border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
           >
@@ -435,7 +461,9 @@
     *ngIf="showBenefits"
     class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
   >
-    <div class="bg-white rounded-lg shadow-lg p-6 w-3/4 max-h-screen overflow-y-auto">
+    <div
+      class="bg-white rounded-lg shadow-lg p-6 w-3/4 max-h-screen overflow-y-auto"
+    >
       <h3 class="text-lg font-bold mb-4">
         Prestaciones del Empleado: {{ selectedEmployeeDetails?.name }}
       </h3>
@@ -455,16 +483,19 @@
             <td class="p-3 border">{{ benefits.code }}</td>
             <td class="p-3 border">{{ benefits.benefit_type }}</td>
             <td class="p-3 border">{{ benefits.period }}</td>
-            <td class="p-3 border"> {{benefits.amount}}</td>
+            <td class="p-3 border">{{ benefits.amount }}</td>
             <td class="p-3 border">{{ benefits.status }}</td>
-            <td class="p-3 border"> {{benefits.payment_date}}</td>
+            <td class="p-3 border">{{ benefits.payment_date }}</td>
           </tr>
         </tbody>
       </table>
       <div class="flex justify-between items-center mb-4">
         <div class="pagination flex items-center">
           <button
-            (click)="currentBenefitPage = currentBenefitPage - 1; updatePaginatedBenefits()"
+            (click)="
+              currentBenefitPage = currentBenefitPage - 1;
+              updatePaginatedBenefits()
+            "
             [disabled]="currentBenefitPage === 1"
             class="px-2 py-1 text-black border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
           >
@@ -474,7 +505,10 @@
             Página {{ currentBenefitPage }} de {{ totalBenefitPages }}
           </span>
           <button
-            (click)="currentBenefitPage = currentBenefitPage + 1; updatePaginatedBenefits()"
+            (click)="
+              currentBenefitPage = currentBenefitPage + 1;
+              updatePaginatedBenefits()
+            "
             [disabled]="currentBenefitPage === totalBenefitPages"
             class="px-2 py-1 text-black border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
           >

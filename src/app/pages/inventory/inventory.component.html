@@ -108,26 +108,42 @@
 </div>
 
 <!-- Modal para comparación -->
-<div *ngIf="showModal && isComparing" 
-    class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
-  <div class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[80vh]">
+<div
+  *ngIf="showModal && isComparing"
+  class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
+>
+  <div
+    class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[80vh]"
+  >
     <h2 class="text-lg font-bold mb-4">Comparar Inventario</h2>
-    
+
     <div class="mb-4">
       <label for="file1" class="block text-gray-700">Archivo 1:</label>
-      <input id="file1" type="file" accept=".csv" 
-            class="w-full border border-gray-300 rounded-md p-2"/>
+      <input
+        id="file1"
+        type="file"
+        accept=".csv"
+        class="w-full border border-gray-300 rounded-md p-2"
+      />
     </div>
     <div class="mb-4">
       <label for="file2" class="block text-gray-700">Archivo 2:</label>
-      <input id="file2" type="file" accept=".csv" 
-            class="w-full border border-gray-300 rounded-md p-2"/>
+      <input
+        id="file2"
+        type="file"
+        accept=".csv"
+        class="w-full border border-gray-300 rounded-md p-2"
+      />
     </div>
-  
+
     <div class="flex justify-between">
-      <button (click)="compareCSV()" class="btn-success">Iniciar Comparación</button>
+      <button (click)="compareCSV()" class="btn-success">
+        Iniciar Comparación
+      </button>
       <button (click)="clearComparison()" class="btn-edit">Limpiar</button>
-      <button (click)="closeComparisonModal()" class="btn-delete">Cerrar</button>
+      <button (click)="closeComparisonModal()" class="btn-delete">
+        Cerrar
+      </button>
     </div>
     <div *ngIf="comparisonResult.length > 0" class="mt-4">
       <h3 class="text-md font-semibold mb-2">Resultados de la Comparación</h3>
@@ -141,12 +157,18 @@
         </thead>
         <tbody>
           <tr *ngFor="let result of comparisonResult">
-            <td class="border border-gray-300 px-2 py-1">{{ result.product }}</td>
-            <td class="border border-gray-300 px-2 py-1"
-                [style.color]="getDetailColor(result.change)">
+            <td class="border border-gray-300 px-2 py-1">
+              {{ result.product }}
+            </td>
+            <td
+              class="border border-gray-300 px-2 py-1"
+              [style.color]="getDetailColor(result.change)"
+            >
               {{ result.change }}
             </td>
-            <td class="border border-gray-300 px-2 py-1">{{ result.detail }}</td>
+            <td class="border border-gray-300 px-2 py-1">
+              {{ result.detail }}
+            </td>
           </tr>
         </tbody>
       </table>
@@ -159,21 +181,13 @@
   *ngIf="showModal && !isComparing"
   class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
 >
-  <div class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto">
+  <div
+    class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto"
+  >
     <h3 class="text-lg font-bold mb-4">
       {{ isEditing ? "Editar Artículo" : "Agregar Artículo" }}
     </h3>
     <form (ngSubmit)="saveItem()">
-      <div class="mb-4">
-        <label class="block text-gray-700">Código</label>
-        <input
-          type="number"
-          [(ngModel)]="selectedItem.code"
-          name="code"
-          class="form-input mt-1 block w-full"
-          required
-        />
-      </div>
       <div class="mb-4">
         <label class="block text-gray-700">Categoría</label>
         <input
@@ -245,26 +259,27 @@
       </div>
       <div class="mb-4">
         <label class="block text-gray-700">Estado</label>
-        <input
+        <select
           type="text"
           [(ngModel)]="selectedItem.status"
           name="status"
           class="form-input mt-1 block w-full"
           required
-        />
+        >
+          <option
+            *ngFor="let status of materialStatus"
+            [value]="status.value"
+            [selected]="selectedItem.status === status.value"
+          >
+            {{ status.label }}
+          </option>
+        </select>
       </div>
       <div class="flex justify-end">
-        <button
-          type="button"
-          class="btn-danger"
-          (click)="closeModal()"
-        >
+        <button type="button" class="btn-danger" (click)="closeModal()">
           Cancelar
         </button>
-        <button
-          type="submit"
-          class="btn-success"
-        >
+        <button type="submit" class="btn-success">
           {{ isEditing ? "Actualizar Artículo" : "Agregar Artículo" }}
         </button>
       </div>
@@ -306,15 +321,7 @@
           <td>{{ item.cost | currency }}</td>
           <td>{{ item.sale_price | currency }}</td>
           <td>
-            {{
-              item.status === "out"
-                ? "Fuera de Stock"
-                : item.status === "low"
-                ? "Stock Bajo"
-                : item.status === "ok"
-                ? "En Stock"
-                : "Desconocido"
-            }}
+            {{ getMaterialStatusLabel(item.status) }}
           </td>
           <td>
             <button (click)="editItem(item)" class="btn-edit">Editar</button>
