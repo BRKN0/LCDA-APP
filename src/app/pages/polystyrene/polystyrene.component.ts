@@ -10,16 +10,6 @@ interface Polystyrene {
   type: string;
   caliber: string;
   whole: number;
-  half: number;
-  quarter: number;
-  an_eighth: number;
-  one_sixteenth: number;
-  one_thirty_second: number;
-  gain_half?: number;
-  gain_quarter?: number;
-  gain_eighth?: number;
-  gain_sixteenth?: number;
-  gain_thirty_second?: number;
 }
 
 @Component({
@@ -38,21 +28,24 @@ export class PolystyreneComponent implements OnInit {
 
   searchType: string = '';
   searchCaliber: string = '';
+  selectedFormat: string = '1 Lámina';
   showModal = false;
   isEditing = false;
   loading = true;
-
-  gainHalf = 1.1;
-  gainQuarter = 1.3;
-  gainEighth = 1.4;
-  gainSixteenth = 1.6;
-  gainThirtySecond = 1.99;
 
   currentPage: number = 1;
   itemsPerPage: number = 10;
   totalPages: number = 1;
 
-  
+  private formatFactors: { [key: string]: { factor: number; margin: number } } = {
+    '1 Lámina': { factor: 1, margin: 0 },
+    '1/2 (Media Lámina)': { factor: 1 / 2, margin: 0.1 },
+    '1/3 (Tercio de Lámina)': { factor: 1 / 3, margin: 0.42 },
+    '1/4 (Cuarto de Lámina)': { factor: 1 / 4, margin: 0.3 },
+    '1/8 (Octavo de Lámina)': { factor: 1 / 8, margin: 0.4 },
+    '1/16 (Dieciseisavo de Lámina)': { factor: 1 / 16, margin: 0.45 },
+    '1/32 (Treintaydosavo de Lámina)': { factor: 1 / 32, margin: 0.48 },
+  };
 
   constructor(
     private readonly supabase: SupabaseService,
@@ -79,8 +72,8 @@ export class PolystyreneComponent implements OnInit {
     this.polystyrenes = (data as Polystyrene[]).sort((a, b) => a.type.localeCompare(b.type));
 
     const typesSet = new Set<string>();
-    (this.polystyrenes as Polystyrene[]).forEach(p => {
-      if (p.type) typesSet.add(p.type.toLowerCase()); // ignorar mayúsculas
+    this.polystyrenes.forEach(p => {
+      if (p.type) typesSet.add(p.type.toLowerCase());
     });
     this.availableTypes = Array.from(typesSet).sort();
 
@@ -112,49 +105,24 @@ export class PolystyreneComponent implements OnInit {
     this.selectedPolystyrene = {
       type: '',
       caliber: '',
-      whole: 0,
-      half: 0,
-      quarter: 0,
-      an_eighth: 0,
-      one_sixteenth: 0,
-      one_thirty_second: 0,
+      whole: 0
     };
-    this.gainHalf = 1.1;
-    this.gainQuarter = 1.3;
-    this.gainEighth = 1.4;
-    this.gainSixteenth = 1.6;
-    this.gainThirtySecond = 1.99;
     this.isEditing = false;
     this.showModal = true;
   }
 
   editPolystyrene(item: Polystyrene): void {
     this.selectedPolystyrene = { ...item };
-    this.gainHalf = item.gain_half ?? 1.1;
-    this.gainQuarter = item.gain_quarter ?? 1.3;
-    this.gainEighth = item.gain_eighth ?? 1.4;
-    this.gainSixteenth = item.gain_sixteenth ?? 1.6;
-    this.gainThirtySecond = item.gain_thirty_second ?? 1.99;
     this.isEditing = true;
     this.showModal = true;
   }
 
   async savePolystyrene(): Promise<void> {
-    const itemToSave = { 
+    const itemToSave = {
       type: this.selectedPolystyrene.type,
       caliber: this.selectedPolystyrene.caliber,
-      whole: this.selectedPolystyrene.whole,
-      half: this.round(this.selectedPolystyrene.whole / 2 * this.gainHalf),
-      quarter: this.round(this.selectedPolystyrene.whole / 4 * this.gainQuarter),
-      an_eighth: this.round(this.selectedPolystyrene.whole / 8 * this.gainEighth),
-      one_sixteenth: this.round(this.selectedPolystyrene.whole / 16 * this.gainSixteenth),
-      one_thirty_second: this.round(this.selectedPolystyrene.whole / 32 * this.gainThirtySecond),
-      gain_half: this.gainHalf,
-      gain_quarter: this.gainQuarter,
-      gain_eighth: this.gainEighth,
-      gain_sixteenth: this.gainSixteenth,
-      gain_thirty_second: this.gainThirtySecond
-     };
+      whole: this.selectedPolystyrene.whole
+    };
 
     if (this.isEditing && this.selectedPolystyrene.id_polystyrene) {
       const { error } = await this.supabase
@@ -204,15 +172,34 @@ export class PolystyreneComponent implements OnInit {
     this.isEditing = false;
   }
 
-  round(value: number): number {
-    return Math.round(value);
+  // Funciones de cálculo reutilizadas
+  calculateBasePriceWith30PercentProfit(cost: number): number {
+    return Math.ceil((cost * 1.3) / 100) * 100;
   }
 
-  resetGains(): void {
-    this.gainHalf = 1.1;
-    this.gainQuarter = 1.3;
-    this.gainEighth = 1.4;
-    this.gainSixteenth = 1.6;
-    this.gainThirtySecond = 1.99;
+  calculateAdjustedPriceWith30PercentProfit(cost: number): number {
+    const factor = this.formatFactors[this.selectedFormat].factor;
+    const basePrice = cost * 1.3;
+    return Math.ceil((basePrice * factor) / 100) * 100;
+  }
+
+  getAppliedMargin(): number {
+    return this.formatFactors[this.selectedFormat].margin;
+  }
+
+  calculatePriceWithMargin(adjustedPrice: number): number {
+    return Math.ceil((adjustedPrice * (1 + this.getAppliedMargin())) / 100) * 100;
+  }
+
+  calculateFinalPriceWithoutIva(priceWithMargin: number): number {
+    return Math.ceil(priceWithMargin / 100) * 100;
+  }
+
+  calculateIva(finalPriceWithoutIva: number): number {
+    return Math.ceil((finalPriceWithoutIva * 0.19) / 100) * 100;
+  }
+
+  calculatePriceWithIva(finalPriceWithoutIva: number, iva: number): number {
+    return finalPriceWithoutIva + iva;
   }
 }
