@@ -760,6 +760,7 @@ export class OrdersComponent implements OnInit {
   }
 
   toggleAddOrderForm(): void {
+    this.isEditing = false;
     if (!this.showModal) {
       this.newOrder = {
         id_order: '',
@@ -784,7 +785,9 @@ export class OrdersComponent implements OnInit {
       };
     }
     this.showModal = !this.showModal;
-    this.getOrders();
+    if (!this.showModal) {
+      this.getOrders();
+    }
   }
 
   async editOrder(order: Orders): Promise<void> {

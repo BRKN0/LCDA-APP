@@ -716,6 +716,26 @@
           class="form-input mt-1 block w-full"
         />
 
+        
+        <label class="block text-gray-700">Ancho del rollo (m)</label>
+        <input
+          type="number"
+          [(ngModel)]="rollWidth"
+          name="rollWidth"
+          class="form-input mt-1 block w-full"
+          (change)="calculatePrice()"
+        />
+        
+        <label class="block text-gray-700">Medición (m)</label>
+        <input
+          type="number"
+          [(ngModel)]="measurement"
+          name="measurement"
+          class="form-input mt-1 block w-full"
+          (change)="calculatePrice()"
+        />
+        
+
         <label class="block mt-2 text-gray-700">Material dañado</label>
         <input
           [(ngModel)]="newPrint.damaged_material"
