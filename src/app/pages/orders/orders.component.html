@@ -31,36 +31,14 @@
     />
     Ventas
   </label>
-</div>
-<div class="flex items-center space-x-4">
-  <div>
-    <label for="startDate" class="mr-2 font-semibold">Desde:</label>
-    <input
-      type="date"
-      id="startDate"
-      [(ngModel)]="startDate"
-      (ngModelChange)="updateFilteredOrders()"
-      class="border border-gray-300 rounded-md p-1"
-    />
-  </div>
-  <div>
-    <label for="endDate" class="mr-2 font-semibold">Hasta:</label>
-    <input
-      type="date"
-      id="endDate"
-      [(ngModel)]="endDate"
-      (ngModelChange)="updateFilteredOrders()"
-      class="border border-gray-300 rounded-md p-1"
-    />
-  </div>
   <button
-    class="transform bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-700 w-auto"
+    class="absolute right-2 bg-red-500 text-white px-4 py-2 mr-2 rounded-full hover:bg-red-700 w-auto"
     (click)="toggleAddOrderForm()"
   >
     Añadir Pedido
   </button>
   <button
-    class="transform bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-700 w-auto"
+    class="absolute right-4 mr-36 transform bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-700 w-auto"
     (click)="openCalculator()"
   >
     Calculadora
@@ -68,7 +46,7 @@
 </div>
 
 <!-- Search bars -->
-<div class="flex items-center justify-center py-4 space-x-4">
+<div class="flex items-center justify-center py-4 space-x-4 top-5">
   <!-- Buscar por nombre de cliente -->
   <div class="relative w-full max-w-md">
     <input
@@ -95,7 +73,28 @@
     </button>
   </div>
 </div>
-
+<div class="flex items-center space-x-4">
+  <div>
+    <label for="startDate" class="mr-2 font-semibold">Desde:</label>
+    <input
+      type="date"
+      id="startDate"
+      [(ngModel)]="startDate"
+      (ngModelChange)="updateFilteredOrders()"
+      class="border border-gray-300 rounded-md p-1"
+    />
+  </div>
+  <div>
+    <label for="endDate" class="mr-2 font-semibold">Hasta:</label>
+    <input
+      type="date"
+      id="endDate"
+      [(ngModel)]="endDate"
+      (ngModelChange)="updateFilteredOrders()"
+      class="border border-gray-300 rounded-md p-1"
+    />
+  </div>
+</div>
 <!-- Orders Table -->
 <div *ngIf="!loading" class="mt-4">
   <table class="table-std">
@@ -114,8 +113,10 @@
           <th class="table-column-std">Estado de pago</th>
           <th class="table-column-std">Estado de trabajo</th>
           <th class="table-column-std">Fecha</th>
-          <th class="table-column-std">Fecha de Entrega</th> <!-- New column -->
-          <th class="table-column-std">Días Restantes</th> <!-- New column -->
+          <th class="table-column-std">Fecha de Entrega</th>
+          <!-- New column -->
+          <th class="table-column-std">Días Restantes</th>
+          <!-- New column -->
           <th class="table-column-std">Total</th>
           <th class="table-column-std">Confirmación</th>
           <th class="table-column-std">Acción</th>
@@ -177,15 +178,27 @@
               </select>
             </td>
             <td>{{ order.created_at | date : "dd-MM-yyyy" }}</td>
-            <td>{{ order.delivery_date ? (order.delivery_date | date : "dd-MM-yyyy") : "No especificado" }}</td> <!-- Display delivery date -->
+            <td>
+              {{
+                order.delivery_date
+                  ? (order.delivery_date | date : "dd-MM-yyyy")
+                  : "No especificado"
+              }}
+            </td>
+            <!-- Display delivery date -->
             <td
               [ngClass]="{
                 'text-green-600': getRemainingDeliveryDays(order) > 0,
                 'text-red-600': getRemainingDeliveryDays(order) <= 0
               }"
             >
-              {{ getRemainingDeliveryDays(order) > 0 ? getRemainingDeliveryDays(order) + " días" : "Vencido" }}
-            </td> <!-- Display remaining days -->
+              {{
+                getRemainingDeliveryDays(order) > 0
+                  ? getRemainingDeliveryDays(order) + " días"
+                  : "Vencido"
+              }}
+            </td>
+            <!-- Display remaining days -->
             <td [class.invisible]="userRole != 'admin'">
               {{ order.total }}
             </td>
@@ -229,8 +242,10 @@
         <th class="table-column-std">Estado de pago</th>
         <th class="table-column-std">Estado de trabajo</th>
         <th class="table-column-std">Fecha</th>
-        <th class="table-column-std">Fecha de Entrega</th> <!-- New column -->
-        <th class="table-column-std">Días Restantes</th> <!-- New column -->
+        <th class="table-column-std">Fecha de Entrega</th>
+        <!-- New column -->
+        <th class="table-column-std">Días Restantes</th>
+        <!-- New column -->
         <th class="table-column-std">Acción</th>
         <th class="table-column-std">Confirmación de Orden</th>
         <tbody>
@@ -281,15 +296,27 @@
               </select>
             </td>
             <td>{{ order.created_at | date : "dd-MM-yyyy" }}</td>
-            <td>{{ order.delivery_date ? (order.delivery_date | date : "dd-MM-yyyy") : "No especificado" }}</td> <!-- Display delivery date -->
+            <td>
+              {{
+                order.delivery_date
+                  ? (order.delivery_date | date : "dd-MM-yyyy")
+                  : "No especificado"
+              }}
+            </td>
+            <!-- Display delivery date -->
             <td
               [ngClass]="{
                 'text-green-600': getRemainingDeliveryDays(order) > 0,
                 'text-red-600': getRemainingDeliveryDays(order) <= 0
               }"
             >
-              {{ getRemainingDeliveryDays(order) > 0 ? getRemainingDeliveryDays(order) + " días" : "Vencido" }}
-            </td> <!-- Display remaining days -->
+              {{
+                getRemainingDeliveryDays(order) > 0
+                  ? getRemainingDeliveryDays(order) + " días"
+                  : "Vencido"
+              }}
+            </td>
+            <!-- Display remaining days -->
             <td>
               <button class="btn-details" (click)="selectOrder(order)">
                 Ver Detalles
@@ -407,7 +434,11 @@
           </p>
           <p>
             <strong>Fecha de Entrega:</strong>
-            {{ selectedOrderDetails[0].delivery_date ? (selectedOrderDetails[0].delivery_date | date : "dd-MM-yyyy") : "No especificado" }}
+            {{
+              selectedOrderDetails[0].delivery_date
+                ? (selectedOrderDetails[0].delivery_date | date : "dd-MM-yyyy")
+                : "No especificado"
+            }}
           </p>
           <p>
             <strong>Estado de trabajo:</strong>
@@ -693,7 +724,10 @@
       </div>
 
       <!-- Campos específicos para Impresiones -->
-      <div *ngIf="newOrder.order_type === 'print' && userRole != 'admin'" class="mb-4 border-t pt-4">
+      <div
+        *ngIf="newOrder.order_type === 'print' && userRole != 'admin'"
+        class="mb-4 border-t pt-4"
+      >
         <h4 class="font-semibold text-red-600">Datos de Impresión</h4>
         <label class="block mt-2 text-gray-700">Material</label>
         <input
@@ -716,7 +750,6 @@
           class="form-input mt-1 block w-full"
         />
 
-        
         <label class="block text-gray-700">Ancho del rollo (m)</label>
         <input
           type="number"
@@ -725,7 +758,7 @@
           class="form-input mt-1 block w-full"
           (change)="calculatePrice()"
         />
-        
+
         <label class="block text-gray-700">Medición (m)</label>
         <input
           type="number"
@@ -734,7 +767,6 @@
           class="form-input mt-1 block w-full"
           (change)="calculatePrice()"
         />
-        
 
         <label class="block mt-2 text-gray-700">Material dañado</label>
         <input
@@ -781,7 +813,10 @@
       </div>
 
       <!-- Campos específicos para Cortes -->
-      <div *ngIf="newOrder.order_type === 'laser' && userRole != 'admin'" class="mb-4 border-t pt-4">
+      <div
+        *ngIf="newOrder.order_type === 'laser' && userRole != 'admin'"
+        class="mb-4 border-t pt-4"
+      >
         <h4 class="font-semibold text-red-600">Datos de Corte</h4>
         <label class="block mt-2 text-gray-700">Tipo de Material</label>
         <input
@@ -876,9 +911,13 @@
           <option value="identity card">Tarjeta de identidad</option>
           <option value="citizenship card">Cédula de ciudadanía</option>
           <option value="alien card">Tarjeta de extranjería</option>
-          <option value="foreigner's identity card">Cédula de extranjería</option>
+          <option value="foreigner's identity card">
+            Cédula de extranjería
+          </option>
           <option value="passport">Pasaporte</option>
-          <option value="foreign identification document">Documento de identificación extranjero</option>
+          <option value="foreign identification document">
+            Documento de identificación extranjero
+          </option>
           <option value="NIT from another country">NIT de otro país</option>
           <option value="NUIP">NUIP</option>
         </select>
@@ -936,10 +975,7 @@
         >
           Cancelar
         </button>
-        <button
-          type="submit"
-          class="btn-success px-4 py-2 rounded-md"
-        >
+        <button type="submit" class="btn-success px-4 py-2 rounded-md">
           Guardar Cliente
         </button>
       </div>
@@ -1099,6 +1135,9 @@
 </div>
 
 <!-- Notificación temporal -->
-<div *ngIf="notificationMessage" class="fixed top-4 right-4 bg-green-500 text-white p-2 rounded shadow-md z-50">
+<div
+  *ngIf="notificationMessage"
+  class="fixed top-4 right-4 bg-green-500 text-white p-2 rounded shadow-md z-50"
+>
   {{ notificationMessage }}
 </div>
