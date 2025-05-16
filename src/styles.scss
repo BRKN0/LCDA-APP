@@ -71,22 +71,23 @@ button {
 .table-std {
   width: 100%;
   border-collapse: collapse;
-  border: 1px solid theme('colors.gray.400');
-  margin-top: theme('spacing.2');
+  border: 1px solid theme("colors.gray.400");
+  margin-top: theme("spacing.2");
 
-  th, td {
-    border: 1px solid theme('colors.gray.400');
-    padding: theme('spacing.2');
+  th,
+  td {
+    border: 1px solid theme("colors.gray.400");
+    padding: theme("spacing.2");
   }
 
   thead {
-    background-color: theme('colors.gray.200');
+    background-color: theme("colors.gray.200");
   }
 }
 
 .table-column-std {
-  border: 1px solid theme('colors.gray.300');
-  padding: theme('spacing.2') theme('spacing.4');
+  border: 1px solid theme("colors.gray.300");
+  padding: theme("spacing.2") theme("spacing.4");
   text-align: left; // Ensures text is visible
   white-space: nowrap; // Prevents text from wrapping (optional)
   overflow: hidden; // Hides overflow if necessary
@@ -103,15 +104,15 @@ button {
   }
 }
 .btn-details {
-  background-color: theme('colors.red.500');
-  color: theme('colors.white');
-  padding: theme('spacing.1') theme('spacing.3');
-  margin-right: theme('spacing.5');
-  border-radius: theme('borderRadius.DEFAULT');
+  background-color: theme("colors.red.500");
+  color: theme("colors.white");
+  padding: theme("spacing.1") theme("spacing.3");
+  margin-right: theme("spacing.5");
+  border-radius: theme("borderRadius.DEFAULT");
   transition: background-color 0.3s ease-in-out;
 
   &:hover {
-    background-color: theme('colors.red.700');
+    background-color: theme("colors.red.700");
   }
 }
 
@@ -372,8 +373,43 @@ button {
 .nav-item {
   text-align: center;
   cursor: pointer;
-}
+  padding: 0.75rem;
+  border-radius: 5px;
+  text-align: center;
+  border: 2px solid;
+  color: #df3c3c;
+  background-color: transparent;
+  transition: color 0.3s ease-in-out, background-color 0.3s ease-in-out,
+    transform 0.2s;
 
+  &:hover {
+    background-color: #df3c3c;
+    color: white;
+    transform: scale(1.02);
+  }
+}
+.nav-item-dropdown {
+  @apply text-center cursor-pointer py-3 px-3 rounded-md border-2 border-red-600 text-red-600 bg-transparent transition-colors duration-300 ease-in-out transform hover:bg-red-600 hover:text-white hover:scale-105 flex items-center;
+
+  // Optional: Add a downward arrow icon using a pseudo-element
+  &::after {
+    content: '';
+    display: inline-block;
+    width: 0.5rem; // Adjust size as needed
+    height: 0.5rem; // Adjust size as needed
+    margin-left: 0.5rem; // Space between text and icon
+    border: solid red; // Match the border color
+    border-width: 0 2px 2px 0; // Create a downward arrow
+    transform: rotate(45deg); // Rotate to form an arrow
+    transition: border-color 0.3s ease-in-out; // Transition for hover effect
+  }
+
+  &:hover {
+    background-color: #df3c3c;
+    color: white;
+    transform: scale(1.02);
+  }
+}
 .sidebar {
   border-right: 1px solid #ccc;
 }
@@ -385,7 +421,7 @@ button {
   display: flex;
   justify-content: center;
   align-items: center;
-  font-family: 'Arial', sans-serif;
+  font-family: "Arial", sans-serif;
 }
 
 .login-box {
@@ -487,7 +523,8 @@ button {
   border: 2px solid #b91c1c;
   color: #b91c1c;
   background-color: transparent;
-  transition: color 0.3s ease-in-out, background-color 0.3s ease-in-out, transform 0.2s;
+  transition: color 0.3s ease-in-out, background-color 0.3s ease-in-out,
+    transform 0.2s;
 
   &:hover {
     background-color: #b91c1c;
@@ -497,7 +534,7 @@ button {
 }
 
 .logo {
-  font-family: 'Georgia', serif;
+  font-family: "Georgia", serif;
   letter-spacing: 2px;
   color: #b91c1c;
 }
