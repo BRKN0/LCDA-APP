@@ -1,6 +1,6 @@
 <router-outlet></router-outlet>
 <div
-  class="banner bg-red-600 text-white py-4 flex items-center justify-center relative"
+  class="banner bg-red-600 text-white py-4 flex flex-col items-center justify-center relative"
 >
   <!-- Título centrado -->
   <h1 class="text-3xl font-bold">La Casa del Acrílico</h1>
@@ -8,244 +8,240 @@
   <img
     src="/Logo.png"
     alt="Logo"
-    class="logo-banner absolute left-4"
-    width="80"
+    class="logo-banner absolute top-0 left-0"
+    width="90"
     height="80"
   />
-</div>
+  <div class="mt-5 mx-auto px-4 flex flex-wrap justify-center gap-4">
+    <!-- Navigation -->
+    <div class="flex justify-around py-4 nav-bar shadow-md">
+      <div class="nav-item cursor-pointer" (click)="goToHome()">
+        <i class="fas fa-home"></i>
+        <span>Inicio</span>
+      </div>
+      <ng-template
+        [ngIf]="isLoggedIn$ | async"
+        [ngIfThen]="signOutButton"
+        [ngIfElse]="loginButton"
+      >
+      </ng-template>
+      <!-- Usuario Visitante  -->
+      <ng-template #loginButton>
+        <button
+          class="p-1 text-white bg-red-500 shadow-lg"
+          (click)="goToLogin()"
+        >
+          Iniciar sesión
+        </button>
 
-<div class="container mx-auto px-4 ">
-  <!-- Navigation -->
-  <div class="navigation2 flex justify-around py-4 ">
-    <div class="nav-item cursor-pointer" (click)="goToHome()">
-      <i class="fas fa-home"></i>
-      <span>Inicio</span>
+        <!-- Usuario -->
+      </ng-template>
+      <ng-template #signOutButton>
+        <div
+          *ngIf="userRole == 'admin'"
+          class="relative nav-item2"
+          (clickOutside)="closeFinanceDropdown()"
+        >
+          <!-- Finance Button -->
+          <div
+            class="cursor-pointer nav-item-dropdown flex items-center"
+            (click)="toggleFinanceDropdown($event)"
+          >
+            <i class="fas fa-dollar-sign"></i>
+            <span>Financiamiento</span>
+            <i
+              class="ml-2 fas"
+              [ngClass]="{
+                'fa-chevron-down': !financeDropdownOpen,
+                'fa-chevron-up': financeDropdownOpen
+              }"
+            ></i>
+          </div>
+
+          <!-- Dropdown Menu -->
+          <ul
+            *ngIf="financeDropdownOpen"
+            class="absolute bg-white shadow-lg mt-2 w-40 z-10"
+            style="left: 0"
+          >
+            <li
+              class="p-2 hover:bg-gray-200 cursor-pointer"
+              (click)="goToBanks(); closeFinanceDropdown()"
+            >
+              Bancos
+            </li>
+            <li
+              class="p-2 hover:bg-gray-200 cursor-pointer"
+              (click)="goToBanking(); closeFinanceDropdown()"
+            >
+              Transacciones
+            </li>
+          </ul>
+        </div>
+
+        <div
+          *ngIf="userRole == 'admin'"
+          class="relative nav-item2"
+          (clickOutside)="closePriceDropdown()"
+        >
+          <!-- Finance Button -->
+          <div
+            class="nav-item-dropdown cursor-pointer flex items-center"
+            (click)="togglePriceDropdown($event)"
+          >
+            <i class="fas fa-dollar-sign"></i>
+            <span>Precios</span>
+            <i
+              class="ml-2 fas"
+              [ngClass]="{
+                'fa-chevron-down': !priceDropdownOpen,
+                'fa-chevron-up': priceDropdownOpen
+              }"
+            ></i>
+          </div>
+
+          <!-- Dropdown Menu -->
+          <ul
+            *ngIf="priceDropdownOpen"
+            class="absolute bg-white shadow-lg mt-2 w-40 z-10"
+            style="left: 0"
+          >
+            <li
+              class="p-2 hover:bg-gray-200 cursor-pointer"
+              (click)="goToAcrylics(); closePriceDropdown()"
+            >
+              Acrilicos
+            </li>
+            <li
+              class="p-2 hover:bg-gray-200 cursor-pointer"
+              (click)="goToMdf(); closePriceDropdown()"
+            >
+              MDF
+            </li>
+            <li
+              class="p-2 hover:bg-gray-200 cursor-pointer"
+              (click)="goTopolystyrene(); closePriceDropdown()"
+            >
+              Poliestireno
+            </li>
+            <li
+              class="p-2 hover:bg-gray-200 cursor-pointer"
+              (click)="goToVinylCuts(); closePriceDropdown()"
+            >
+              Vinilo de corte
+            </li>
+          </ul>
+        </div>
+
+        <div
+          *ngIf="userRole == 'admin'"
+          class="nav-item2 relative"
+          (clickOutside)="closeInventoryDropdown()"
+        >
+          <!-- Inventory Button -->
+          <div
+            class="nav-item-dropdown cursor-pointer flex items-center"
+            (click)="toggleInventoryDropdown($event)"
+          >
+            <i class="fas fa-dollar-sign"></i>
+            <span>Inventario</span>
+            <i
+              class="ml-2 fas"
+              [ngClass]="{
+                'fa-chevron-down': !inventoryDropdownOpen,
+                'fa-chevron-up': inventoryDropdownOpen
+              }"
+            ></i>
+          </div>
+
+          <!-- Dropdown Menu -->
+          <ul
+            *ngIf="inventoryDropdownOpen"
+            class="absolute bg-white shadow-lg mt-2 w-40 z-10"
+            style="left: 0"
+          >
+            <li
+              class="p-2 hover:bg-gray-200 cursor-pointer"
+              (click)="goToInventory(); closeInventoryDropdown()"
+            >
+              Materiales
+            </li>
+            <li
+              class="p-2 hover:bg-gray-200 cursor-pointer"
+              (click)="goToProducts(); closeInventoryDropdown()"
+            >
+              Productos
+            </li>
+          </ul>
+        </div>
+
+        <div
+          *ngIf="userRole == 'admin'"
+          class="nav-item cursor-pointer"
+          (click)="goToClients()"
+        >
+          <i class="fas fa-users"></i>
+          <span>Clientes</span>
+        </div>
+        <div
+          *ngIf="userRole == 'admin'"
+          class="nav-item cursor-pointer"
+          (click)="goToInvoices()"
+        >
+          <i class="fas fa-users"></i>
+          <span>Facturas</span>
+        </div>
+        <div class="nav-item cursor-pointer" (click)="goToOrders()">
+          <i class="fas fa-users"></i>
+          <span>Pedidos</span>
+        </div>
+        <div
+          *ngIf="userRole == 'admin'"
+          class="nav-item cursor-pointer"
+          (click)="goToExpenses()"
+        >
+          <i class="fas fa-users"></i>
+          <span>Egresos</span>
+        </div>
+        <div
+          *ngIf="userRole == 'admin'"
+          class="nav-item cursor-pointer"
+          (click)="goToEmployees()"
+        >
+          <i class="fas fa-users"></i>
+          <span>Empleados</span>
+        </div>
+        <button class="p-1 nav-item" (click)="signOut()">
+          Cerrar sesión
+        </button>
+        <!-- Notifications Button -->
+        <div
+          class="nav-item relative cursor-pointer"
+          (click)="goToNotifications()"
+        >
+          <!-- Bell Icon -->
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="size-6"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"
+            />
+          </svg>
+
+          <!-- Red dot -->
+          <span
+            *ngIf="newNotification"
+            class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-600"
+          ></span>
+        </div>
+      </ng-template>
     </div>
-    <ng-template
-      [ngIf]="isLoggedIn$ | async"
-      [ngIfThen]="signOutButton"
-      [ngIfElse]="loginButton"
-    >
-    </ng-template>
-    <!-- Usuario Visitante  -->
-    <ng-template #loginButton>
-      <button
-        class="p-1 text-white bg-red-500 rounded-lg shadow-lg"
-        (click)="goToLogin()"
-      >
-        Iniciar sesión
-      </button>
-
-      <!-- Usuario -->
-    </ng-template>
-    <ng-template #signOutButton>
-      <div
-        *ngIf="userRole == 'admin'"
-        class="relative nav-item2"
-        (clickOutside)="closeFinanceDropdown()"
-      >
-        <!-- Finance Button -->
-        <div
-          class="cursor-pointer nav-item-dropdown flex items-center"
-          (click)="toggleFinanceDropdown($event)"
-        >
-          <i class="fas fa-dollar-sign"></i>
-          <span>Financiamiento</span>
-          <i
-            class="ml-2 fas"
-            [ngClass]="{
-              'fa-chevron-down': !financeDropdownOpen,
-              'fa-chevron-up': financeDropdownOpen
-            }"
-          ></i>
-        </div>
-
-        <!-- Dropdown Menu -->
-        <ul
-          *ngIf="financeDropdownOpen"
-          class="absolute bg-white shadow-lg rounded-md mt-2 w-40 z-10"
-          style="left: 0"
-        >
-          <li
-            class="p-2 hover:bg-gray-200 cursor-pointer"
-            (click)="goToBanks(); closeFinanceDropdown()"
-          >
-            Bancos
-          </li>
-          <li
-            class="p-2 hover:bg-gray-200 cursor-pointer"
-            (click)="goToBanking(); closeFinanceDropdown()"
-          >
-            Transacciones
-          </li>
-        </ul>
-      </div>
-
-      <div
-        *ngIf="userRole == 'admin'"
-        class="relative nav-item2"
-        (clickOutside)="closePriceDropdown()"
-      >
-        <!-- Finance Button -->
-        <div
-          class="nav-item-dropdown cursor-pointer flex items-center"
-          (click)="togglePriceDropdown($event)"
-        >
-          <i class="fas fa-dollar-sign"></i>
-          <span>Precios</span>
-          <i
-            class="ml-2 fas"
-            [ngClass]="{
-              'fa-chevron-down': !priceDropdownOpen,
-              'fa-chevron-up': priceDropdownOpen
-            }"
-          ></i>
-        </div>
-
-        <!-- Dropdown Menu -->
-        <ul
-          *ngIf="priceDropdownOpen"
-          class="absolute bg-white shadow-lg rounded-md mt-2 w-40 z-10"
-          style="left: 0"
-        >
-          <li
-            class="p-2 hover:bg-gray-200 cursor-pointer"
-            (click)="goToAcrylics(); closePriceDropdown()"
-          >
-            Acrilicos
-          </li>
-          <li
-            class="p-2 hover:bg-gray-200 cursor-pointer"
-            (click)="goToMdf(); closePriceDropdown()"
-          >
-            MDF
-          </li>
-          <li
-            class="p-2 hover:bg-gray-200 cursor-pointer"
-            (click)="goTopolystyrene(); closePriceDropdown()"
-          >
-            Poliestireno
-          </li>
-          <li
-            class="p-2 hover:bg-gray-200 cursor-pointer"
-            (click)="goToVinylCuts(); closePriceDropdown()"
-          >
-            Vinilo de corte
-          </li>
-        </ul>
-      </div>
-
-      <div
-        *ngIf="userRole == 'admin'"
-        class="nav-item2 relative"
-        (clickOutside)="closeInventoryDropdown()"
-      >
-        <!-- Inventory Button -->
-        <div
-          class="nav-item-dropdown cursor-pointer flex items-center"
-          (click)="toggleInventoryDropdown($event)"
-        >
-          <i class="fas fa-dollar-sign"></i>
-          <span>Inventario</span>
-          <i
-            class="ml-2 fas"
-            [ngClass]="{
-              'fa-chevron-down': !inventoryDropdownOpen,
-              'fa-chevron-up': inventoryDropdownOpen
-            }"
-          ></i>
-        </div>
-
-        <!-- Dropdown Menu -->
-        <ul
-          *ngIf="inventoryDropdownOpen"
-          class="absolute bg-white shadow-lg rounded-md mt-2 w-40 z-10"
-          style="left: 0"
-        >
-          <li
-            class="p-2 hover:bg-gray-200 cursor-pointer"
-            (click)="goToInventory(); closeInventoryDropdown()"
-          >
-            Materiales
-          </li>
-          <li
-            class="p-2 hover:bg-gray-200 cursor-pointer"
-            (click)="goToProducts(); closeInventoryDropdown()"
-          >
-            Productos
-          </li>
-        </ul>
-      </div>
-      
-      <div
-        *ngIf="userRole == 'admin'"
-        class="nav-item cursor-pointer"
-        (click)="goToClients()"
-      >
-        <i class="fas fa-users"></i>
-        <span>Clientes</span>
-      </div>
-      <div
-        *ngIf="userRole == 'admin'"
-        class="nav-item cursor-pointer"
-        (click)="goToInvoices()"
-      >
-        <i class="fas fa-users"></i>
-        <span>Facturas</span>
-      </div>
-      <div class="nav-item cursor-pointer" (click)="goToOrders()">
-        <i class="fas fa-users"></i>
-        <span>Pedidos</span>
-      </div>
-      <div
-        *ngIf="userRole == 'admin'"
-        class="nav-item cursor-pointer"
-        (click)="goToExpenses()"
-      >
-        <i class="fas fa-users"></i>
-        <span>Egresos</span>
-      </div>
-      <div
-        *ngIf="userRole == 'admin'"
-        class="nav-item cursor-pointer"
-        (click)="goToEmployees()"
-      >
-        <i class="fas fa-users"></i>
-        <span>Empleados</span>
-      </div>
-      <button
-        class="p-1 text-white bg-red-500 rounded-lg shadow-lg"
-        (click)="signOut()"
-      >
-        Cerrar sesión
-      </button>
-      <!-- Notifications Button -->
-      <div
-        class="nav-item relative cursor-pointer"
-        (click)="goToNotifications()"
-      >
-        <!-- Bell Icon -->
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="1.5"
-          stroke="currentColor"
-          class="size-6"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"
-          />
-        </svg>
-
-        <!-- Red dot -->
-        <span
-          *ngIf="newNotification"
-          class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-600"
-        ></span>
-      </div>
-    </ng-template>
   </div>
 </div>

@@ -273,10 +273,11 @@ button {
 
 /* Estilos para el banner */
 .banner {
-  background-color: #b91c1c; /* Dark red */
+  background-color: #b91c1c;
   color: white;
   text-align: center;
   padding: 1rem;
+  position: relative;
 }
 .notifications-container {
   max-width: 800px;
@@ -369,16 +370,19 @@ button {
     }
   }
 }
-
+h1 {
+  position: relative;
+  z-index: 10; /* Ensure title is on top of buttons */
+}
 .nav-item {
   text-align: center;
   cursor: pointer;
   padding: 0.75rem;
-  border-radius: 5px;
   text-align: center;
   border: 2px solid;
-  color: #df3c3c;
-  background-color: transparent;
+  color: white;
+  background-color: #c72c41;
+  border-color: #c72c41;
   transition: color 0.3s ease-in-out, background-color 0.3s ease-in-out,
     transform 0.2s;
 
@@ -388,12 +392,31 @@ button {
     transform: scale(1.02);
   }
 }
-.nav-item-dropdown {
-  @apply text-center cursor-pointer py-3 px-3 rounded-md border-2 border-red-600 text-red-600 bg-transparent transition-colors duration-300 ease-in-out transform hover:bg-red-600 hover:text-white hover:scale-105 flex items-center;
+.nav-bar {
+  text-align: center;
+  padding: 0.25rem;
+  text-align: center;
+  border: 0.25px solid;
+  color: white;
+  background-color: #c72c41;
+  border-color: #c72c41;
+  transition: color 0.3s ease-in-out, background-color 0.3s ease-in-out,
+    transform 0.2s;
 
+  &:hover {
+    background-color: #c72c41;
+    color: white;
+    transform: scale(1.02);
+  }
+}
+.nav-item-dropdown {
+  @apply text-center cursor-pointer py-3 px-3 border-2 text-white bg-transparent transition-colors duration-300 ease-in-out transform hover:bg-red-600 hover:text-white hover:scale-105 flex items-center;
+  border-color: #c72c41;
+  background-color: #c72c41;
   // Optional: Add a downward arrow icon using a pseudo-element
   &::after {
-    content: '';
+    content: "";
+    color: white;
     display: inline-block;
     width: 0.5rem; // Adjust size as needed
     height: 0.5rem; // Adjust size as needed
