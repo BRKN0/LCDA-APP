@@ -620,7 +620,7 @@
 <!-- Form to add orders -->
 <div
   *ngIf="showModal"
-  class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
+  class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-20"
 >
   <div
     class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto"
@@ -643,7 +643,7 @@
         </select>
       </div>
       <div class="mb-4">
-        <label class="block text-gray-700">Cliente</label>
+        <label class="block text-gray-700">Cliente<span class="text-red-500">*</span></label>
         <select
           [(ngModel)]="newOrder.id_client"
           name="id_client"

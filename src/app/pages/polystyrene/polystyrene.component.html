@@ -107,20 +107,20 @@
 </div>
 
 <!-- Modal -->
-<div *ngIf="showModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
+<div *ngIf="showModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-20">
   <div class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto">
     <h3 class="text-lg font-bold mb-4">{{ isEditing ? 'Editar Poliestireno' : 'Nuevo Poliestireno' }}</h3>
     <form (ngSubmit)="savePolystyrene()">
       <div class="mb-4">
-        <label class="block text-gray-700">Tipo</label>
+        <label class="block text-gray-700">Tipo<span class="text-red-500">*</span></label>
         <input type="text" [(ngModel)]="selectedPolystyrene.type" name="type" class="form-input mt-1 block w-full" required />
       </div>
       <div class="mb-4">
-        <label class="block text-gray-700">Calibre</label>
+        <label class="block text-gray-700">Calibre<span class="text-red-500">*</span></label>
         <input type="text" [(ngModel)]="selectedPolystyrene.caliber" name="caliber" class="form-input mt-1 block w-full" required />
       </div>
       <div class="mb-4">
-        <label class="block text-gray-700">Precio lámina entera (COP)</label>
+        <label class="block text-gray-700">Precio lámina entera (COP)<span class="text-red-500">*</span></label>
         <input type="number" [(ngModel)]="selectedPolystyrene.whole" name="whole" class="form-input mt-1 block w-full" required />
       </div>
       <div class="flex justify-end mt-4">

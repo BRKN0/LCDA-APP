@@ -173,7 +173,7 @@
   <!-- Form to add employees -->
   <div
     *ngIf="showModal"
-    class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
+    class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-20"
   >
     <div
       class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto"
@@ -191,7 +191,7 @@
           />
         </div>
         <div class="mb-4">
-          <label class="block text-gray-700">Nombre Completo</label>
+          <label class="block text-gray-700">Nombre Completo<span class="text-red-500">*</span></label>
           <input
             [(ngModel)]="selectedEmployee.name"
             name="name"
@@ -199,7 +199,7 @@
           />
         </div>
         <div>
-          <label class="block text-gray-700">Tipo de Empleado</label>
+          <label class="block text-gray-700">Tipo de Empleado<span class="text-red-500">*</span></label>
           <select
           type="text"
           [(ngModel)]="selectedEmployee.employee_type"

@@ -371,9 +371,9 @@ export class ClientsComponent implements OnInit {
       id_client: '',
       name: '',
       document_type: '',
-      document_number: '',
+      document_number: '0',
       status: 'upToDate',
-      cellphone: '',
+      cellphone: '0',
       nit: '',
       company_name: '',
       email: '',
@@ -395,6 +395,16 @@ export class ClientsComponent implements OnInit {
 
   async saveClient(): Promise<void> {
     if (!this.selectedClientData) return;
+
+    if (!this.selectedClientData.name) {
+      alert('Por favor, digite nombre del cliente.');
+      return;
+    }
+
+    if (!this.selectedClientData.company_name) {
+      alert('Por favor, digite nombre del cliente.');
+      return;
+    }
 
     const clientToSave = {
       name: this.selectedClientData.name || null,

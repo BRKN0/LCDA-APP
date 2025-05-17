@@ -336,6 +336,16 @@ export class EmployeesComponent implements OnInit {
   saveEmployee(): void {
     if (!this.selectedEmployee) return;
 
+    if (!this.selectedEmployee.name) {
+      alert('Por favor, digite nombre del empleado.');
+      return;
+    }
+
+    if (!this.selectedEmployee.employee_type) {
+      alert('Por favor, digite el tipo de empleado.');
+      return;
+    }
+
     const employeeToSave = {
       name: this.selectedEmployee.name,
       id_number: this.selectedEmployee.id_number,

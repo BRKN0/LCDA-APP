@@ -112,32 +112,32 @@
   </div>
   
   <!-- Formulario modal -->
-  <div *ngIf="showModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
+  <div *ngIf="showModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-20">
     <div class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto">
       <h3 class="text-lg font-bold mb-4">{{ isEditing ? 'Editar Vinilo de Corte' : 'Nuevo Vinilo de Corte' }}</h3>
       <form (ngSubmit)="saveVinylCut()">
         <div class="mb-4">
-          <label class="block text-gray-700">Proveedor</label>
+          <label class="block text-gray-700">Proveedor<span class="text-red-500">*</span></label>
           <input type="text" [(ngModel)]="selectedVinylCut.supplier" name="supplier" class="form-input mt-1 block w-full" required />
         </div>
         <div class="mb-4">
-          <label class="block text-gray-700">Unds/Mts</label>
+          <label class="block text-gray-700">Unds/Mts<span class="text-red-500">*</span></label>
           <input type="number" [(ngModel)]="selectedVinylCut.unds_mts" name="unds_mts" class="form-input mt-1 block w-full" required />
         </div>
         <div class="mb-4">
-          <label class="block text-gray-700">Tipo</label>
+          <label class="block text-gray-700">Tipo<span class="text-red-500">*</span></label>
           <input type="text" [(ngModel)]="selectedVinylCut.type" name="type" class="form-input mt-1 block w-full" required />
         </div>
         <div class="mb-4">
-          <label class="block text-gray-700">Descripción</label>
+          <label class="block text-gray-700">Descripción<span class="text-red-500">*</span></label>
           <input type="text" [(ngModel)]="selectedVinylCut.description" name="description" class="form-input mt-1 block w-full" />
         </div>
         <div class="mb-4">
-          <label class="block text-gray-700">Costo x metro</label>
+          <label class="block text-gray-700">Costo x metro<span class="text-red-500">*</span></label>
           <input type="number" [(ngModel)]="selectedVinylCut.costXmt" name="costXmt" class="form-input mt-1 block w-full" required />
         </div>
         <div class="mb-4">
-          <label class="block text-gray-700">Precio venta x metro</label>
+          <label class="block text-gray-700">Precio venta x metro<span class="text-red-500">*</span></label>
           <input type="number" [(ngModel)]="selectedVinylCut.saleXmt" name="saleXmt" class="form-input mt-1 block w-full" required />
         </div>
         <div class="mb-4">

@@ -104,7 +104,7 @@ export class PolystyreneComponent implements OnInit {
   addPolystyrene(): void {
     this.selectedPolystyrene = {
       type: '',
-      caliber: '',
+      caliber: '0',
       whole: 0
     };
     this.isEditing = false;
@@ -123,6 +123,11 @@ export class PolystyreneComponent implements OnInit {
       caliber: this.selectedPolystyrene.caliber,
       whole: this.selectedPolystyrene.whole
     };
+
+    if (!this.selectedPolystyrene.type || !this.selectedPolystyrene.caliber || !this.selectedPolystyrene.whole) {
+      alert ('Por favor, complete todos los campos.');
+      return;
+    }
 
     if (this.isEditing && this.selectedPolystyrene.id_polystyrene) {
       const { error } = await this.supabase
