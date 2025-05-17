@@ -25,6 +25,8 @@ export class PolystyreneComponent implements OnInit {
   paginatedPolystyrenes: Polystyrene[] = [];
   selectedPolystyrene!: Polystyrene;
   availableTypes: string[] = [];
+  sortDirection: 'asc' | 'desc' = 'asc'; // Orden ascendente por defecto
+  sortColumn: 'caliber' | 'type' = 'caliber'; // Columna por la que ordenar
 
   searchType: string = '';
   searchCaliber: string = '';
@@ -63,13 +65,17 @@ export class PolystyreneComponent implements OnInit {
   }
 
   async loadPolystyrenes(): Promise<void> {
-    const { error, data } = await this.supabase.from('polystyrene').select('*');
+    const { error, data } = await this.supabase
+      .from('polystyrene')
+      .select('*')
+      .order(this.sortColumn, { ascending: this.sortDirection === 'asc' });
+
     if (error) {
       console.error('Error cargando:', error);
       return;
     }
 
-    this.polystyrenes = (data as Polystyrene[]).sort((a, b) => a.type.localeCompare(b.type));
+    this.polystyrenes = data as Polystyrene[];
 
     const typesSet = new Set<string>();
     this.polystyrenes.forEach(p => {
@@ -79,6 +85,21 @@ export class PolystyreneComponent implements OnInit {
 
     this.updateFilteredPolystyrenes();
     this.loading = false;
+  }
+
+  toggleSortDirection(column: 'caliber' | 'type'): void {
+    if (this.sortColumn === column) {
+      this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortColumn = column;
+      this.sortDirection = 'asc';
+    }
+    this.loadPolystyrenes();
+  }
+
+  getSortIcon(column: string): string {
+    if (this.sortColumn !== column) return '';
+    return this.sortDirection === 'asc' ? '↑' : '↓';
   }
 
   updateFilteredPolystyrenes(): void {

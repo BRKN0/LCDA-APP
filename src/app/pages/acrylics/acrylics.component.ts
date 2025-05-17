@@ -34,6 +34,7 @@ export class AcrylicsComponent implements OnInit {
   selectedFormat: string = '1 Lámina'; // Valor inicial del formato
   loading = true;
   searchTerm: string = ''; // Nueva propiedad para el término de búsqueda
+  sortDirection: 'asc' | 'desc' = 'asc'; // 'asc' para ascendente, 'desc' para descendente
 
   // Paginación
   currentPage: number = 1;
@@ -63,22 +64,26 @@ export class AcrylicsComponent implements OnInit {
     this.loading = true;
     const { data, error } = await this.supabase
       .from('acrylics')
-      .select('*')
-      .order('width', { ascending: true })
-      .order('height', { ascending: true })
-      .order('color', { ascending: true })
-      .order('gauge', { ascending: true });
+      .select('*');
 
     if (error) {
       console.error('Error al obtener acrílicos:', error);
-      alert ('Error al cargar los datos.');
       return;
     }
+
     this.acrylicItems = data || [];
     this.filteredAcrylicItems = [...this.acrylicItems];
-    this.currentPage = 1; // Reiniciamos la página al cargar nuevos datos
+    this.applyCurrentSort(); // Aplica el orden inicial
+    this.currentPage = 1;
     this.updatePaginatedAcrylicItems();
     this.loading = false;
+  }
+
+
+  toggleSortDirection(): void {
+    this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+    this.applyCurrentSort();
+    this.updatePaginatedAcrylicItems();
   }
 
   openModal(acrylic?: Acrylic): void {
@@ -214,27 +219,35 @@ export class AcrylicsComponent implements OnInit {
   updatePaginatedAcrylicItems(): void {
     // Filtramos los elementos según el término de búsqueda
     const term = this.searchTerm.toLowerCase().trim();
-    this.filteredAcrylicItems = this.acrylicItems.filter(acrylic =>
+    const filtered = this.acrylicItems.filter(acrylic =>
       acrylic.width.toString().includes(term) ||
       acrylic.height.toString().includes(term) ||
       acrylic.color.toLowerCase().includes(term) ||
       acrylic.gauge.toString().includes(term)
     );
 
-    // Calculamos el total de páginas con los elementos filtrados
+    // Mantenemos el orden aplicado
+    this.filteredAcrylicItems = [...filtered]; // Copia del array filtrado
+    this.applyCurrentSort(); // Aplicamos el orden actual
+
+    // Calculamos el total de páginas
     const itemsPerPageNum = Number(this.itemsPerPage);
     this.totalPages = Math.max(1, Math.ceil(this.filteredAcrylicItems.length / itemsPerPageNum));
-
-    // Aseguramos que currentPage esté dentro de los límites
     this.currentPage = Math.min(Math.max(this.currentPage, 1), this.totalPages);
 
-    // Calculamos los índices de inicio y fin
+    // Paginamos
     const startIndex = (this.currentPage - 1) * itemsPerPageNum;
     const endIndex = startIndex + itemsPerPageNum;
-
-    // Actualizamos paginatedAcrylicItems con el subconjunto correcto
     this.paginatedAcrylicItems = this.filteredAcrylicItems.slice(startIndex, endIndex);
   }
+
+  private applyCurrentSort(): void {
+  this.filteredAcrylicItems.sort((a, b) => {
+    const valueA = a.gauge;
+    const valueB = b.gauge;
+    return this.sortDirection === 'asc' ? valueA - valueB : valueB - valueA;
+  });
+}
 
   // Método para manejar cambios en el término de búsqueda
   onSearchChange(): void {

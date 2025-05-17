@@ -50,7 +50,14 @@
             <th class="table-column-std">Ancho</th>
             <th class="table-column-std">Alto</th>
             <th class="table-column-std">Color</th>
-            <th class="table-column-std">Calibre</th>
+            <th class="table-column-std">
+              <div class="flex items-center cursor-pointer" (click)="toggleSortDirection()">
+                Calibre
+                <span class="ml-1">
+                  {{ sortDirection === 'asc' ? '↑' : '↓' }}
+                </span>
+              </div>
+            </th>
             <th class="table-column-std">Costo</th>
             <th class="table-column-std">30% Util.</th>
             <th class="table-column-std">Margen</th>

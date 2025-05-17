@@ -29,7 +29,9 @@
   <table class="table-std">
     <thead>
       <tr>
-        <th rowspan="2" class="table-column-std">MDF</th>
+        <th rowspan="2" class="table-column-std cursor-pointer" (click)="toggleSortDirection()">
+          MDF <span>{{ sortDirection === 'asc' ? '↑' : '↓' }}</span>
+        </th>
         <th rowspan="2" class="table-column-std">C+F</th>
         <th rowspan="2" class="table-column-std">Costo</th>
         <th rowspan="2" class="table-column-std">Flete</th>
