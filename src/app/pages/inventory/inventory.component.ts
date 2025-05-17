@@ -394,6 +394,16 @@ export class InventoryComponent implements OnInit {
   saveItem(): void {
     if (!this.selectedItem) return;
 
+    if (!this.selectedItem.category) {
+      alert('Por favor, digite la categoria del producto.');
+      return;
+    }
+
+    if (!this.selectedItem.cost) {
+      alert('Por favor, digite el costo del producto.');
+      return;
+    }
+
     const itemToSave = {
       category: this.selectedItem.category,
       type: this.selectedItem.type,

@@ -118,7 +118,7 @@
           <div>
             <p>{{ notification.description }}</p>
             <p class="text-xs text-gray-400">
-              Plazo: {{ notification.due_date }}
+              Plazo: {{ notification.due_date | date : "dd-MM-yyyy"}}
             </p>
           </div>
 
