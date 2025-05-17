@@ -342,6 +342,7 @@ button {
   display: flex;
   gap: 10px;
   margin-bottom: 20px;
+  z-index: -1;
 
   input {
     padding: 10px;
@@ -384,12 +385,14 @@ h1 {
   background-color: #c72c41;
   border-color: #c72c41;
   transition: color 0.3s ease-in-out, background-color 0.3s ease-in-out,
-    transform 0.2s;
+  transform 0.2s;
+  z-index: 10;
 
   &:hover {
     background-color: #df3c3c;
     color: white;
     transform: scale(1.02);
+    z-index: 10;
   }
 }
 
@@ -397,14 +400,13 @@ h1 {
   border-color: #c72c41;
   background-color: #c72c41;
   color: white;
+  text-align: center;
+  z-index: 10;
 
   &:hover {
     text-align: center;
-    padding: 0.25rem;
-    text-align: center;
     background-color: #df3c3c;
     color: white;
-    transform: scale(1.02);
   }
 }
 .nav-bar {
@@ -415,19 +417,17 @@ h1 {
   color: white;
   background-color: #c72c41;
   border-color: #c72c41;
-  transition: color 0.3s ease-in-out, background-color 0.3s ease-in-out,
-    transform 0.2s;
 
   &:hover {
     background-color: #c72c41;
     color: white;
-    transform: scale(1.02);
   }
 }
 .nav-item-dropdown {
   @apply text-center cursor-pointer py-3 px-3 border-2 text-white bg-transparent transition-colors duration-300 ease-in-out transform hover:bg-red-600 hover:text-white hover:scale-105 flex items-center;
   border-color: #c72c41;
   background-color: #c72c41;
+  z-index: 15;
   // Optional: Add a downward arrow icon using a pseudo-element
   &::after {
     content: "";
@@ -439,13 +439,11 @@ h1 {
     border: solid red; // Match the border color
     border-width: 0 2px 2px 0; // Create a downward arrow
     transform: rotate(45deg); // Rotate to form an arrow
-    transition: border-color 0.3s ease-in-out; // Transition for hover effect
   }
 
   &:hover {
     background-color: #df3c3c;
     color: white;
-    transform: scale(1.02);
   }
 }
 .sidebar {
