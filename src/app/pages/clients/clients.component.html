@@ -190,16 +190,40 @@
     </div>
 
     <!-- Modal para mostrar pedidos -->
-    <div
-      *ngIf="showOrders"
-      class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
-    >
-      <div
-        class="bg-white rounded-lg shadow-lg p-6 w-3/4 max-h-screen overflow-y-auto"
-      >
+    <div *ngIf="showOrders" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg shadow-lg p-6 w-3/4 max-h-screen overflow-y-auto">
         <h3 class="text-lg font-bold mb-4">
           Pedidos del Cliente: {{ selectedClient?.name }}
         </h3>
+
+        <!-- Filtros de fecha -->
+        <div class="flex items-center space-x-4 mb-4">
+          <div>
+            <label class="block text-gray-700 text-sm font-bold mb-1">Desde:</label>
+            <input
+              type="date"
+              [(ngModel)]="startDate"
+              (change)="updatePaginatedOrders()"
+              class="border rounded p-1"
+            />
+          </div>
+          <div>
+            <label class="block text-gray-700 text-sm font-bold mb-1">Hasta:</label>
+            <input
+              type="date"
+              [(ngModel)]="endDate"
+              (change)="updatePaginatedOrders()"
+              class="border rounded p-1"
+            />
+          </div>
+          <button
+            (click)="clearDateFilters()"
+            class="bg-gray-500 text-white px-3 py-1 rounded-md hover:bg-gray-600 mt-5"
+          >
+            Limpiar Filtros
+          </button>
+        </div>
+
         <table class="w-full border-collapse">
           <thead>
             <tr class="bg-gray-100">
@@ -219,7 +243,7 @@
               </td>
               <td class="p-3 border">{{ order.description }}</td>
               <td class="p-3 border">
-                ${{ calculateOrderTotal(order).toFixed(2) }} {{ order.include_iva ? '' : '' }}
+                ${{ calculateOrderTotal(order).toFixed(2) }}
               </td>
               <td
                 class="p-3 border"
@@ -235,7 +259,6 @@
                 }}
               </td>
               <td class="p-3 border">
-                <!-- Mostrar abonos existentes -->
                 <div *ngIf="order.payments && order.payments.length > 0">
                   <ul>
                     <li *ngFor="let payment of order.payments">
@@ -249,14 +272,20 @@
                 </div>
               </td>
             </tr>
+            <tr *ngIf="paginatedOrders.length === 0">
+              <td colspan="6" class="p-3 border text-center text-gray-500">
+                No hay pedidos en el rango de fechas seleccionado
+              </td>
+            </tr>
           </tbody>
         </table>
+
         <!-- Paginación -->
         <div class="flex justify-between items-center mb-4">
           <div class="pagination flex items-center">
             <button
-              (click)="currentPage = 1; updatePaginatedOrders()"
-              [disabled]="currentPage === 1"
+              (click)="currentOrderPage = 1; updatePaginatedOrders()"
+              [disabled]="currentOrderPage === 1"
               class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
             >
               ⇐
@@ -279,8 +308,8 @@
               →
             </button>
             <button
-              (click)="currentPage = totalPages; updatePaginatedOrders()"
-              [disabled]="currentPage === totalPages"
+              (click)="currentOrderPage = totalOrderPages; updatePaginatedOrders()"
+              [disabled]="currentOrderPage === totalOrderPages"
               class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
             >
               ⇒
@@ -293,7 +322,7 @@
             <select
               id="itemsPerPageOrders"
               [(ngModel)]="itemsPerOrderPage"
-              (change)="updatePaginatedOrders()"
+              (change)="currentOrderPage = 1; updatePaginatedOrders()"
               class="border border-gray-300 rounded-md p-1"
             >
               <option *ngFor="let size of [10, 15, 25, 50]" [value]="size">

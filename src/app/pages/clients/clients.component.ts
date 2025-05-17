@@ -90,6 +90,8 @@ export class ClientsComponent implements OnInit {
   selectedClientData: Partial<Client> = {};
   isEditing = false;
   showModal = false;
+  startDate: string = '';
+  endDate: string = '';
   newClient: Partial<Client> = {
     id_client: '',
     document_type: '',
@@ -252,6 +254,8 @@ export class ClientsComponent implements OnInit {
         console.error('Orders is not an array:', client.orders);
         return;
       }
+      this.startDate = '';
+      this.endDate = '';
       this.selectedClient = { ...client }; // Clonar el cliente
       this.showOrders = true;
       this.currentOrderPage = 1;
@@ -590,14 +594,40 @@ export class ClientsComponent implements OnInit {
   }
 
   updatePaginatedOrders(): void {
-    if (this.selectedClient?.orders?.length) {
-      const startIndex = Number((this.currentOrderPage - 1) * this.itemsPerOrderPage);
-      const endIndex = startIndex + Number(this.itemsPerOrderPage);
-      this.paginatedOrders = this.selectedClient?.orders.slice(startIndex, endIndex) || [];
-      this.totalOrderPages = Math.ceil((this.selectedClient?.orders.length || 0) / this.itemsPerOrderPage);
-    } else {
+    if (!this.selectedClient?.orders) {
       this.totalOrderPages = 0;
+      return;
     }
+
+    // Filtrar por rango de fechas si están establecidas
+    let filteredOrders = [...this.selectedClient.orders];
+
+    if (this.startDate) {
+      const start = new Date(this.startDate);
+      filteredOrders = filteredOrders.filter(order =>
+        new Date(order.created_at) >= start
+      );
+    }
+
+    if (this.endDate) {
+      const end = new Date(this.endDate);
+      filteredOrders = filteredOrders.filter(order =>
+        new Date(order.created_at) <= end
+      );
+    }
+
+    // Paginar los resultados filtrados
+    const startIndex = (this.currentOrderPage - 1) * this.itemsPerOrderPage;
+    const endIndex = startIndex + this.itemsPerOrderPage;
+    this.paginatedOrders = filteredOrders.slice(startIndex, endIndex);
+    this.totalOrderPages = Math.ceil(filteredOrders.length / this.itemsPerOrderPage);
+  }
+
+  clearDateFilters(): void {
+    this.startDate = '';
+    this.endDate = '';
+    this.currentOrderPage = 1;
+    this.updatePaginatedOrders();
   }
 
   async updateClientStatus(client: Client, newStatus: string): Promise<void> {
