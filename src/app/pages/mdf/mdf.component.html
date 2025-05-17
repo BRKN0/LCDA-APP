@@ -139,17 +139,17 @@
 <!-- Modal para crear/editar MDF -->
 <div
   *ngIf="showModal"
-  class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
+  class="modal-overlay"
 >
   <div
-    class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto"
+    class="modal-content"
   >
     <h3 class="text-lg font-bold mb-4">
       {{ selectedMdf ? 'Editar MDF' : 'Añadir Nuevo MDF' }}
     </h3>
     <form (ngSubmit)="saveMdf()">
       <div class="mb-4">
-        <label class="block text-gray-700">Grosor</label>
+        <label class="block modal-input-item">Grosor</label>
         <input
           [(ngModel)]="formMdf.thickness"
           name="thickness"
@@ -159,7 +159,7 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block text-gray-700">Costo</label>
+        <label class="block modal-input-item">Costo</label>
         <input
           type="number"
           [(ngModel)]="formMdf.cost"
@@ -170,7 +170,7 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block text-gray-700">Flete</label>
+        <label class="block modal-input-item">Flete</label>
         <input
           type="number"
           [(ngModel)]="formMdf.freight"

@@ -108,10 +108,10 @@
     <!-- Modal para detalles del cliente -->
     <div
       *ngIf="showClientModal"
-      class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
+      class="modal-overlay"
     >
       <div
-        class="bg-white rounded-lg shadow-lg p-6 w-3/4 max-h-screen overflow-y-auto"
+        class="modal-content"
       >
         <h3 class="text-lg font-bold mb-4">
           Cliente: {{ selectedClient?.name }}
@@ -192,37 +192,37 @@
     <!-- Modal para mostrar pedidos -->
     <div
       *ngIf="showOrders"
-      class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
+      class="modal-overlay-top"
     >
       <div
-        class="bg-white rounded-lg shadow-lg p-6 w-3/4 max-h-screen overflow-y-auto"
+        class="modal-content-top"
       >
         <h3 class="text-lg font-bold mb-4">
           Pedidos del Cliente: {{ selectedClient?.name }}
         </h3>
-        <table class="w-full border-collapse">
+        <table class="modal-table">
           <thead>
             <tr class="bg-gray-100">
-              <th class="p-3 border">#</th>
-              <th class="p-3 border">Fecha</th>
-              <th class="p-3 border">Detalles</th>
-              <th class="p-3 border">Total</th>
-              <th class="p-3 border">Estado de pago</th>
-              <th class="p-3 border">Abonos</th>
+              <th class="modal-table-column">#</th>
+              <th class="modal-table-column">Fecha</th>
+              <th class="modal-table-column">Detalles</th>
+              <th class="modal-table-column">Total</th>
+              <th class="modal-table-column">Estado de pago</th>
+              <th class="modal-table-column">Abonos</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let order of paginatedOrders">
-              <td class="p-3 border">{{ order.code }}</td>
-              <td class="p-3 border">
+              <td class="modal-table-column">{{ order.code }}</td>
+              <td class="modal-table-column">
                 {{ order.created_at | date : "dd-MM-yyyy" }}
               </td>
-              <td class="p-3 border">{{ order.description }}</td>
-              <td class="p-3 border">
+              <td class="modal-table-column">{{ order.description }}</td>
+              <td class="modal-table-column">
                 ${{ calculateOrderTotal(order).toFixed(2) }} {{ order.include_iva ? '' : '' }}
               </td>
               <td
-                class="p-3 border"
+                class="modal-table-column"
                 [class.text-green-600]="order.order_payment_status === 'upToDate'"
                 [class.text-red-600]="order.order_payment_status === 'overdue'"
               >
@@ -234,7 +234,7 @@
                     : "Desconocido"
                 }}
               </td>
-              <td class="p-3 border">
+              <td class="modal-table-column">
                 <!-- Mostrar abonos existentes -->
                 <div *ngIf="order.payments && order.payments.length > 0">
                   <ul>
@@ -366,17 +366,17 @@
     <!-- Formulario para añadir/editar clientes -->
     <div
       *ngIf="showModal"
-      class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
+      class="modal-overlay"
     >
       <div
-        class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto"
+        class="modal-content"
       >
         <h3 class="text-lg font-bold mb-4">
           {{ isEditing ? "Editar Cliente" : "Añadir Cliente" }}
         </h3>
         <form (ngSubmit)="saveClient()">
           <div class="mb-4">
-            <label class="block text-gray-700">Nombre</label>
+            <label class="block modal-input-item">Nombre</label>
             <input
               [(ngModel)]="selectedClientData.name"
               name="name"
@@ -385,7 +385,7 @@
             />
           </div>
           <div class="mb-4">
-            <label class="block text-gray-700">Correo Electrónico</label>
+            <label class="block modal-input-item">Correo Electrónico</label>
             <input
               type="email"
               [(ngModel)]="selectedClientData.email"
@@ -394,7 +394,7 @@
             />
           </div>
           <div class="mb-4">
-            <label class="block text-gray-700">Tipo de Documento</label>
+            <label class="block modal-input-item">Tipo de Documento</label>
             <select
               [(ngModel)]="selectedClientData.document_type"
               name="order_type"
@@ -417,7 +417,7 @@
             </select>
           </div>
           <div class="mb-4">
-            <label class="block text-gray-700">Identificación/Documento</label>
+            <label class="block modal-input-item">Identificación/Documento</label>
             <input
               [(ngModel)]="selectedClientData.document_number"
               name="document_number"
@@ -425,7 +425,7 @@
             />
           </div>
           <div class="mb-4">
-            <label class="block text-gray-700">Empresa</label>
+            <label class="block modal-input-item">Empresa</label>
             <input
               [(ngModel)]="selectedClientData.company_name"
               name="company_name"
@@ -433,7 +433,7 @@
             />
           </div>
           <div class="mb-4">
-            <label class="block text-gray-700">Teléfono</label>
+            <label class="block modal-input-item">Teléfono</label>
             <input
               type="number"
               [(ngModel)]="selectedClientData.cellphone"
@@ -442,7 +442,7 @@
             />
           </div>
           <div class="mb-4">
-            <label class="block text-gray-700">Dirección</label>
+            <label class="block modal-input-item">Dirección</label>
             <input
               type="text"
               [(ngModel)]="selectedClientData.address"
@@ -451,7 +451,7 @@
             />
           </div>
           <div class="mb-4">
-            <label class="block text-gray-700">Estado</label>
+            <label class="block modal-input-item">Estado</label>
             <select
               [(ngModel)]="selectedClientData.status"
               name="status"

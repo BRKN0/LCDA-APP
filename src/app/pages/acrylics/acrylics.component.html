@@ -145,17 +145,18 @@
 <!-- Modal para crear/editar acrílico -->
 <div
   *ngIf="showModal"
-  class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
+  class="modal-overlay"
 >
-  <div
-    class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto"
+<!-- class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto" -->
+<div class="modal-content"
+  
   >
     <h3 class="text-lg font-bold mb-4">
       {{ selectedAcrylic ? 'Editar Acrílico' : 'Añadir Nuevo Acrílico' }}
     </h3>
     <form (ngSubmit)="saveAcrylic()">
       <div class="mb-4">
-        <label class="block text-gray-700">Ancho (cm)</label>
+        <label class="block modal-input-item">Ancho (cm)</label>
         <input
           type="number"
           [(ngModel)]="formAcrylic.width"
@@ -166,7 +167,7 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block text-gray-700">Alto (cm)</label>
+        <label class="block modal-input-item">Alto (cm)</label>
         <input
           type="number"
           [(ngModel)]="formAcrylic.height"
@@ -177,7 +178,7 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block text-gray-700">Color</label>
+        <label class="block modal-input-item">Color</label>
         <select
           [(ngModel)]="formAcrylic.color"
           name="color"
@@ -192,7 +193,7 @@
         </select>
       </div>
       <div class="mb-4">
-        <label class="block text-gray-700">Calibre (mm)</label>
+        <label class="block modal-input-item">Calibre (mm)</label>
         <input
           type="number"
           step="0.1"
@@ -204,7 +205,7 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block text-gray-700">Precio Costo Lámina 2025</label>
+        <label class="block modal-input-item">Precio Costo Lámina 2025</label>
         <input
           type="number"
           [(ngModel)]="formAcrylic.cost_price"
@@ -218,7 +219,7 @@
         <button type="button" class="btn-danger" (click)="closeModal()">
           Cancelar
         </button>
-        <button type="submit" class="btn-success">
+        <button type="submit" class="btn-success justify-start">
           {{ selectedAcrylic ? 'Actualizar' : 'Guardar Acrílico' }}
         </button>
       </div>

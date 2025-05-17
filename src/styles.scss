@@ -166,16 +166,81 @@ button {
   z-index: 1000;
 }
 
-.modal-content {
-  background: #ffffff;
+.modal-overlay-top {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+}
+.modal-content-top {
+  border-color: #ad2651;
+  border-width: 2px;
+  background: white;
+  color: black;
   padding: 20px;
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  width: 90%;
-  max-width: 500px;
+  width: 100%;
+  overflow-x: auto;
+  max-width: 600px;
   animation: modalFadeIn 0.3s ease;
+  z-index: 1001;
+}
+.modal-content {
+  border-color: #ad2651;
+  border-width: 2px;
+  background: white;
+  color: black;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 600px;
+  max-height: 800px;
+  overflow-x: auto;
+  overflow-y: auto;
+  animation: modalFadeIn 0.3s ease;
+  z-index: 1000;
 }
 
+.modal-table {
+  width: 95%;
+  max-width: 500px;
+  border-collapse: collapse;
+  border: 1px solid theme("colors.gray.400");
+  margin-top: theme("spacing.2");
+  overflow-x: auto;
+  th,
+  td {
+    border: 1px solid theme("colors.gray.400");
+    padding: theme("spacing.2");
+  }
+
+  thead {
+    background-color: theme("colors.gray.200");
+  }
+}
+.modal-table-column {
+  border: 1px solid theme("colors.gray.300");
+  width: 95%;
+  max-width: 500px;
+  padding: theme("spacing.2") theme("spacing.4");
+  text-align: left;
+  white-space: nowrap;
+  overflow-x: auto;
+}
+
+.modal-input-item {
+  color: black;
+  border-radius: 6px;
+  z-index: 1000;
+}
 @keyframes modalFadeIn {
   from {
     opacity: 0;
@@ -385,7 +450,7 @@ h1 {
   background-color: #c72c41;
   border-color: #c72c41;
   transition: color 0.3s ease-in-out, background-color 0.3s ease-in-out,
-  transform 0.2s;
+    transform 0.2s;
   z-index: 10;
 
   &:hover {

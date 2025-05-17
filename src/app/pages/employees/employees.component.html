@@ -173,17 +173,17 @@
   <!-- Form to add employees -->
   <div
     *ngIf="showModal"
-    class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
+    class="modal-overlay overflow-y-scroll"
   >
     <div
-      class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto"
+      class="modal-content"
     >
       <h3 class="text-lg font-bold mb-4">
         {{ isEditing ? "Editar Empleado" : "Añadir Nuevo Empleado" }}
       </h3>
       <form (ngSubmit)="saveEmployee()">
         <div class="mb-4">
-          <label class="block text-gray-700">Codigo</label>
+          <label class="block modal-input-item">Codigo</label>
           <input
             [(ngModel)]="selectedEmployee.code"
             name="code"
@@ -191,7 +191,7 @@
           />
         </div>
         <div class="mb-4">
-          <label class="block text-gray-700">Nombre Completo</label>
+          <label class="block modal-input-item">Nombre Completo</label>
           <input
             [(ngModel)]="selectedEmployee.name"
             name="name"
@@ -199,7 +199,7 @@
           />
         </div>
         <div>
-          <label class="block text-gray-700">Tipo de Empleado</label>
+          <label class="block modal-input-item">Tipo de Empleado</label>
           <select
           type="text"
           [(ngModel)]="selectedEmployee.employee_type"
@@ -217,7 +217,7 @@
         </select>
         </div>
         <div class="mb-4">
-          <label class="block text-gray-700">Numero de identidad</label>
+          <label class="block modal-input-item">Numero de identidad</label>
           <input
             [(ngModel)]="selectedEmployee.id_number"
             name="id_number"
@@ -225,7 +225,7 @@
           />
         </div>
         <div class="mb-4">
-          <label class="block text-gray-700">Correo Electrónico</label>
+          <label class="block modal-input-item">Correo Electrónico</label>
           <input
             type="email"
             [(ngModel)]="selectedEmployee.email"
@@ -235,7 +235,7 @@
           />
         </div>
         <div class="mb-4">
-          <label class="block text-gray-700">Numero de Telefono</label>
+          <label class="block modal-input-item">Numero de Telefono</label>
           <input
             [(ngModel)]="selectedEmployee.phone"
             name="phone"
@@ -243,7 +243,7 @@
           />
         </div>
         <div class="mb-4">
-          <label class="block text-gray-700">Direccion</label>
+          <label class="block modal-input-item">Direccion</label>
           <input
             [(ngModel)]="selectedEmployee.address"
             name="address"
@@ -252,7 +252,7 @@
           />
         </div>
         <div class="mb-4">
-          <label class="block text-gray-700">Barrio</label>
+          <label class="block modal-input-item">Barrio</label>
           <input
             [(ngModel)]="selectedEmployee.neighborhood"
             name="neighborhood"
@@ -261,7 +261,7 @@
           />
         </div>
         <div class="mb-4">
-          <label class="block text-gray-700">Ciudad</label>
+          <label class="block modal-input-item">Ciudad</label>
           <input
             [(ngModel)]="selectedEmployee.city"
             name="city"
@@ -270,7 +270,7 @@
           />
         </div>
         <div class="mb-4">
-          <label class="block text-gray-700">Departamento</label>
+          <label class="block modal-input-item">Departamento</label>
           <input
             [(ngModel)]="selectedEmployee.department"
             name="department"
@@ -279,7 +279,7 @@
           />
         </div>
         <div class="mb-4">
-          <label class="block text-gray-700">Codigo Postal</label>
+          <label class="block modal-input-item">Codigo Postal</label>
           <input
             [(ngModel)]="selectedEmployee.postal_code"
             name="postal_code"
@@ -288,7 +288,7 @@
           />
         </div>
         <div class="mb-4">
-          <label class="block text-gray-700">Salario</label>
+          <label class="block modal-input-item">Salario</label>
           <input
             [(ngModel)]="selectedEmployee.salary"
             name="salary"

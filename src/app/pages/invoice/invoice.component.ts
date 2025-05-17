@@ -1154,5 +1154,6 @@ export class InvoiceComponent implements OnInit {
     this.filteredClients = [...this.clients];
     this.clientOrders = [];
     this.showClientDropdown = false;
+    this.selectedInvoiceDetails = null;
   }
 }

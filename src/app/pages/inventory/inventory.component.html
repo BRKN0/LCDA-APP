@@ -110,15 +110,15 @@
 <!-- Modal para comparación -->
 <div
   *ngIf="showModal && isComparing"
-  class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
+  class="modal-overlay"
 >
   <div
-    class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[80vh]"
+    class="modal-content"
   >
     <h2 class="text-lg font-bold mb-4">Comparar Inventario</h2>
 
     <div class="mb-4">
-      <label for="file1" class="block text-gray-700">Archivo 1:</label>
+      <label for="file1" class="block modal-input-item">Archivo 1:</label>
       <input
         id="file1"
         type="file"
@@ -127,7 +127,7 @@
       />
     </div>
     <div class="mb-4">
-      <label for="file2" class="block text-gray-700">Archivo 2:</label>
+      <label for="file2" class="block modal-input-item">Archivo 2:</label>
       <input
         id="file2"
         type="file"
@@ -179,17 +179,17 @@
 <!-- Modal para agregar/editar -->
 <div
   *ngIf="showModal && !isComparing"
-  class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
+  class="modal-overlay"
 >
   <div
-    class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto"
+    class="modal-content"
   >
     <h3 class="text-lg font-bold mb-4">
       {{ isEditing ? "Editar Artículo" : "Agregar Artículo" }}
     </h3>
     <form (ngSubmit)="saveItem()">
       <div class="mb-4">
-        <label class="block text-gray-700">Categoría</label>
+        <label class="block modal-input-item">Categoría</label>
         <input
           type="text"
           [(ngModel)]="selectedItem.category"
@@ -199,7 +199,7 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block text-gray-700">Tipo</label>
+        <label class="block modal-input-item">Tipo</label>
         <input
           type="text"
           [(ngModel)]="selectedItem.type"
@@ -209,7 +209,7 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block text-gray-700">Calibre</label>
+        <label class="block modal-input-item">Calibre</label>
         <input
           type="text"
           [(ngModel)]="selectedItem.caliber"
@@ -219,7 +219,7 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block text-gray-700">Cantidad</label>
+        <label class="block modal-input-item">Cantidad</label>
         <input
           type="number"
           [(ngModel)]="selectedItem.material_quantity"
@@ -229,7 +229,7 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block text-gray-700">Color</label>
+        <label class="block modal-input-item">Color</label>
         <input
           type="text"
           [(ngModel)]="selectedItem.color"
@@ -238,7 +238,7 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block text-gray-700">Costo/Unidad</label>
+        <label class="block modal-input-item">Costo/Unidad</label>
         <input
           type="number"
           [(ngModel)]="selectedItem.cost"
@@ -248,7 +248,7 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block text-gray-700">Precio de venta</label>
+        <label class="block modal-input-item">Precio de venta</label>
         <input
           type="number"
           [(ngModel)]="selectedItem.sale_price"
@@ -258,7 +258,7 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block text-gray-700">Estado</label>
+        <label class="block modal-input-item">Estado</label>
         <select
           type="text"
           [(ngModel)]="selectedItem.status"
