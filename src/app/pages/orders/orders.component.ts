@@ -1169,12 +1169,19 @@ export class OrdersComponent implements OnInit {
     }
   }
 
-  public getRemainingDeliveryDays(order: Orders): number {
+    public getRemainingDeliveryDays(order: Orders): number {
+    // Si el estado es "finished", retornar un valor especial (por ejemplo, -999)
+    if (order.order_completion_status === 'finished') {
+      return -999; // Valor especial para indicar "Completo"
+    }
+
     if (!order.delivery_date) return 0;
+
     const deliveryDate = new Date(order.delivery_date);
     const currentDate = new Date();
     const diffTime = deliveryDate.getTime() - currentDate.getTime();
     const remainingDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
     return remainingDays;
   }
 }

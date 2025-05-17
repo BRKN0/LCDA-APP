@@ -186,16 +186,17 @@
               }}
             </td>
             <!-- Display delivery date -->
-            <td
-              [ngClass]="{
-                'text-green-600': getRemainingDeliveryDays(order) > 0,
-                'text-red-600': getRemainingDeliveryDays(order) <= 0
-              }"
-            >
+            <td [ngClass]="{
+              'text-green-600':order.order_completion_status === 'finished',
+              'text-blue-600': order.order_completion_status !== 'finished' && getRemainingDeliveryDays(order) > 0,
+              'text-red-600': order.order_completion_status !== 'finished' && getRemainingDeliveryDays(order) <= 0
+            }">
               {{
-                getRemainingDeliveryDays(order) > 0
-                  ? getRemainingDeliveryDays(order) + " días"
-                  : "Vencido"
+                order.order_completion_status === 'finished'
+                  ? 'Completo'
+                  : getRemainingDeliveryDays(order) > 0
+                    ? getRemainingDeliveryDays(order) + ' días'
+                    : 'Vencido'
               }}
             </td>
             <!-- Display remaining days -->
@@ -304,16 +305,17 @@
               }}
             </td>
             <!-- Display delivery date -->
-            <td
-              [ngClass]="{
-                'text-green-600': getRemainingDeliveryDays(order) > 0,
-                'text-red-600': getRemainingDeliveryDays(order) <= 0
-              }"
-            >
+            <td [ngClass]="{
+              'text-green-600':order.order_completion_status === 'finished',
+              'text-blue-600': order.order_completion_status !== 'finished' && getRemainingDeliveryDays(order) > 0,
+              'text-red-600': order.order_completion_status !== 'finished' && getRemainingDeliveryDays(order) <= 0
+            }">
               {{
-                getRemainingDeliveryDays(order) > 0
-                  ? getRemainingDeliveryDays(order) + " días"
-                  : "Vencido"
+                order.order_completion_status === 'finished'
+                  ? 'Completo'
+                  : getRemainingDeliveryDays(order) > 0
+                    ? getRemainingDeliveryDays(order) + ' días'
+                    : 'Vencido'
               }}
             </td>
             <!-- Display remaining days -->
