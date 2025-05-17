@@ -179,7 +179,7 @@
 <!-- Modal para agregar/editar -->
 <div
   *ngIf="showModal && !isComparing"
-  class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
+  class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-20"
 >
   <div
     class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto"
@@ -189,7 +189,7 @@
     </h3>
     <form (ngSubmit)="saveItem()">
       <div class="mb-4">
-        <label class="block text-gray-700">Categoría</label>
+        <label class="block text-gray-700">Categoría<span class="text-red-500">*</span></label>
         <input
           type="text"
           [(ngModel)]="selectedItem.category"
@@ -238,7 +238,7 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block text-gray-700">Costo/Unidad</label>
+        <label class="block text-gray-700">Costo/Unidad<span class="text-red-500">*</span></label>
         <input
           type="number"
           [(ngModel)]="selectedItem.cost"

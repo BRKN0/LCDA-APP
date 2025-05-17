@@ -230,7 +230,7 @@
     <form (ngSubmit)="saveInvoice()">
       <!-- Campo de selección de cliente -->
       <div class="mb-4">
-        <label class="block text-gray-700">Cliente</label>
+        <label class="block text-gray-700">Cliente<span class="text-red-500">*</span></label>
         <div class="relative">
           <input
             type="text"
@@ -296,7 +296,7 @@
         </select>
       </div>
       <div class="mb-4" *ngIf="selectedInvoice">
-        <label class="block text-gray-700">Orden</label>
+        <label class="block text-gray-700">Orden<span class="text-red-500">*</span></label>
         <select
           [(ngModel)]="selectedInvoice.order.id_order"
           name="id_order"

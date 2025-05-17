@@ -117,6 +117,14 @@ export class VinylCutsComponent {
   async saveVinylCut(): Promise<void> {
     this.selectedVinylCut.linearCm = this.round(this.selectedVinylCut.saleXmt / 100);
 
+    if (!this.selectedVinylCut.supplier || !this.selectedVinylCut.unds_mts || 
+        !this.selectedVinylCut.type || !this.selectedVinylCut.description ||
+        !this.selectedVinylCut.costXmt || !this.selectedVinylCut.saleXmt || 
+        !this.selectedVinylCut.linearCm) {
+      alert ('Por favor, complete todos los campos.');
+      return;
+    }
+
     const itemToSave = {
       supplier: this.selectedVinylCut.supplier,
       unds_mts: this.selectedVinylCut.unds_mts,

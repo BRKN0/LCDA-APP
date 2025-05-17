@@ -87,6 +87,16 @@ export class ExpensesComponent implements OnInit {
     if (this.isSaving) return; // Evitar múltiples clics
     this.isSaving = true;
 
+    if (!this.selectedExpense.payment_date) {
+      alert('Por favor, seleccione una fecha.');
+      return;
+    }
+
+    if (!this.selectedExpense.category) {
+      alert('Por favor, seleccione una categoria.');
+      return;
+    }
+
     // Asegurarse de que selectedExpense no sea null
     if (!this.selectedExpense) {
       this.selectedExpense = {

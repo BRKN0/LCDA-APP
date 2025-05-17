@@ -84,7 +84,7 @@ export class MDFComponent implements OnInit {
 
   async saveMdf(): Promise<void> {
     if (!this.formMdf.thickness || this.formMdf.cost <= 0 || this.formMdf.freight <= 0) {
-      alert ('Por favor, complete todos los campos requeridos.');
+      alert ('Por favor, complete todos los campos.');
       return;
     }
 

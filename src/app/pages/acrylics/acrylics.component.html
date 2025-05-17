@@ -145,7 +145,7 @@
 <!-- Modal para crear/editar acrílico -->
 <div
   *ngIf="showModal"
-  class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
+  class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-20"
 >
   <div
     class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto"
@@ -155,7 +155,7 @@
     </h3>
     <form (ngSubmit)="saveAcrylic()">
       <div class="mb-4">
-        <label class="block text-gray-700">Ancho (cm)</label>
+        <label class="block text-gray-700">Ancho (cm)<span class="text-red-500">*</span></label>
         <input
           type="number"
           [(ngModel)]="formAcrylic.width"
@@ -166,7 +166,7 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block text-gray-700">Alto (cm)</label>
+        <label class="block text-gray-700">Alto (cm)<span class="text-red-500">*</span></label>
         <input
           type="number"
           [(ngModel)]="formAcrylic.height"
@@ -177,7 +177,7 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block text-gray-700">Color</label>
+        <label class="block text-gray-700">Color<span class="text-red-500">*</span></label>
         <select
           [(ngModel)]="formAcrylic.color"
           name="color"
@@ -192,7 +192,7 @@
         </select>
       </div>
       <div class="mb-4">
-        <label class="block text-gray-700">Calibre (mm)</label>
+        <label class="block text-gray-700">Calibre (mm)<span class="text-red-500">*</span></label>
         <input
           type="number"
           step="0.1"
@@ -204,7 +204,7 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block text-gray-700">Precio Costo Lámina 2025</label>
+        <label class="block text-gray-700">Precio Costo Lámina 2025<span class="text-red-500">*</span></label>
         <input
           type="number"
           [(ngModel)]="formAcrylic.cost_price"

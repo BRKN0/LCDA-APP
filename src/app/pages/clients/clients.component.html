@@ -366,7 +366,7 @@
     <!-- Formulario para añadir/editar clientes -->
     <div
       *ngIf="showModal"
-      class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
+      class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-20"
     >
       <div
         class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto"
@@ -376,7 +376,7 @@
         </h3>
         <form (ngSubmit)="saveClient()">
           <div class="mb-4">
-            <label class="block text-gray-700">Nombre</label>
+            <label class="block text-gray-700">Nombre<span class="text-red-500">*</span></label>
             <input
               [(ngModel)]="selectedClientData.name"
               name="name"

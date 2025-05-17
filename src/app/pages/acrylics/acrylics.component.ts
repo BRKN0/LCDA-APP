@@ -100,7 +100,7 @@ export class AcrylicsComponent implements OnInit {
 
   async saveAcrylic(): Promise<void> {
     if (!this.formAcrylic.width || !this.formAcrylic.height || !this.formAcrylic.color || !this.formAcrylic.gauge || this.formAcrylic.cost_price <= 0) {
-      alert ('Por favor, complete todos los campos requeridos.');
+      alert ('Por favor, complete todos los campos.');
       return;
     }
 
