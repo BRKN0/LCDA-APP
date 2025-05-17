@@ -891,6 +891,11 @@ export class InvoiceComponent implements OnInit {
       payment_term: invoice.payment_term || 30,
       due_date: invoice.due_date,
       include_iva: invoice.include_iva ?? true,
+      order: {
+        ...invoice.order,
+        // Forzamos a mantener el mismo tipo de orden
+        order_type: invoice.order.order_type
+      }
     };
     this.isEditing = true;
     this.showModal = true;

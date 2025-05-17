@@ -264,7 +264,7 @@
           [(ngModel)]="selectedInvoice.order.order_type"
           name="type"
           class="form-select"
-          (ngModelChange)="updateClientOrders()"
+          [disabled]="isEditing"
           required
         >
           <option value="print">Impresiones</option>
@@ -295,7 +295,8 @@
           <option value="overdue">En Mora</option>
         </select>
       </div>
-      <div class="mb-4" *ngIf="selectedInvoice">
+      <!-- Campo de selección de orden (oculto en edición) -->
+      <div class="mb-4" *ngIf="selectedInvoice && !isEditing">
         <label class="block text-gray-700">Orden</label>
         <select
           [(ngModel)]="selectedInvoice.order.id_order"
@@ -315,6 +316,7 @@
           No hay órdenes disponibles para este cliente de este tipo.
         </p>
       </div>
+
       <div class="flex justify-end">
         <button
           type="button"
