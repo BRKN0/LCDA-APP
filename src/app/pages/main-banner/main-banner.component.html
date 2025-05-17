@@ -61,17 +61,17 @@
           <!-- Dropdown Menu -->
           <ul
             *ngIf="financeDropdownOpen"
-            class="absolute bg-white shadow-lg mt-2 w-40 z-10"
+            class="absolute dropdown bg-white shadow-lg mt-2 w-40 z-10"
             style="left: 0"
           >
             <li
-              class="p-2 hover:bg-gray-200 cursor-pointer"
+              class="p-2 nav-item cursor-pointer"
               (click)="goToBanks(); closeFinanceDropdown()"
             >
               Bancos
             </li>
             <li
-              class="p-2 hover:bg-gray-200 cursor-pointer"
+              class="p-2 nav-item cursor-pointer"
               (click)="goToBanking(); closeFinanceDropdown()"
             >
               Transacciones
@@ -103,29 +103,29 @@
           <!-- Dropdown Menu -->
           <ul
             *ngIf="priceDropdownOpen"
-            class="absolute bg-white shadow-lg mt-2 w-40 z-10"
+            class="absolute dropdown bg-white shadow-lg mt-2 w-40 z-10"
             style="left: 0"
           >
             <li
-              class="p-2 hover:bg-gray-200 cursor-pointer"
+              class="p-2 nav-item hover:bg-gray-200 cursor-pointer"
               (click)="goToAcrylics(); closePriceDropdown()"
             >
               Acrilicos
             </li>
             <li
-              class="p-2 hover:bg-gray-200 cursor-pointer"
+              class="p-2 nav-item hover:bg-gray-200 cursor-pointer"
               (click)="goToMdf(); closePriceDropdown()"
             >
               MDF
             </li>
             <li
-              class="p-2 hover:bg-gray-200 cursor-pointer"
+              class="p-2 nav-item hover:bg-gray-200 cursor-pointer"
               (click)="goTopolystyrene(); closePriceDropdown()"
             >
               Poliestireno
             </li>
             <li
-              class="p-2 hover:bg-gray-200 cursor-pointer"
+              class="p-2 nav-item hover:bg-gray-200 cursor-pointer"
               (click)="goToVinylCuts(); closePriceDropdown()"
             >
               Vinilo de corte
@@ -157,17 +157,17 @@
           <!-- Dropdown Menu -->
           <ul
             *ngIf="inventoryDropdownOpen"
-            class="absolute bg-white shadow-lg mt-2 w-40 z-10"
+            class="absolute dropdown bg-white shadow-lg mt-2 w-40 z-10"
             style="left: 0"
           >
             <li
-              class="p-2 hover:bg-gray-200 cursor-pointer"
+              class="p-2 nav-item hover:bg-gray-200 cursor-pointer"
               (click)="goToInventory(); closeInventoryDropdown()"
             >
               Materiales
             </li>
             <li
-              class="p-2 hover:bg-gray-200 cursor-pointer"
+              class="p-2 nav-item hover:bg-gray-200 cursor-pointer"
               (click)="goToProducts(); closeInventoryDropdown()"
             >
               Productos
