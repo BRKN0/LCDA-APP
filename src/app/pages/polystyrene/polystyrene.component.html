@@ -50,8 +50,12 @@
       <table class="table-std">
         <thead>
           <tr>
-            <th>Tipo</th>
-            <th>Calibre</th>
+            <th (click)="toggleSortDirection('type')" class="cursor-pointer">
+              Tipo <span>{{ getSortIcon('type') }}</span>
+            </th>
+            <th (click)="toggleSortDirection('caliber')" class="cursor-pointer">
+              Calibre <span>{{ getSortIcon('caliber') }}</span>
+            </th>
             <th>Costo</th>
             <th>30% Util.</th>
             <th>Margen</th>
