@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { MainBannerComponent } from '../main-banner/main-banner.component';
 import { SupabaseService } from '../../services/supabase.service';
 import { FormsModule } from '@angular/forms';
+import { RouterOutlet } from '@angular/router';
 
 interface VinylCut {
   id?: string;
@@ -19,7 +20,7 @@ interface VinylCut {
 @Component({
   selector: 'app-vinyl-cuts',
   standalone: true,
-  imports: [MainBannerComponent, CommonModule, FormsModule],
+  imports: [MainBannerComponent, CommonModule, FormsModule, RouterOutlet],
   templateUrl: './vinyl-cuts.component.html',
   styleUrl: './vinyl-cuts.component.scss'
 })

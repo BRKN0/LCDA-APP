@@ -5,7 +5,7 @@ import { SupabaseService } from '../../services/supabase.service';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { RoleService } from '../../services/role.service';
-
+import { RouterOutlet } from '@angular/router';
 interface Orders {
   id_order: string;
   order_type: string;
@@ -108,7 +108,7 @@ interface Invoice {
 @Component({
   selector: 'app-orders',
   standalone: true,
-  imports: [CommonModule, MainBannerComponent, FormsModule],
+  imports: [CommonModule, MainBannerComponent, FormsModule, RouterOutlet],
   templateUrl: './orders.component.html',
   styleUrls: ['./orders.component.scss'],
 })
@@ -186,7 +186,8 @@ export class OrdersComponent implements OnInit {
   constructor(
     private readonly supabase: SupabaseService,
     private readonly zone: NgZone,
-    private readonly roleService: RoleService
+    private readonly roleService: RoleService,
+    private readonly routerOutlet: RouterOutlet
   ) {}
 
   async ngOnInit(): Promise<void> {

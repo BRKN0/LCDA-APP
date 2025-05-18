@@ -7,11 +7,11 @@ import {
   Validators,
 } from '@angular/forms';
 import { SupabaseService } from '../../services/supabase.service';
-import { Router } from '@angular/router';
+import { Router, RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-login',
-  imports: [FormsModule, ReactiveFormsModule],
+  imports: [FormsModule, ReactiveFormsModule, RouterOutlet],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
 })

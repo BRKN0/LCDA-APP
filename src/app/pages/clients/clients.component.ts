@@ -6,6 +6,7 @@ import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import { SupabaseService } from '../../services/supabase.service';
 import { RoleService } from '../../services/role.service';
+import { RouterOutlet } from '@angular/router';
 
 interface Orders {
   id_order: string;
@@ -60,7 +61,7 @@ interface Payment {
 @Component({
   selector: 'app-clients',
   standalone: true,
-  imports: [CommonModule, MainBannerComponent, FormsModule],
+  imports: [CommonModule, MainBannerComponent, FormsModule, RouterOutlet],
   templateUrl: './clients.component.html',
   styleUrls: ['./clients.component.scss'],
 })

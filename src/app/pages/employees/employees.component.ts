@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { SupabaseService } from '../../services/supabase.service';
 import { RoleService } from '../../services/role.service';
+import { RouterOutlet } from '@angular/router';
 
 interface Employee {
   id_employee: string;
@@ -50,7 +51,7 @@ interface Employee_benefits {
 @Component({
   selector: 'app-employees',
   standalone: true,
-  imports: [CommonModule, FormsModule, MainBannerComponent],
+  imports: [CommonModule, FormsModule, MainBannerComponent, RouterOutlet],
   templateUrl: './employees.component.html',
   styleUrl: './employees.component.scss',
 })
