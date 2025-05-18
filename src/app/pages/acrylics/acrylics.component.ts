@@ -5,6 +5,7 @@ import { SupabaseService } from '../../services/supabase.service';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { RoleService } from '../../services/role.service';
+import { RouterOutlet } from '@angular/router';
 
 interface Acrylic {
   id_acrylics: string;
@@ -19,7 +20,7 @@ interface Acrylic {
 @Component({
   selector: 'app-acrylics',
   standalone: true,
-  imports: [CommonModule, FormsModule, MainBannerComponent],
+  imports: [CommonModule, FormsModule, MainBannerComponent, RouterOutlet],
   templateUrl: './acrylics.component.html',
   styleUrl: './acrylics.component.scss'
 })

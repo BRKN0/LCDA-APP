@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MainBannerComponent } from '../main-banner/main-banner.component';
 import { SupabaseService } from '../../services/supabase.service';
+import { RouterOutlet } from '@angular/router';
 
 interface Polystyrene {
   id_polystyrene?: string;
@@ -15,7 +16,7 @@ interface Polystyrene {
 @Component({
   selector: 'app-polystyrene',
   standalone: true,
-  imports: [CommonModule, MainBannerComponent, FormsModule],
+  imports: [CommonModule, MainBannerComponent, FormsModule, RouterOutlet],
   templateUrl: './polystyrene.component.html',
   styleUrl: './polystyrene.component.scss',
 })

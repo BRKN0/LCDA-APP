@@ -26,7 +26,7 @@ export class MainBannerComponent implements OnInit {
     private readonly supabase: SupabaseService,
     private readonly roleService: RoleService,
     //private readonly route: ActivatedRoute,
-    private readonly router: Router,
+    public readonly router: Router,
     private readonly zone: NgZone
   ) {
     this.isLoggedIn$ = this.supabase
@@ -49,16 +49,16 @@ export class MainBannerComponent implements OnInit {
     this.router.navigate(['/product']); // Redirect to product route
   }
   goToAcrylics() {
-    this.router.navigate(['/acrylics']); // Redirect to acrylics route
+    this.router.navigate(['/pricing/acrylics']); // Redirect to acrylics route
   }
   goToMdf() {
-    this.router.navigate(['/mdf']); // Redirect to mdf route
+    this.router.navigate(['/pricing/mdf']); // Redirect to mdf route
   }
   goTopolystyrene() {
-    this.router.navigate(['/polystyrene']); // Redirect to polystyrene route
+    this.router.navigate(['/pricing/polystyrene']); // Redirect to polystyrene route
   }
   goToVinylCuts() {
-    this.router.navigate(['/vinyl-cuts']); // Redirect to vinyl-cuts route
+    this.router.navigate(['/pricing/vinyl-cuts']); // Redirect to vinyl-cuts route
   }
   goToClients() {
     this.router.navigate(['/clients']); // Redirect to clients route

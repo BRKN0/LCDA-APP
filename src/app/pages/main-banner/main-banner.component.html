@@ -15,7 +15,11 @@
   <div class="mt-5 mx-auto px-4 flex flex-wrap justify-center gap-4">
     <!-- Navigation -->
     <div class="flex justify-around py-4 nav-bar shadow-md">
-      <div class="nav-item cursor-pointer" (click)="goToHome()">
+      <div
+        [ngClass]="{ active: router.url === '/home' }"
+        class="nav-item cursor-pointer"
+        (click)="goToHome()"
+      >
         <i class="fas fa-home"></i>
         <span>Inicio</span>
       </div>
@@ -27,24 +31,20 @@
       </ng-template>
       <!-- Usuario Visitante  -->
       <ng-template #loginButton>
-        <button
-          class="p-1 text-white bg-red-500 shadow-lg"
-          (click)="goToLogin()"
-        >
-          Iniciar sesión
-        </button>
+        <button class="relative" (click)="goToLogin()">Iniciar sesión</button>
 
         <!-- Usuario -->
       </ng-template>
       <ng-template #signOutButton>
         <div
           *ngIf="userRole == 'admin'"
-          class="relative nav-item2"
+          class="relative"
           (clickOutside)="closeFinanceDropdown()"
         >
           <!-- Finance Button -->
           <div
             class="cursor-pointer nav-item-dropdown flex items-center"
+            [ngClass]="{ active: router.url.startsWith('/bank') }"
             (click)="toggleFinanceDropdown($event)"
           >
             <i class="fas fa-dollar-sign"></i>
@@ -81,12 +81,13 @@
 
         <div
           *ngIf="userRole == 'admin'"
-          class="relative nav-item2"
+          class="relative"
           (clickOutside)="closePriceDropdown()"
         >
           <!-- Finance Button -->
           <div
             class="nav-item-dropdown cursor-pointer flex items-center"
+            [ngClass]="{ active: router.url.startsWith('/bank') }"
             (click)="togglePriceDropdown($event)"
           >
             <i class="fas fa-dollar-sign"></i>
@@ -104,6 +105,7 @@
           <ul
             *ngIf="priceDropdownOpen"
             class="absolute dropdown bg-white shadow-lg mt-2 w-[103px] z-10"
+            [ngClass]="{ active: router.url.startsWith('/pricing') }"
             style="left: 0"
           >
             <li
@@ -141,6 +143,7 @@
           <!-- Inventory Button -->
           <div
             class="nav-item-dropdown cursor-pointer flex items-center"
+            [ngClass]="{ active: router.url.startsWith('/inventory') }"
             (click)="toggleInventoryDropdown($event)"
           >
             <i class="fas fa-dollar-sign"></i>
@@ -161,7 +164,7 @@
             style="left: 0"
           >
             <li
-              class="p-2 nav-item  cursor-pointer"
+              class="p-2 nav-item cursor-pointer"
               (click)="goToInventory(); closeInventoryDropdown()"
             >
               Materiales
@@ -178,6 +181,7 @@
         <div
           *ngIf="userRole == 'admin'"
           class="nav-item cursor-pointer"
+          [ngClass]="{ active: router.url.startsWith('/clients') }"
           (click)="goToClients()"
         >
           <i class="fas fa-users"></i>
@@ -186,18 +190,24 @@
         <div
           *ngIf="userRole == 'admin'"
           class="nav-item cursor-pointer"
+          [ngClass]="{ active: router.url.startsWith('/invoice') }"
           (click)="goToInvoices()"
         >
           <i class="fas fa-users"></i>
           <span>Facturas</span>
         </div>
-        <div class="nav-item cursor-pointer" (click)="goToOrders()">
+        <div
+          class="nav-item cursor-pointer"
+          [ngClass]="{ active: router.url.startsWith('/orders') }"
+          (click)="goToOrders()"
+        >
           <i class="fas fa-users"></i>
           <span>Pedidos</span>
         </div>
         <div
           *ngIf="userRole == 'admin'"
           class="nav-item cursor-pointer"
+          [ngClass]="{ active: router.url.startsWith('/expenses') }"
           (click)="goToExpenses()"
         >
           <i class="fas fa-users"></i>
@@ -206,17 +216,42 @@
         <div
           *ngIf="userRole == 'admin'"
           class="nav-item cursor-pointer"
+          [ngClass]="{ active: router.url.startsWith('/employees') }"
           (click)="goToEmployees()"
         >
           <i class="fas fa-users"></i>
           <span>Empleados</span>
         </div>
-        <button class="p-1 nav-item" (click)="signOut()">
-          Cerrar sesión
-        </button>
+        <div
+          class="p-1 nav-item absolute top-2 right-2 shadow-md"
+          (click)="signOut()"
+        >
+          <!-- signOut Icon -->
+          <svg
+            viewBox="0 0 64 64"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            stroke="#ffffff"
+            stroke-width="2.432"
+            class="size-7"
+          >
+            <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+            <g
+              id="SVGRepo_tracerCarrier"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            ></g>
+            <g id="SVGRepo_iconCarrier">
+              <polyline points="40 44 40 56 8 56 8 8 40 8 40 20"></polyline>
+              <polyline points="48 40 56 32 48 24"></polyline>
+              <line x1="28" y1="32" x2="56" y2="32"></line>
+            </g>
+          </svg>
+        </div>
         <!-- Notifications Button -->
         <div
           class="nav-item relative cursor-pointer"
+          [ngClass]="{ active: router.url.startsWith('/notifications') }"
           (click)="goToNotifications()"
         >
           <!-- Bell Icon -->

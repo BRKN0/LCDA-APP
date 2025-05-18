@@ -4,6 +4,7 @@ import { MainBannerComponent } from '../main-banner/main-banner.component';
 import { SupabaseService } from '../../services/supabase.service';
 import { FormsModule } from '@angular/forms';
 import { RoleService } from '../../services/role.service';
+import { RouterOutlet } from '@angular/router';
 
 interface Notifications {
   id_notification: string;
@@ -21,7 +22,7 @@ interface Notifications {
 @Component({
   selector: 'app-notifications',
   standalone: true,
-  imports: [CommonModule, MainBannerComponent, FormsModule],
+  imports: [CommonModule, MainBannerComponent, FormsModule, RouterOutlet],
   templateUrl: './notifications.component.html',
   styleUrls: ['./notifications.component.scss'],
 })
