@@ -189,16 +189,42 @@
     </div>
 
     <!-- Modal para mostrar pedidos -->
-    <div
-      *ngIf="showOrders"
-      class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
-    >
-      <div
-        class="bg-white rounded-lg shadow-lg p-6 w-3/4 max-h-screen overflow-y-auto"
-      >
+    <div *ngIf="showOrders" class="modal-overlay top modal-h">
+      <div class="modal-content top modal-h400 modal-w720">
         <h3 class="text-lg font-bold mb-4">
           Pedidos del Cliente: {{ selectedClient?.name }}
         </h3>
+        <!-- Filtros de fecha -->
+        <div class="flex items-center space-x-4 mb-4">
+          <div>
+            <label class="block text-gray-700 text-sm font-bold mb-1"
+              >Desde:</label
+            >
+            <input
+              type="date"
+              [(ngModel)]="startDate"
+              (change)="updatePaginatedOrders()"
+              class="border rounded p-1"
+            />
+          </div>
+          <div>
+            <label class="block text-gray-700 text-sm font-bold mb-1"
+              >Hasta:</label
+            >
+            <input
+              type="date"
+              [(ngModel)]="endDate"
+              (change)="updatePaginatedOrders()"
+              class="border rounded p-1"
+            />
+          </div>
+          <button
+            (click)="clearDateFilters()"
+            class="bg-gray-500 text-white px-3 py-1 rounded-md hover:bg-gray-600 mt-5"
+          >
+            Limpiar Filtros
+          </button>
+        </div>
         <table class="w-full border-collapse">
           <thead>
             <tr class="bg-gray-100">
@@ -218,7 +244,8 @@
               </td>
               <td class="p-3 border">{{ order.description }}</td>
               <td class="p-3 border">
-                ${{ calculateOrderTotal(order).toFixed(2) }} {{ order.include_iva ? '' : '' }}
+                ${{ calculateOrderTotal(order).toFixed(2) }}
+                {{ order.include_iva ? "" : "" }}
               </td>
               <td
                 class="modal-table-column"
@@ -290,7 +317,9 @@
               →
             </button>
             <button
-              (click)="currentOrderPage = totalOrderPages; updatePaginatedOrders()"
+              (click)="
+                currentOrderPage = totalOrderPages; updatePaginatedOrders()
+              "
               [disabled]="currentOrderPage === totalOrderPages"
               class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
             >
