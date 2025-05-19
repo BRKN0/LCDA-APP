@@ -4,11 +4,9 @@
 <div *ngIf="loading" class="p-4 text-center text-gray-600">
   <p>Cargando egresos...</p>
 </div>
-
-<div class="expenses-container">
-  <!-- Filtros - Checkboxes de categorías -->
-  <div class="ml-4 mb-4">
-    <div *ngFor="let category of uniqueCategories" class="inline-flex items-center mr-4">
+<div class="flex justify-between items-center mb-4 mt-4 ml-2">
+  <div class="flex flex-wrap gap-4">
+    <label class="flex items-center" *ngFor="let category of uniqueCategories">
       <input
         type="checkbox"
         [(ngModel)]="categoryCheckboxes[category]"
@@ -16,12 +14,9 @@
         class="form-checkbox"
       />
       <span class="ml-2">{{ category }}</span>
-    </div>
+    </label>
   </div>
-
-  <!-- Filtros -->
-  <div class="flex justify-between items-center mb-4">
-    <!-- Botón Añadir -->
+  <div class="flex space-x-2">
     <button
       class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 mr-4"
       (click)="addNewExpense()"
@@ -29,134 +24,136 @@
       Añadir Nuevo Egreso
     </button>
     <button
-        class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 mr-4"
-        (click)="generateExpensesKardex()"
-      >
-        Generar Kardex
-      </button>
+      class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 mr-4"
+      (click)="generateExpensesKardex()"
+    >
+      Generar Kardex
+    </button>
+  </div>
+</div>
+<div class="flex items-center space-x-4">
+  <div>
+    <label for="startDate" class="mr-2 font-semibold">Desde:</label>
+    <input
+      type="date"
+      id="startDate"
+      [(ngModel)]="startDate"
+      (ngModelChange)="applyFilters()"
+      class="border border-gray-300 rounded-md p-1"
+    />
+  </div>
+  <div>
+    <label for="endDate" class="mr-2 font-semibold">Hasta:</label>
+    <input
+      type="date"
+      id="endDate"
+      [(ngModel)]="endDate"
+      (ngModelChange)="applyFilters()"
+      class="border border-gray-300 rounded-md p-1"
+    />
+  </div>
+</div>
+
+<!-- Tabla -->
+<div class="mt-4">
+  <table class="table-std">
+    <thead>
+      <tr>
+        <th class="table-column-std">Código</th>
+        <th class="table-column-std">Fecha</th>
+        <th class="table-column-std">Categoría</th>
+        <th class="table-column-std">Tipo</th>
+        <th class="table-column-std">Descripción</th>
+        <th class="table-column-std">Costo</th>
+        <th class="table-column-std">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let expense of paginatedExpenses">
+        <td>{{ expense.code }}</td>
+        <td>{{ expense.payment_date | date : "dd-MM-yyyy" }}</td>
+        <td>{{ expense.category }}</td>
+        <td>{{ expense.type }}</td>
+        <td>{{ expense.description }}</td>
+        <td>{{ expense.cost | currency }}</td>
+        <td>
+          <button class="btn-edit" (click)="editExpense(expense)">
+            Editar
+          </button>
+          <button class="btn-delete" (click)="deleteExpense(expense)">
+            Eliminar
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="flex justify-between items-center mb-4">
+  <!-- Controles de paginación -->
+  <div class="pagination flex items-center">
+    <button
+      (click)="currentPage = 1; updatePaginatedExpenses()"
+      [disabled]="currentPage === 1"
+      class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+    >
+      &#8656;
+    </button>
+    <button
+      (click)="currentPage = currentPage - 1; updatePaginatedExpenses()"
+      [disabled]="currentPage === 1"
+      class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-7 h-7"
+    >
+      ←
+    </button>
+    <span class="mx-4 text-gray-700"
+      >Página {{ currentPage }} de {{ totalPages }}</span
+    >
+    <button
+      (click)="currentPage = currentPage + 1; updatePaginatedExpenses()"
+      [disabled]="currentPage === totalPages"
+      class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-7 h-7"
+    >
+      →
+    </button>
+    <button
+      (click)="currentPage = totalPages; updatePaginatedExpenses()"
+      [disabled]="currentPage === totalPages"
+      class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+    >
+      &#8658;
+    </button>
   </div>
 
-  <!-- Filtros de Fechas -->
-  <div class="flex items-center space-x-4">
-    <div>
-      <label for="startDate" class="mr-2 font-semibold">Desde:</label>
-      <input
-        type="date"
-        id="startDate"
-        [(ngModel)]="startDate"
-        (ngModelChange)="applyFilters()"
-        class="border border-gray-300 rounded-md p-1"
-      />
-    </div>
-    <div>
-      <label for="endDate" class="mr-2 font-semibold">Hasta:</label>
-      <input
-        type="date"
-        id="endDate"
-        [(ngModel)]="endDate"
-        (ngModelChange)="applyFilters()"
-        class="border border-gray-300 rounded-md p-1"
-      />
-    </div>
+  <!-- Selector de elementos por página -->
+  <div class="items-per-page flex items-center">
+    <label for="itemsPerPage" class="mr-2">Elementos por página:</label>
+    <select
+      id="itemsPerPage"
+      [(ngModel)]="itemsPerPage"
+      (change)="currentPage = 1; updatePaginatedExpenses()"
+      class="border border-gray-300 rounded-md p-1"
+    >
+      <option *ngFor="let size of [2, 10, 15, 20]" [value]="size">
+        {{ size }}
+      </option>
+    </select>
   </div>
+</div>
 
-  <!-- Tabla -->
-  <div class="table-std">
-    <table>
-      <thead>
-        <tr>
-          <th class="table-column-std">Código</th>
-          <th class="table-column-std">Fecha</th>
-          <th class="table-column-std">Categoría</th>
-          <th class="table-column-std">Tipo</th>
-          <th class="table-column-std">Descripción</th>
-          <th class="table-column-std">Costo</th>
-          <th class="table-column-std">Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let expense of paginatedExpenses">
-          <td>{{ expense.code }}</td>
-          <td>{{ expense.payment_date | date : "dd-MM-yyyy"  }}</td>
-          <td>{{ expense.category }}</td>
-          <td>{{ expense.type }}</td>
-          <td>{{ expense.description }}</td>
-          <td>{{ expense.cost | currency }}</td>
-          <td>
-            <button class="btn-edit" (click)="editExpense(expense)">
-              Editar
-            </button>
-            <button class="btn-delete" (click)="deleteExpense(expense)">
-              Eliminar
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <div class="flex justify-between items-center mb-4">
-    <!-- Controles de paginación -->
-    <div class="pagination flex items-center">
-      <button
-        (click)="currentPage = 1; updatePaginatedExpenses()"
-        [disabled]="currentPage === 1"
-        class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
-      >
-        &#8656;
-      </button>
-      <button
-        (click)="currentPage = currentPage - 1; updatePaginatedExpenses()"
-        [disabled]="currentPage === 1"
-        class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-7 h-7"
-      >
-        ←
-      </button>
-      <span class="mx-4 text-gray-700"
-        >Página {{ currentPage }} de {{ totalPages }}</span
-      >
-      <button
-        (click)="currentPage = currentPage + 1; updatePaginatedExpenses()"
-        [disabled]="currentPage === totalPages"
-        class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-7 h-7"
-      >
-        →
-      </button>
-      <button
-        (click)="currentPage = totalPages; updatePaginatedExpenses()"
-        [disabled]="currentPage === totalPages"
-        class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
-      >
-        &#8658;
-      </button>
-    </div>
-
-    <!-- Selector de elementos por página -->
-    <div class="items-per-page flex items-center">
-      <label for="itemsPerPage" class="mr-2">Elementos por página:</label>
-      <select
-        id="itemsPerPage"
-        [(ngModel)]="itemsPerPage"
-        (change)="currentPage = 1; updatePaginatedExpenses()"
-        class="border border-gray-300 rounded-md p-1"
-      >
-        <option *ngFor="let size of [2, 10, 15, 20]" [value]="size">
-          {{ size }}
-        </option>
-      </select>
-    </div>
-  </div>
-
-
-  <!-- Modal para añadir/editar egresos -->
+<!-- Modal para añadir/editar egresos -->
 <div *ngIf="showModal" class="modal-overlay">
-  <div class="modal-content w-1/2">
-    <h2>{{ isEditing ? 'Editar Egreso' : 'Añadir Nuevo Egreso' }}</h2>
+  <div class="modal-content modal-h600">
+    <h2 class="text-lg font-bold mb-4">
+      {{ isEditing ? "Editar Egreso" : "Añadir Nuevo Egreso" }}
+    </h2>
 
     <!-- Formulario -->
     <form (ngSubmit)="saveExpense()">
-      <div class="form-group">
-        <label for="payment_date">Fecha<span class="text-red-500">*</span></label>
+      <div class="modal-input-item">
+        <label for="payment_date"
+          >Fecha<span class="text-red-500">*</span></label
+        >
         <input
           type="date"
           id="payment_date"
@@ -167,8 +164,10 @@
         />
       </div>
 
-      <div class="form-group">
-        <label for="category">Categoría<span class="text-red-500">*</span></label>
+      <div class="modal-input-item">
+        <label for="category"
+          >Categoría<span class="text-red-500">*</span></label
+        >
         <select
           id="category"
           [(ngModel)]="selectedExpense.category"
@@ -192,7 +191,7 @@
         />
       </div>
 
-      <div class="form-group">
+      <div class="modal-input-item">
         <label for="type">Tipo</label>
         <input
           type="text"
@@ -204,7 +203,7 @@
         />
       </div>
 
-      <div class="form-group">
+      <div class="modal-input-item">
         <label for="description">Descripción</label>
         <textarea
           id="description"
@@ -216,7 +215,7 @@
         ></textarea>
       </div>
 
-      <div class="form-group">
+      <div class="modal-input-item">
         <label for="cost">Costo</label>
         <input
           type="number"
@@ -229,7 +228,7 @@
         />
       </div>
 
-      <div class="form-group">
+      <div class="modal-input-item">
         <label for="code">Código</label>
         <input
           type="number"
@@ -242,11 +241,14 @@
       </div>
 
       <!-- Botones -->
-      <div class="form-actions">
-        <button type="button" class="btn-danger" (click)="closeModal()">Cancelar</button>
-        <button type="submit" class="btn-success">{{ isEditing ? 'Actualizar Egreso' : 'Añadir Egreso' }}</button>
+      <div class="flex justify-between items-center mt-5">
+        <button type="button" class="btn-danger" (click)="closeModal()">
+          Cancelar
+        </button>
+        <button type="submit" class="btn-success">
+          {{ isEditing ? "Actualizar Egreso" : "Añadir Egreso" }}
+        </button>
       </div>
     </form>
   </div>
 </div>
-
