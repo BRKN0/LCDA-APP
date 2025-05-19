@@ -157,8 +157,8 @@ button {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
@@ -166,16 +166,89 @@ button {
   z-index: 1000;
 }
 
+.modal-overlay.top {
+  z-index: 1001;
+}
+.modal-content.top {
+  z-index: 1001;
+}
 .modal-content {
-  background: #ffffff;
+  border-color: #ad2651;
+  border-width: 2px;
+  background: white;
+  color: black;
   padding: 20px;
   border-radius: 12px;
+  position: fixed;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  width: 90%;
+  width: 100%;
+  height: 100%;
+  max-width: 600px;
+  max-height: 800px;
+  overflow-x: auto;
+  overflow-y: auto;
+  z-index: 1000;
+}
+.modal-h250 {
+  height: 250px;
+}
+.modal-h300 {
+  height: 300px;
+}
+.modal-h400 {
+  height: 400px;
+}
+.modal-h550 {
+  height: 550px;
+}
+.modal-h600 {
+  height: 600px;
+}
+.modal-h800 {
+  height: 800px;
+}
+.modal-w500 {
+  width: 500px;
+}
+.modal-w720 {
+  width: 720px;
+  max-width: 720px;
+}
+.modal-content.expanded {
+  height: 450px;
+}
+.modal-table {
+  width: 95%;
   max-width: 500px;
-  animation: modalFadeIn 0.3s ease;
+  border-collapse: collapse;
+  border: 1px solid theme("colors.gray.400");
+  margin-top: theme("spacing.2");
+  overflow-x: auto;
+  th,
+  td {
+    border: 1px solid theme("colors.gray.400");
+    padding: theme("spacing.2");
+  }
+
+  thead {
+    background-color: theme("colors.gray.200");
+  }
+}
+.modal-table-column {
+  border: 1px solid theme("colors.gray.300");
+  width: 95%;
+  max-width: 500px;
+  padding: theme("spacing.2") theme("spacing.4");
+  text-align: left;
+  white-space: nowrap;
+  overflow-x: auto;
 }
 
+.modal-input-item {
+  color: black;
+  border-radius: 6px;
+  z-index: 1000;
+}
 @keyframes modalFadeIn {
   from {
     opacity: 0;
@@ -375,6 +448,11 @@ h1 {
   position: relative;
   z-index: 10; /* Ensure title is on top of buttons */
 }
+.nav-item.active {
+  font-weight: bold;
+  border: 2px solid;
+  background-color: rgb(175, 14, 65);
+}
 .nav-item {
   text-align: center;
   cursor: pointer;
@@ -385,7 +463,7 @@ h1 {
   background-color: #c72c41;
   border-color: #c72c41;
   transition: color 0.3s ease-in-out, background-color 0.3s ease-in-out,
-  transform 0.2s;
+    transform 0.2s;
   z-index: 10;
 
   &:hover {

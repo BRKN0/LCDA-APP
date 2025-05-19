@@ -6,6 +6,7 @@ import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import { SupabaseService } from '../../services/supabase.service';
 import { RoleService } from '../../services/role.service';
+import { RouterOutlet } from '@angular/router';
 
 interface Orders {
   id_order: string;
@@ -60,12 +61,13 @@ interface Payment {
 @Component({
   selector: 'app-clients',
   standalone: true,
-  imports: [CommonModule, MainBannerComponent, FormsModule],
+  imports: [CommonModule, MainBannerComponent, FormsModule, RouterOutlet],
   templateUrl: './clients.component.html',
   styleUrls: ['./clients.component.scss'],
 })
 export class ClientsComponent implements OnInit {
   clients: Client[] = [];
+  modalExpanded = false;
   filteredClients: Client[] = [];
   selectedClient: Client | null = null;
   showOrders = false;
@@ -164,11 +166,13 @@ export class ClientsComponent implements OnInit {
     this.clients = data.map((client) => ({
       ...client,
       orders: Array.isArray(client.orders)
-        ? client.orders.map((order: { payments: any; include_iva?: boolean; iva: number }) => ({
-            ...order,
-            payments: Array.isArray(order.payments) ? order.payments : [],
-            include_iva: order.iva === 1,
-          }))
+        ? client.orders.map(
+            (order: { payments: any; include_iva?: boolean; iva: number }) => ({
+              ...order,
+              payments: Array.isArray(order.payments) ? order.payments : [],
+              include_iva: order.iva === 1,
+            })
+          )
         : [],
     })) as Client[];
 
@@ -177,7 +181,8 @@ export class ClientsComponent implements OnInit {
       const hasOverdueOrder = client.orders?.some(
         (order) => order.order_payment_status === 'overdue'
       );
-      const newStatus = totalDebt > 0 || hasOverdueOrder ? 'overdue' : 'upToDate';
+      const newStatus =
+        totalDebt > 0 || hasOverdueOrder ? 'overdue' : 'upToDate';
 
       if (client.debt !== totalDebt || client.status !== newStatus) {
         client.debt = totalDebt;
@@ -199,7 +204,11 @@ export class ClientsComponent implements OnInit {
 
     const totalOrders = client.orders.reduce((sum, order) => {
       const orderTotal = this.calculateOrderTotal(order);
-      const totalPaid = order.payments?.reduce((paidSum, payment) => paidSum + payment.amount, 0) || 0;
+      const totalPaid =
+        order.payments?.reduce(
+          (paidSum, payment) => paidSum + payment.amount,
+          0
+        ) || 0;
       return sum + (orderTotal - totalPaid);
     }, 0);
 
@@ -219,7 +228,9 @@ export class ClientsComponent implements OnInit {
       const matchesSearchQuery =
         client.name.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
         (client.company_name &&
-          client.company_name.toLowerCase().includes(this.searchQuery.toLowerCase()));
+          client.company_name
+            .toLowerCase()
+            .includes(this.searchQuery.toLowerCase()));
       const matchesDebtFilter = !this.filterDebt || client.status === 'overdue';
 
       return matchesSearchQuery && matchesDebtFilter;
@@ -246,6 +257,7 @@ export class ClientsComponent implements OnInit {
 
   toggleClientDetails() {
     this.showDetails = !this.showDetails;
+    this.modalExpanded = !this.modalExpanded;
   }
 
   toggleOrders(client: Client | null): void {
@@ -314,13 +326,17 @@ export class ClientsComponent implements OnInit {
       }
 
       const orderTotal = this.calculateOrderTotal(order);
-      const totalPaid = (order.payments?.reduce((sum, p) => sum + p.amount, 0) || 0) + amount;
+      const totalPaid =
+        (order.payments?.reduce((sum, p) => sum + p.amount, 0) || 0) + amount;
       const newOrderStatus = totalPaid >= orderTotal ? 'upToDate' : 'overdue';
 
       if (!order.payments) {
         order.payments = [];
       }
-      order.payments.push({ ...payment, payment_date: new Date().toISOString() });
+      order.payments.push({
+        ...payment,
+        payment_date: new Date().toISOString(),
+      });
 
       await this.supabase
         .from('orders')
@@ -330,8 +346,11 @@ export class ClientsComponent implements OnInit {
       const client = this.clients.find((c) => c.id_client === order.id_client);
       if (client) {
         const totalDebt = this.calculateClientDebt(client);
-        const hasOverdueOrder = client.orders?.some((o) => o.order_payment_status === 'overdue');
-        const newStatus = totalDebt > 0 || hasOverdueOrder ? 'overdue' : 'upToDate';
+        const hasOverdueOrder = client.orders?.some(
+          (o) => o.order_payment_status === 'overdue'
+        );
+        const newStatus =
+          totalDebt > 0 || hasOverdueOrder ? 'overdue' : 'upToDate';
 
         if (client.debt !== totalDebt || client.status !== newStatus) {
           client.debt = totalDebt;
@@ -343,10 +362,15 @@ export class ClientsComponent implements OnInit {
         }
 
         // Actualizar la instancia local del cliente seleccionado
-        if (this.selectedClient && this.selectedClient.id_client === client.id_client) {
+        if (
+          this.selectedClient &&
+          this.selectedClient.id_client === client.id_client
+        ) {
           this.selectedClient.debt = totalDebt;
           this.selectedClient.status = newStatus;
-          const updatedOrder = this.selectedClient.orders?.find(o => o.id_order === order.id_order);
+          const updatedOrder = this.selectedClient.orders?.find(
+            (o) => o.id_order === order.id_order
+          );
           if (updatedOrder) {
             updatedOrder.order_payment_status = newOrderStatus;
             updatedOrder.payments = order.payments;
@@ -354,8 +378,15 @@ export class ClientsComponent implements OnInit {
         }
 
         // Actualizar la lista de clientes localmente
-        this.clients = this.clients.map(c =>
-          c.id_client === client.id_client ? { ...c, debt: totalDebt, status: newStatus, orders: client.orders } : c
+        this.clients = this.clients.map((c) =>
+          c.id_client === client.id_client
+            ? {
+                ...c,
+                debt: totalDebt,
+                status: newStatus,
+                orders: client.orders,
+              }
+            : c
         );
         this.filteredClients = [...this.clients]; // Reasignar para forzar cambio de detección
         this.updatePaginatedClients();
@@ -375,9 +406,9 @@ export class ClientsComponent implements OnInit {
       id_client: '',
       name: '',
       document_type: '',
-      document_number: '',
+      document_number: '0',
       status: 'upToDate',
-      cellphone: '',
+      cellphone: '0',
       nit: '',
       company_name: '',
       email: '',
@@ -399,6 +430,16 @@ export class ClientsComponent implements OnInit {
 
   async saveClient(): Promise<void> {
     if (!this.selectedClientData) return;
+
+    if (!this.selectedClientData.name) {
+      alert('Por favor, digite nombre del cliente.');
+      return;
+    }
+
+    if (!this.selectedClientData.company_name) {
+      alert('Por favor, digite nombre del cliente.');
+      return;
+    }
 
     const clientToSave = {
       name: this.selectedClientData.name || null,
@@ -448,7 +489,9 @@ export class ClientsComponent implements OnInit {
   }
 
   async deleteClient(client: Client): Promise<void> {
-    if (confirm(`¿Eliminar el cliente ${client.company_name || client.name}?`)) {
+    if (
+      confirm(`¿Eliminar el cliente ${client.company_name || client.name}?`)
+    ) {
       try {
         const { error } = await this.supabase
           .from('clients')
@@ -475,14 +518,20 @@ export class ClientsComponent implements OnInit {
 
   generatePDF(): void {
     if (!this.selectedClient || !this.selectedClient.orders) {
-      console.error("No hay datos de pedidos para exportar");
+      console.error('No hay datos de pedidos para exportar');
       return;
     }
 
     const doc = new jsPDF();
 
     doc.setFontSize(16);
-    doc.text(`Extracto de Cliente: ${this.selectedClient.company_name || this.selectedClient.name}`, 10, 10);
+    doc.text(
+      `Extracto de Cliente: ${
+        this.selectedClient.company_name || this.selectedClient.name
+      }`,
+      10,
+      10
+    );
 
     const orders = this.selectedClient.orders.map((order: any) => [
       order.code,
@@ -499,7 +548,9 @@ export class ClientsComponent implements OnInit {
       startY: 40,
     });
 
-    doc.save(`Extracto-${this.selectedClient.company_name || this.selectedClient.name}`);
+    doc.save(
+      `Extracto-${this.selectedClient.company_name || this.selectedClient.name}`
+    );
   }
 
   generateClientsKardex(): void {
@@ -535,7 +586,10 @@ export class ClientsComponent implements OnInit {
 
       const csvRows = this.filteredClients.map((client) => {
         console.log('Procesando cliente:', client);
-        const debtValue = typeof client.debt === 'number' ? client.debt : parseFloat(client.debt || '0');
+        const debtValue =
+          typeof client.debt === 'number'
+            ? client.debt
+            : parseFloat(client.debt || '0');
         const formattedDebt = isNaN(debtValue) ? '0.00' : debtValue.toFixed(2);
 
         return [
@@ -551,15 +605,23 @@ export class ClientsComponent implements OnInit {
           client.city || 'N/A',
           client.province || 'N/A',
           client.postal_code || 'N/A',
-          client.status === 'upToDate' ? 'Al Día' : client.status === 'overdue' ? 'En Mora' : 'Desconocido',
+          client.status === 'upToDate'
+            ? 'Al Día'
+            : client.status === 'overdue'
+            ? 'En Mora'
+            : 'Desconocido',
           formattedDebt,
           client.created_at.split('T')[0] || currentDate,
         ].map((value) => `"${value}"`);
       });
 
-      const csvContent = [csvHeader, ...csvRows].map((row) => row.join(';')).join('\r\n');
+      const csvContent = [csvHeader, ...csvRows]
+        .map((row) => row.join(';'))
+        .join('\r\n');
       const bom = '\uFEFF';
-      const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const blob = new Blob([bom + csvContent], {
+        type: 'text/csv;charset=utf-8;',
+      });
       const url = window.URL.createObjectURL(blob);
 
       const a = document.createElement('a');
@@ -586,7 +648,9 @@ export class ClientsComponent implements OnInit {
     const startIndex = Number((this.currentPage - 1) * this.itemsPerPage);
     const endIndex = startIndex + Number(this.itemsPerPage);
     this.paginatedClients = this.filteredClients.slice(startIndex, endIndex);
-    this.totalPages = Math.ceil(this.filteredClients.length / this.itemsPerPage);
+    this.totalPages = Math.ceil(
+      this.filteredClients.length / this.itemsPerPage
+    );
 
     if (this.currentPage > this.totalPages) {
       this.currentPage = this.totalPages;
@@ -594,7 +658,12 @@ export class ClientsComponent implements OnInit {
   }
 
   updatePaginatedOrders(): void {
-    if (!this.selectedClient?.orders) {
+    if (this.selectedClient?.orders?.length) {
+      const startIndex = Number((this.currentOrderPage - 1) * this.itemsPerOrderPage);
+      const endIndex = startIndex + Number(this.itemsPerOrderPage);
+      this.paginatedOrders = this.selectedClient?.orders.slice(startIndex, endIndex) || [];
+      this.totalOrderPages = Math.ceil((this.selectedClient?.orders.length || 0) / this.itemsPerOrderPage);
+    } else {
       this.totalOrderPages = 0;
       return;
     }
@@ -645,7 +714,11 @@ export class ClientsComponent implements OnInit {
       }
 
       client.status = newStatus;
-      alert(`Estado actualizado a "${newStatus === 'upToDate' ? 'Al día' : 'En mora'}" correctamente`);
+      alert(
+        `Estado actualizado a "${
+          newStatus === 'upToDate' ? 'Al día' : 'En mora'
+        }" correctamente`
+      );
     } catch (error) {
       console.error('Error inesperado al actualizar estado:', error);
     }

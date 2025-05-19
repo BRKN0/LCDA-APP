@@ -5,10 +5,11 @@ import { SupabaseService } from '../../services/supabase.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { map } from 'rxjs';
+import { RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-home',
-  imports: [MainBannerComponent, CommonModule, FormsModule],
+  imports: [MainBannerComponent, CommonModule, FormsModule, RouterOutlet],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss',
 })

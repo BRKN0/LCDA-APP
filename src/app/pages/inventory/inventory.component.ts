@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { MainBannerComponent } from '../main-banner/main-banner.component';
 import { SupabaseService } from '../../services/supabase.service';
 import { FormsModule } from '@angular/forms';
+import { RouterOutlet } from '@angular/router';
 
 interface InventoryItem {
   id_material: string;
@@ -20,7 +21,7 @@ interface InventoryItem {
 @Component({
   selector: 'app-inventory',
   standalone: true,
-  imports: [CommonModule, MainBannerComponent, FormsModule],
+  imports: [CommonModule, MainBannerComponent, FormsModule, RouterOutlet],
   templateUrl: './inventory.component.html',
   styleUrls: ['./inventory.component.scss'],
 })
@@ -393,6 +394,16 @@ export class InventoryComponent implements OnInit {
 
   saveItem(): void {
     if (!this.selectedItem) return;
+
+    if (!this.selectedItem.category) {
+      alert('Por favor, digite la categoria del producto.');
+      return;
+    }
+
+    if (!this.selectedItem.cost) {
+      alert('Por favor, digite el costo del producto.');
+      return;
+    }
 
     const itemToSave = {
       category: this.selectedItem.category,
