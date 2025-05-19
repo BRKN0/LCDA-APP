@@ -3,7 +3,7 @@ import { Component, OnInit, NgZone } from '@angular/core';
 import { MainBannerComponent } from '../main-banner/main-banner.component';
 import { FormsModule } from '@angular/forms';
 import { jsPDF } from 'jspdf';
-import { Router } from '@angular/router';
+import { Router, RouterOutlet } from '@angular/router';
 import { SupabaseService } from '../../services/supabase.service';
 
 interface Invoice {
@@ -64,7 +64,7 @@ interface Payment {
 @Component({
   selector: 'app-invoice',
   standalone: true,
-  imports: [CommonModule, MainBannerComponent, FormsModule],
+  imports: [CommonModule, MainBannerComponent, FormsModule, RouterOutlet],
   templateUrl: './invoice.component.html',
   styleUrls: ['./invoice.component.scss'],
 })
@@ -1159,5 +1159,6 @@ export class InvoiceComponent implements OnInit {
     this.filteredClients = [...this.clients];
     this.clientOrders = [];
     this.showClientDropdown = false;
+    this.selectedInvoiceDetails = null;
   }
 }

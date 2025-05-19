@@ -5,7 +5,7 @@ import { SupabaseService } from '../../services/supabase.service';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { RoleService } from '../../services/role.service';
-
+import { RouterOutlet } from '@angular/router';
 interface Orders {
   id_order: string;
   order_type: string;
@@ -108,7 +108,7 @@ interface Invoice {
 @Component({
   selector: 'app-orders',
   standalone: true,
-  imports: [CommonModule, MainBannerComponent, FormsModule],
+  imports: [CommonModule, MainBannerComponent, FormsModule, RouterOutlet],
   templateUrl: './orders.component.html',
   styleUrls: ['./orders.component.scss'],
 })
@@ -176,9 +176,9 @@ export class OrdersComponent implements OnInit {
     name: '',
     email: '',
     document_type: '',
-    document_number: '',
+    document_number: '0',
     company_name: '',
-    cellphone: '',
+    cellphone: '0',
     address: '',
     status: '',
   };
@@ -186,7 +186,8 @@ export class OrdersComponent implements OnInit {
   constructor(
     private readonly supabase: SupabaseService,
     private readonly zone: NgZone,
-    private readonly roleService: RoleService
+    private readonly roleService: RoleService,
+    private readonly routerOutlet: RouterOutlet
   ) {}
 
   async ngOnInit(): Promise<void> {
@@ -771,11 +772,11 @@ export class OrdersComponent implements OnInit {
         order_payment_status: 'overdue',
         created_at: new Date().toISOString(),
         delivery_date: '',
-        order_quantity: '',
+        order_quantity: '0',
         unitary_value: '',
         iva: '',
         subtotal: '',
-        total: '',
+        total: '0',
         amount: '',
         id_client: '',
         order_confirmed_status: 'notConfirmed',

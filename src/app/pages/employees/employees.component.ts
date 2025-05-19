@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { SupabaseService } from '../../services/supabase.service';
 import { RoleService } from '../../services/role.service';
+import { RouterOutlet } from '@angular/router';
 
 interface Employee {
   id_employee: string;
@@ -50,7 +51,7 @@ interface Employee_benefits {
 @Component({
   selector: 'app-employees',
   standalone: true,
-  imports: [CommonModule, FormsModule, MainBannerComponent],
+  imports: [CommonModule, FormsModule, MainBannerComponent, RouterOutlet],
   templateUrl: './employees.component.html',
   styleUrl: './employees.component.scss',
 })
@@ -63,7 +64,7 @@ export class EmployeesComponent implements OnInit {
     { value: 'prints_employee', label: 'Empleado de impresiones' },
     { value: 'counter_employee', label: 'Contador' },
     { value: 'seller_employee', label: 'Vendedor' },
-    { value: 'scheduled_employee', label: 'Agendador' }
+    { value: 'scheduled_employee', label: 'Agendador' },
   ];
   userEmail: string | undefined = '';
   showDetailsModal = false;
@@ -94,6 +95,7 @@ export class EmployeesComponent implements OnInit {
   paginatedLiquidations: Employee_liquidations[] = [];
   paginatedBenefits: Employee_benefits[] = [];
   paginatedEmployees: Employee[] = []; // Lista paginada
+  modalExpanded = false;
 
   constructor(
     private readonly supabase: SupabaseService,
@@ -147,7 +149,7 @@ export class EmployeesComponent implements OnInit {
     this.loading = false;
   }
   getEmployeeTypeLabel(type: string | null): string {
-    const found = this.availableEmployeeRoles.find(r => r.value === type);
+    const found = this.availableEmployeeRoles.find((r) => r.value === type);
     if (found) return found.label;
     if (type === 'admin') return 'Administrador';
     return 'Desconocido';
@@ -264,6 +266,7 @@ export class EmployeesComponent implements OnInit {
   }
   toggleDetails() {
     this.showDetails = !this.showDetails;
+    this.modalExpanded = !this.modalExpanded;
   }
 
   updatePaginatedLiquidations(): void {
@@ -335,6 +338,16 @@ export class EmployeesComponent implements OnInit {
 
   saveEmployee(): void {
     if (!this.selectedEmployee) return;
+
+    if (!this.selectedEmployee.name) {
+      alert('Por favor, digite nombre del empleado.');
+      return;
+    }
+
+    if (!this.selectedEmployee.employee_type) {
+      alert('Por favor, digite el tipo de empleado.');
+      return;
+    }
 
     const employeeToSave = {
       name: this.selectedEmployee.name,

@@ -35,20 +35,14 @@ export const routes: Routes = [
     loadComponent: () => ProductComponent,
   },
   {
-    path: 'acrylics',
-    loadComponent: () => AcrylicsComponent,
-  },
-  {
-    path: 'mdf',
-    loadComponent: () => MDFComponent,
-  },
-  {
-    path: 'polystyrene',
-    loadComponent: () => PolystyreneComponent,
-  },
-  {
-    path: 'vinyl-cuts',
-    loadComponent: () => VinylCutsComponent,
+    path: 'pricing',
+    children: [
+      { path: 'mdf', component: MDFComponent },
+      { path: 'acrylics', component: AcrylicsComponent },
+      { path: 'polystyrene', component: PolystyreneComponent },
+      { path: 'vinyl-cuts', component: VinylCutsComponent },
+
+    ],
   },
   {
     path: 'home',
@@ -62,9 +56,7 @@ export const routes: Routes = [
     path: 'orders',
     loadComponent: () => OrdersComponent,
   },
-  { path: 'invoice',
-    loadComponent: () => InvoiceComponent,
-  },
+  { path: 'invoice', loadComponent: () => InvoiceComponent },
   {
     path: 'expenses',
     loadComponent: () => ExpensesComponent,
@@ -84,5 +76,5 @@ export const routes: Routes = [
   {
     path: 'employees',
     loadComponent: () => EmployeesComponent,
-  }
+  },
 ];

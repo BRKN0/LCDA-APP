@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { SupabaseService } from '../../services/supabase.service';
 import { FormsModule } from '@angular/forms';
 import { MainBannerComponent } from '../main-banner/main-banner.component';
+import { RouterOutlet } from '@angular/router';
 
 interface ExpensesItem {
   id_expenses: string;
@@ -18,7 +19,7 @@ interface ExpensesItem {
 @Component({
   selector: 'app-expenses',
   standalone: true,
-  imports: [CommonModule, FormsModule, MainBannerComponent],
+  imports: [CommonModule, FormsModule, MainBannerComponent, RouterOutlet],
   templateUrl: './expenses.component.html',
   styleUrls: ['./expenses.component.scss'],
 })
@@ -86,6 +87,16 @@ export class ExpensesComponent implements OnInit {
   saveExpense(): void {
     if (this.isSaving) return; // Evitar múltiples clics
     this.isSaving = true;
+
+    if (!this.selectedExpense.payment_date) {
+      alert('Por favor, seleccione una fecha.');
+      return;
+    }
+
+    if (!this.selectedExpense.category) {
+      alert('Por favor, seleccione una categoria.');
+      return;
+    }
 
     // Asegurarse de que selectedExpense no sea null
     if (!this.selectedExpense) {

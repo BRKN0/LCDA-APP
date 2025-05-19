@@ -6,6 +6,7 @@ import { SupabaseService } from '../../services/supabase.service';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { RoleService } from '../../services/role.service';
+import { RouterOutlet } from '@angular/router';
 
 interface mdf {
   id_mdf: string;
@@ -18,7 +19,7 @@ interface mdf {
 @Component({
   selector: 'app-mdf',
   standalone: true,
-  imports: [CommonModule, FormsModule, MainBannerComponent],
+  imports: [CommonModule, FormsModule, MainBannerComponent, RouterOutlet],
   templateUrl: './mdf.component.html',
   styleUrl: './mdf.component.scss'
 })
@@ -102,7 +103,7 @@ export class MDFComponent implements OnInit {
 
   async saveMdf(): Promise<void> {
     if (!this.formMdf.thickness || this.formMdf.cost <= 0 || this.formMdf.freight <= 0) {
-      alert ('Por favor, complete todos los campos requeridos.');
+      alert ('Por favor, complete todos los campos.');
       return;
     }
 

@@ -1,3 +1,4 @@
+<router-outlet></router-outlet>
 <app-main-banner></app-main-banner>
 
 <div *ngIf="loading" class="p-4 text-center text-gray-600">
@@ -5,55 +6,78 @@
 </div>
 
 <!-- Filter checkboxes -->
-<div *ngIf="!loading" class="mb-4">
-  <label>
-    <input
-      type="checkbox"
-      [(ngModel)]="showVinyls"
-      (change)="updateFilteredInventory()"
-    />
-    Vinilos
-  </label>
-  <label>
-    <input
-      type="checkbox"
-      [(ngModel)]="showCutVinyls"
-      (change)="updateFilteredInventory()"
-    />
-    Vinilos de corte
-  </label>
-  <label>
-    <input
-      type="checkbox"
-      [(ngModel)]="showAcrylic"
-      (change)="updateFilteredInventory()"
-    />
-    Acrilico
-  </label>
-  <label>
-    <input
-      type="checkbox"
-      [(ngModel)]="showPolystyrene"
-      (change)="updateFilteredInventory()"
-    />
-    Poliestireno
-  </label>
-  <label>
-    <input
-      type="checkbox"
-      [(ngModel)]="showDieCut"
-      (change)="updateFilteredInventory()"
-    />
-    Troquelado
-  </label>
-  <label>
-    <input
-      type="checkbox"
-      [(ngModel)]="showMDF"
-      (change)="updateFilteredInventory()"
-    />
-    MDF
-  </label>
+<div *ngIf="!loading" class="flex justify-between items-center mb-4 mt-4 ml-2">
+  <div class="flex space-x-2">
+    <label>
+      <input
+        type="checkbox"
+        [(ngModel)]="showVinyls"
+        (change)="updateFilteredInventory()"
+      />
+      Vinilos
+    </label>
+    <label>
+      <input
+        type="checkbox"
+        [(ngModel)]="showCutVinyls"
+        (change)="updateFilteredInventory()"
+      />
+      Vinilos de corte
+    </label>
+    <label>
+      <input
+        type="checkbox"
+        [(ngModel)]="showAcrylic"
+        (change)="updateFilteredInventory()"
+      />
+      Acrilico
+    </label>
+    <label>
+      <input
+        type="checkbox"
+        [(ngModel)]="showPolystyrene"
+        (change)="updateFilteredInventory()"
+      />
+      Poliestireno
+    </label>
+    <label>
+      <input
+        type="checkbox"
+        [(ngModel)]="showDieCut"
+        (change)="updateFilteredInventory()"
+      />
+      Troquelado
+    </label>
+    <label>
+      <input
+        type="checkbox"
+        [(ngModel)]="showMDF"
+        (change)="updateFilteredInventory()"
+      />
+      MDF
+    </label>
+  </div>
+  <!-- Action buttons -->
+  <div class="flex space-x-2">
+    <button
+      class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 mr-2"
+      (click)="generateKardex()"
+    >
+      Generar Kardex
+    </button>
+    <button
+      class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 mr-2"
+      (click)="openComparisonModal()"
+    >
+      Comparar Archivos
+    </button>
+    <button
+      class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
+      (click)="addNewItem()"
+    >
+      Agregar Artículo
+    </button>
+  </div>
 </div>
 
 <div
@@ -61,28 +85,6 @@
   class="p-4 text-center text-gray-600"
 >
   <p>No hay coincidencias con la busqueda.</p>
-</div>
-
-<!-- Action buttons -->
-<div class="action-buttons mb-4">
-  <button
-    class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 mr-2"
-    (click)="generateKardex()"
-  >
-    Generar Kardex
-  </button>
-  <button
-    class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 mr-2"
-    (click)="openComparisonModal()"
-  >
-    Comparar Archivos
-  </button>
-  <button
-    class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
-    (click)="addNewItem()"
-  >
-    Agregar Artículo
-  </button>
 </div>
 
 <!-- Search bars -->
@@ -108,17 +110,12 @@
 </div>
 
 <!-- Modal para comparación -->
-<div
-  *ngIf="showModal && isComparing"
-  class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
->
-  <div
-    class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[80vh]"
-  >
+<div *ngIf="showModal && isComparing" class="modal-overlay">
+  <div class="modal-content">
     <h2 class="text-lg font-bold mb-4">Comparar Inventario</h2>
 
     <div class="mb-4">
-      <label for="file1" class="block text-gray-700">Archivo 1:</label>
+      <label for="file1" class="block modal-input-item">Archivo 1:</label>
       <input
         id="file1"
         type="file"
@@ -127,7 +124,7 @@
       />
     </div>
     <div class="mb-4">
-      <label for="file2" class="block text-gray-700">Archivo 2:</label>
+      <label for="file2" class="block modal-input-item">Archivo 2:</label>
       <input
         id="file2"
         type="file"
@@ -177,19 +174,14 @@
 </div>
 
 <!-- Modal para agregar/editar -->
-<div
-  *ngIf="showModal && !isComparing"
-  class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
->
-  <div
-    class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto"
-  >
+<div *ngIf="showModal && !isComparing" class="modal-overlay">
+  <div class="modal-content">
     <h3 class="text-lg font-bold mb-4">
       {{ isEditing ? "Editar Artículo" : "Agregar Artículo" }}
     </h3>
     <form (ngSubmit)="saveItem()">
       <div class="mb-4">
-        <label class="block text-gray-700">Categoría</label>
+        <label class="block modal-input-item">Categoría</label>
         <input
           type="text"
           [(ngModel)]="selectedItem.category"
@@ -199,7 +191,7 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block text-gray-700">Tipo</label>
+        <label class="block modal-input-item">Tipo</label>
         <input
           type="text"
           [(ngModel)]="selectedItem.type"
@@ -209,7 +201,7 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block text-gray-700">Calibre</label>
+        <label class="block modal-input-item">Calibre</label>
         <input
           type="text"
           [(ngModel)]="selectedItem.caliber"
@@ -219,7 +211,7 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block text-gray-700">Cantidad</label>
+        <label class="block modal-input-item">Cantidad</label>
         <input
           type="number"
           [(ngModel)]="selectedItem.material_quantity"
@@ -229,7 +221,7 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block text-gray-700">Color</label>
+        <label class="block modal-input-item">Color</label>
         <input
           type="text"
           [(ngModel)]="selectedItem.color"
@@ -238,7 +230,7 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block text-gray-700">Costo/Unidad</label>
+        <label class="block modal-input-item">Costo/Unidad</label>
         <input
           type="number"
           [(ngModel)]="selectedItem.cost"
@@ -248,7 +240,7 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block text-gray-700">Precio de venta</label>
+        <label class="block modal-input-item">Precio de venta</label>
         <input
           type="number"
           [(ngModel)]="selectedItem.sale_price"
@@ -258,7 +250,7 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block text-gray-700">Estado</label>
+        <label class="block modal-input-item">Estado</label>
         <select
           type="text"
           [(ngModel)]="selectedItem.status"

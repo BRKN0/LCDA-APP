@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MainBannerComponent } from '../main-banner/main-banner.component';
 import { SupabaseService } from '../../services/supabase.service';
+import { RouterOutlet } from '@angular/router';
 
 interface Polystyrene {
   id_polystyrene?: string;
@@ -15,7 +16,7 @@ interface Polystyrene {
 @Component({
   selector: 'app-polystyrene',
   standalone: true,
-  imports: [CommonModule, MainBannerComponent, FormsModule],
+  imports: [CommonModule, MainBannerComponent, FormsModule, RouterOutlet],
   templateUrl: './polystyrene.component.html',
   styleUrl: './polystyrene.component.scss',
 })
@@ -125,7 +126,7 @@ export class PolystyreneComponent implements OnInit {
   addPolystyrene(): void {
     this.selectedPolystyrene = {
       type: '',
-      caliber: '',
+      caliber: '0',
       whole: 0
     };
     this.isEditing = false;
@@ -144,6 +145,11 @@ export class PolystyreneComponent implements OnInit {
       caliber: this.selectedPolystyrene.caliber,
       whole: this.selectedPolystyrene.whole
     };
+
+    if (!this.selectedPolystyrene.type || !this.selectedPolystyrene.caliber || !this.selectedPolystyrene.whole) {
+      alert ('Por favor, complete todos los campos.');
+      return;
+    }
 
     if (this.isEditing && this.selectedPolystyrene.id_polystyrene) {
       const { error } = await this.supabase

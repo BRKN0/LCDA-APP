@@ -1,3 +1,4 @@
+<router-outlet></router-outlet>
 <app-main-banner></app-main-banner>
 
 <!-- Indicador de carga -->
@@ -6,52 +7,50 @@
 </div>
 
 <div *ngIf="!loading">
-  <div class="flex flex-wrap items-center justify-between py-4">
-    <div class="relative flex items-center space-x-2">
-      <!-- Input de búsqueda -->
-      <div class="relative">
-        <input
-          type="text"
-          placeholder="Buscar empleado..."
-          [(ngModel)]="searchQuery"
-          (ngModelChange)="searchEmployee()"
-          class="w-64 py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
-        />
-      </div>
-      <!-- filtro fecha -->
-      <div class="flex items-center space-x-4">
-        <div>
-          <label for="startDate" class="mr-2 font-semibold">Desde:</label>
-          <input
-            type="date"
-            id="startDate"
-            [(ngModel)]="startDate"
-            (ngModelChange)="searchEmployee()"
-            class="border border-gray-300 rounded-md p-1"
-          />
-        </div>
-        <div>
-          <label for="endDate" class="mr-2 font-semibold">Hasta:</label>
-          <input
-            type="date"
-            id="endDate"
-            [(ngModel)]="endDate"
-            (ngModelChange)="searchEmployee()"
-            class="border border-gray-300 rounded-md p-1"
-          />
-        </div>
-      </div>
-
+  <div class="flex justify-end items-center mb-4 mt-4 ml-2">
       <!-- Botón Añadir empleado -->
       <button
-        class="bg-red-500 text-white px-6 py-2 rounded-full hover:bg-red-700"
+        class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 mr-4"
         (click)="addNewEmployee()"
       >
         Añadir empleado
       </button>
+  </div>
+  <!-- Input de búsqueda -->
+  <div class="flex items-center justify-center py-4 space-x-4 top-5">
+    <div class="relative w-full max-w-md">
+      <input
+        type="text"
+        placeholder="Buscar empleado..."
+        [(ngModel)]="searchQuery"
+        (ngModelChange)="searchEmployee()"
+        class="w-full py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
+      />
     </div>
   </div>
-
+  <!-- filtro fecha -->
+  <div class="flex items-center space-x-4">
+    <div>
+      <label for="startDate" class="mr-2 font-semibold">Desde:</label>
+      <input
+        type="date"
+        id="startDate"
+        [(ngModel)]="startDate"
+        (ngModelChange)="searchEmployee()"
+        class="border border-gray-300 rounded-md p-1"
+      />
+    </div>
+    <div>
+      <label for="endDate" class="mr-2 font-semibold">Hasta:</label>
+      <input
+        type="date"
+        id="endDate"
+        [(ngModel)]="endDate"
+        (ngModelChange)="searchEmployee()"
+        class="border border-gray-300 rounded-md p-1"
+      />
+    </div>
+  </div>
   <table class="table-std">
     <thead>
       <tr>
@@ -171,19 +170,14 @@
   </div>
 
   <!-- Form to add employees -->
-  <div
-    *ngIf="showModal"
-    class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
-  >
-    <div
-      class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto"
-    >
+  <div *ngIf="showModal" class="modal-overlay">
+    <div class="modal-content">
       <h3 class="text-lg font-bold mb-4">
         {{ isEditing ? "Editar Empleado" : "Añadir Nuevo Empleado" }}
       </h3>
       <form (ngSubmit)="saveEmployee()">
         <div class="mb-4">
-          <label class="block text-gray-700">Codigo</label>
+          <label class="block modal-input-item">Codigo</label>
           <input
             [(ngModel)]="selectedEmployee.code"
             name="code"
@@ -191,7 +185,7 @@
           />
         </div>
         <div class="mb-4">
-          <label class="block text-gray-700">Nombre Completo</label>
+          <label class="block modal-input-item">Nombre Completo</label>
           <input
             [(ngModel)]="selectedEmployee.name"
             name="name"
@@ -199,25 +193,27 @@
           />
         </div>
         <div>
-          <label class="block text-gray-700">Tipo de Empleado</label>
+          <label class="block modal-input-item">Tipo de Empleado</label>
           <select
-          type="text"
-          [(ngModel)]="selectedEmployee.employee_type"
-          name="employee_type"
-          class="form-input mt-1 block w-full"
-          required
-        >
-          <option
-            *ngFor="let employee_type of availableEmployeeRoles"
-            [value]="employee_type.value"
-            [selected]="selectedEmployee.employee_type === employee_type.value"
+            type="text"
+            [(ngModel)]="selectedEmployee.employee_type"
+            name="employee_type"
+            class="form-input mt-1 block w-full"
+            required
           >
-            {{ employee_type.label }}
-          </option>
-        </select>
+            <option
+              *ngFor="let employee_type of availableEmployeeRoles"
+              [value]="employee_type.value"
+              [selected]="
+                selectedEmployee.employee_type === employee_type.value
+              "
+            >
+              {{ employee_type.label }}
+            </option>
+          </select>
         </div>
         <div class="mb-4">
-          <label class="block text-gray-700">Numero de identidad</label>
+          <label class="block modal-input-item">Numero de identidad</label>
           <input
             [(ngModel)]="selectedEmployee.id_number"
             name="id_number"
@@ -225,7 +221,7 @@
           />
         </div>
         <div class="mb-4">
-          <label class="block text-gray-700">Correo Electrónico</label>
+          <label class="block modal-input-item">Correo Electrónico</label>
           <input
             type="email"
             [(ngModel)]="selectedEmployee.email"
@@ -235,7 +231,7 @@
           />
         </div>
         <div class="mb-4">
-          <label class="block text-gray-700">Numero de Telefono</label>
+          <label class="block modal-input-item">Numero de Telefono</label>
           <input
             [(ngModel)]="selectedEmployee.phone"
             name="phone"
@@ -243,7 +239,7 @@
           />
         </div>
         <div class="mb-4">
-          <label class="block text-gray-700">Direccion</label>
+          <label class="block modal-input-item">Direccion</label>
           <input
             [(ngModel)]="selectedEmployee.address"
             name="address"
@@ -252,7 +248,7 @@
           />
         </div>
         <div class="mb-4">
-          <label class="block text-gray-700">Barrio</label>
+          <label class="block modal-input-item">Barrio</label>
           <input
             [(ngModel)]="selectedEmployee.neighborhood"
             name="neighborhood"
@@ -261,7 +257,7 @@
           />
         </div>
         <div class="mb-4">
-          <label class="block text-gray-700">Ciudad</label>
+          <label class="block modal-input-item">Ciudad</label>
           <input
             [(ngModel)]="selectedEmployee.city"
             name="city"
@@ -270,7 +266,7 @@
           />
         </div>
         <div class="mb-4">
-          <label class="block text-gray-700">Departamento</label>
+          <label class="block modal-input-item">Departamento</label>
           <input
             [(ngModel)]="selectedEmployee.department"
             name="department"
@@ -279,7 +275,7 @@
           />
         </div>
         <div class="mb-4">
-          <label class="block text-gray-700">Codigo Postal</label>
+          <label class="block modal-input-item">Codigo Postal</label>
           <input
             [(ngModel)]="selectedEmployee.postal_code"
             name="postal_code"
@@ -288,7 +284,7 @@
           />
         </div>
         <div class="mb-4">
-          <label class="block text-gray-700">Salario</label>
+          <label class="block modal-input-item">Salario</label>
           <input
             [(ngModel)]="selectedEmployee.salary"
             name="salary"
@@ -296,13 +292,17 @@
             required
           />
         </div>
-        <div class="flex justify-end">
-          <button type="button" class="btn-danger" (click)="closeModal()">
-            Cancelar
-          </button>
-          <button type="submit" class="btn-success">
-            {{ isEditing ? "Actualizar" : "Guardar Empleado" }}
-          </button>
+        <div class="flex justify-between items-center">
+          <div>
+            <button type="button" class="btn-danger" (click)="closeModal()">
+              Cancelar
+            </button>
+          </div>
+          <div>
+            <button type="submit" class="btn-success">
+              {{ isEditing ? "Actualizar" : "Guardar Empleado" }}
+            </button>
+          </div>
         </div>
       </form>
     </div>
@@ -310,12 +310,10 @@
   <!-- Modal para detalles del empleado -->
   <div
     *ngIf="showDetailsModal && selectedEmployeeDetails"
-    class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
+    class="modal-overlay"
   >
-    <div
-      class="bg-white rounded-lg shadow-lg p-6 w-3/4 max-h-screen overflow-y-auto"
-    >
-      <h3 class="text-lg mb-4">
+    <div class="modal-content modal-h300" [class.expanded]="modalExpanded">
+      <h3 class="text-lg font-bold mb-4">
         <p><strong>Cliente:</strong> {{ selectedEmployeeDetails.name }}</p>
         <p>
           <strong>Numero de Identificación:</strong
@@ -370,19 +368,14 @@
       </div>
 
       <!-- Botón para cerrar el modal -->
-      <div class="flex justify-end mt-4">
+      <div class="flex justify-start mt-4">
         <button class="btn-danger" (click)="closeDetailsModal()">Cerrar</button>
       </div>
     </div>
   </div>
   <!--Liquidations-->
-  <div
-    *ngIf="showLiquidations"
-    class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
-  >
-    <div
-      class="bg-white rounded-lg shadow-lg p-6 w-3/4 max-h-screen overflow-y-auto"
-    >
+  <div *ngIf="showLiquidations" class="modal-overlay top">
+    <div class="modal-content modal-h400 modal-w720">
       <h3 class="text-lg font-bold mb-4">
         Liquidaciones del Empleado: {{ selectedEmployeeDetails?.name }}
       </h3>
@@ -457,13 +450,8 @@
     </div>
   </div>
   <!--Benefits-->
-  <div
-    *ngIf="showBenefits"
-    class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
-  >
-    <div
-      class="bg-white rounded-lg shadow-lg p-6 w-3/4 max-h-screen overflow-y-auto"
-    >
+  <div *ngIf="showBenefits" class="modal-overlay top">
+    <div class="modal-content top modal-h400 modal-w720">
       <h3 class="text-lg font-bold mb-4">
         Prestaciones del Empleado: {{ selectedEmployeeDetails?.name }}
       </h3>
