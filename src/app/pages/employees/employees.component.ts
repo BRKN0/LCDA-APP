@@ -64,7 +64,7 @@ export class EmployeesComponent implements OnInit {
     { value: 'prints_employee', label: 'Empleado de impresiones' },
     { value: 'counter_employee', label: 'Contador' },
     { value: 'seller_employee', label: 'Vendedor' },
-    { value: 'scheduled_employee', label: 'Agendador' }
+    { value: 'scheduled_employee', label: 'Agendador' },
   ];
   userEmail: string | undefined = '';
   showDetailsModal = false;
@@ -95,6 +95,7 @@ export class EmployeesComponent implements OnInit {
   paginatedLiquidations: Employee_liquidations[] = [];
   paginatedBenefits: Employee_benefits[] = [];
   paginatedEmployees: Employee[] = []; // Lista paginada
+  modalExpanded = false;
 
   constructor(
     private readonly supabase: SupabaseService,
@@ -148,7 +149,7 @@ export class EmployeesComponent implements OnInit {
     this.loading = false;
   }
   getEmployeeTypeLabel(type: string | null): string {
-    const found = this.availableEmployeeRoles.find(r => r.value === type);
+    const found = this.availableEmployeeRoles.find((r) => r.value === type);
     if (found) return found.label;
     if (type === 'admin') return 'Administrador';
     return 'Desconocido';
@@ -265,6 +266,7 @@ export class EmployeesComponent implements OnInit {
   }
   toggleDetails() {
     this.showDetails = !this.showDetails;
+    this.modalExpanded = !this.modalExpanded;
   }
 
   updatePaginatedLiquidations(): void {

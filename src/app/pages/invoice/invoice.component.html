@@ -2,79 +2,50 @@
 <app-main-banner></app-main-banner>
 
 <!-- Filtros y búsqueda -->
-<div class="ml-4">
-  <label class="inline-flex items-center mr-4">
-    <input
-      type="checkbox"
-      [(ngModel)]="showPrints"
-      class="form-checkbox"
-      (change)="updateFilteredInvoices()"
-    />
-    <span class="ml-4">Impresiones</span>
-  </label>
-  <label class="inline-flex items-center mr-4">
-    <input
-      type="checkbox"
-      [(ngModel)]="showCuts"
-      class="form-checkbox"
-      (change)="updateFilteredInvoices()"
-    />
-    <span class="ml-4">Cortes</span>
-  </label>
-  <label class="inline-flex items-center mr-4">
-    <input
-      type="checkbox"
-      [(ngModel)]="showSales"
-      class="form-checkbox"
-      (change)="updateFilteredInvoices()"
-    />
-    <span class="ml-4">Ventas</span>
-  </label>
-  <label class="inline-flex items-center mr-4">
-    <input
-      type="checkbox"
-      [(ngModel)]="showDebt"
-      class="form-checkbox"
-      (change)="updateFilteredInvoices()"
-    />
-    <span class="ml-4">En Mora</span>
-  </label>
-  <!-- Filter date range y botón Añadir Factura, pegado a la derecha y alineado -->
-  <div class="flex items-center justify-between mt-4">
-    <div class="flex items-center space-x-4">
-      <div>
-        <label for="startDate" class="mr-2 font-semibold">Desde:</label>
-        <input
-          type="date"
-          id="startDate"
-          [(ngModel)]="startDate"
-          (ngModelChange)="updateFilteredInvoices()"
-          class="form-input"
-        />
-      </div>
-      <div>
-        <label for="endDate" class="mr-2 font-semibold">Hasta:</label>
-        <input
-          type="date"
-          id="endDate"
-          [(ngModel)]="endDate"
-          (ngModelChange)="updateFilteredInvoices()"
-          class="form-input"
-        />
-      </div>
-      <div class="relative w-full max-w-md">
-        <input
-          type="text"
-          placeholder="Ingrese nombre o empresa"
-          [(ngModel)]="nameSearchQuery"
-          (input)="updateFilteredInvoices()"
-          class="w-full py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
-        />
-      </div>
-    </div>
+<div class="flex justify-between items-center mb-4 mt-4 ml-2">
+  <div class="flex space-x-2">
+    <label>
+      <input
+        type="checkbox"
+        [(ngModel)]="showPrints"
+        class="form-checkbox"
+        (change)="updateFilteredInvoices()"
+      />
+      <span class="ml-2">Impresiones</span>
+    </label>
+    <label>
+      <input
+        type="checkbox"
+        [(ngModel)]="showCuts"
+        class="form-checkbox"
+        (change)="updateFilteredInvoices()"
+      />
+      <span class="ml-2">Cortes</span>
+    </label>
+    <label>
+      <input
+        type="checkbox"
+        [(ngModel)]="showSales"
+        class="form-checkbox"
+        (change)="updateFilteredInvoices()"
+      />
+      <span class="ml-2">Ventas</span>
+    </label>
+    <label>
+      <input
+        type="checkbox"
+        [(ngModel)]="showDebt"
+        class="form-checkbox"
+        (change)="updateFilteredInvoices()"
+      />
+      <span class="ml-2">En Mora</span>
+    </label>
+  </div>
+
+  <div class="flex space-x-2">
     <!-- Botón Añadir Factura, pegado a la derecha -->
     <button
-      class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
+      class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 mr-4"
       (click)="addNewInvoice()"
     >
       Añadir Factura
@@ -82,6 +53,42 @@
   </div>
 </div>
 
+<div class="flex items-center justify-center mt-2">
+  <div class="w-full max-w-md relative">
+    <input
+      type="text"
+      placeholder="Ingrese nombre o empresa"
+      [(ngModel)]="nameSearchQuery"
+      (input)="updateFilteredInvoices()"
+      class="w-full py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
+    />
+  </div>
+</div>
+<!-- Filter date range y botón Añadir Factura, pegado a la derecha y alineado -->
+<div class="mb-2 mt-2 ml-2">
+  <div class="flex items-center space-x-4">
+    <div>
+      <label for="startDate" class="mr-2 font-semibold">Desde:</label>
+      <input
+        type="date"
+        id="startDate"
+        [(ngModel)]="startDate"
+        (ngModelChange)="updateFilteredInvoices()"
+        class="form-input"
+      />
+    </div>
+    <div>
+      <label for="endDate" class="mr-2 font-semibold">Hasta:</label>
+      <input
+        type="date"
+        id="endDate"
+        [(ngModel)]="endDate"
+        (ngModelChange)="updateFilteredInvoices()"
+        class="form-input"
+      />
+    </div>
+  </div>
+</div>
 <!-- Invoice Table -->
 <div class="mt-4">
   <table class="table-std">
@@ -230,7 +237,9 @@
     <form (ngSubmit)="saveInvoice()">
       <!-- Campo de selección de cliente -->
       <div class="mb-4">
-        <label class="block text-gray-700">Cliente<span class="text-red-500">*</span></label>
+        <label class="block text-gray-700"
+          >Cliente<span class="text-red-500">*</span></label
+        >
         <div class="relative">
           <input
             type="text"
@@ -296,7 +305,9 @@
         </select>
       </div>
       <div class="mb-4" *ngIf="selectedInvoice">
-        <label class="block text-gray-700">Orden<span class="text-red-500">*</span></label>
+        <label class="block text-gray-700"
+          >Orden<span class="text-red-500">*</span></label
+        >
         <select
           [(ngModel)]="selectedInvoice.order.id_order"
           name="id_order"

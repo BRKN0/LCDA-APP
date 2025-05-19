@@ -5,9 +5,29 @@
 <div *ngIf="loading" class="p-4 text-center text-gray-600">
   <p>Cargando clientes...</p>
 </div>
+<div class="flex justify-between items-center mb-4 mt-4 ml-2">
+  <label>
+    <input type="checkbox" [(ngModel)]="filterDebt" (change)="searchClient()" />
+    Mostrar solo clientes con deuda
+  </label>
 
+  <div class="flex space-x-2">
+    <button
+      class="bg-red-500 text-white text-right px-4 py-2 items-end rounded-md hover:bg-red-600 mr-4"
+      (click)="addNewClient()"
+    >
+      Añadir Cliente
+    </button>
+    <button
+      class="bg-red-500 text-white text-right px-4 py-2 items-end rounded-md hover:bg-red-600 mr-4"
+      (click)="generateClientsKardex()"
+    >
+      Generar Kardex
+    </button>
+  </div>
+</div>
 <!-- Search bar and filter by debt -->
-<div class="flex items-center justify-center py-4">
+<div class="flex items-center justify-center py-4 space-x-4 top-5">
   <div class="w-full max-w-md relative">
     <input
       type="text"
@@ -19,24 +39,7 @@
   </div>
 </div>
 
-<div class="action-buttons mb-4">
-  <label>
-    <input type="checkbox" [(ngModel)]="filterDebt" (change)="searchClient()" />
-    Mostrar solo clientes con deuda
-  </label>
-  <button
-    class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 mr-4"
-    (click)="addNewClient()"
-  >
-    Añadir Cliente
-  </button>
-  <button
-    class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 mr-4"
-    (click)="generateClientsKardex()"
-  >
-    Generar Kardex
-  </button>
-
+<div>
   <!-- No clients found -->
   <div *ngIf="noResultsFound" class="p-4 text-center text-gray-600">
     <p>No hay coincidencias con la busqueda.</p>
@@ -107,13 +110,8 @@
     </table>
 
     <!-- Modal para detalles del cliente -->
-    <div
-      *ngIf="showClientModal"
-      class="modal-overlay"
-    >
-      <div
-        class="modal-content"
-      >
+    <div *ngIf="showClientModal" class="modal-overlay">
+      <div class="modal-content modal-h250" [class.expanded]="modalExpanded">
         <h3 class="text-lg font-bold mb-4">
           Cliente: {{ selectedClient?.name }}
         </h3>
@@ -139,7 +137,7 @@
         </div>
 
         <!-- Detalles del cliente -->
-        <div *ngIf="showDetails && selectedClient" class="details">
+        <div *ngIf="showDetails && selectedClient">
           <p><strong>Teléfono:</strong> {{ selectedClient.cellphone }}</p>
           <p><strong>Dirección:</strong> {{ selectedClient.address }}</p>
           <p>
@@ -182,7 +180,7 @@
         </div>
 
         <!-- Botón para cerrar el modal -->
-        <div class="flex justify-end mt-4">
+        <div class="flex justify-end absolute bottom- right-2 mt-4 mb-2">
           <button class="btn-danger" (click)="closeClientModal()">
             Cerrar
           </button>
@@ -191,13 +189,8 @@
     </div>
 
     <!-- Modal para mostrar pedidos -->
-    <div
-      *ngIf="showOrders"
-      class="modal-overlay-top"
-    >
-      <div
-        class="modal-content-top"
-      >
+    <div *ngIf="showOrders" class="modal-overlay top">
+      <div class="modal-content top modal-h400 modal-w720">
         <h3 class="text-lg font-bold mb-4">
           Pedidos del Cliente: {{ selectedClient?.name }}
         </h3>
@@ -220,11 +213,14 @@
               </td>
               <td class="modal-table-column">{{ order.description }}</td>
               <td class="modal-table-column">
-                ${{ calculateOrderTotal(order).toFixed(2) }} {{ order.include_iva ? '' : '' }}
+                ${{ calculateOrderTotal(order).toFixed(2) }}
+                {{ order.include_iva ? "" : "" }}
               </td>
               <td
                 class="modal-table-column"
-                [class.text-green-600]="order.order_payment_status === 'upToDate'"
+                [class.text-green-600]="
+                  order.order_payment_status === 'upToDate'
+                "
                 [class.text-red-600]="order.order_payment_status === 'overdue'"
               >
                 {{
@@ -263,7 +259,9 @@
               ⇐
             </button>
             <button
-              (click)="currentOrderPage = currentOrderPage - 1; updatePaginatedOrders()"
+              (click)="
+                currentOrderPage = currentOrderPage - 1; updatePaginatedOrders()
+              "
               [disabled]="currentOrderPage === 1"
               class="px-2 py-1 text-black border rounded-full disabled:opacity-50 flex items-center justify-center w-7 h-7"
             >
@@ -273,7 +271,9 @@
               Página {{ currentOrderPage }} de {{ totalOrderPages }}
             </span>
             <button
-              (click)="currentOrderPage = currentOrderPage + 1; updatePaginatedOrders()"
+              (click)="
+                currentOrderPage = currentOrderPage + 1; updatePaginatedOrders()
+              "
               [disabled]="currentOrderPage === totalOrderPages"
               class="px-2 py-1 text-black border rounded-full disabled:opacity-50 flex items-center justify-center w-7 h-7"
             >
@@ -304,10 +304,7 @@
           </div>
         </div>
         <div class="flex justify-end mt-4">
-          <button
-            class="btn-danger"
-            (click)="toggleOrders(null)"
-          >
+          <button class="btn-danger" (click)="toggleOrders(null)">
             Cerrar
           </button>
         </div>
@@ -365,13 +362,8 @@
     </div>
 
     <!-- Formulario para añadir/editar clientes -->
-    <div
-      *ngIf="showModal"
-      class="modal-overlay"
-    >
-      <div
-        class="modal-content"
-      >
+    <div *ngIf="showModal" class="modal-overlay">
+      <div class="modal-content">
         <h3 class="text-lg font-bold mb-4">
           {{ isEditing ? "Editar Cliente" : "Añadir Cliente" }}
         </h3>
@@ -418,7 +410,9 @@
             </select>
           </div>
           <div class="mb-4">
-            <label class="block modal-input-item">Identificación/Documento</label>
+            <label class="block modal-input-item"
+              >Identificación/Documento</label
+            >
             <input
               [(ngModel)]="selectedClientData.document_number"
               name="document_number"

@@ -7,43 +7,50 @@
 </div>
 
 <!-- Filters -->
-<div *ngIf="userRole == 'admin'" class="ml-4">
-  <label>
-    <input
-      type="checkbox"
-      [(ngModel)]="showPrints"
-      (change)="updateFilteredOrders()"
-    />
-    Impresiones
-  </label>
-  <label>
-    <input
-      type="checkbox"
-      [(ngModel)]="showCuts"
-      (change)="updateFilteredOrders()"
-    />
-    Cortes
-  </label>
-  <label>
-    <input
-      type="checkbox"
-      [(ngModel)]="showSales"
-      (change)="updateFilteredOrders()"
-    />
-    Ventas
-  </label>
-  <button
-    class="absolute right-2 bg-red-500 text-white px-4 py-2 mr-2 rounded-full hover:bg-red-700 w-auto"
-    (click)="toggleAddOrderForm()"
-  >
-    Añadir Pedido
-  </button>
-  <button
-    class="absolute right-4 mr-36 transform bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-700 w-auto"
-    (click)="openCalculator()"
-  >
-    Calculadora
-  </button>
+<div
+  *ngIf="userRole == 'admin'"
+  class="flex justify-between items-center mb-4 mt-4 ml-2"
+>
+  <div class="flex space-x-2">
+    <label>
+      <input
+        type="checkbox"
+        [(ngModel)]="showPrints"
+        (change)="updateFilteredOrders()"
+      />
+      Impresiones
+    </label>
+    <label>
+      <input
+        type="checkbox"
+        [(ngModel)]="showCuts"
+        (change)="updateFilteredOrders()"
+      />
+      Cortes
+    </label>
+    <label>
+      <input
+        type="checkbox"
+        [(ngModel)]="showSales"
+        (change)="updateFilteredOrders()"
+      />
+      Ventas
+    </label>
+  </div>
+  <div class="flex space-x-2">
+    <button
+      class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 mr-4"
+      (click)="toggleAddOrderForm()"
+    >
+      Añadir Pedido
+    </button>
+    <button
+      class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 mr-4"
+      (click)="openCalculator()"
+    >
+      Calculadora
+    </button>
+  </div>
 </div>
 
 <!-- Search bars -->
@@ -607,7 +614,11 @@
           <p class="font-bold">{{ selectedOrderDetails[0].total }}</p>
         </div>
       </div>
-      <button type="button" class="btn-danger mr-2" (click)="selectedOrderDetails=null">
+      <button
+        type="button"
+        class="btn-danger mr-2"
+        (click)="selectedOrderDetails = null"
+      >
         Cerrar
       </button>
     </div>
@@ -615,13 +626,8 @@
 </div>
 
 <!-- Form to add orders -->
-<div
-  *ngIf="showModal"
-  class="modal-overlay"
->
-  <div
-    class="modal-content"
-  >
+<div *ngIf="showModal" class="modal-overlay">
+  <div class="modal-content">
     <h3 class="text-lg font-bold mb-4">Pedido</h3>
 
     <form (ngSubmit)="addOrder(newOrder)">
