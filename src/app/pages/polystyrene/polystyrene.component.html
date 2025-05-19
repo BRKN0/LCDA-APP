@@ -32,7 +32,7 @@
     <select
       id="format"
       [(ngModel)]="selectedFormat"
-      class="border border-gray-300 rounded-md p-1 h-8"
+      class="border border-gray-300 rounded-md p-1 h-10"
     >
       <option value="1 Lámina">1 Lámina</option>
       <option value="1/2 (Media Lámina)">1/2 (Media Lámina)</option>
@@ -50,7 +50,7 @@
     <select
       [(ngModel)]="searchType"
       (change)="updateFilteredPolystyrenes()"
-      class="border p-2 rounded h-8"
+      class="border p-2 rounded h-10"
     >
       <option value="">-- Todos los tipos --</option>
       <option *ngFor="let type of availableTypes" [value]="type">

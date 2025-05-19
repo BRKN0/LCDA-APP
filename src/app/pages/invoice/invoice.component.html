@@ -230,7 +230,7 @@
 
 <!-- Modal para añadir/editar facturas -->
 <div *ngIf="showModal" class="modal-overlay">
-  <div class="modal-content">
+  <div class="modal-content modal-h550">
     <h3 class="text-lg font-bold mb-4">
       {{ isEditing ? "Editar Factura" : "Añadir Factura" }}
     </h3>
@@ -256,6 +256,12 @@
             *ngIf="showClientDropdown && filteredClients.length > 0"
             class="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto"
           >
+            <div
+              class="p-2 bg-gray-200 hover:bg-gray-100 cursor-pointer"
+              (click)="openAddClientModal()"
+            >
+              <strong class=""> Añadir un Cliente Nuevo </strong>
+            </div>
             <div
               *ngFor="let client of filteredClients"
               class="p-2 hover:bg-gray-200 cursor-pointer"
@@ -446,7 +452,7 @@
   *ngIf="selectedInvoiceDetails && selectedInvoiceDetails.length > 0"
   class="modal-overlay"
 >
-  <div class="modal-content">
+  <div class="modal-content modal-h600">
     <!-- Botón de cierre -->
     <button
       class="absolute top-4 right-4 text-gray-600 hover:text-black font-bold text-xl"
