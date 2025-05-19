@@ -177,9 +177,9 @@
 <!-- Form to add reminder -->
 <div
   *ngIf="showAddReminderForm"
-  class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
+  class="modal-overlay"
 >
-  <div class="bg-white modal-width rounded-lg shadow-lg p-6">
+  <div class="modal-content modal-h300">
     <h3 class="text-lg font-bold mb-4">Añadir Nuevo Recordatorio</h3>
     <form (ngSubmit)="generateReminder(reminderForm)">
       <div class="mb-4">
@@ -212,9 +212,9 @@
 <!-- Form to update reminder -->
 <div
   *ngIf="showEditReminderForm && selectedNotification"
-  class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
+  class="modal-overlay"
 >
-  <div class="bg-white modal-width rounded-lg shadow-lg p-6">
+  <div class="modal-content modal-h300">
     <h3 class="text-lg font-bold mb-4">Editar Recordatorio</h3>
     <form (ngSubmit)="editReminder(selectedNotification)">
       <div class="mb-4">
