@@ -9,19 +9,14 @@
 
 <ng-template #roleChangeButton>
   <div
-    class="bg-white shadow-md rounded-lg p-6 text-center max-w-xl mx-auto mt-10"
+    class="relative inline-block text-white text-left bg-[#b91c1c] shadow-md"
   >
-    <h2 class="text-3xl font-bold text-red-600 mb-4">
-      ¡Bienvenido a La Casa del Acrílico Administrador!
-    </h2>
-  </div>
-  <div class="relative inline-block text-left">
     <label for="role-select" class="mr-2 font-semibold">Cambiar Rol:</label>
     <select
       id="role-select"
       [(ngModel)]="userRole"
       (change)="onRoleChange()"
-      class="border border-gray-300 rounded p-2 bg-white text-black"
+      class="border border-gray-300 rounded p-2 text-black dropdown"
     >
       <option value="admin">Administrador</option>
       <option value="prints_employee">Empleado Impresiones</option>
@@ -29,107 +24,130 @@
     </select>
   </div>
 </ng-template>
-<section class="bg-white text-center py-16 px-6">
-  <h2 class="text-4xl font-bold text-gray-900 mb-4">
-    Bienvenidos a nuestra plataforma
-  </h2>
-  <h3 class="text-3xl font-black text-gray-800 mb-6">
-    Soluciones Creativas en Diseño y producción
-  </h3>
-  <p
-    class="text-lg text-gray-700 max-w-[800px] max-h-[600px] text-balance mx-auto mb-4"
+<section class="bg-[url(/shapes.png)] bg-repeat bg-left-bottom text-center py-16 px-6 mb-6">
+  <div class="text-box mx-auto w-[550px] h-[125px] mt-10 mb-16">
+    <h2 class="text-3xl font-bold text-red-600 mb-4">
+      ¡ Bienvenido a La Casa del Acrílico
+      {{
+        userRole === "admin"
+          ? " Administrador!"
+          : userRole === "prints_employee"
+          ? " Empleado!"
+          : userRole === "cuts_employee"
+          ? " Empleado!"
+          : "!"
+      }}
+    </h2>
+    <!-- This only updates when a different role is selected idk why -->
+  </div>
+  <div class="text-box mx-auto h-[400px] w-[650px]">
+    <p class="text-balance">
+      En la <strong class="text-red-500">La Casa del Acrilico</strong> nos
+      especializamos en la transformación de materiales como acrílico,
+      poliestireno, MDF y vinilo, brindando soluciones personalizadas y de alta
+      calidad para proyectos publicitarios, decorativos y funcionales. Contamos
+      con una amplia experiencia en la fabricación de productos como
+      <strong
+        >pendones, medallas, estanterías, letreros corporativos, carteles,
+        señalización comercial</strong
+      >
+      y todo tipo de estructuras que puedan desarrollarse a partir de nuestros
+      materiales. Además, ofrecemos servicios de impresión a gran escala,
+      ideales para campañas publicitarias o exhibiciones visuales de alto
+      impacto.
+      <br />
+      <br />
+      Nuestra misión es combinar creatividad, técnica y compromiso para dar vida
+      a las ideas de nuestros clientes, garantizando productos duraderos,
+      estéticos y adaptados a cada necesidad. Explora con nosotros un mundo de
+      posibilidades en diseño, publicidad y soluciones visuales personalizadas.
+      <br />
+      <br />
+      <a class="text-red-500 font-semibold mt-6 mb-10">
+        Elaboramos e imprimimos todo tipo de artículos para Publicidad.
+      </a>
+    </p>
+  </div>
+
+  <div
+    class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto px-6 py-12"
   >
-    En la <strong>La casa del Acrilico</strong> nos especializamos en la
-    transformación de materiales como acrílico, poliestireno, MDF y vinilo,
-    brindando soluciones personalizadas y de alta calidad para proyectos
-    publicitarios, decorativos y funcionales. Contamos con una amplia
-    experiencia en la fabricación de productos como
-    <strong
-      >pendones, medallas, estanterías, letreros corporativos,
-      carteles,señalización comercial</strong
-    >
-    y todo tipo de estructuras que puedan desarrollarse a partir de nuestros
-    materiales. Además, ofrecemos servicios de
-    <strong>impresión a gran escala,</strong> ideales para campañas
-    publicitarias o exhibiciones visuales de alto impacto.
-    <br />
-    Nuestra misión es combinar creatividad, técnica y compromiso para dar vida a
-    las ideas de nuestros clientes, garantizando productos duraderos, estéticos
-    y adaptados a cada necesidad. Explora con nosotros un mundo de posibilidades
-    en diseño, publicidad y soluciones visuales personalizadas.
-  </p>
-  <p class="text-red-500 font-semibold mt-6 mb-10">
-    Elaboramos e imprimimos todo tipo de artículos para Publicidad.
-  </p>
-
- <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto px-6 py-12">
-  <!-- Tarjeta Creativos -->
-  <div class="bg-white p-6 rounded-2xl shadow-xl hover:shadow-red-200 border border-red-100 transition-all duration-300">
-    <div class="flex items-center gap-4 mb-3">
-      <div class="bg-red-100 text-yellow-600 p-3 rounded-full text-2xl">💡</div>
-      <h3 class="text-xl font-bold text-gray-800">Creativos</h3>
+    <!-- Tarjeta Creativos -->
+    <div class="text-box">
+      <div class="flex items-center gap-4 mb-3">
+        <div class="bg-red-100 text-yellow-600 p-3 rounded-full text-2xl">
+          💡
+        </div>
+        <h3 class="text-xl font-bold text-[#C72C41]">Creativos</h3>
+      </div>
+      <p class="text-gray-700 leading-relaxed">
+        Nos apasiona el diseño y la comunicación visual. Creamos soluciones
+        gráficas como catálogos, afiches, folletos, material corporativo y más,
+        adaptándonos a todo tipo de plataformas y formatos. Transformamos ideas
+        en piezas visuales impactantes.
+      </p>
     </div>
-    <p class="text-gray-700 leading-relaxed">
-      Nos apasiona el diseño y la comunicación visual. Creamos soluciones gráficas como catálogos, afiches, folletos, material corporativo y más, adaptándonos a todo tipo de plataformas y formatos. Transformamos ideas en piezas visuales impactantes.
-    </p>
-  </div>
 
-  <!-- Tarjeta Fabricantes -->
-  <div class="bg-white p-6 rounded-2xl shadow-xl hover:shadow-red-200 border border-red-100 transition-all duration-300">
-    <div class="flex items-center gap-4 mb-3">
-      <div class="bg-red-100 text-gray-600 p-3 rounded-full text-2xl">🛠️</div>
-      <h3 class="text-xl font-bold text-gray-800">Fabricantes</h3>
+    <!-- Tarjeta Fabricantes -->
+    <div class="text-box">
+      <div class="flex items-center gap-4 mb-3">
+        <div class="bg-red-100 text-gray-600 p-3 rounded-full text-2xl">🛠️</div>
+        <h3 class="text-xl font-bold text-[#C72C41]">Fabricantes</h3>
+      </div>
+      <p class="text-gray-700 leading-relaxed">
+        Fabricamos una amplia variedad de productos como letreros, señalética,
+        estanterías, avisos personalizados y estructuras para exhibición. Unimos
+        diseño e ingeniería para ofrecer resultados funcionales, resistentes y
+        atractivos.
+      </p>
     </div>
-    <p class="text-gray-700 leading-relaxed">
-      Fabricamos una amplia variedad de productos como letreros, señalética, estanterías, avisos personalizados y estructuras para exhibición. Unimos diseño e ingeniería para ofrecer resultados funcionales, resistentes y atractivos.
-    </p>
-  </div>
 
-  <!-- Tarjeta Innovadores -->
-  <div class="bg-white p-6 rounded-2xl shadow-xl hover:shadow-red-200 border border-red-100 transition-all duration-300">
-    <div class="flex items-center gap-4 mb-3">
-      <div class="bg-red-100 text-[#C72C41] p-3 rounded-full text-2xl">❤️</div>
-      <h3 class="text-xl font-bold text-[#C72C41]">Innovamos con Pasión</h3>
+    <!-- Tarjeta Innovadores -->
+    <div class="text-box">
+      <div class="flex items-center gap-4 mb-3">
+        <div class="bg-red-100 text-[#C72C41] p-3 rounded-full text-2xl">
+          ❤️
+        </div>
+        <h3 class="text-xl font-bold text-[#C72C41]">Innovamos con Pasión</h3>
+      </div>
+      <p class="text-gray-700 leading-relaxed">
+        Nos mantenemos en evolución, adoptando nuevas técnicas, materiales y
+        tendencias para ofrecerte soluciones modernas y eficaces. Innovamos con
+        compromiso, buscando siempre superar tus expectativas.
+      </p>
     </div>
-    <p class="text-gray-700 leading-relaxed">
-      Nos mantenemos en evolución, adoptando nuevas técnicas, materiales y tendencias para ofrecerte soluciones modernas y eficaces. Innovamos con compromiso, buscando siempre superar tus expectativas.
-    </p>
-  </div>
 
-  <!-- Tarjeta Profesionales -->
-  <div class="bg-white p-6 rounded-2xl shadow-xl hover:shadow-red-200 border border-red-100 transition-all duration-300">
-    <div class="flex items-center gap-4 mb-3">
-      <div class="bg-red-100 text-gray-600 p-3 rounded-full text-2xl">📣</div>
-      <h3 class="text-xl font-bold text-gray-800">Profesionales</h3>
+    <!-- Tarjeta Profesionales -->
+    <div class="text-box">
+      <div class="flex items-center gap-4 mb-3">
+        <div class="bg-red-100 text-gray-600 p-3 rounded-full text-2xl">📣</div>
+        <h3 class="text-xl font-bold text-[#C72C41]">Profesionales</h3>
+      </div>
+      <p class="text-gray-700 leading-relaxed">
+        Cada proyecto lo desarrollamos con atención al detalle, puntualidad y
+        excelencia. Nos encargamos de todo el proceso, desde el diseño hasta la
+        entrega, para que tú solo te ocupes de disfrutar del resultado final.
+      </p>
     </div>
-    <p class="text-gray-700 leading-relaxed">
-      Cada proyecto lo desarrollamos con atención al detalle, puntualidad y excelencia. Nos encargamos de todo el proceso, desde el diseño hasta la entrega, para que tú solo te ocupes de disfrutar del resultado final.
-    </p>
   </div>
-</div>
-
 </section>
 <section class="bg-white text-center py-16 px-6">
+  <div class="spacer md"></div>
 
-<div class="spacer md"></div>
-
-      <div class="view-header">
-        <div
-          class="col-lg-12 centered wow flipInX animated animated"
-          style="visibility: visible"
-        >
-          <h1 class="text-lg text-gray-800">
-            <p>Calcula el valor de nuestros</p>
-            <strong>Productos Al instante</strong>
-          </h1>
-          <p class="lead">
-            Utiliza nuestras herramientas para calcular los precios en productos
-            variables que dependen de medidas y otros factores
-          </p>
-        </div>
-      </div>
-
+  <div class="view-header">
+    <div
+      class="col-lg-12 centered wow flipInX animated animated"
+      style="visibility: visible"
+    >
+      <h1 class="text-lg text-gray-800">
+        <p>Calcula el valor de nuestros</p>
+        <strong>Productos Al instante</strong>
+      </h1>
+      <p class="lead">
+        Utiliza nuestras herramientas para calcular los precios en productos
+        variables que dependen de medidas y otros factores
+      </p>
+    </div>
+  </div>
 </section>
-<ng-template #visitor> 
-  
-</ng-template>
+<ng-template #visitor> </ng-template>
