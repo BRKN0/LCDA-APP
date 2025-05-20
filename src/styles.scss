@@ -91,10 +91,10 @@ button {
   border: 1px solid;
   border-color: #2d142c;
   padding: theme("spacing.2") theme("spacing.4");
-  text-align: left; // Ensures text is visible
-  white-space: nowrap; // Prevents text from wrapping (optional)
-  overflow: hidden; // Hides overflow if necessary
-  max-width: 100%; // Ensures it doesn't shrink too much
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden; 
+  max-width: 100%; 
 }
 
 .btn-delete {
@@ -509,17 +509,16 @@ h1 {
   border-color: #c72c41;
   background-color: #c72c41;
   z-index: 15;
-  // Optional: Add a downward arrow icon using a pseudo-element
   &::after {
     content: "";
     color: white;
     display: inline-block;
-    width: 0.5rem; // Adjust size as needed
-    height: 0.5rem; // Adjust size as needed
-    margin-left: 0.5rem; // Space between text and icon
-    border: solid red; // Match the border color
-    border-width: 0 2px 2px 0; // Create a downward arrow
-    transform: rotate(45deg); // Rotate to form an arrow
+    width: 0.5r;
+    height: 0.5rem;
+    margin-left: 0.5rem;
+    border: solid red;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
   }
 
   &:hover {
@@ -654,4 +653,26 @@ h1 {
   font-family: "Georgia", serif;
   letter-spacing: 2px;
   color: #b91c1c;
+}
+
+.text-box {
+  background-color: rgb(255, 255, 255);
+  padding: 24px;
+  --tw-border-opacity: 1;
+  border-width: 1px;
+  border-color: rgb(254 226 226 / var(--tw-border-opacity, 1));
+  border-radius: 16px;
+  --tw-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1),
+    0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --tw-shadow-colored: 0 20px 25px -5px var(--tw-shadow-color),
+    0 8px 10px -6px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
+  &:hover {
+    --tw-shadow-color: #fecaca;
+    --tw-shadow: var(--tw-shadow-colored);
+  }
 }
