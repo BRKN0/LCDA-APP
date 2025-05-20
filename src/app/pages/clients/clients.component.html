@@ -242,8 +242,8 @@
               <td class="modal-table-column">
                 {{ order.created_at | date : "dd-MM-yyyy" }}
               </td>
-              <td class="p-3 border">{{ order.description }}</td>
-              <td class="p-3 border">
+              <td class="modal-table-column">{{ order.description }}</td>
+              <td class="modal-table-column">
                 ${{ calculateOrderTotal(order).toFixed(2) }}
                 {{ order.include_iva ? "" : "" }}
               </td>
@@ -262,7 +262,7 @@
                     : "Desconocido"
                 }}
               </td>
-              <td class="p-3 border">
+              <td class="modal-table-column">
                 <!-- Mostrar abonos existentes -->
                 <div *ngIf="order.payments && order.payments.length > 0">
                   <ul>
@@ -278,7 +278,7 @@
               </td>
             </tr>
             <tr *ngIf="paginatedOrders.length === 0">
-              <td colspan="6" class="p-3 border text-center text-gray-500">
+              <td colspan="6" class="modal-table-column text-center text-gray-500">
                 No hay pedidos en el rango de fechas seleccionado
               </td>
             </tr>

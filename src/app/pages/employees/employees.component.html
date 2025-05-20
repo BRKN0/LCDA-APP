@@ -382,18 +382,18 @@
       <table class="w-full border-collapse">
         <thead>
           <tr class="bg-gray-100">
-            <th class="p-3 border">#</th>
-            <th class="p-3 border">Detalles</th>
-            <th class="p-3 border">Total</th>
-            <th class="p-3 border">Fecha de Liquidacion</th>
+            <th class="modal-table-column">#</th>
+            <th class="modal-table-column">Detalles</th>
+            <th class="modal-table-column">Total</th>
+            <th class="modal-table-column">Fecha de Liquidacion</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let liquidations of paginatedLiquidations">
-            <td class="p-3 border">{{ liquidations.code }}</td>
-            <td class="p-3 border">{{ liquidations.notes }}</td>
-            <td class="p-3 border">{{ liquidations.total_amount }}</td>
-            <td class="p-3 border">{{ liquidations.liquidation_date }}</td>
+            <td class="modal-table-column">{{ liquidations.code }}</td>
+            <td class="modal-table-column">{{ liquidations.notes }}</td>
+            <td class="modal-table-column">{{ liquidations.total_amount }}</td>
+            <td class="modal-table-column">{{ liquidations.liquidation_date }}</td>
           </tr>
         </tbody>
       </table>
@@ -455,25 +455,25 @@
       <h3 class="text-lg font-bold mb-4">
         Prestaciones del Empleado: {{ selectedEmployeeDetails?.name }}
       </h3>
-      <table class="w-full border-collapse">
+      <table class="modal-table">
         <thead>
-          <tr class="bg-gray-100">
-            <th class="p-3 border">#</th>
-            <th class="p-3 border">Tipo</th>
-            <th class="p-3 border">Periodo</th>
-            <th class="p-3 border">Total</th>
-            <th class="p-3 border">Estado de Pago</th>
-            <th class="p-3 border">Fecha de pago</th>
+          <tr>
+            <th class="modal-table-column">#</th>
+            <th class="modal-table-column">Tipo</th>
+            <th class="modal-table-column">Periodo</th>
+            <th class="modal-table-column">Total</th>
+            <th class="modal-table-column">Estado de Pago</th>
+            <th class="modal-table-column">Fecha de pago</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let benefits of paginatedBenefits">
-            <td class="p-3 border">{{ benefits.code }}</td>
-            <td class="p-3 border">{{ benefits.benefit_type }}</td>
-            <td class="p-3 border">{{ benefits.period }}</td>
-            <td class="p-3 border">{{ benefits.amount }}</td>
-            <td class="p-3 border">{{ benefits.status }}</td>
-            <td class="p-3 border">{{ benefits.payment_date }}</td>
+            <td class="modal-table-column">{{ benefits.code }}</td>
+            <td class="modal-table-column">{{ benefits.benefit_type }}</td>
+            <td class="modal-table-column">{{ benefits.period }}</td>
+            <td class="modal-table-column">{{ benefits.amount }}</td>
+            <td class="modal-table-column">{{ benefits.status }}</td>
+            <td class="modal-table-column">{{ benefits.payment_date }}</td>
           </tr>
         </tbody>
       </table>
