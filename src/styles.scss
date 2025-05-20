@@ -71,12 +71,14 @@ button {
 .table-std {
   width: 100%;
   border-collapse: collapse;
-  border: 1px solid theme("colors.gray.400");
+  border: 1px solid;
+  border-color: #2d142c;
   margin-top: theme("spacing.2");
 
   th,
   td {
-    border: 1px solid theme("colors.gray.400");
+    border: 1px solid;
+    border-color: #2d142c;
     padding: theme("spacing.2");
   }
 
@@ -86,7 +88,8 @@ button {
 }
 
 .table-column-std {
-  border: 1px solid theme("colors.gray.300");
+  border: 1px solid;
+  border-color: #2d142c;
   padding: theme("spacing.2") theme("spacing.4");
   text-align: left; // Ensures text is visible
   white-space: nowrap; // Prevents text from wrapping (optional)
