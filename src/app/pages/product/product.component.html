@@ -1,4 +1,296 @@
 <router-outlet></router-outlet>
 <app-main-banner></app-main-banner>
+<!--presentacion de productos-->
+<section class="bg-[#510A32] py-20 text-white text-center z-1">
+  <div class="container mx-auto px-4">
+    <h1 class="text-5xl font-bold mb-4">LA CASA DEL ACRÍLICO</h1>
+    <p class="text-xl mb-8">Expertos en soluciones acrílicas personalizadas</p>
+    <div class="flex justify-center space-x-4">
+      <a
+        href="#contacto"
+        class="border-2 border-white px-8 py-3 rounded-lg font-semibold hover:bg-[#3A0825] transition"
+      >
+        Contactar Ahora
+      </a>
+    </div>
+  </div>
+</section>
+<!--barra de navegacion debatible a cambio-->
+<nav class="bg-[#510A32] shadow-lg sticky top-0 z-1">
+  <div class="max-w-6xl mx-auto px-4">
+    <div class="flex justify-between">
+      <div class="flex space-x-7">
+        <a href="#" class="flex items-center py-4 px-2">
+          <span class="font-semibold text-gray-200 text-lg">Inicio</span>
+        </a>
+        <!-- Elementos del menú -->
+        <div class="hidden md:flex items-center space-x-1">
+          <a
+            href="#"
+            class="py-4 px-2 text-white border-b-4 border-white font-semibold"
+            >Productos</a
+          >
+          <a
+            href="#"
+            class="py-4 px-2 text-gray-200 font-semibold hover:text-white transition duration-300"
+            >Trabajos</a
+          >
+          <a
+            href="#"
+            class="py-4 px-2 text-gray-200 font-semibold hover:text-white transition duration-300"
+            >Clientes</a
+          >
+          <a
+            href="#"
+            class="py-4 px-2 text-gray-200 font-semibold hover:text-white transition duration-300"
+            >Contacto</a
+          >
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
 
-<p>product works!</p>
+<!-- Contenedor principal -->
+<div class="w-full max-w-5xl mx-auto mb-10 px-4">
+  <div
+    class="relative overflow-hidden rounded-3xl shadow-2xl bg-gradient-to-tr from-white to-gray-100 h-[420px] md:h-[600px]"
+  >
+    <!-- Slides -->
+    <div
+      *ngFor="let slide of slides; let i = index"
+      [class.hidden]="i !== currentIndex"
+      class="absolute inset-0 w-full h-full transition-opacity duration-700 ease-in-out flex items-center justify-center"
+    >
+      <img
+        [src]="slide.src"
+        [alt]="slide.alt"
+        class="w-full h-full object-contain md:object-cover rounded-3xl"
+      />
+    </div>
+
+    <!-- Flechas -->
+    <button
+      (click)="prevSlide()"
+      class="absolute left-6 top-1/2 -translate-y-1/2 bg-[#510A32]/80 hover:bg-[#510A32] text-white p-3 rounded-full shadow-md transition duration-300"
+    >
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+      </svg>
+    </button>
+    <button
+      (click)="nextSlide()"
+      class="absolute right-6 top-1/2 -translate-y-1/2 bg-[#510A32]/80 hover:bg-[#510A32] text-white p-3 rounded-full shadow-md transition duration-300"
+    >
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+      </svg>
+    </button>
+
+    <!-- Indicadores -->
+    <div class="absolute bottom-5 left-1/2 -translate-x-1/2 flex space-x-2">
+      <ng-container *ngFor="let slide of slides; let i = index">
+        <button
+          (click)="goToSlide(i)"
+          [class]="
+            i === currentIndex
+              ? 'bg-[#510A32] w-4 h-4 rounded-full scale-110 shadow-lg transition-all'
+              : 'bg-gray-400 w-3 h-3 rounded-full transition-all hover:scale-105'
+          "
+          [attr.aria-label]="'Ir al slide ' + (i + 1)"
+        ></button>
+      </ng-container>
+    </div>
+  </div>
+</div>
+
+
+<!--seccion de gallery-->
+
+<div class="flex items-center justify-center py-4 md:py-8 flex-wrap">
+  <button type="button" (click)="toggleFilter()" class="btn-contact">
+    All categories
+  </button>
+  <button type="button" (click)="toggleAcrylic()" class="btn-contact">
+    Acrilico
+  </button>
+  <button type="button" (click)="toggleMdf()" class="btn-contact">MDF</button>
+  <button type="button" (click)="togglePolystyrene()" class="btn-contact">
+    Poliestireno
+  </button>
+  <button type="button" (click)="toggleVinyl()" class="btn-contact">
+    Vinilo De Corte
+  </button>
+</div>
+<!--seccion de galleria-->
+<div class="grid max-w-[800px] mx-auto grid-cols-2 md:grid-cols-3 gap-4">
+  <div>
+    <img class="h-60 w-full object-cover rounded-lg" src="/Alitas.jpg" alt="" />
+  </div>
+  <div>
+    <img class="h-60 w-full object-cover rounded-lg" src="/barco.jpg" alt="" />
+  </div>
+  <div>
+    <img
+      class="h-60 w-full object-cover rounded-lg"
+      src="/copacabana.jpg"
+      alt=""
+    />
+  </div>
+  <div>
+    <img class="h-60 w-full object-cover rounded-lg" src="/Habbab.jpg" alt="" />
+  </div>
+  <div>
+    <img
+      class="h-60 w-full object-cover rounded-lg"
+      src="/plazacentral.jpg"
+      alt=""
+    />
+  </div>
+  <div>
+    <img class="h-60 w-full object-cover rounded-lg" src="/BSL.jpg" alt="" />
+  </div>
+  <div>
+    <img class="h-60 w-full object-cover rounded-lg" src="/barco.jpg" alt="" />
+  </div>
+  <div>
+    <img class="h-60 w-full object-cover rounded-lg" src="/barco2.jpg" alt="" />
+  </div>
+  <div>
+    <img class="h-60 w-full object-cover rounded-lg" src="bote.jpg" alt="" />
+  </div>
+  <div>
+    <img class="h-60 w-full object-cover rounded-lg" src="/casa.jpg" alt="" />
+  </div>
+  <div>
+    <img
+      class="h-60 w-full object-cover rounded-lg"
+      src="/consultorio.jpg"
+      alt=""
+    />
+  </div>
+  <div>
+    <img
+      class="h-60 w-full object-cover rounded-lg"
+      src="/cubiculos.jpg"
+      alt=""
+    />
+  </div>
+  <div>
+    <img class="h-60 w-full object-cover rounded-lg" src="/Ditica.jpg" alt="" />
+  </div>
+  <div>
+    <img
+      class="h-60 w-full object-cover rounded-lg"
+      src="/etilico.jpg"
+      alt=""
+    />
+  </div>
+  <div>
+    <img
+      class="h-60 w-full object-cover rounded-lg"
+      src="/extrella.jpg"
+      alt=""
+    />
+  </div>
+  <div>
+    <img
+      class="h-60 w-full object-cover rounded-lg"
+      src="/hospedaje.jpg"
+      alt=""
+    />
+  </div>
+  <div>
+    <img class="h-60 w-full object-cover rounded-lg" src="/lancha.jpg" alt="" />
+  </div>
+  <div>
+    <img class="h-60 w-full object-cover rounded-lg" src="/marco.jpg" alt="" />
+  </div>
+  <div>
+    <img
+      class="h-60 w-full object-cover rounded-lg"
+      src="/ministerio.jpg"
+      alt=""
+    />
+  </div>
+  <div>
+    <img class="h-60 w-full object-cover rounded-lg" src="/multic.jpg" alt="" />
+  </div>
+  <div>
+    <img class="h-60 w-full object-cover rounded-lg" src="/nails.jpg" alt="" />
+  </div>
+  <div>
+    <img
+      class="h-60 w-full object-cover rounded-lg"
+      src="/nooolapolicia.jpg"
+      alt=""
+    />
+  </div>
+  <div>
+    <img class="h-60 w-full object-cover rounded-lg" src="/plaza2.jpg" alt="" />
+  </div>
+  <div>
+    <img
+      class="h-60 w-full object-cover rounded-lg"
+      src="/puertita.jpg"
+      alt=""
+    />
+  </div>
+  <div>
+    <img class="h-60 w-full object-cover rounded-lg" src="/zuda.jpg" alt="" />
+  </div>
+  <div></div>
+</div>
+<!--seccion de contacto-->
+<section class="py-16 bg-secondary text-gray-800">
+  <div class="container mx-auto px-4">
+    <div class="max-w-4xl mx-auto">
+      <h2 class="text-3xl font-bold text-center mb-8">Contáctenos</h2>
+      <div class="grid md:grid-cols-2 gap-8">
+        <div>
+          <h3 class="text-xl font-semibold mb-4 text-primary-light">
+            Información de Contacto
+          </h3>
+          <p class="mb-4">
+            <i class="fas fa-map-marker-alt mr-2 text-primary-medium"></i>
+            Dirección: Blas de Lezo Cl. 21A Mz. 11A Lt. 12
+          </p>
+          <p class="mb-4">
+            <i class="fas fa-phone mr-2 text-primary-medium"></i> Teléfono:
+           300 4947020
+          </p>
+          <p class="mb-4">
+            <i class="fas fa-envelope mr-2 text-primary-medium"></i> Email:
+            [email]
+          </p>
+        </div>
+        <div>
+          <form class="space-y-4">
+            <input
+              type="text"
+              placeholder="Nombre"
+              class="w-full px-4 py-2 rounded bg-primary-darkest border border-primary-dark focus:border-primary-light focus:outline-none"
+            />
+            <input
+              type="email"
+              placeholder="Email"
+              class="w-full px-4 py-2 rounded bg-primary-darkest border border-primary-dark focus:border-primary-light focus:outline-none"
+            />
+            <textarea
+              placeholder="Mensaje"
+              rows="4"
+              class="w-full px-4 py-2 rounded bg-primary-darkest border border-primary-dark focus:border-primary-light focus:outline-none"
+            ></textarea>
+            <button
+              type="submit"
+              class="bg-primary-light hover:bg-primary-medium text-white px-6 py-3 rounded-lg font-semibold transition w-full"
+            >
+              Enviar Mensaje
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
