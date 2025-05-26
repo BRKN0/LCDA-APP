@@ -1,6 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@import "flowbite/src/themes/default";
 
 /* Estilos generales */
 html,
@@ -93,8 +94,8 @@ button {
   padding: theme("spacing.2") theme("spacing.4");
   text-align: left;
   white-space: nowrap;
-  overflow: hidden; 
-  max-width: 100%; 
+  overflow: hidden;
+  max-width: 100%;
 }
 
 .btn-delete {
@@ -485,7 +486,7 @@ h1 {
   background-color: #c72c41;
   color: white;
   text-align: center;
-  z-index: 10;
+  z-index: 100;
 
   &:hover {
     text-align: center;
@@ -678,4 +679,37 @@ h1 {
     --tw-shadow-color: #fecaca;
     --tw-shadow: var(--tw-shadow-colored);
   }
+}
+
+.btn-contact {
+  @apply text-[#510A32] 
+             border border-white 
+             hover:border-gray-200 
+             dark:border-[#510A32] 
+             dark:bg-[#510A32] 
+             dark:hover:border-gray-700 
+             bg-white 
+             focus:ring-4 
+             focus:outline-none 
+             focus:ring-gray-300 
+             rounded-full 
+             text-base 
+             font-medium 
+             px-5 
+             py-2.5 
+             text-center 
+             me-3 
+             mb-3 
+             dark:text-white 
+             dark:focus:ring-gray-800;
+}
+/* Transición suave para los slides */
+.carousel-slide {
+  transition: opacity 0.5s ease-in-out;
+}
+
+/* Efecto hover para los controles */
+.carousel-control:hover {
+  transform: scale(1.1);
+  transition: transform 0.2s ease;
 }
