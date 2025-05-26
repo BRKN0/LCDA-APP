@@ -64,10 +64,8 @@ export class AcrylicsComponent implements OnInit {
     height: number;
     gauge: number;
     color: string;
-    cost_price: number; // Nuevo campo para precio ingresado
     format: string;
     profit: number;
-    margin: number; // Nuevo campo para margen
     discount: number;
     includeIva: boolean;
   };
@@ -92,6 +90,17 @@ export class AcrylicsComponent implements OnInit {
     '1/32 (Treintaydosavo de Lámina)': 0.03125,
   };
 
+  // Márgenes por formato (en fracción, ej. 0.10 = 10%)
+  private formatMargins: { [key: string]: number } = {
+    '1 Lámina': 0,
+    '1/2 (Media Lámina)': 0.10,
+    '1/3 (Tercio de Lámina)': 0.42,
+    '1/4 (Cuarto de Lámina)': 0.30,
+    '1/8 (Octavo de Lámina)': 0.40,
+    '1/16 (Dieciseisavo de Lámina)': 0.45,
+    '1/32 (Treintaydosavo de Lámina)': 0.48,
+  };
+
   constructor(private readonly supabase: SupabaseService) {
     this.formAcrylic = { id_acrylics: '', width: 0, height: 0, color: '', gauge: 0, cost_price: 0, created_at: '' };
     this.calculatorForm = {
@@ -99,10 +108,8 @@ export class AcrylicsComponent implements OnInit {
       height: 0,
       gauge: 0,
       color: 'Cristal y Opal',
-      cost_price: 0, // Valor inicial para precio
       format: '1 Lámina',
       profit: 30,
-      margin: 0, // Valor inicial para margen
       discount: 0,
       includeIva: false
     };
@@ -159,7 +166,6 @@ export class AcrylicsComponent implements OnInit {
     this.clientSearchQuery = `${client.name} (${client.company_name || 'Sin empresa'})`;
     this.showClientDropdown = false;
     this.calculatorForm.profit = client.default_profit || 30;
-    this.calculatorForm.margin = client.default_margin || 0; // Usar margen del cliente
     this.calculatorForm.discount = client.default_discount || 0;
   }
 
@@ -199,10 +205,8 @@ export class AcrylicsComponent implements OnInit {
       height: 0,
       gauge: 0,
       color: 'Cristal y Opal',
-      cost_price: 0, // Permitir ingreso manual del precio
       format: '1 Lámina',
       profit: this.selectedClient?.default_profit || 30,
-      margin: this.selectedClient?.default_margin || 0, // Margen del cliente
       discount: this.selectedClient?.default_discount || 0,
       includeIva: false
     };
@@ -229,8 +233,7 @@ export class AcrylicsComponent implements OnInit {
   async saveClientDefaults(): Promise<void> {
     if (!this.selectedClient ||
         this.selectedClient.default_profit === undefined ||
-        this.selectedClient.default_discount === undefined ||
-        this.selectedClient.default_margin === undefined) {
+        this.selectedClient.default_discount === undefined) {
       alert('Por favor, complete todos los campos.');
       return;
     }
@@ -240,7 +243,6 @@ export class AcrylicsComponent implements OnInit {
         .from('clients')
         .update({
           default_profit: this.selectedClient.default_profit,
-          default_margin: this.selectedClient.default_margin,
           default_discount: this.selectedClient.default_discount
         })
         .eq('id_client', this.selectedClient.id_client);
@@ -260,6 +262,11 @@ export class AcrylicsComponent implements OnInit {
     }
   }
 
+  // Calcular el área total de la lámina
+  private calculateTotalSheetArea(acrylic: Acrylic): number {
+    return (acrylic.width * acrylic.height) / 10000; // Convertir cm² a m²
+  }
+
   // Calcular el área según el formato
   calculateOrderArea(width: number, height: number, format: string = this.selectedFormat): number {
     const totalArea = (width * height) / 10000; // Área total del pedido en m²
@@ -267,86 +274,87 @@ export class AcrylicsComponent implements OnInit {
     return totalArea * factor;
   }
 
-  // Calcular el precio con utilidad
-  calculateBasePriceWithProfit(costPrice: number, width: number, height: number, format: string = this.selectedFormat, profit: number = 30): number {
-    const orderArea = this.calculateOrderArea(width, height, format);
-    const profitFactor = 1 - (profit / 100); // Ajustar según el porcentaje de utilidad
-    const adjustedFactor = profitFactor === 0 ? 1 : profitFactor; // Evitar división por cero
-    const adjustedPrice = (costPrice * orderArea) / adjustedFactor; // Aplicar utilidad al precio ingresado
+  // Calcular el precio con utilidad (basado en Excel: MULTIPLO.SUPERIOR((($E7/$G7)*$H7)/0.7,100))
+  calculateBasePriceWithProfit(acrylic: Acrylic, format: string = this.selectedFormat): number {
+    const costPrice = acrylic.cost_price;
+    const totalSheetArea = this.calculateTotalSheetArea(acrylic);
+    const orderArea = this.calculateOrderArea(acrylic.width, acrylic.height, format);
+    const pricePerUnitArea = costPrice / totalSheetArea; // Precio por m²
+    const adjustedPrice = (pricePerUnitArea * orderArea) / 0.7; // Ajustar por 30% de utilidad
     return Math.ceil(adjustedPrice / 100) * 100;
   }
 
-  // Calcular el margen aplicado (usar el ingresado o del cliente)
-  calculateAppliedMargin(margin: number = 0): number {
-    return margin / 100; // Convertir a fracción
+  // Calcular el margen aplicado según el formato
+  calculateAppliedMargin(format: string = this.selectedFormat): number {
+    return this.formatMargins[format] || 0;
   }
 
-  // Calcular el precio con margen
-  calculatePriceWithMargin(costPrice: number, width: number, height: number, format: string = this.selectedFormat, margin: number = 0): number {
-    const basePriceWithProfit = this.calculateBasePriceWithProfit(costPrice, width, height, format, this.calculatorForm?.profit || 0);
-    const appliedMargin = this.calculateAppliedMargin(margin || this.calculatorForm?.margin || 0);
+  // Calcular el precio con margen (basado en Excel: MULTIPLO.SUPERIOR($I7*(1+$J7),100))
+  calculatePriceWithMargin(acrylic: Acrylic, format: string = this.selectedFormat): number {
+    const basePriceWithProfit = this.calculateBasePriceWithProfit(acrylic, format);
+    const appliedMargin = this.calculateAppliedMargin(format);
     return Math.ceil((basePriceWithProfit * (1 + appliedMargin)) / 100) * 100;
   }
 
   // Calcular el descuento
-  calculateDiscount(costPrice: number, width: number, height: number, discount: number, format: string = this.selectedFormat): number {
-    const priceWithMargin = this.calculatePriceWithMargin(costPrice, width, height, format, this.calculatorForm?.margin || 0);
+  calculateDiscount(acrylic: Acrylic, discount: number, format: string = this.selectedFormat): number {
+    const priceWithMargin = this.calculatePriceWithMargin(acrylic, format);
     const discountPercentage = discount / 100;
     return Math.ceil((priceWithMargin * discountPercentage) / 100) * 100;
   }
 
   // Calcular el precio final sin IVA
-  calculateFinalPriceWithoutIva(costPrice: number, width: number, height: number, discount: number, format: string = this.selectedFormat): number {
-    const priceWithMargin = this.calculatePriceWithMargin(costPrice, width, height, format, this.calculatorForm?.margin || 0);
-    const discountValue = this.calculateDiscount(costPrice, width, height, discount, format);
+  calculateFinalPriceWithoutIva(acrylic: Acrylic, discount: number, format: string = this.selectedFormat): number {
+    const priceWithMargin = this.calculatePriceWithMargin(acrylic, format);
+    const discountValue = this.calculateDiscount(acrylic, discount, format);
     return Math.ceil((priceWithMargin - discountValue) / 100) * 100;
   }
 
   // Calcular el IVA
-  calculateIva(costPrice: number, width: number, height: number, discount: number, format: string = this.selectedFormat): number {
-    const finalPriceWithoutIva = this.calculateFinalPriceWithoutIva(costPrice, width, height, discount, format);
+  calculateIva(acrylic: Acrylic, discount: number, format: string = this.selectedFormat): number {
+    const finalPriceWithoutIva = this.calculateFinalPriceWithoutIva(acrylic, discount, format);
     return Math.ceil((finalPriceWithoutIva * 0.19) / 100) * 100;
   }
 
   // Calcular el precio con IVA
-  calculatePriceWithIva(costPrice: number, width: number, height: number, discount: number, format: string = this.selectedFormat): number {
-    const finalPriceWithoutIva = this.calculateFinalPriceWithoutIva(costPrice, width, height, discount, format);
-    const iva = this.calculateIva(costPrice, width, height, discount, format);
-    return finalPriceWithoutIva + (this.calculatorForm?.includeIva ? iva : 0);
+  calculatePriceWithIva(acrylic: Acrylic, discount: number, format: string = this.selectedFormat): number {
+    const finalPriceWithoutIva = this.calculateFinalPriceWithoutIva(acrylic, discount, format);
+    const iva = this.calculateIva(acrylic, discount, format);
+    return finalPriceWithoutIva + iva;
   }
 
   calculateValues(): void {
-    const { width, height, cost_price, format, profit, margin, discount, includeIva } = this.calculatorForm;
+    const matchingAcrylic = this.acrylicItems.find(
+      acrylic => acrylic.color === this.calculatorForm.color && acrylic.gauge === this.calculatorForm.gauge
+    );
 
-    if (!width || !height || !cost_price) {
-      alert('Por favor, complete ancho, alto y precio costo.');
+    if (!matchingAcrylic) {
+      alert('No se encontró un acrílico con el color y calibre seleccionados.');
       return;
     }
 
-    const orderArea = this.calculateOrderArea(width, height, format);
+    const costPrice = matchingAcrylic.cost_price;
+    const profitPercentage = this.calculatorForm.profit;
+    const discount = this.calculatorForm.discount;
+    const format = this.calculatorForm.format;
 
-    // Calcular precio con utilidad
-    const basePriceWithProfit = this.calculateBasePriceWithProfit(cost_price, width, height, format, profit);
+    const orderArea = this.calculateOrderArea(this.calculatorForm.width, this.calculatorForm.height, format);
+    const totalSheetArea = this.calculateTotalSheetArea(matchingAcrylic);
+    const areaFactor = orderArea / totalSheetArea;
 
-    // Calcular precio con margen
-    const priceWithMargin = this.calculatePriceWithMargin(cost_price, width, height, format, margin);
-
-    // Calcular descuento
-    const discountValue = this.calculateDiscount(cost_price, width, height, discount, format);
-
-    // Calcular precio final sin IVA
-    const finalPriceWithoutIva = this.calculateFinalPriceWithoutIva(cost_price, width, height, discount, format);
-
-    // Calcular IVA
-    const iva = this.calculateIva(cost_price, width, height, discount, format);
-
-    // Calcular precio con IVA
-    const finalPriceWithIva = this.calculatePriceWithIva(cost_price, width, height, discount, format);
+    const adjustedCostPrice = costPrice * areaFactor;
+    const basePriceWithProfit = this.calculateBasePriceWithProfit(matchingAcrylic, format);
+    const appliedMargin = this.calculateAppliedMargin(format);
+    const priceWithMargin = this.calculatePriceWithMargin(matchingAcrylic, format);
+    const discountValue = this.calculateDiscount(matchingAcrylic, discount, format);
+    const finalPriceWithoutIva = Math.ceil((priceWithMargin - discountValue) / 100) * 100;
+    const iva = Math.ceil((finalPriceWithoutIva * 0.19) / 100) * 100;
+    const finalPriceWithIva = finalPriceWithoutIva + iva;
 
     this.calculationResult = {
       orderArea,
       basePriceWithProfit,
-      appliedMargin: margin / 100, // Mostrar como fracción para consistencia
+      appliedMargin,
       priceWithMargin,
       discount: discountValue,
       finalPriceWithoutIva,
