@@ -194,6 +194,7 @@
         <h3 class="text-lg font-bold mb-4">
           Pedidos del Cliente: {{ selectedClient?.name }}
         </h3>
+
         <!-- Filtros de fecha -->
         <div class="flex items-center space-x-4 mb-4">
           <div>
@@ -218,6 +219,12 @@
               class="border rounded p-1"
             />
           </div>
+
+          <label>
+            <input type="checkbox" [(ngModel)]="onlyWithDebt" (change)="updatePaginatedOrders()" />
+            Mostrar solo pedidos con deuda
+          </label>
+
           <button
             (click)="clearDateFilters()"
             class="bg-gray-500 text-white px-3 py-1 rounded-md hover:bg-gray-600 mt-5"
