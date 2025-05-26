@@ -1,4 +1,4 @@
-import { Component, OnInit, NgZone } from '@angular/core';
+import { Component, OnInit, NgZone, HostListener } from '@angular/core';
 import { RoleService } from '../../services/role.service';
 import { MainBannerComponent } from '../main-banner/main-banner.component';
 import { SupabaseService } from '../../services/supabase.service';
@@ -18,15 +18,40 @@ export class HomeComponent implements OnInit {
   userId: string | null = null;
   userRole: string = 'visitor';
   isLoggedIn$;
+
   constructor(
     private readonly supabase: SupabaseService,
     private readonly zone: NgZone,
     private readonly roleService: RoleService,
-    private readonly router: Router,
+    private readonly router: Router
   ) {
     this.isLoggedIn$ = this.supabase
       .authChanges$()
       .pipe(map((session) => !!session));
+  }
+  ngAfterViewInit(): void {
+    const targets = document.querySelectorAll('.hero-section-animate');
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const el = entry.target as HTMLElement;
+
+          if (entry.isIntersecting) {
+            el.classList.remove('hero-hide');
+            el.classList.add('hero-animate');
+          } else {
+            el.classList.remove('hero-animate');
+            el.classList.add('hero-hide');
+          }
+        });
+      },
+      {
+        threshold: 0.2, // trigger when 20% is visible
+      }
+    );
+
+    targets.forEach((el) => observer.observe(el));
   }
 
   async ngOnInit(): Promise<void> {
@@ -41,7 +66,7 @@ export class HomeComponent implements OnInit {
     });
   }
   goToProducts() {
-    this.router.navigate(['/product'])
+    this.router.navigate(['/inventory/product']);
   }
 
   async onRoleChange() {
@@ -61,16 +86,20 @@ export class HomeComponent implements OnInit {
     console.log(userToUpdate);
     this.updateRole(userToUpdate);
   }
-  async updateRole(userToUpdate: { id: any; email?: string | undefined; id_role?: any; }) {
+  async updateRole(userToUpdate: {
+    id: any;
+    email?: string | undefined;
+    id_role?: any;
+  }) {
     const { error } = await this.supabase
-    .from('users')
-    .update(userToUpdate)
-    .eq('id', userToUpdate.id);
-    
+      .from('users')
+      .update(userToUpdate)
+      .eq('id', userToUpdate.id);
+
     if (error) {
       console.log('error updating role: ', error);
       return;
     }
-    this.roleService.setRole(this.userRole)
+    this.roleService.setRole(this.userRole);
   }
 }

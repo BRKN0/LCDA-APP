@@ -24,9 +24,7 @@
     </select>
   </div>
 </ng-template>
-<section
-  class="bg-[url(/shapes.png)] bg-repeat bg-left-bottom text-center py-16 px-6 mb-6"
->
+<section class="bg-white bg-repeat bg-left-bottom text-center py-16 px-6 mb-6">
   <div class="text-box mx-auto w-[550px] h-[125px] mt-10 mb-16">
     <h2 class="text-3xl font-bold text-red-600 mb-4">
       ¡ Bienvenido a La Casa del Acrílico
@@ -133,15 +131,38 @@
     </div>
   </div>
   <!--seccion jumbotron con imagen de fondo-->
-<section class="relative bg-center bg-cover bg-no-repeat" style="background-image: url('https://i.pinimg.com/736x/5e/06/5a/5e065a855b0a15d53e428826c7f6dd33.jpg');">
-    <div class="px-4 mx-auto max-w-screen-xl text-center py-24 lg:py-56">
-        <h1 class="mb-4 text-4xl font-extrabold tracking-tight leading-none text-gray-300 md:text-5xl lg:text-6xl">Soluciones Acrílicas a Tu Medida</h1>
-        <p class="mb-8 text-lg font-normal text-gray-300 lg:text-xl sm:px-16 lg:px-48">Descubre cómo nuestros productos personalizados pueden transformar tus espacios</p>
-         <div class="flex flex-col sm:flex-row justify-center gap-4 mt-8">
-    <a (click)="goToProducts()" class="border-2 border-primary-darkest text-primary-darkest hover:bg-primary-darkest hover:text-white px-8 py-3 rounded-lg font-semibold transition-all">
-      Ver Catálogo Completo
-    </a>
-  </div>
-</div>
+
+  <section
+    class="relative w-full bg-center bg-cover bg-no-repeat bg-[url('/colors.png')] overflow-hidden"
+  >
+    <div class="absolute inset-0 bg-black/60 pointer-events-none z-0"></div>
+
+    <div
+      class="relative z-10 px-4 mx-auto max-w-screen-xl text-center py-24 lg:py-56"
+    >
+      <h1
+        class="hero-section-animate text-4xl font-extrabold tracking-tight leading-none text-white md:text-5xl lg:text-6xl"
+      >
+        Soluciones Acrílicas a Tu Medida
+      </h1>
+      <p
+        class="hero-section-animate text-lg font-normal text-white lg:text-xl sm:px-16 lg:px-48"
+      >
+        Descubre cómo nuestros productos personalizados pueden transformar tus
+        espacios
+      </p>
+      <div
+        class="hero-section-animate flex flex-col sm:flex-row justify-center gap-4 mt-8"
+      >
+        <a
+          (click)="goToProducts()"
+          class="bg-[#c72c41]/80 hover:bg-[#df3c3c] text-white font-semibold px-6 py-3 rounded shadow-lg transition-colors duration-300 ease-in-out transform hover:scale-105 cursor-pointer"
+        >
+          Ver Catálogo Completo
+        </a>
+      </div>
+    </div>
+  </section>
+  <div id="page-end" class="h-[1px] w-full"></div>
+  <ng-template #visitor> </ng-template>
 </section>
-<ng-template #visitor> </ng-template>
