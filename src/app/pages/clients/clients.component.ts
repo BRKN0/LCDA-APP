@@ -94,6 +94,7 @@ export class ClientsComponent implements OnInit {
   showModal = false;
   startDate: string = '';
   endDate: string = '';
+  onlyWithDebt: boolean = false;
   newClient: Partial<Client> = {
     id_client: '',
     document_type: '',
@@ -268,6 +269,7 @@ export class ClientsComponent implements OnInit {
       }
       this.startDate = '';
       this.endDate = '';
+      this.onlyWithDebt = false;
       this.selectedClient = { ...client }; // Clonar el cliente
       this.showOrders = true;
       this.currentOrderPage = 1;
@@ -685,6 +687,10 @@ export class ClientsComponent implements OnInit {
       );
     }
 
+    if (this.onlyWithDebt) {
+      filteredOrders = filteredOrders.filter(order => order.order_payment_status === 'overdue');
+    }
+
     // Paginar los resultados filtrados
     const startIndex = (this.currentOrderPage - 1) * this.itemsPerOrderPage;
     const endIndex = startIndex + this.itemsPerOrderPage;
@@ -695,6 +701,7 @@ export class ClientsComponent implements OnInit {
   clearDateFilters(): void {
     this.startDate = '';
     this.endDate = '';
+    this.onlyWithDebt = false;
     this.currentOrderPage = 1;
     this.updatePaginatedOrders();
   }
