@@ -1,5 +1,4 @@
 import { Component, OnInit, NgZone } from '@angular/core';
-import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MainBannerComponent } from '../main-banner/main-banner.component';
 import { SupabaseService } from '../../services/supabase.service';
@@ -16,6 +15,27 @@ interface mdf {
   created_at: string;
 }
 
+interface Client {
+  id_client: string;
+  name: string;
+  company_name: string;
+  default_margin?: number;
+  default_discount?: number;
+}
+
+interface CalculationResult {
+  costPlusFreight: number;
+  entera25?: number;
+  entera20?: number;
+  entera15?: number;
+  media?: number;
+  oneThird?: number;
+  oneFourth?: number;
+  oneEighth30x180?: number;
+  oneEighth90x60?: number;
+  oneEighth30x45?: number;
+}
+
 @Component({
   selector: 'app-mdf',
   standalone: true,
@@ -25,34 +45,55 @@ interface mdf {
 })
 
 export class MDFComponent implements OnInit {
-
   mdfItems: mdf[] = [];
-  filteredMdfItems: mdf[] = []; // Para soportar filtros futuros
-  paginatedMdfItems: mdf[] = []; // Para paginación
+  filteredMdfItems: mdf[] = [];
+  paginatedMdfItems: mdf[] = [];
   selectedMdf: mdf | null = null;
   showModal: boolean = false;
   newMdf: mdf = { id_mdf: '', thickness: '', cost: 0, freight: 0, created_at: '' };
-  formMdf: mdf; // Nueva propiedad para el formulario
+  formMdf: mdf;
   loading = true;
-  searchTerm: string = ''; // Nueva propiedad para el término de búsqueda
-  sortDirection: 'asc' | 'desc' = 'asc'; // Orden ascendente por defecto
-
-  // Paginación
+  searchTerm: string = '';
+  sortDirection: 'asc' | 'desc' = 'asc';
   currentPage: number = 1;
   itemsPerPage: number = 10;
   totalPages: number = 1;
 
-  constructor(private readonly supabase: SupabaseService) {this.formMdf = { ...this.newMdf };}
+  // Propiedades para la calculadora
+  showCalculatorModal: boolean = false;
+  calculatorForm: {
+    thickness: string;
+    cost: number;
+    freight: number;
+    cutType: string;
+  };
+  calculationResult: CalculationResult | null = null;
+  clients: Client[] = [];
+  filteredClients: Client[] = [];
+  clientSearchQuery: string = '';
+  showClientDropdown: boolean = false;
+  selectedClient: Client | null = null;
+
+  constructor(private readonly supabase: SupabaseService) {
+    this.formMdf = { ...this.newMdf };
+    this.calculatorForm = {
+      thickness: '',
+      cost: 0,
+      freight: 0,
+      cutType: 'Entera'
+    };
+  }
 
   ngOnInit(): void {
     this.getMdfItems();
+    this.getClients();
   }
 
   async getMdfItems(): Promise<void> {
     this.loading = true;
     const { data, error } = await this.supabase
       .from('mdf')
-      .select('*')
+      .select('*');
 
     if (error) {
       console.error('Error al obtener MDF:', error);
@@ -61,18 +102,51 @@ export class MDFComponent implements OnInit {
     }
     this.mdfItems = data || [];
     this.filteredMdfItems = [...this.mdfItems];
-    this.applyCurrentSort(); // Aplica el orden inicial
+    this.applyCurrentSort();
     this.currentPage = 1;
     this.updatePaginatedMdfItems();
     this.loading = false;
   }
 
+  async getClients(): Promise<void> {
+    const { data, error } = await this.supabase.from('clients').select('*');
+    if (error) {
+      console.error('Error fetching clients:', error);
+      return;
+    }
+    this.clients = data;
+    this.filteredClients = [...this.clients];
+  }
+
+  searchClients(): void {
+    if (!this.clientSearchQuery.trim()) {
+      this.filteredClients = [...this.clients];
+      return;
+    }
+
+    this.filteredClients = this.clients.filter((client) =>
+      client.name.toLowerCase().includes(this.clientSearchQuery.toLowerCase()) ||
+      (client.company_name && client.company_name.toLowerCase().includes(this.clientSearchQuery.toLowerCase()))
+    );
+  }
+
+  selectClient(client: Client): void {
+    this.selectedClient = client;
+    this.clientSearchQuery = `${client.name} (${client.company_name || 'Sin empresa'})`;
+    this.showClientDropdown = false;
+    // No se aplican márgenes ni descuentos actualmente
+  }
+
+  hideClientDropdown(): void {
+    setTimeout(() => {
+      this.showClientDropdown = false;
+    }, 200);
+  }
+
   private applyCurrentSort(): void {
     this.filteredMdfItems.sort((a, b) => {
-      // Ordenamos por thickness (convertimos a número para ordenar correctamente)
       const valueA = parseFloat(a.thickness);
       const valueB = parseFloat(b.thickness);
-
       return this.sortDirection === 'asc' ? valueA - valueB : valueB - valueA;
     });
   }
@@ -80,10 +154,9 @@ export class MDFComponent implements OnInit {
   toggleSortDirection(): void {
     this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
     this.applyCurrentSort();
-    this.updatePaginatedMdfItems(); // Actualiza la paginación
+    this.updatePaginatedMdfItems();
   }
 
-  // Modificar openModal para manejar formMdf
   openModal(mdf?: mdf): void {
     if (mdf) {
       this.selectedMdf = { ...mdf };
@@ -101,15 +174,79 @@ export class MDFComponent implements OnInit {
     this.formMdf = { id_mdf: '', thickness: '', cost: 0, freight: 0, created_at: '' };
   }
 
+  openCalculatorModal(): void {
+    this.showCalculatorModal = true;
+    this.calculatorForm = {
+      thickness: '',
+      cost: 0,
+      freight: 0,
+      cutType: 'Entera'
+    };
+    this.calculationResult = null;
+    this.clientSearchQuery = '';
+    this.selectedClient = null;
+    this.filteredClients = [...this.clients];
+    this.showClientDropdown = false;
+  }
+
+  closeCalculatorModal(): void {
+    this.showCalculatorModal = false;
+    this.calculationResult = null;
+    this.selectedClient = null;
+  }
+
+  calculateMdfValues(): void {
+    if (!this.calculatorForm.cost || !this.calculatorForm.freight) {
+      alert('Por favor, ingrese el costo y el flete.');
+      return;
+    }
+
+    const cost = this.calculatorForm.cost;
+    const freight = this.calculatorForm.freight;
+    const costPlusFreight = cost + freight;
+    const entera25 = this.calculateEntera25Percent(cost);
+
+    const result: CalculationResult = {
+      costPlusFreight
+    };
+
+    switch (this.calculatorForm.cutType) {
+      case 'Entera':
+        result.entera25 = entera25;
+        result.entera20 = this.calculateEntera20Percent(entera25);
+        result.entera15 = this.calculateEntera15Percent(result.entera20);
+        break;
+      case 'Media':
+        result.media = this.calculateMedia(entera25);
+        break;
+      case '1/3':
+        result.oneThird = this.calculateOneThird(entera25);
+        break;
+      case '1/4':
+        result.oneFourth = this.calculateOneFourth(entera25);
+        break;
+      case '1/8 30x180':
+        result.oneEighth30x180 = this.calculateOneEighth30x180(entera25);
+        break;
+      case '1/8 90x60':
+        result.oneEighth90x60 = this.calculateOneEighth90x60(entera25);
+        break;
+      case '1/8 30x45':
+        result.oneEighth30x45 = this.calculateOneEighth30x45(entera25);
+        break;
+    }
+
+    this.calculationResult = result;
+  }
+
   async saveMdf(): Promise<void> {
     if (!this.formMdf.thickness || this.formMdf.cost <= 0 || this.formMdf.freight <= 0) {
-      alert ('Por favor, complete todos los campos.');
+      alert('Por favor, complete todos los campos.');
       return;
     }
 
     try {
       if (this.selectedMdf) {
-        // Actualizar MDF existente
         const { error } = await this.supabase
           .from('mdf')
           .update({
@@ -121,13 +258,12 @@ export class MDFComponent implements OnInit {
 
         if (error) {
           console.error('Error al actualizar MDF:', error);
-          alert ('Error al actualizar el MDF.');
+          alert('Error al actualizar el MDF.');
           return;
         }
 
         alert('MDF actualizado correctamente.');
       } else {
-        // Crear nuevo MDF
         const { error } = await this.supabase
           .from('mdf')
           .insert([
@@ -176,9 +312,6 @@ export class MDFComponent implements OnInit {
     }
   }
 
-
-
-  // Funciones para calcular los valores derivados
   calculateEntera25Percent(cost: number): number {
     return cost + cost * 0.25;
   }
@@ -215,9 +348,7 @@ export class MDFComponent implements OnInit {
     return (enter25 / 32) * 1.9;
   }
 
-  // Paginación
   updatePaginatedMdfItems(): void {
-    // Filtramos los elementos según el término de búsqueda
     const term = this.searchTerm.toLowerCase().trim();
     const filtered = this.mdfItems.filter(mdf =>
       mdf.thickness.toLowerCase().includes(term) ||
@@ -225,24 +356,20 @@ export class MDFComponent implements OnInit {
       mdf.freight.toString().includes(term)
     );
 
-    // Mantenemos el orden aplicado
     this.filteredMdfItems = [...filtered];
     this.applyCurrentSort();
 
-    // Calculamos paginación
     const itemsPerPageNum = Number(this.itemsPerPage);
     this.totalPages = Math.max(1, Math.ceil(this.filteredMdfItems.length / itemsPerPageNum));
     this.currentPage = Math.min(Math.max(this.currentPage, 1), this.totalPages);
 
     const startIndex = (this.currentPage - 1) * itemsPerPageNum;
     const endIndex = startIndex + itemsPerPageNum;
-
     this.paginatedMdfItems = this.filteredMdfItems.slice(startIndex, endIndex);
   }
 
-  // Método para manejar cambios en el término de búsqueda
   onSearchChange(): void {
-    this.currentPage = 1; // Reiniciamos la página al buscar
+    this.currentPage = 1;
     this.updatePaginatedMdfItems();
   }
 }
