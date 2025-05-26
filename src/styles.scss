@@ -1,7 +1,6 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@import "flowbite/src/themes/default";
 
 /* Estilos generales */
 html,
@@ -177,6 +176,7 @@ button {
   z-index: 1001;
 }
 .modal-content {
+  resize: both;
   border-color: #ad2651;
   border-width: 2px;
   background: white;
@@ -187,8 +187,10 @@ button {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
   width: 100%;
   height: 100%;
-  max-width: 600px;
-  max-height: 800px;
+  width: 600px;
+  height: 800px;
+  max-width: 1500px;
+  max-height: 1500px;
   overflow-x: auto;
   overflow-y: auto;
   z-index: 1000;
@@ -219,7 +221,6 @@ button {
 }
 .modal-w720 {
   width: 720px;
-  max-width: 720px;
 }
 .modal-content.expanded {
   height: 450px;
@@ -459,6 +460,7 @@ h1 {
   font-weight: bold;
   border: 2px solid;
   background-color: rgb(175, 14, 65);
+  z-index: 11;
 }
 .nav-item {
   text-align: center;
@@ -530,6 +532,13 @@ h1 {
     color: white;
   }
 }
+.nav-item-dropdown.active {
+  font-weight: bold;
+  border: 2px solid;
+  background-color: rgb(175, 14, 65);
+  z-index: 11;
+}
+
 .sidebar {
   border-right: 1px solid #ccc;
 }
