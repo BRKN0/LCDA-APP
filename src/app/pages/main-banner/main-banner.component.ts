@@ -43,10 +43,10 @@ export class MainBannerComponent implements OnInit {
     this.router.navigate(['/login']); // Redirect to login route
   }
   goToInventory() {
-    this.router.navigate(['/inventory']); // Redirect to inventory route
+    this.router.navigate(['/inventory/materials']); // Redirect to inventory route
   }
   goToProducts() {
-    this.router.navigate(['/product']); // Redirect to product route
+    this.router.navigate(['/inventory/product']); // Redirect to product route
   }
   goToAcrylics() {
     this.router.navigate(['/pricing/acrylics']); // Redirect to acrylics route
@@ -131,65 +131,63 @@ export class MainBannerComponent implements OnInit {
   }
   async getNotifications() {
     if (!this.userId || !this.userRole) return;
-  
+
     let query = this.supabase.from('notifications').select('*');
-  
+
     if (this.userRole === 'admin') {
       query = query.eq('id_user', this.userId);
-    } 
-    else if (this.userRole === 'prints_employee') {
+    } else if (this.userRole === 'prints_employee') {
       query = query.eq('type', 'prints');
-    } 
-
-    else if (this.userRole === 'cuts_employee') {
+    } else if (this.userRole === 'cuts_employee') {
       query = query.eq('type', 'cuts');
-    } 
-
-    else {
+    } else {
       this.newNotification = false;
       return;
     }
-  
+
     const { error, data } = await query;
-  
+
     if (error) {
       console.error('Error obteniendo notificaciones:', error);
       return;
     }
-  
+
     console.log('Notificaciones:', data);
-  
+
     this.newNotification = (data?.length ?? 0) > 0;
   }
   toggleFinanceDropdown(event: MouseEvent): void {
     event.stopPropagation(); // Prevents the document click listener from firing
     this.financeDropdownOpen = !this.financeDropdownOpen;
+    this.priceDropdownOpen = false;
+    this.inventoryDropdownOpen = false;
   }
-  async closeFinanceDropdown() {
+
+  async closeDropdowns() {
     this.financeDropdownOpen = false;
+    this.priceDropdownOpen = false;
+    this.inventoryDropdownOpen = false;
   }
   togglePriceDropdown(event: MouseEvent): void {
     event.stopPropagation(); // Prevents the document click listener from firing
     this.priceDropdownOpen = !this.priceDropdownOpen;
+    this.financeDropdownOpen = false;
+    this.inventoryDropdownOpen = false;
   }
-  async closePriceDropdown() {
-    this.priceDropdownOpen = false;
-  }
+
   toggleInventoryDropdown(event: MouseEvent): void {
     event.stopPropagation(); // Prevents the document click listener from firing
     this.inventoryDropdownOpen = !this.inventoryDropdownOpen;
+    this.financeDropdownOpen = false;
+    this.priceDropdownOpen = false;
   }
-  async closeInventoryDropdown() {
-    this.inventoryDropdownOpen = false;
-  }
+
   // Detect clicks outside of dropdown
   @HostListener('document:click', ['$event'])
   handleOutsideClick(event: Event): void {
     const clickedInside = (event.target as HTMLElement).closest('.nav-item');
     if (!clickedInside) {
-      this.closeFinanceDropdown();
-      this.closePriceDropdown();
-      this.closeInventoryDropdown();
+      this.closeDropdowns();
     }
   }
   goToBanks(): void {

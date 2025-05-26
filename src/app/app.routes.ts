@@ -27,14 +27,6 @@ export const routes: Routes = [
     loadComponent: () => LoginComponent,
   },
   {
-    path: 'inventory',
-    loadComponent: () => InventoryComponent,
-  },
-  {
-    path: 'product',
-    loadComponent: () => ProductComponent,
-  },
-  {
     path: 'pricing',
     children: [
       { path: 'mdf', component: MDFComponent },
@@ -43,6 +35,13 @@ export const routes: Routes = [
       { path: 'vinyl-cuts', component: VinylCutsComponent },
 
     ],
+  },
+  {
+    path: 'inventory',
+    children: [
+      { path: 'materials', component: InventoryComponent },
+      { path: 'product', component: ProductComponent},
+    ]
   },
   {
     path: 'home',
