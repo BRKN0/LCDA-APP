@@ -5,7 +5,7 @@ import { SupabaseService } from '../../services/supabase.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { map } from 'rxjs';
-import { RouterOutlet } from '@angular/router';
+import { Router, RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-home',
@@ -22,6 +22,7 @@ export class HomeComponent implements OnInit {
     private readonly supabase: SupabaseService,
     private readonly zone: NgZone,
     private readonly roleService: RoleService,
+    private readonly router: Router,
   ) {
     this.isLoggedIn$ = this.supabase
       .authChanges$()
@@ -39,6 +40,10 @@ export class HomeComponent implements OnInit {
       }
     });
   }
+  goToProducts() {
+    this.router.navigate(['/product'])
+  }
+
   async onRoleChange() {
     const { data, error } = await this.supabase
       .from('roles')
