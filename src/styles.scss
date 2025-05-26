@@ -189,11 +189,16 @@ button {
   height: 100%;
   width: 600px;
   height: 800px;
-  max-width: 1500px;
-  max-height: 1500px;
+  max-width: 95vw;
+  max-height: 95vh;
   overflow-x: auto;
   overflow-y: auto;
   z-index: 1000;
+
+  @media (min-width: 768px) {
+    width: 600px;
+    height: 800px;
+  }
 }
 .modal-h250 {
   height: 250px;
