@@ -12,6 +12,13 @@
   >
     Añadir MDF
   </button>
+  <!-- Botón para abrir la calculadora -->
+  <button
+    class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 mr-4"
+    (click)="openCalculatorModal()"
+  >
+    Calculadora
+  </button>
 </div>
 <!-- Action buttons y barra de búsqueda -->
 <div
@@ -140,7 +147,7 @@
         [disabled]="currentPage === 1"
         class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
       >
-        &#8656;
+        ⇐
       </button>
       <button
         (click)="currentPage = currentPage - 1; updatePaginatedMdfItems()"
@@ -164,7 +171,7 @@
         [disabled]="currentPage === totalPages"
         class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
       >
-        &#8658;
+        ⇒
       </button>
     </div>
 
@@ -237,6 +244,135 @@
           </button>
           <button type="submit" class="btn-success">
             {{ selectedMdf ? "Actualizar" : "Guardar MDF" }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal para la calculadora -->
+  <div *ngIf="showCalculatorModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3 class="text-lg font-bold mb-4">Calculadora de MDF</h3>
+      <form (ngSubmit)="calculateMdfValues()">
+        <!-- Selección de cliente -->
+        <div class="mb-4">
+          <label class="block modal-input-item">Cliente (Opcional)</label>
+          <div class="relative">
+            <input
+              type="text"
+              placeholder="Buscar cliente por nombre..."
+              [(ngModel)]="clientSearchQuery"
+              (ngModelChange)="searchClients()"
+              name="clientSearch"
+              class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+              (focus)="showClientDropdown = true"
+              (blur)="hideClientDropdown()"
+            />
+            <div
+              *ngIf="showClientDropdown && filteredClients.length > 0"
+              class="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto"
+            >
+              <div
+                *ngFor="let client of filteredClients"
+                class="p-2 hover:bg-gray-200 cursor-pointer"
+                (click)="selectClient(client)"
+              >
+                {{ client.name }} ({{ client.company_name || 'Sin empresa' }})
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Ingreso de grosor -->
+        <div class="mb-4">
+          <label class="block modal-input-item">Grosor (Opcional)</label>
+          <input
+            [(ngModel)]="calculatorForm.thickness"
+            name="calcThickness"
+            class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+            placeholder="Ej. 2.5mm"
+          />
+        </div>
+        <!-- Ingreso de costo -->
+        <div class="mb-4">
+          <label class="block modal-input-item">Costo</label>
+          <input
+            type="number"
+            [(ngModel)]="calculatorForm.cost"
+            name="calcCost"
+            class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+            placeholder="Ej. 1000"
+            required
+          />
+        </div>
+        <!-- Ingreso de flete -->
+        <div class="mb-4">
+          <label class="block modal-input-item">Flete</label>
+          <input
+            type="number"
+            [(ngModel)]="calculatorForm.freight"
+            name="calcFreight"
+            class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+            placeholder="Ej. 200"
+            required
+          />
+        </div>
+        <!-- Selección de tipo de corte -->
+        <div class="mb-4">
+          <label class="block modal-input-item">Tipo de Corte</label>
+          <select
+            [(ngModel)]="calculatorForm.cutType"
+            name="calcCutType"
+            class="form-select mt-1 block w-full border border-gray-300 rounded-md"
+            required
+          >
+            <option value="Entera">Entera</option>
+            <option value="Media">Media</option>
+            <option value="1/3">1/3</option>
+            <option value="1/4">1/4</option>
+            <option value="1/8 30x180">1/8 (30x180 - 90x60)</option>
+            <option value="1/8 90x60">1/8 (1/16 45x60)</option>
+            <option value="1/8 30x45">1/8 (1/32 30x45)</option>
+          </select>
+        </div>
+        <!-- Resultados -->
+        <div *ngIf="calculationResult" class="mt-4">
+          <h4 class="font-semibold">Resultados:</h4>
+          <p><strong>Costo Base (C+F):</strong> ${{ calculationResult.costPlusFreight.toFixed(2) }}</p>
+          <div *ngIf="calculationResult.entera25 !== undefined">
+            <p><strong>Entera 25%:</strong> ${{ calculationResult.entera25.toFixed(2) }}</p>
+          </div>
+          <div *ngIf="calculationResult.entera20 !== undefined">
+            <p><strong>Entera 20%:</strong> ${{ calculationResult.entera20.toFixed(2) }}</p>
+          </div>
+          <div *ngIf="calculationResult.entera15 !== undefined">
+            <p><strong>Entera 15%:</strong> ${{ calculationResult.entera15.toFixed(2) }}</p>
+          </div>
+          <div *ngIf="calculationResult.media !== undefined">
+            <p><strong>Media:</strong> ${{ calculationResult.media.toFixed(2) }}</p>
+          </div>
+          <div *ngIf="calculationResult.oneThird !== undefined">
+            <p><strong>1/3:</strong> ${{ calculationResult.oneThird.toFixed(2) }}</p>
+          </div>
+          <div *ngIf="calculationResult.oneFourth !== undefined">
+            <p><strong>1/4:</strong> ${{ calculationResult.oneFourth.toFixed(2) }}</p>
+          </div>
+          <div *ngIf="calculationResult.oneEighth30x180 !== undefined">
+            <p><strong>1/8 (30x180 - 90x60):</strong> ${{ calculationResult.oneEighth30x180.toFixed(2) }}</p>
+          </div>
+          <div *ngIf="calculationResult.oneEighth90x60 !== undefined">
+            <p><strong>1/8 (1/16 45x60):</strong> ${{ calculationResult.oneEighth90x60.toFixed(2) }}</p>
+          </div>
+          <div *ngIf="calculationResult.oneEighth30x45 !== undefined">
+            <p><strong>1/8 (1/32 30x45):</strong> ${{ calculationResult.oneEighth30x45.toFixed(2) }}</p>
+          </div>
+        </div>
+        <div class="flex justify-end mt-4">
+          <button type="button" class="btn-danger" (click)="closeCalculatorModal()">
+            Cerrar
+          </button>
+          <button type="submit" class="btn-success">
+            Calcular
           </button>
         </div>
       </form>
