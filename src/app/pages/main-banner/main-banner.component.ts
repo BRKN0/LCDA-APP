@@ -129,11 +129,11 @@ export class MainBannerComponent implements OnInit {
           this.roleService.fetchAndSetUserRole(this.userId);
           this.roleService.role$.subscribe((role) => {
             this.userRole = role;
+            this.getNotifications();
           });
           this.userId = session.user.id;
           this.userEmail = session.user.email;
           this.roleService.fetchAndSetUserRole(this.userId);
-          this.getNotifications();
         });
       }
     });
@@ -192,9 +192,8 @@ export class MainBannerComponent implements OnInit {
       return;
     }
 
-    console.log('Notificaciones:', data);
-
     this.newNotification = (data?.length ?? 0) > 0;
+    return;
   }
   toggleFinanceDropdown(event: MouseEvent): void {
     event.stopPropagation(); // Prevents the document click listener from firing
