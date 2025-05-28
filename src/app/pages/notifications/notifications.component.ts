@@ -40,6 +40,7 @@ export class NotificationsComponent implements OnInit {
   selectedNotification: Notifications | null = null;
   userId: string = '';
   userRole: string | null = null;
+  private hasFetchedNotifications = false;
   reminderForm: Notifications = {
     id_notification: '',
     created_at: '',
@@ -59,25 +60,37 @@ export class NotificationsComponent implements OnInit {
     private readonly roleService: RoleService
   ) {}
 
-  ngOnInit(): void {
-    // Populate the categories with sample data
+  async ngOnInit() {
     this.supabase.authChanges((_, session) => {
       if (session) {
-        this.zone.run(() => {
+        this.zone.run(async () => {
           this.userId = session.user.id;
-          this.roleService.fetchAndSetUserRole(this.userId);
-          this.roleService.role$.subscribe((role) => {
-            this.userRole = role;
-          });
-          if (this.userRole != 'admin') {
-            this.getEmployeeNotifications();
+
+          await this.roleService.fetchAndSetUserRole(this.userId);
+          const role = this.roleService.getCurrentRole();
+
+          if (!role) {
+            this.loading = false;
+            return;
+          }
+
+          this.userRole = role;
+
+          if (!this.hasFetchedNotifications) {
+            if (role === 'admin') {
+              await this.getNotifications();
+            } else {
+              await this.getEmployeeNotifications();
+            }
+            this.hasFetchedNotifications = true;
           } else {
-            this.getNotifications();
+            this.loading = false;
           }
         });
       }
     });
   }
+
   async getEmployeeNotifications() {
     this.loading = true;
     if (this.userRole == 'cuts_employee') {
