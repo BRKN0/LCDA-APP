@@ -5,16 +5,18 @@ import { SupabaseService } from '../../services/supabase.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { map } from 'rxjs';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-main-banner',
   standalone: true,
-  imports: [RouterOutlet, CommonModule],
+  imports: [RouterOutlet, CommonModule, RouterOutlet, FormsModule],
   templateUrl: './main-banner.component.html',
   styleUrl: './main-banner.component.scss',
 })
 export class MainBannerComponent implements OnInit {
   isLoggedIn$;
+  userEmail: string | undefined = '';
   userRole: string | null = null;
   userId: string | null = null;
   message: string | null = null;
@@ -32,6 +34,41 @@ export class MainBannerComponent implements OnInit {
     this.isLoggedIn$ = this.supabase
       .authChanges$()
       .pipe(map((session) => !!session));
+  }
+  async onRoleChange() {
+    const { data, error } = await this.supabase
+      .from('roles')
+      .select('id')
+      .eq('name', this.userRole);
+    if (error) {
+      console.log('error finding new role: ', error);
+      return;
+    }
+    const userToUpdate = {
+      id: this.userId,
+      email: this.userEmail,
+      id_role: data[0].id,
+    };
+    console.log(userToUpdate);
+    this.updateRole(userToUpdate);
+  }
+  async updateRole(userToUpdate: {
+    id: any;
+    email?: string | undefined;
+    id_role?: any;
+  }) {
+    const { error } = await this.supabase
+      .from('users')
+      .update(userToUpdate)
+      .eq('id', userToUpdate.id);
+
+    if (error) {
+      console.log('error updating role: ', error);
+      return;
+    }
+    if (this.userRole) {
+      this.roleService.setRole(this.userRole);
+    }
   }
   goToNotifications() {
     this.router.navigate(['/notifications']); // Redirect to root route
@@ -93,6 +130,9 @@ export class MainBannerComponent implements OnInit {
           this.roleService.role$.subscribe((role) => {
             this.userRole = role;
           });
+          this.userId = session.user.id;
+          this.userEmail = session.user.email;
+          this.roleService.fetchAndSetUserRole(this.userId);
           this.getNotifications();
         });
       }

@@ -68,38 +68,4 @@ export class HomeComponent implements OnInit {
   goToProducts() {
     this.router.navigate(['/inventory/product']);
   }
-
-  async onRoleChange() {
-    const { data, error } = await this.supabase
-      .from('roles')
-      .select('id')
-      .eq('name', this.userRole);
-    if (error) {
-      console.log('error finding new role: ', error);
-      return;
-    }
-    const userToUpdate = {
-      id: this.userId,
-      email: this.userEmail,
-      id_role: data[0].id,
-    };
-    console.log(userToUpdate);
-    this.updateRole(userToUpdate);
-  }
-  async updateRole(userToUpdate: {
-    id: any;
-    email?: string | undefined;
-    id_role?: any;
-  }) {
-    const { error } = await this.supabase
-      .from('users')
-      .update(userToUpdate)
-      .eq('id', userToUpdate.id);
-
-    if (error) {
-      console.log('error updating role: ', error);
-      return;
-    }
-    this.roleService.setRole(this.userRole);
-  }
 }
