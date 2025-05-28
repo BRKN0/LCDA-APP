@@ -1,168 +1,114 @@
 <router-outlet></router-outlet>
 <app-main-banner></app-main-banner>
-<ng-template
-  [ngIf]="isLoggedIn$ | async"
-  [ngIfThen]="roleChangeButton"
-  [ngIfElse]="visitor"
->
-</ng-template>
 
-<ng-template #roleChangeButton>
+<section
+  class="relative w-full bg-center bg-cover bg-no-repeat bg-[url('/colors.png')] overflow-hidden"
+>
+  <div class="absolute inset-0 bg-black/60 pointer-events-none z-0"></div>
+
   <div
-    class="relative inline-block text-white text-left bg-[#b91c1c] shadow-md"
+    class="relative z-10 px-4 mx-auto max-w-screen-xl text-center py-24 lg:py-56"
   >
-    <label for="role-select" class="mr-2 font-semibold">Cambiar Rol:</label>
-    <select
-      id="role-select"
-      [(ngModel)]="userRole"
-      (change)="onRoleChange()"
-      class="border border-gray-300 rounded p-2 text-black dropdown"
+    <h1
+      class="hero-section-animate text-4xl font-extrabold tracking-tight leading-none text-white md:text-5xl lg:text-6xl"
     >
-      <option value="admin">Administrador</option>
-      <option value="prints_employee">Empleado Impresiones</option>
-      <option value="cuts_employee">Empleado Cortes</option>
-    </select>
-  </div>
-</ng-template>
-<section class="bg-white bg-repeat bg-left-bottom text-center py-16 px-6 mb-6">
-  <div class="text-box mx-auto w-[550px] h-[125px] mt-10 mb-16">
-    <h2 class="text-3xl font-bold text-red-600 mb-4">
-      ¡ Bienvenido a La Casa del Acrílico
-      {{
-        userRole === "admin"
-          ? " Administrador!"
-          : userRole === "prints_employee"
-          ? " Empleado!"
-          : userRole === "cuts_employee"
-          ? " Empleado!"
-          : "!"
-      }}
-    </h2>
-    <!-- This only updates when a different role is selected idk why -->
-  </div>
-  <div class="text-box mx-auto h-[400px] w-[650px]">
-    <p class="text-balance">
-      En la <strong class="text-red-500">La Casa del Acrilico</strong> nos
-      especializamos en la transformación de materiales como acrílico,
-      poliestireno, MDF y vinilo, brindando soluciones personalizadas y de alta
-      calidad para proyectos publicitarios, decorativos y funcionales. Contamos
-      con una amplia experiencia en la fabricación de productos como
-      <strong
-        >pendones, medallas, estanterías, letreros corporativos, carteles,
-        señalización comercial</strong
+      Soluciones Acrílicas a Tu Medida
+    </h1>
+    <p
+      class="hero-section-animate mt-2 text-lg font-normal text-white lg:text-xl sm:px-16 lg:px-48"
+    >
+      Descubre cómo nuestros productos personalizados pueden transformar tus
+      espacios
+    </p>
+    <div
+      class="hero-section-animate flex flex-col sm:flex-row justify-center gap-4 mt-8"
+    >
+      <a
+        (click)="goToProducts()"
+        class="bg-[#c72c41]/80 hover:bg-[#df3c3c] text-white font-semibold px-6 py-3 rounded shadow-lg transition-colors duration-300 ease-in-out transform hover:scale-105 cursor-pointer"
       >
-      y todo tipo de estructuras que puedan desarrollarse a partir de nuestros
-      materiales. Además, ofrecemos servicios de impresión a gran escala,
-      ideales para campañas publicitarias o exhibiciones visuales de alto
-      impacto.
-      <br />
-      <br />
-      Nuestra misión es combinar creatividad, técnica y compromiso para dar vida
-      a las ideas de nuestros clientes, garantizando productos duraderos,
-      estéticos y adaptados a cada necesidad. Explora con nosotros un mundo de
-      posibilidades en diseño, publicidad y soluciones visuales personalizadas.
-      <br />
-      <br />
-      <a class="text-red-500 font-semibold mt-6 mb-10">
-        Elaboramos e imprimimos todo tipo de artículos para Publicidad.
+        Ver Catálogo Completo
       </a>
+    </div>
+  </div>
+</section>
+
+<!-- About Us Section -->
+<section class="bg-white py-20 px-6 border-t border-gray-100">
+  <div class="max-w-3xl mx-auto text-center">
+    <h2 class="text-3xl font-extrabold text-[#C72C41] mb-6">Quiénes Somos</h2>
+
+    <p class="text-gray-700 text-lg leading-relaxed mb-5">
+      En <strong class="text-red-500">La Casa del Acrílico</strong>, nos
+      especializamos en transformar materiales como
+      <strong>acrílico, MDF, vinilo y poliestireno</strong> en soluciones
+      personalizadas para publicidad, decoración y funcionalidad.
+    </p>
+
+    <p class="text-gray-700 text-lg leading-relaxed mb-5">
+      Contamos con experiencia en la fabricación de
+      <strong>letreros, medallas, señalización, estanterías</strong> y
+      estructuras para exhibiciones, adaptadas a cada cliente y proyecto.
+    </p>
+
+    <p class="text-gray-700 text-lg leading-relaxed mb-5">
+      Además, ofrecemos servicios de
+      <strong>impresión a gran escala</strong> para campañas publicitarias de
+      alto impacto y calidad profesional.
+    </p>
+
+    <p class="text-red-500 font-semibold text-lg mt-6">
+      Elaboramos e imprimimos todo tipo de artículos para Publicidad.
     </p>
   </div>
+</section>
 
-  <div
-    class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto px-6 py-12"
-  >
-    <!-- Tarjeta Creativos -->
-    <div class="text-box">
-      <div class="flex items-center gap-4 mb-3">
-        <div class="bg-red-100 text-yellow-600 p-3 rounded-full text-2xl">
-          💡
-        </div>
-        <h3 class="text-xl font-bold text-[#C72C41]">Creativos</h3>
-      </div>
+<!-- Features Section -->
+<section class="bg-gray-50 py-20 px-6">
+  <div class="max-w-6xl mx-auto text-center mb-12">
+    <h2 class="text-3xl font-bold text-[#C72C41]">¿Por Qué Elegirnos?</h2>
+  </div>
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
+    <!-- Card -->
+    <div class="bg-white p-6 rounded-lg shadow hover:shadow-md transition">
+      <div class="text-yellow-600 text-3xl mb-3">💡</div>
+      <h3 class="text-xl font-bold text-[#C72C41] mb-2">Creativos</h3>
       <p class="text-gray-700 leading-relaxed">
-        Nos apasiona el diseño y la comunicación visual. Creamos soluciones
-        gráficas como catálogos, afiches, folletos, material corporativo y más,
-        adaptándonos a todo tipo de plataformas y formatos. Transformamos ideas
-        en piezas visuales impactantes.
+        Diseño gráfico para catálogos, folletos y piezas visuales impactantes.
+        Transformamos ideas en arte visual.
       </p>
     </div>
 
-    <!-- Tarjeta Fabricantes -->
-    <div class="text-box">
-      <div class="flex items-center gap-4 mb-3">
-        <div class="bg-red-100 text-gray-600 p-3 rounded-full text-2xl">🛠️</div>
-        <h3 class="text-xl font-bold text-[#C72C41]">Fabricantes</h3>
-      </div>
+    <!-- Card -->
+    <div class="bg-white p-6 rounded-lg shadow hover:shadow-md transition">
+      <div class="text-gray-600 text-3xl mb-3">🛠️</div>
+      <h3 class="text-xl font-bold text-[#C72C41] mb-2">Fabricantes</h3>
       <p class="text-gray-700 leading-relaxed">
-        Fabricamos una amplia variedad de productos como letreros, señalética,
-        estanterías, avisos personalizados y estructuras para exhibición. Unimos
-        diseño e ingeniería para ofrecer resultados funcionales, resistentes y
-        atractivos.
+        Letreros, señalética y estructuras acrílicas hechas a medida con calidad
+        y precisión.
       </p>
     </div>
 
-    <!-- Tarjeta Innovadores -->
-    <div class="text-box">
-      <div class="flex items-center gap-4 mb-3">
-        <div class="bg-red-100 text-[#C72C41] p-3 rounded-full text-2xl">
-          ❤️
-        </div>
-        <h3 class="text-xl font-bold text-[#C72C41]">Innovamos con Pasión</h3>
-      </div>
+    <!-- Card -->
+    <div class="bg-white p-6 rounded-lg shadow hover:shadow-md transition">
+      <div class="text-[#C72C41] text-3xl mb-3">❤️</div>
+      <h3 class="text-xl font-bold text-[#C72C41] mb-2">
+        Innovamos con Pasión
+      </h3>
       <p class="text-gray-700 leading-relaxed">
-        Nos mantenemos en evolución, adoptando nuevas técnicas, materiales y
-        tendencias para ofrecerte soluciones modernas y eficaces. Innovamos con
-        compromiso, buscando siempre superar tus expectativas.
+        Nos mantenemos en constante evolución para ofrecer lo mejor en
+        tecnología y tendencias visuales.
       </p>
     </div>
 
-    <!-- Tarjeta Profesionales -->
-    <div class="text-box">
-      <div class="flex items-center gap-4 mb-3">
-        <div class="bg-red-100 text-gray-600 p-3 rounded-full text-2xl">📣</div>
-        <h3 class="text-xl font-bold text-[#C72C41]">Profesionales</h3>
-      </div>
+    <!-- Card -->
+    <div class="bg-white p-6 rounded-lg shadow hover:shadow-md transition">
+      <div class="text-gray-600 text-3xl mb-3">📣</div>
+      <h3 class="text-xl font-bold text-[#C72C41] mb-2">Profesionales</h3>
       <p class="text-gray-700 leading-relaxed">
-        Cada proyecto lo desarrollamos con atención al detalle, puntualidad y
-        excelencia. Nos encargamos de todo el proceso, desde el diseño hasta la
-        entrega, para que tú solo te ocupes de disfrutar del resultado final.
+        Atención al detalle, puntualidad y compromiso en cada etapa del proceso
+        creativo y productivo.
       </p>
     </div>
   </div>
-  <!--seccion jumbotron con imagen de fondo-->
-
-  <section
-    class="relative w-full bg-center bg-cover bg-no-repeat bg-[url('/colors.png')] overflow-hidden"
-  >
-    <div class="absolute inset-0 bg-black/60 pointer-events-none z-0"></div>
-
-    <div
-      class="relative z-10 px-4 mx-auto max-w-screen-xl text-center py-24 lg:py-56"
-    >
-      <h1
-        class="hero-section-animate text-4xl font-extrabold tracking-tight leading-none text-white md:text-5xl lg:text-6xl"
-      >
-        Soluciones Acrílicas a Tu Medida
-      </h1>
-      <p
-        class="hero-section-animate text-lg font-normal text-white lg:text-xl sm:px-16 lg:px-48"
-      >
-        Descubre cómo nuestros productos personalizados pueden transformar tus
-        espacios
-      </p>
-      <div
-        class="hero-section-animate flex flex-col sm:flex-row justify-center gap-4 mt-8"
-      >
-        <a
-          (click)="goToProducts()"
-          class="bg-[#c72c41]/80 hover:bg-[#df3c3c] text-white font-semibold px-6 py-3 rounded shadow-lg transition-colors duration-300 ease-in-out transform hover:scale-105 cursor-pointer"
-        >
-          Ver Catálogo Completo
-        </a>
-      </div>
-    </div>
-  </section>
-  <div id="page-end" class="h-[1px] w-full"></div>
-  <ng-template #visitor> </ng-template>
 </section>
