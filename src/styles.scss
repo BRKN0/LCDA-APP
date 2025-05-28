@@ -18,7 +18,6 @@ body {
   font-family: Roboto, "Helvetica Neue", sans-serif;
 }
 
-
 /* Estilos para botones */
 button {
   padding: 0.5rem 1rem;
@@ -57,12 +56,12 @@ button {
 .table-std {
   width: 100%;
   border-collapse: collapse;
-  border: 1px solid #510A32;
+  border: 1px solid #510a32;
   margin-top: theme("spacing.2");
 
   th,
   td {
-    border: 1px solid #510A32;
+    border: 1px solid #510a32;
     padding: theme("spacing.2");
     transition: background-color 0.3s ease-in-out;
   }
@@ -73,7 +72,7 @@ button {
     transition: background-color 0.3s ease-in-out;
   }
 
-   tbody tr {
+  tbody tr {
     transition: background-color 0.3s ease-in-out;
 
     &:hover {
@@ -82,7 +81,6 @@ button {
     }
   }
 }
-
 
 .table-column-std {
   border: 1px solid;
@@ -96,13 +94,29 @@ button {
 
 .btn-delete {
   padding: 0.5rem 0.25rem;
-  background-color: #ef4444; 
+  background-color: #ef4444;
   color: white;
   border-radius: 0.25rem;
   &:hover {
-    background-color: #b91c1c; 
+    background-color: #b91c1c;
   }
 }
+.btn-add {
+  --tw-bg-opacity: 1;
+  background-color: #af0e41;
+  --tw-text-opacity: 1;
+  color: rgb(255 255 255 / var(--tw-text-opacity, 1));
+  padding-left: 1rem;
+  padding-right: 1rem;
+  border-radius: theme("borderRadius.DEFAULT");
+  transition: background-color 0.3s ease-in-out;
+  --tw-bg-opacity: 1;
+  margin-right: theme("spacing.5");
+  &:hover {
+    background-color: #7e0b2f;
+  }
+}
+
 .btn-details {
   background-color: #6c63ff;
   color: theme("colors.white");
@@ -483,6 +497,32 @@ h1 {
     transform: scale(1.02);
     z-index: 10;
   }
+}
+.btn-signout {
+  text-align: center;
+  cursor: pointer;
+  padding: 0.75rem;
+  text-align: center;
+  border: 2px solid;
+  color: white;
+  background-color: #af0e41;
+  border-color: #ffffff;
+  transition: color 0.3s ease-in-out, background-color 0.3s ease-in-out,
+    transform 0.2s;
+  z-index: 10;
+
+  &:hover {
+    background-color: #df3c3c;
+    color: white;
+    transform: scale(1.02);
+    z-index: 10;
+  }
+}
+.btn-signout.active {
+  font-weight: bold;
+  border: 2px solid;
+  background-color: rgb(175, 14, 65);
+  z-index: 11;
 }
 .hero-fade {
   opacity: 0;

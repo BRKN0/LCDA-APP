@@ -7,17 +7,75 @@
 </div>
 <div class="flex justify-end items-center mb-4 mt-4 ml-2">
   <button
-    class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 mr-4"
+    class="btn-add inline-flex items-center space-x-2"
     (click)="openModal()"
   >
-    Añadir
+    <svg
+      class="w-5 h-5 inline-block align-middle mt-[3px]"
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M12.75 9C12.75 8.58579 12.4142 8.25 12 8.25C11.5858 8.25 11.25 8.58579 11.25 9L11.25 11.25H9C8.58579 11.25 8.25 11.5858 8.25 12C8.25 12.4142 8.58579 12.75 9 12.75H11.25V15C11.25 15.4142 11.5858 15.75 12 15.75C12.4142 15.75 12.75 15.4142 12.75 15L12.75 12.75H15C15.4142 12.75 15.75 12.4142 15.75 12C15.75 11.5858 15.4142 11.25 15 11.25H12.75V9Z"
+        fill="#ffffff"
+      />
+      <path
+        fill-rule="evenodd"
+        clip-rule="evenodd"
+        d="M12 1.25C6.06294 1.25 1.25 6.06294 1.25 12C1.25 17.9371 6.06294 22.75 12 22.75C17.9371 22.75 22.75 17.9371 22.75 12C22.75 6.06294 17.9371 1.25 12 1.25ZM2.75 12C2.75 6.89137 6.89137 2.75 12 2.75C17.1086 2.75 21.25 6.89137 21.25 12C21.25 17.1086 17.1086 21.25 12 21.25C6.89137 21.25 2.75 17.1086 2.75 12Z"
+        fill="#ffffff"
+      />
+    </svg>
+    <span>Añadir</span>
   </button>
   <!-- Botón para abrir la calculadora -->
   <button
-    class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 mr-4"
+    class="btn-details inline-flex items-center space-x-2"
     (click)="openCalculatorModal()"
   >
-    Calculadora
+    <svg
+      class="w-8 h-8 inline-block align-middle mt-[3px]"
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+      <g
+        id="SVGRepo_tracerCarrier"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      ></g>
+      <g id="SVGRepo_iconCarrier">
+        <path
+          d="M14 7C14 6.44771 14.4477 6 15 6H16V5C16 4.44772 16.4477 4 17 4C17.5523 4 18 4.44772 18 5V6H19C19.5523 6 20 6.44771 20 7C20 7.55229 19.5523 8 19 8H18V9C18 9.55228 17.5523 10 17 10C16.4477 10 16 9.55228 16 9V8H15C14.4477 8 14 7.55229 14 7Z"
+          fill="#ffffff"
+        ></path>
+        <path
+          d="M14 15C14 14.4477 14.4477 14 15 14H19C19.5523 14 20 14.4477 20 15C20 15.5523 19.5523 16 19 16H15C14.4477 16 14 15.5523 14 15Z"
+          fill="#ffffff"
+        ></path>
+        <path
+          d="M15 18C14.4477 18 14 18.4477 14 19C14 19.5523 14.4477 20 15 20H19C19.5523 20 20 19.5523 20 19C20 18.4477 19.5523 18 19 18H15Z"
+          fill="#ffffff"
+        ></path>
+        <path
+          d="M5 6C4.44772 6 4 6.44771 4 7C4 7.55229 4.44772 8 5 8H9C9.55228 8 10 7.55229 10 7C10 6.44771 9.55228 6 9 6H5Z"
+          fill="#ffffff"
+        ></path>
+        <path
+          d="M5.92512 14.5109C5.5346 14.1204 4.90143 14.1204 4.51091 14.5109C4.12039 14.9014 4.12039 15.5346 4.51091 15.9251L5.5858 17L4.50337 18.0824C4.11284 18.4729 4.11284 19.1061 4.50337 19.4966C4.89389 19.8872 5.52705 19.8872 5.91758 19.4966L7.00002 18.4142L8.08944 19.5036C8.47996 19.8941 9.11313 19.8941 9.50365 19.5036C9.89418 19.1131 9.89418 18.4799 9.50365 18.0894L8.41423 17L9.50194 15.9123C9.89246 15.5218 9.89246 14.8886 9.50194 14.4981C9.11141 14.1075 8.47825 14.1075 8.08772 14.4981L7.00002 15.5858L5.92512 14.5109Z"
+          fill="#ffffff"
+        ></path>
+        <path
+          fill-rule="evenodd"
+          clip-rule="evenodd"
+          d="M20 1C21.6569 1 23 2.34315 23 4V20C23 21.6569 21.6569 23 20 23H4C2.34315 23 1 21.6569 1 20V4C1 2.34315 2.34315 1 4 1H20ZM20 3C20.5523 3 21 3.44772 21 4V11H13V3H20ZM21 13V20C21 20.5523 20.5523 21 20 21H13V13H21ZM4 3H11V11H3V4C3 3.44772 3.44772 3 4 3ZM3 20V13H11V21H4C3.44772 21 3 20.5523 3 20Z"
+          fill="#ffffff"
+        ></path>
+      </g>
+    </svg>
+    <span>Calculadora</span>
   </button>
 </div>
 <!-- Action buttons y barra de búsqueda -->
@@ -42,8 +100,12 @@
   <table class="table-std">
     <thead>
       <tr>
-        <th rowspan="2" class="table-column-std cursor-pointer" (click)="toggleSortDirection()">
-          MDF <span>{{ sortDirection === 'asc' ? '↑' : '↓' }}</span>
+        <th
+          rowspan="2"
+          class="table-column-std cursor-pointer"
+          (click)="toggleSortDirection()"
+        >
+          MDF <span>{{ sortDirection === "asc" ? "↑" : "↓" }}</span>
         </th>
         <th rowspan="2" class="table-column-std">C+F</th>
         <th rowspan="2" class="table-column-std">Costo</th>
@@ -207,7 +269,9 @@
       </h3>
       <form (ngSubmit)="saveMdf()">
         <div class="mb-4">
-          <label class="block modal-input-item">Grosor<span class="text-red-500">*</span></label>
+          <label class="block modal-input-item"
+            >Grosor<span class="text-red-500">*</span></label
+          >
           <input
             [(ngModel)]="formMdf.thickness"
             name="thickness"
@@ -217,7 +281,9 @@
           />
         </div>
         <div class="mb-4">
-          <label class="block modal-input-item">Costo<span class="text-red-500">*</span></label>
+          <label class="block modal-input-item"
+            >Costo<span class="text-red-500">*</span></label
+          >
           <input
             type="number"
             [(ngModel)]="formMdf.cost"
@@ -228,7 +294,9 @@
           />
         </div>
         <div class="mb-4">
-          <label class="block modal-input-item">Flete<span class="text-red-500">*</span></label>
+          <label class="block modal-input-item"
+            >Flete<span class="text-red-500">*</span></label
+          >
           <input
             type="number"
             [(ngModel)]="formMdf.freight"
@@ -278,7 +346,7 @@
                 class="p-2 hover:bg-gray-200 cursor-pointer"
                 (click)="selectClient(client)"
               >
-                {{ client.name }} ({{ client.company_name || 'Sin empresa' }})
+                {{ client.name }} ({{ client.company_name || "Sin empresa" }})
               </div>
             </div>
           </div>
@@ -338,42 +406,80 @@
         <!-- Resultados -->
         <div *ngIf="calculationResult" class="mt-4">
           <h4 class="font-semibold">Resultados:</h4>
-          <p><strong>Costo Base (C+F):</strong> ${{ calculationResult.costPlusFreight.toFixed(2) }}</p>
+          <p>
+            <strong>Costo Base (C+F):</strong> ${{
+              calculationResult.costPlusFreight.toFixed(2)
+            }}
+          </p>
           <div *ngIf="calculationResult.entera25 !== undefined">
-            <p><strong>Entera 25%:</strong> ${{ calculationResult.entera25.toFixed(2) }}</p>
+            <p>
+              <strong>Entera 25%:</strong> ${{
+                calculationResult.entera25.toFixed(2)
+              }}
+            </p>
           </div>
           <div *ngIf="calculationResult.entera20 !== undefined">
-            <p><strong>Entera 20%:</strong> ${{ calculationResult.entera20.toFixed(2) }}</p>
+            <p>
+              <strong>Entera 20%:</strong> ${{
+                calculationResult.entera20.toFixed(2)
+              }}
+            </p>
           </div>
           <div *ngIf="calculationResult.entera15 !== undefined">
-            <p><strong>Entera 15%:</strong> ${{ calculationResult.entera15.toFixed(2) }}</p>
+            <p>
+              <strong>Entera 15%:</strong> ${{
+                calculationResult.entera15.toFixed(2)
+              }}
+            </p>
           </div>
           <div *ngIf="calculationResult.media !== undefined">
-            <p><strong>Media:</strong> ${{ calculationResult.media.toFixed(2) }}</p>
+            <p>
+              <strong>Media:</strong> ${{ calculationResult.media.toFixed(2) }}
+            </p>
           </div>
           <div *ngIf="calculationResult.oneThird !== undefined">
-            <p><strong>1/3:</strong> ${{ calculationResult.oneThird.toFixed(2) }}</p>
+            <p>
+              <strong>1/3:</strong> ${{ calculationResult.oneThird.toFixed(2) }}
+            </p>
           </div>
           <div *ngIf="calculationResult.oneFourth !== undefined">
-            <p><strong>1/4:</strong> ${{ calculationResult.oneFourth.toFixed(2) }}</p>
+            <p>
+              <strong>1/4:</strong> ${{
+                calculationResult.oneFourth.toFixed(2)
+              }}
+            </p>
           </div>
           <div *ngIf="calculationResult.oneEighth30x180 !== undefined">
-            <p><strong>1/8 (30x180 - 90x60):</strong> ${{ calculationResult.oneEighth30x180.toFixed(2) }}</p>
+            <p>
+              <strong>1/8 (30x180 - 90x60):</strong> ${{
+                calculationResult.oneEighth30x180.toFixed(2)
+              }}
+            </p>
           </div>
           <div *ngIf="calculationResult.oneEighth90x60 !== undefined">
-            <p><strong>1/8 (1/16 45x60):</strong> ${{ calculationResult.oneEighth90x60.toFixed(2) }}</p>
+            <p>
+              <strong>1/8 (1/16 45x60):</strong> ${{
+                calculationResult.oneEighth90x60.toFixed(2)
+              }}
+            </p>
           </div>
           <div *ngIf="calculationResult.oneEighth30x45 !== undefined">
-            <p><strong>1/8 (1/32 30x45):</strong> ${{ calculationResult.oneEighth30x45.toFixed(2) }}</p>
+            <p>
+              <strong>1/8 (1/32 30x45):</strong> ${{
+                calculationResult.oneEighth30x45.toFixed(2)
+              }}
+            </p>
           </div>
         </div>
         <div class="flex justify-end mt-4">
-          <button type="button" class="btn-danger" (click)="closeCalculatorModal()">
+          <button
+            type="button"
+            class="btn-danger"
+            (click)="closeCalculatorModal()"
+          >
             Cerrar
           </button>
-          <button type="submit" class="btn-success">
-            Calcular
-          </button>
+          <button type="submit" class="btn-success">Calcular</button>
         </div>
       </form>
     </div>
