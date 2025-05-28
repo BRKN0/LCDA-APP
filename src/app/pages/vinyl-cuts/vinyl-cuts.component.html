@@ -37,7 +37,7 @@
 <div *ngIf="!loading && filteredVinylCuts.length > 0">
   <table class="table-std">
     <thead>
-      <tr class="bg-gray-100">
+      <tr>
         <th class="table-column-std">Proveedor</th>
         <th class="table-column-std">Tipo</th>
         <th class="table-column-std">Unds/Mts</th>
@@ -58,8 +58,18 @@
         <td>{{ item.saleXmt | currency : "COP" }}</td>
         <td>{{ item.linearCm | currency : "COP" }}</td>
         <td>
-          <button class="btn-edit" (click)="editVinylCut(item)">Editar</button>
-          <button class="btn-delete" (click)="deleteVinylCut(item)">
+          <button
+            class="btn-edit"
+            (click)="editVinylCut(item); $event.stopPropagation()"
+            style="text-decoration: none;"
+          >
+            Editar
+          </button>
+          <button
+            class="btn-delete"
+            (click)="deleteVinylCut(item); $event.stopPropagation()"
+            style="text-decoration: none;"
+          >
             Eliminar
           </button>
         </td>
