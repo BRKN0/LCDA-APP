@@ -3,6 +3,10 @@
 @tailwind utilities;
 
 /* Estilos generales */
+html {
+  scroll-behavior: smooth;
+}
+
 html,
 body {
   height: 100%;

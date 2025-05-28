@@ -68,4 +68,10 @@ export class HomeComponent implements OnInit {
   goToProducts() {
     this.router.navigate(['/inventory/product']);
   }
+  scrollToAbout(): void {
+    const element = document.getElementById('about');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
 }
