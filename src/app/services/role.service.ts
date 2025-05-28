@@ -7,8 +7,14 @@ import { SupabaseService } from './supabase.service';
 export class RoleService {
   private roleSubject = new BehaviorSubject<string | null>(null);
   role$ = this.roleSubject.asObservable();
+  private hasFetchedRole = false;
+  
   constructor(private readonly supabase: SupabaseService) {}
+  
+
   async fetchAndSetUserRole(userId: string): Promise<void> {
+    if (this.hasFetchedRole) return;
+
     try {
       const { data: userData, error: userError } = await this.supabase
         .from('users')
@@ -17,9 +23,9 @@ export class RoleService {
         .single();
 
       if (userError || !userData) {
-         console.log("error fetching user role id", userError);
-         return;
-      };
+        console.log('error fetching user role id', userError);
+        return;
+      }
 
       const roleId = userData.id_role;
 
@@ -30,12 +36,12 @@ export class RoleService {
         .single();
 
       if (roleError || !roleData) {
-        console.log("error fetching user role name", roleError);
+        console.log('error fetching user role name', roleError);
         return;
-     };;
+      }
 
-      // Update BehaviorSubject
       this.roleSubject.next(roleData.name);
+      this.hasFetchedRole = true;
     } catch (err) {
       console.error('Error fetching user role:', err);
     }
