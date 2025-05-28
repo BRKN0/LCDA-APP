@@ -292,7 +292,7 @@
             required
           />
         </div>
-        <div class="flex justify-between items-center">
+        <div class="flex justify-end items-center">
           <div>
             <button type="button" class="btn-danger" (click)="closeModal()">
               Cancelar
@@ -323,25 +323,25 @@
         <p><strong>Telefono:</strong> {{ selectedEmployeeDetails.phone }}</p>
       </h3>
       <div class="flex space-x-4 mb-4">
-        <button
-          (click)="toggleLiquidations(selectedEmployeeDetails)"
-          class="bg-red-500 text-white p-2 rounded-md hover:bg-red-600"
-        >
-          Mostrar Liquidaciones
-        </button>
-        <button
-          (click)="toggleBenefits(selectedEmployeeDetails)"
-          class="bg-red-500 text-white p-2 rounded-md hover:bg-red-600"
-        >
-          Mostrar Prestaciones
-        </button>
-        <button
-          class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
-          (click)="toggleDetails()"
-        >
-          {{ showDetails ? "Ocultar Detalles" : "Mostrar Detalles" }}
-        </button>
-      </div>
+      <button
+        (click)="toggleLiquidations(selectedEmployeeDetails)"
+        class="btn-liquidation"
+      >
+        Mostrar Liquidaciones
+      </button>
+      <button
+        (click)="toggleBenefits(selectedEmployeeDetails)"
+        class="btn-liquidation"
+      >
+        Mostrar Prestaciones
+      </button>
+      <button
+        class="btn-details"
+        (click)="toggleDetails()"
+      >
+        {{ showDetails ? "Ocultar Detalles" : "Mostrar Detalles" }}
+      </button>
+    </div>
 
       <!-- Detalles del Empleado -->
       <div *ngIf="showDetails" class="details">

@@ -118,18 +118,18 @@
         <div class="flex space-x-4 mb-4">
           <button
             (click)="toggleOrders(selectedClient)"
-            class="bg-red-500 text-white p-2 rounded-md hover:bg-red-600"
+            class="btn-liquidation"
           >
             Mostrar Pedidos
           </button>
           <button
-            class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+            class="btn-liquidation"
             (click)="generatePDF()"
           >
             Descargar Extracto
           </button>
           <button
-            class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
+            class="btn-details"
             (click)="toggleClientDetails()"
           >
             {{ showDetails ? "Ocultar Detalles" : "Mostrar Detalles" }}
