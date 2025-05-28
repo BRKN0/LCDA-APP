@@ -52,6 +52,17 @@ button {
   }
 }
 
+.btn-liquidation {
+  padding: 0.5rem 0.25rem;
+  background-color: #af0e41;
+  color: white;
+  border-radius: 0.25rem;
+  margin-right: 0.5rem;
+  &:hover {
+    background-color: #8a0b32; /* Darker shade of #af0e41 */
+  }
+}
+
 /* Estilos para tablas combinados */
 .table-std {
   width: 100%;
