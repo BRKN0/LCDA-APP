@@ -3,6 +3,10 @@
 @tailwind utilities;
 
 /* Estilos generales */
+html {
+  scroll-behavior: smooth;
+}
+
 html,
 body {
   height: 100%;
@@ -14,26 +18,6 @@ body {
   font-family: Roboto, "Helvetica Neue", sans-serif;
 }
 
-/* Estilos para tablas */
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th,
-td {
-  padding: 8px;
-  text-align: left;
-}
-
-th {
-  background-color: #f4f4f4;
-  font-weight: bold;
-}
-
-tr:nth-child(even) {
-  background-color: #f9f9f9;
-}
 
 /* Estilos para botones */
 button {
@@ -68,24 +52,37 @@ button {
     background-color: #d97706; /* bg-yellow-600 */
   }
 }
+
+/* Estilos para tablas combinados */
 .table-std {
   width: 100%;
   border-collapse: collapse;
-  border: 1px solid;
-  border-color: #2d142c;
+  border: 1px solid #510A32;
   margin-top: theme("spacing.2");
 
   th,
   td {
-    border: 1px solid;
-    border-color: #2d142c;
+    border: 1px solid #510A32;
     padding: theme("spacing.2");
+    transition: background-color 0.3s ease-in-out;
   }
 
   thead {
-    background-color: theme("colors.gray.200");
+    background-color: #af0e41 !important;
+    color: white;
+    transition: background-color 0.3s ease-in-out;
+  }
+
+   tbody tr {
+    transition: background-color 0.3s ease-in-out;
+
+    &:hover {
+      background-color: #d1d5db;
+      cursor: pointer;
+    }
   }
 }
+
 
 .table-column-std {
   border: 1px solid;
@@ -99,11 +96,11 @@ button {
 
 .btn-delete {
   padding: 0.5rem 0.25rem;
-  background-color: #ef4444; /* bg-red-500 */
+  background-color: #f56565; /* bg-red-500 */
   color: white;
   border-radius: 0.25rem;
   &:hover {
-    background-color: #b91c1c; /* bg-red-600 */
+    background-color: #e53e3e; /* bg-red-600 */
   }
 }
 .btn-details {
@@ -541,8 +538,11 @@ h1 {
   }
 }
 .nav-bar {
+  display: flex;
+  overflow: visible;
   text-align: center;
   padding: 0.25rem;
+  gap: 0.5rem;
   text-align: center;
   border: 0.25px solid;
   color: white;
@@ -670,25 +670,6 @@ h1 {
       color: #007bff;
     }
   }
-
-  .transactions-table {
-    table {
-      width: 100%;
-      border-collapse: collapse;
-
-      th,
-      td {
-        padding: 0.75rem;
-        text-align: left;
-        border: 1px solid #ddd;
-      }
-
-      th {
-        background-color: #f9f9f9;
-        font-weight: bold;
-      }
-    }
-  }
 }
 .btn-login,
 .btn-register {
@@ -739,25 +720,25 @@ h1 {
 }
 
 .btn-contact {
-  @apply text-[#510A32] 
-             border border-white 
-             hover:border-gray-200 
-             dark:border-[#510A32] 
-             dark:bg-[#510A32] 
-             dark:hover:border-gray-700 
-             bg-white 
-             focus:ring-4 
-             focus:outline-none 
-             focus:ring-gray-300 
-             rounded-full 
-             text-base 
-             font-medium 
-             px-5 
-             py-2.5 
-             text-center 
-             me-3 
-             mb-3 
-             dark:text-white 
+  @apply text-[#510A32]
+             border border-white
+             hover:border-gray-200
+             dark:border-[#510A32]
+             dark:bg-[#510A32]
+             dark:hover:border-gray-700
+             bg-white
+             focus:ring-4
+             focus:outline-none
+             focus:ring-gray-300
+             rounded-full
+             text-base
+             font-medium
+             px-5
+             py-2.5
+             text-center
+             me-3
+             mb-3
+             dark:text-white
              dark:focus:ring-gray-800;
 }
 /* Transición suave para los slides */
