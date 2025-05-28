@@ -25,8 +25,36 @@ export class ProductComponent implements OnInit, OnDestroy {
     { src: '/multic.jpg', alt: '5' }
   ];
 
+  galleryImages = [
+    '/Alitas.jpg',
+    '/barco.jpg',
+    '/barco2.jpg',
+    '/copacabana.jpg',
+    '/Habbab.jpg',
+    '/plazacentral.jpg',
+    '/BSL.jpg',
+    '/barco2.jpg',
+    '/bote.jpg',
+    '/casa.jpg',
+    '/consultorio.jpg',
+    '/cubiculos.jpg',
+    '/Ditica.jpg',
+    '/etilico.jpg',
+    '/extrella.jpg',
+    '/hospedaje.jpg',
+    '/lancha.jpg',
+    '/marco.jpg',
+    '/ministerio.jpg',
+    '/multic.jpg',
+    '/nails.jpg',
+    '/nooolapolicia.jpg',
+    '/plaza2.jpg',
+    '/puertita.jpg'
+  ];
+
   currentIndex = 0;
   private intervalId: any;
+  selectedImageIndex: number | null = null;
 
   ngOnInit(): void {
     this.intervalId = setInterval(() => {
@@ -69,6 +97,29 @@ export class ProductComponent implements OnInit, OnDestroy {
 
   goToSlide(index: number) {
     this.currentIndex = index;
+  }
+
+  openImageAt(index: number) {
+    this.selectedImageIndex = index;
+  }
+
+  closeImage() {
+    this.selectedImageIndex = null;
+  }
+
+  prevImage() {
+    if (this.selectedImageIndex !== null && this.selectedImageIndex > 0) {
+      this.selectedImageIndex--;
+    }
+  }
+
+  nextImage() {
+    if (
+      this.selectedImageIndex !== null &&
+      this.selectedImageIndex < this.galleryImages.length - 1
+    ) {
+      this.selectedImageIndex++;
+    }
   }
 
   getVisibleSlides() {
