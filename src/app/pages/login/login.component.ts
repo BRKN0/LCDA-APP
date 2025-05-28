@@ -1,3 +1,4 @@
+import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import {
   FormBuilder,
@@ -11,13 +12,14 @@ import { Router, RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-login',
-  imports: [FormsModule, ReactiveFormsModule, RouterOutlet],
+  imports: [FormsModule, ReactiveFormsModule, RouterOutlet, CommonModule],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
 })
 export class LoginComponent implements OnInit {
   form: FormGroup;
   message: string = '';
+  isRegisterMode: boolean = false;
 
   constructor(
     private readonly fb: FormBuilder,
@@ -27,6 +29,10 @@ export class LoginComponent implements OnInit {
     this.form = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', Validators.required],
+      confirmPassword: [''],
+    },
+    {
+     validator: this.passwordMatchValidator, 
     });
   }
 
@@ -41,6 +47,21 @@ export class LoginComponent implements OnInit {
         });
       },
     });
+  }
+
+  toggleMode() {
+    this.isRegisterMode = !this.isRegisterMode;
+    this.message = '';
+    this.form.reset();
+  }
+
+  passwordMatchValidator(group: FormGroup){
+    const password = group.get('password')?.value;
+    const confirmPassword = group.get('confirmPassword')?.value;
+    if (this.isRegisterMode && password !== confirmPassword) {
+      return { passwordMismatch: true };
+    }
+    return null;
   }
 
   async login() {
@@ -77,6 +98,11 @@ export class LoginComponent implements OnInit {
       window.alert('El email y la contraseña son requeridos');
       return;
     }
+    if (this.form.hasError('passwordMismatch')) {
+      window.alert('Las contraseñas no coinciden');
+      return;
+    }
+
     const { error } = await this.supabase.signUpWithPassword(email, password);
     if (error) {
       window.alert('Hubo un error al registrarse, intente nuevamente');
@@ -85,5 +111,7 @@ export class LoginComponent implements OnInit {
     }
     this.message =
       'Su usuario ha sido creado con éxito, revise la bandeja de entrada de su correo y abra el enlace de confirmación de correo electrónico para activar su cuenta';
+  
+    this.toggleMode();
   }
 }
