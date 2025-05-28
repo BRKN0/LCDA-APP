@@ -217,7 +217,7 @@
     </h3>
     <form (ngSubmit)="savePolystyrene()">
       <div class="mb-4">
-        <label class="block modal-input-item">Tipo</label>
+        <label class="block modal-input-item">Tipo<span class="text-red-500">*</span></label>
         <input
           type="text"
           [(ngModel)]="selectedPolystyrene.type"
@@ -227,7 +227,7 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block modal-input-item">Calibre</label>
+        <label class="block modal-input-item">Calibre<span class="text-red-500">*</span></label>
         <input
           type="text"
           [(ngModel)]="selectedPolystyrene.caliber"
@@ -237,7 +237,7 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block modal-input-item">Precio lámina entera (COP)</label>
+        <label class="block modal-input-item">Precio lámina entera (COP)<span class="text-red-500">*</span></label>
         <input
           type="number"
           [(ngModel)]="selectedPolystyrene.whole"

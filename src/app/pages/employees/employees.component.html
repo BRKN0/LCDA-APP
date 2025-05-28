@@ -185,7 +185,7 @@
           />
         </div>
         <div class="mb-4">
-          <label class="block modal-input-item">Nombre Completo</label>
+          <label class="block modal-input-item">Nombre Completo<span class="text-red-500">*</span></label>
           <input
             [(ngModel)]="selectedEmployee.name"
             name="name"
@@ -193,7 +193,7 @@
           />
         </div>
         <div>
-          <label class="block modal-input-item">Tipo de Empleado</label>
+          <label class="block modal-input-item">Tipo de Empleado<span class="text-red-500">*</span></label>
           <select
             type="text"
             [(ngModel)]="selectedEmployee.employee_type"

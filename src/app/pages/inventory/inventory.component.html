@@ -181,7 +181,7 @@
     </h3>
     <form (ngSubmit)="saveItem()">
       <div class="mb-4">
-        <label class="block modal-input-item">Categoría</label>
+        <label class="block modal-input-item">Categoría<span class="text-red-500">*</span></label>
         <input
           type="text"
           [(ngModel)]="selectedItem.category"
@@ -230,7 +230,7 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block modal-input-item">Costo/Unidad</label>
+        <label class="block modal-input-item">Costo/Unidad<span class="text-red-500">*</span></label>
         <input
           type="number"
           [(ngModel)]="selectedItem.cost"

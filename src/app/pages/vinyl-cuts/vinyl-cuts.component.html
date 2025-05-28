@@ -144,7 +144,7 @@
     </h3>
     <form (ngSubmit)="saveVinylCut()">
       <div class="mb-4">
-        <label class="block modal-input-item">Proveedor</label>
+        <label class="block modal-input-item">Proveedor<span class="text-red-500">*</span></label>
         <input
           type="text"
           [(ngModel)]="selectedVinylCut.supplier"
@@ -154,7 +154,7 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block modal-input-item">Unds/Mts</label>
+        <label class="block modal-input-item">Unds/Mts<span class="text-red-500">*</span></label>
         <input
           type="number"
           [(ngModel)]="selectedVinylCut.unds_mts"
@@ -164,7 +164,7 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block modal-input-item">Tipo</label>
+        <label class="block modal-input-item">Tipo<span class="text-red-500">*</span></label>
         <input
           type="text"
           [(ngModel)]="selectedVinylCut.type"
@@ -174,7 +174,7 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block modal-input-item">Descripción</label>
+        <label class="block modal-input-item">Descripción<span class="text-red-500">*</span></label>
         <input
           type="text"
           [(ngModel)]="selectedVinylCut.description"
@@ -183,7 +183,7 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block modal-input-item">Costo x metro</label>
+        <label class="block modal-input-item">Costo x metro<span class="text-red-500">*</span></label>
         <input
           type="number"
           [(ngModel)]="selectedVinylCut.costXmt"
@@ -193,7 +193,7 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block modal-input-item">Precio venta x metro</label>
+        <label class="block modal-input-item">Precio venta x metro<span class="text-red-500">*</span></label>
         <input
           type="number"
           [(ngModel)]="selectedVinylCut.saleXmt"
