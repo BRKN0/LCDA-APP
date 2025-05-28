@@ -641,7 +641,8 @@
           name="newPaymentAmount"
           class="form-input w-full mt-1"
         />
-        <button type="button" class="btn-danger" (click)="closeModal()">
+        <div class="flex justify-end mt-4">
+        <button type="button" class="btn-danger justify-start py-2 px-4 mr-2 mt-2 rounded" (click)="closeModal()">
           Cancelar
         </button>
         <button
@@ -660,6 +661,7 @@
         >
           Descargar PDF
         </button>
+        </div>
       </div>
     </div>
   </div>
