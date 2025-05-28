@@ -207,7 +207,7 @@
       </h3>
       <form (ngSubmit)="saveMdf()">
         <div class="mb-4">
-          <label class="block modal-input-item">Grosor</label>
+          <label class="block modal-input-item">Grosor<span class="text-red-500">*</span></label>
           <input
             [(ngModel)]="formMdf.thickness"
             name="thickness"
@@ -217,7 +217,7 @@
           />
         </div>
         <div class="mb-4">
-          <label class="block modal-input-item">Costo</label>
+          <label class="block modal-input-item">Costo<span class="text-red-500">*</span></label>
           <input
             type="number"
             [(ngModel)]="formMdf.cost"
@@ -228,7 +228,7 @@
           />
         </div>
         <div class="mb-4">
-          <label class="block modal-input-item">Flete</label>
+          <label class="block modal-input-item">Flete<span class="text-red-500">*</span></label>
           <input
             type="number"
             [(ngModel)]="formMdf.freight"

@@ -433,12 +433,7 @@ export class ClientsComponent implements OnInit {
   async saveClient(): Promise<void> {
     if (!this.selectedClientData) return;
 
-    if (!this.selectedClientData.name) {
-      alert('Por favor, digite nombre del cliente.');
-      return;
-    }
-
-    if (!this.selectedClientData.company_name) {
+    if (!this.selectedClientData.name || !this.selectedClientData.company_name) {
       alert('Por favor, digite nombre del cliente.');
       return;
     }

@@ -415,7 +415,7 @@
         </h3>
         <form (ngSubmit)="saveClient()">
           <div class="mb-4">
-            <label class="block modal-input-item">Nombre</label>
+            <label class="block modal-input-item">Nombre<span class="text-red-500">*</span></label>
             <input
               [(ngModel)]="selectedClientData.name"
               name="name"
