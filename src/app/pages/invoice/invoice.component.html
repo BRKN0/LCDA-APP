@@ -48,7 +48,7 @@
       class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 mr-4"
       (click)="addNewInvoice()"
     >
-      Añadir Factura
+      Añadir
     </button>
   </div>
 </div>
@@ -155,7 +155,7 @@
         </td>
         <td class="table-column-std">
           <button class="btn-details" (click)="selectInvoice(invoice)">
-            Ver Detalles
+            Detalles
           </button>
           <!-- Botón Editar -->
           <button class="btn-edit" (click)="editInvoice(invoice)">
@@ -453,13 +453,6 @@
   class="modal-overlay"
 >
   <div class="modal-content modal-h600">
-    <!-- Botón de cierre -->
-    <button
-      class="absolute top-4 right-4 text-gray-600 hover:text-black font-bold text-xl"
-      (click)="closeDetails()"
-    >
-      ×
-    </button>
     <!-- Notificación -->
     <div
       *ngIf="notificationMessage"
