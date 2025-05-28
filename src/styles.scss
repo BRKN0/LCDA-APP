@@ -104,7 +104,7 @@ button {
   }
 }
 .btn-details {
-  background-color: theme("colors.red.500");
+  background-color: #6c63ff;
   color: theme("colors.white");
   padding: theme("spacing.1") theme("spacing.3");
   margin-right: theme("spacing.5");
@@ -112,7 +112,7 @@ button {
   transition: background-color 0.3s ease-in-out;
 
   &:hover {
-    background-color: theme("colors.red.700");
+    background-color: #362cfd;
   }
 }
 
