@@ -280,10 +280,10 @@
 </div>
 
 <!-- Inventory table -->
-<div *ngIf="!loading && filteredInventory.length > 0">
+<div *ngIf="!loading && filteredInventory.length > 0" class="mt-4">
   <table class="table-std">
     <thead>
-      <tr class="bg-gray-100">
+      <tr>
         <th class="table-column-std">Código</th>
         <th class="table-column-std">Categoría</th>
         <th class="table-column-std">Tipo</th>
@@ -297,32 +297,32 @@
       </tr>
     </thead>
     <tbody>
-      <ng-container *ngFor="let item of paginatedInventory">
-        <tr (click)="toggleDetails(item)">
-          <td>{{ item.code }}</td>
-          <td>{{ item.category || "Sin Categoria" }}</td>
-          <td>{{ item.type || "Sin Tipo" }}</td>
-          <td>{{ item.caliber || "Sin Calibre" }}</td>
-          <td
-            [class.text-green-600]="item.material_quantity > 10"
-            [class.text-red-600]="item.material_quantity <= 10"
-          >
-            {{ item.material_quantity || 0 }}
-          </td>
-          <td>{{ item.color || "Sin Color" }}</td>
-          <td>{{ item.cost | currency }}</td>
-          <td>{{ item.sale_price | currency }}</td>
-          <td>
-            {{ getMaterialStatusLabel(item.status) }}
-          </td>
-          <td>
-            <button (click)="editItem(item)" class="btn-edit">Editar</button>
-            <button (click)="deleteItem(item)" class="btn-delete">
-              Eliminar
-            </button>
-          </td>
-        </tr>
-      </ng-container>
+      <tr *ngFor="let item of paginatedInventory" class="cursor-pointer hover:bg-gray-50">
+        <td>{{ item.code }}</td>
+        <td>{{ item.category || "Sin Categoria" }}</td>
+        <td>{{ item.type || "Sin Tipo" }}</td>
+        <td>{{ item.caliber || "Sin Calibre" }}</td>
+        <td
+          [ngClass]="{
+            'text-green-600 font-semibold': item.material_quantity > 10,
+            'text-red-600 font-semibold': item.material_quantity <= 10
+          }"
+        >
+          {{ item.material_quantity || 0 }}
+        </td>
+        <td>{{ item.color || "Sin Color" }}</td>
+        <td>{{ item.cost | currency }}</td>
+        <td>{{ item.sale_price | currency }}</td>
+        <td>{{ getMaterialStatusLabel(item.status) }}</td>
+        <td>
+          <button (click)="editItem(item); $event.stopPropagation()" class="btn-edit px-3 py-1 rounded">
+            Editar
+          </button>
+          <button (click)="deleteItem(item); $event.stopPropagation()" class="btn-delete px-3 py-1 rounded">
+            Eliminar
+          </button>
+        </td>
+      </tr>
     </tbody>
   </table>
   <div class="flex justify-between items-center mb-4">
