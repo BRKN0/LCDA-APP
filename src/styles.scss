@@ -53,6 +53,17 @@ button {
   }
 }
 
+.btn-liquidation {
+  padding: 0.5rem 0.25rem;
+  background-color: #af0e41;
+  color: white;
+  border-radius: 0.25rem;
+  margin-right: 0.5rem;
+  &:hover {
+    background-color: #8a0b32; /* Darker shade of #af0e41 */
+  }
+}
+
 /* Estilos para tablas combinados */
 .table-std {
   width: 100%;
@@ -96,11 +107,11 @@ button {
 
 .btn-delete {
   padding: 0.5rem 0.25rem;
-  background-color: #ef4444; 
+  background-color: #ef4444;
   color: white;
   border-radius: 0.25rem;
   &:hover {
-    background-color: #b91c1c; 
+    background-color: #b91c1c;
   }
 }
 .btn-details {
