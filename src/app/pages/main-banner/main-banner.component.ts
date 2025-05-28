@@ -68,6 +68,7 @@ export class MainBannerComponent implements OnInit {
     }
     if (this.userRole) {
       this.roleService.setRole(this.userRole);
+      this.goToHome();
     }
   }
   goToNotifications() {
