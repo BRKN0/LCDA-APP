@@ -6,7 +6,7 @@
   <h1 class="text-3xl font-bold">La Casa del Acrílico</h1>
   <!-- Logo a la izquierda -->
   <img
-    src="/Logo.png"
+    src="/a.webp"
     alt="Logo"
     class="logo-banner absolute top-0 left-0 z-0"
     width="90"
@@ -88,6 +88,7 @@
           <div
             class="nav-item-dropdown cursor-pointer flex items-center"
             [ngClass]="{ active: router.url.startsWith('/pricing') }"
+            
             (click)="togglePriceDropdown($event)"
           >
             <i class="fas fa-dollar-sign"></i>
