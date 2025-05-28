@@ -1,8 +1,10 @@
 <router-outlet></router-outlet>
-<div class="login-container flex justify-center items-center">
+<div 
+    class="login-container flex justify-center items-center min-h-screen bg-cover bg-center"
+    style="background-image: url(/login.jpg);" >
   <div class="login-box min-w-[280px] max-w-[350px] w-[80%] bg-white/80 backdrop-blur-md rounded-lg shadow-lg p-6">
     <div class="logo text-4xl font-bold text-center text-red-700 mb-8">
-      La Casa Del Acrílico
+      AT Nexus
     </div>
 
     <div class="flex flex-col gap-4" [formGroup]="form">
@@ -24,7 +26,22 @@
         />
       </div>
 
+      <!-- Solo se muestra en modo registro -->
+      <div *ngIf="isRegisterMode" class="flex flex-col gap-1">
+        <div class="font-bold">Repite la Contraseña</div>
+        <input
+          formControlName="confirmPassword"
+          type="password"
+          placeholder="Repite tu contraseña"
+          class="input-field p-2 w-full rounded-md"
+        />
+        <div class="text-red-600 text-sm mt-1" *ngIf="form.hasError('passwordMismatch')">
+          Las contraseñas no coinciden
+        </div>
+      </div>
+      
       <button
+      *ngIf="!isRegisterMode"
         (click)="login()"
         class="btn-login border-2 border-red-600 text-red-600 hover:text-white hover:bg-red-600 font-semibold p-2 w-full rounded-md transition"
       >
@@ -32,10 +49,18 @@
       </button>
 
       <button
+        *ngIf="isRegisterMode"
         (click)="signUp()"
         class="btn-register border-2 border-red-600 text-red-600 hover:text-white hover:bg-red-600 font-semibold p-2 w-full rounded-md transition"
       >
         Registrarse
+      </button>
+
+      <button
+        (click)="toggleMode()"
+        class="text-sm text-center underline text-red-700 hover:text-red-900 mt-2"
+      >
+        {{ isRegisterMode ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate aquí' }}
       </button>
     </div>
   </div>
