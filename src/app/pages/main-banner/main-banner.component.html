@@ -48,7 +48,16 @@
       </ng-template>
       <!-- Usuario Visitante  -->
       <ng-template #loginButton>
-        <button class="relative" (click)="goToLogin()">Iniciar sesión</button>
+        <button
+          [ngClass]="{ active: router.url === '/inventory/product' }"
+          class="nav-item cursor-pointer"
+          (click)="goToProducts()"
+        >
+          Productos
+        </button>
+        <button class="nav-item cursor-pointer" (click)="goToLogin()">
+          Iniciar sesión
+        </button>
 
         <!-- Usuario -->
       </ng-template>
