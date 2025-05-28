@@ -13,6 +13,23 @@
     height="80"
   />
   <div class="mt-5 mx-auto px-4 flex flex-wrap justify-center gap-4">
+    <ng-template #roleChangeButton>
+      <div
+        class="absolute bottom-0 left-0 inline-block text-white text-left bg-[#b91c1c] shadow-md"
+      >
+        <label for="role-select" class="mr-2 font-semibold">Cambiar Rol:</label>
+        <select
+          id="role-select"
+          [(ngModel)]="userRole"
+          (change)="onRoleChange()"
+          class="border border-gray-300 rounded p-2 text-black dropdown"
+        >
+          <option value="admin">Administrador</option>
+          <option value="prints_employee">Empleado Impresiones</option>
+          <option value="cuts_employee">Empleado Cortes</option>
+        </select>
+      </div>
+    </ng-template>
     <!-- Navigation -->
     <div class="flex justify-around py-4 nav-bar shadow-md">
       <div
@@ -88,7 +105,6 @@
           <div
             class="nav-item-dropdown cursor-pointer flex items-center"
             [ngClass]="{ active: router.url.startsWith('/pricing') }"
-            
             (click)="togglePriceDropdown($event)"
           >
             <i class="fas fa-dollar-sign"></i>
@@ -279,5 +295,11 @@
         </div>
       </ng-template>
     </div>
+    <ng-template
+      [ngIf]="isLoggedIn$ | async"
+      [ngIfThen]="roleChangeButton"
+      [ngIfElse]="null"
+    >
+    </ng-template>
   </div>
 </div>
