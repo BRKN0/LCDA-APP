@@ -123,7 +123,7 @@
 
 <!-- Modal para comparación -->
 <div *ngIf="showModal && isComparing" class="modal-overlay">
-  <div class="modal-content">
+  <div class="modal-content modal-h300">
     <h2 class="text-lg font-bold mb-4">Comparar Inventario</h2>
 
     <div class="mb-4">
@@ -145,13 +145,14 @@
       />
     </div>
 
-    <div class="flex justify-between">
-      <button (click)="compareCSV()" class="btn-success">
-        Iniciar Comparación
-      </button>
-      <button (click)="clearComparison()" class="btn-edit">Limpiar</button>
+    <div class="flex justify-end space-x-2">
       <button (click)="closeComparisonModal()" class="btn-delete">
         Cerrar
+      </button>
+
+      <button (click)="clearComparison()" class="btn-edit">Limpiar</button>
+      <button (click)="compareCSV()" class="btn-success">
+        Iniciar Comparación
       </button>
     </div>
     <div *ngIf="comparisonResult.length > 0" class="mt-4">
