@@ -171,15 +171,13 @@
             </span>
           </p>
           <p>
-            <strong>Límite de Crédito:</strong> ${{
-              selectedClient.credit_limit
-            }}
+            <strong>Límite de Crédito:</strong> ${{ selectedClient.credit_limit }}
           </p>
           <!-- Campo para editar el límite de crédito (solo admin) -->
           <div *ngIf="userRole === 'admin' && selectedClient" class="mt-2">
-            <label for="creditLimit" class="block text-gray-700"
-              >Actualizar Límite de Crédito:</label
-            >
+            <label for="creditLimit" class="block text-gray-700">
+              Actualizar Límite de Crédito:
+            </label>
             <input
               type="number"
               id="creditLimit"
@@ -187,18 +185,20 @@
               name="creditLimit"
               class="border p-1 mt-1 block w-full"
             />
-            <button
-              class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 mt-2"
-              (click)="updateCreditLimit(selectedClient)"
-            >
-              Guardar
-            </button>
           </div>
         </div>
 
-        <!-- Botón para cerrar el modal -->
-        <div class="flex justify-end absolute bottom- right-2 mt-4 mb-2">
-          <button class="btn-danger" (click)="closeClientModal()">
+        <!-- Botones en la parte inferior derecha -->
+        <div class="flex justify-end absolute bottom-2 right-2 mt-4 mb-2 space-x-2">
+          <!-- Botón Guardar (solo visible para admin cuando los detalles están abiertos) -->
+          <button
+            *ngIf="userRole === 'admin' && showDetails"
+            class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
+            (click)="updateCreditLimit(selectedClient)"
+          >
+            Guardar
+          </button>
+          <button class="btn-danger px-4 py-2 rounded-md" (click)="closeClientModal()">
             Cerrar
           </button>
         </div>

@@ -52,7 +52,7 @@ barra de navegacion debatible a cambio
 </nav>
 -->
 <!-- Contenedor principal -->
-<div class="w-full max-w-5xl mx-auto mb-10 px-4">
+<div class="w-full max-w-5xl mx-auto mb-10 px-4 mt-10">
   <div
     class="relative overflow-hidden rounded-3xl shadow-2xl bg-gradient-to-tr from-white to-gray-100 h-[420px] md:h-[600px]"
   >
@@ -72,17 +72,17 @@ barra de navegacion debatible a cambio
     <!-- Flechas -->
     <button
       (click)="prevSlide()"
-      class="absolute left-6 top-1/2 -translate-y-1/2 bg-[#510A32]/80 hover:bg-[#510A32] text-white p-3 rounded-full shadow-md transition duration-300"
+      class="absolute left-6 top-1/2 -translate-y-1/2 bg-red-600 hover:bg-red-700 border border-white p-3 rounded-full shadow-md transition duration-300 opacity-100 visible"
     >
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
       </svg>
     </button>
     <button
       (click)="nextSlide()"
-      class="absolute right-6 top-1/2 -translate-y-1/2 bg-[#510A32]/80 hover:bg-[#510A32] text-white p-3 rounded-full shadow-md transition duration-300"
+      class="absolute right-6 top-1/2 -translate-y-1/2 bg-red-600 hover:bg-red-700 border border-white p-3 rounded-full shadow-md transition duration-300 opacity-100 visible"
     >
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
       </svg>
     </button>
@@ -90,22 +90,22 @@ barra de navegacion debatible a cambio
     <!-- Indicadores -->
     <div class="absolute bottom-5 left-1/2 -translate-x-1/2 flex space-x-2">
       <ng-container *ngFor="let slide of slides; let i = index">
-        <button
+        <div
           (click)="goToSlide(i)"
           [class]="
             i === currentIndex
-              ? 'bg-[#510A32] w-4 h-4 rounded-full scale-110 shadow-lg transition-all'
-              : 'bg-gray-400 w-3 h-3 rounded-full transition-all hover:scale-105'
+              ? 'bg-red-600 w-4 h-4 rounded-full scale-110 shadow-lg transition-all'
+              : 'bg-red-400 w-4 h-4 rounded-full transition-all hover:scale-110'
           "
           [attr.aria-label]="'Ir al slide ' + (i + 1)"
-        ></button>
+        ></div>
       </ng-container>
     </div>
   </div>
 </div>
 
 
-<!--seccion de gallery-->
+<!--seccion de gallery
 
 <div class="flex items-center justify-center py-4 md:py-8 flex-wrap">
   <button type="button" (click)="toggleFilter()" class="btn-contact">
@@ -122,125 +122,80 @@ barra de navegacion debatible a cambio
     Vinilo De Corte
   </button>
 </div>
-<!--seccion de galleria-->
-<div class="grid max-w-[800px] mx-auto grid-cols-2 md:grid-cols-3 gap-4">
-  <div>
-    <img class="h-60 w-full object-cover rounded-lg" src="/Alitas.jpg" alt="" />
-  </div>
-  <div>
-    <img class="h-60 w-full object-cover rounded-lg" src="/barco.jpg" alt="" />
-  </div>
-  <div>
+-->
+
+<div class="text-center my-10 px-6">
+  <h2 class="text-2xl md:text-3xl font-bold text-[#510A32] mb-2">
+    Más de 10 años ofreciendo soluciones en acrílico a medida
+  </h2>
+  <p class="text-gray-600 text-lg">
+    Calidad, compromiso y personalización en cada proyecto
+  </p>
+</div>
+
+<div class="grid max-w-[800px] mx-auto grid-cols-3 gap-4">
+  <div *ngFor="let img of galleryImages; let i = index">
     <img
-      class="h-60 w-full object-cover rounded-lg"
-      src="/copacabana.jpg"
-      alt=""
+      [src]="img"
+      class="h-60 w-full object-cover rounded-lg cursor-pointer hover:scale-105 transition"
+      alt="Imagen de producto"
+      (click)="openImageAt(i)"
     />
   </div>
-  <div>
-    <img class="h-60 w-full object-cover rounded-lg" src="/Habbab.jpg" alt="" />
-  </div>
-  <div>
-    <img
-      class="h-60 w-full object-cover rounded-lg"
-      src="/plazacentral.jpg"
-      alt=""
-    />
-  </div>
-  <div>
-    <img class="h-60 w-full object-cover rounded-lg" src="/BSL.jpg" alt="" />
-  </div>
-  <div>
-    <img class="h-60 w-full object-cover rounded-lg" src="/barco.jpg" alt="" />
-  </div>
-  <div>
-    <img class="h-60 w-full object-cover rounded-lg" src="/barco2.jpg" alt="" />
-  </div>
-  <div>
-    <img class="h-60 w-full object-cover rounded-lg" src="bote.jpg" alt="" />
-  </div>
-  <div>
-    <img class="h-60 w-full object-cover rounded-lg" src="/casa.jpg" alt="" />
-  </div>
-  <div>
-    <img
-      class="h-60 w-full object-cover rounded-lg"
-      src="/consultorio.jpg"
-      alt=""
-    />
-  </div>
-  <div>
-    <img
-      class="h-60 w-full object-cover rounded-lg"
-      src="/cubiculos.jpg"
-      alt=""
-    />
-  </div>
-  <div>
-    <img class="h-60 w-full object-cover rounded-lg" src="/Ditica.jpg" alt="" />
-  </div>
-  <div>
-    <img
-      class="h-60 w-full object-cover rounded-lg"
-      src="/etilico.jpg"
-      alt=""
-    />
-  </div>
-  <div>
-    <img
-      class="h-60 w-full object-cover rounded-lg"
-      src="/extrella.jpg"
-      alt=""
-    />
-  </div>
-  <div>
-    <img
-      class="h-60 w-full object-cover rounded-lg"
-      src="/hospedaje.jpg"
-      alt=""
-    />
-  </div>
-  <div>
-    <img class="h-60 w-full object-cover rounded-lg" src="/lancha.jpg" alt="" />
-  </div>
-  <div>
-    <img class="h-60 w-full object-cover rounded-lg" src="/marco.jpg" alt="" />
-  </div>
-  <div>
-    <img
-      class="h-60 w-full object-cover rounded-lg"
-      src="/ministerio.jpg"
-      alt=""
-    />
-  </div>
-  <div>
-    <img class="h-60 w-full object-cover rounded-lg" src="/multic.jpg" alt="" />
-  </div>
-  <div>
-    <img class="h-60 w-full object-cover rounded-lg" src="/nails.jpg" alt="" />
-  </div>
-  <div>
-    <img
-      class="h-60 w-full object-cover rounded-lg"
-      src="/nooolapolicia.jpg"
-      alt=""
-    />
-  </div>
-  <div>
-    <img class="h-60 w-full object-cover rounded-lg" src="/plaza2.jpg" alt="" />
-  </div>
-  <div>
-    <img
-      class="h-60 w-full object-cover rounded-lg"
-      src="/puertita.jpg"
-      alt=""
-    />
-  </div>
-  
-  <div></div>
+</div>
+<!-- Modal de imagen ampliada -->
+<div
+  *ngIf="selectedImageIndex !== null"
+  class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50"
+>
+  <!-- Botón cerrar -->
+  <button
+    (click)="closeImage()"
+    class="absolute top-5 right-5 bg-red-600 hover:bg-red-700 text-white p-2 rounded-full shadow-md transition"
+  >
+    <svg
+      class="w-5 h-5 text-white"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+    >
+      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  </button>
+
+  <!-- Flecha izquierda -->
+  <button
+    *ngIf="selectedImageIndex > 0"
+    (click)="prevImage()"
+    class="absolute left-5 top-1/2 -translate-y-1/2 bg-red-600 hover:bg-red-700 text-white p-3 rounded-full shadow-md transition"
+  >
+    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+    </svg>
+  </button>
+
+  <!-- Flecha derecha -->
+  <button
+    *ngIf="selectedImageIndex < galleryImages.length - 1"
+    (click)="nextImage()"
+    class="absolute right-5 top-1/2 -translate-y-1/2 bg-red-600 hover:bg-red-700 text-white p-3 rounded-full shadow-md transition"
+  >
+    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+    </svg>
+  </button>
+
+  <!-- Imagen ampliada -->
+  <img
+    [src]="galleryImages[selectedImageIndex]"
+    class="max-w-[90%] max-h-[90%] rounded-lg shadow-lg border-4 border-white"
+    alt="Imagen ampliada"
+/>
 </div>
 <!--seccion de contacto-->
-<section class="py-16 bg-secondary text-gray-800">
+<hr class="mt-8 mb-4 border-t-2 border-gray-300 w-4/5 mx-auto" />
+<section class="pt-4 pb-16 bg-secondary text-gray-800">
   <div class="container mx-auto px-4">
     <div class="max-w-4xl mx-auto">
       <h2 class="text-3xl font-bold text-center mb-8">Contáctenos</h2>
@@ -250,16 +205,13 @@ barra de navegacion debatible a cambio
             Información de Contacto
           </h3>
           <p class="mb-4">
-            <i class="fas fa-map-marker-alt mr-2 text-primary-medium"></i>
-            Dirección: Blas de Lezo Cl. 21A Mz. 11A Lt. 12
+            <span class="font-semibold">Dirección:</span>Centro comercial Caribe plaza
           </p>
           <p class="mb-4">
-            <i class="fas fa-phone mr-2 text-primary-medium"></i> Teléfono:
-           300 4947020
+            <span class="font-semibold">Teléfono:</span> 300 1234567
           </p>
           <p class="mb-4">
-            <i class="fas fa-envelope mr-2 text-primary-medium"></i> Email:
-            [email]
+            <span class="font-semibold">Email:</span> acrylotech&#64;gmail.com
           </p>
         </div>
         <div>
@@ -267,21 +219,21 @@ barra de navegacion debatible a cambio
             <input
               type="text"
               placeholder="Nombre"
-              class="w-full px-4 py-2 rounded bg-primary-darkest border border-primary-dark focus:border-primary-light focus:outline-none"
+              class="w-full px-4 py-2 rounded bg-primary-darkest border border-primary-dark focus:border-primary-light focus:ring-2 focus:ring-primary-light focus:outline-none transition duration-200"
             />
             <input
               type="email"
               placeholder="Email"
-              class="w-full px-4 py-2 rounded bg-primary-darkest border border-primary-dark focus:border-primary-light focus:outline-none"
+              class="w-full px-4 py-2 rounded bg-primary-darkest border border-primary-dark focus:border-primary-light focus:ring-2 focus:ring-primary-light focus:outline-none transition duration-200"
             />
             <textarea
               placeholder="Mensaje"
               rows="4"
-              class="w-full px-4 py-2 rounded bg-primary-darkest border border-primary-dark focus:border-primary-light focus:outline-none"
+              class="w-full px-4 py-2 rounded bg-primary-darkest border border-primary-dark focus:border-primary-light focus:ring-2 focus:ring-primary-light focus:outline-none transition duration-200"
             ></textarea>
             <button
               type="submit"
-              class="bg-primary-light hover:bg-primary-medium text-white px-6 py-3 rounded-lg font-semibold transition w-full"
+              class="!bg-[#510A32] hover:!bg-[#6a0d47] text-white px-6 py-3 rounded-lg font-semibold transition w-full"
             >
               Enviar Mensaje
             </button>
