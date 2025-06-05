@@ -15,7 +15,7 @@ interface Invoice {
   payment_term: number;
   order: Orders;
   include_iva: boolean;
-  due_date: string; // Nueva columna para almacenar la fecha de vencimiento
+  due_date: string;
 }
 
 interface Orders {
@@ -34,7 +34,7 @@ interface Orders {
   id_client: string;
   client: Client;
   payments?: Payment[];
-  delivery_date: string; // Necesario para calcular due_date
+  delivery_date: string;
 }
 
 interface Client {
@@ -59,6 +59,7 @@ interface Payment {
   id_order: string;
   amount: number;
   payment_date?: string;
+  payment_method: string;
 }
 
 @Component({
@@ -99,6 +100,7 @@ export class InvoiceComponent implements OnInit {
   paginatedInvoice: Invoice[] = [];
   IVA_RATE = 0.19;
   newPaymentAmount: number = 0;
+  newPaymentMethod: string = '';
   showEditPayment: boolean = false;
   selectedPayment: Payment | null = null;
   notificationMessage: string | null = null;
@@ -210,7 +212,7 @@ export class InvoiceComponent implements OnInit {
         );
         return matchesClient && matchesType && !isAssigned;
       });
-      console.log('Órdenes disponibles para el cliente:', this.clientOrders); // Depuración
+      console.log('Órdenes disponibles para el cliente:', this.clientOrders);
     } else {
       this.clientOrders = [];
     }
@@ -285,6 +287,7 @@ export class InvoiceComponent implements OnInit {
       order: {
         ...invoice.orders,
         client: invoice.orders?.clients || null,
+        payments: invoice.orders?.payments || [],
       },
     })) as Invoice[];
     let n = this.invoices.length;
@@ -369,9 +372,14 @@ export class InvoiceComponent implements OnInit {
     this.notificationMessage = null;
   }
 
-  async addPayment(order: Orders, amount: number): Promise<void> {
+  async addPayment(order: Orders, amount: number, paymentMethod: string): Promise<void> {
     if (!order || !order.id_order || amount <= 0) {
       this.showNotification('Por favor, ingrese un monto válido.');
+      return;
+    }
+
+    if (!paymentMethod) {
+      this.showNotification('Por favor, seleccione un método de pago.');
       return;
     }
 
@@ -387,6 +395,7 @@ export class InvoiceComponent implements OnInit {
     const payment: Payment = {
       id_order: order.id_order,
       amount: amount,
+      payment_method: paymentMethod,
     };
 
     try {
@@ -452,6 +461,7 @@ export class InvoiceComponent implements OnInit {
       await this.getInvoices();
 
       this.newPaymentAmount = 0;
+      this.newPaymentMethod = '';
       this.showNotification('Abono añadido correctamente.');
     } catch (error) {
       console.error('Error inesperado:', error);
@@ -467,6 +477,11 @@ export class InvoiceComponent implements OnInit {
   async updatePayment(order: Orders): Promise<void> {
     if (!this.selectedPayment || !this.selectedPayment.id_payment) {
       this.showNotification('No se ha seleccionado un abono válido.');
+      return;
+    }
+
+    if (!this.selectedPayment.payment_method) {
+      this.showNotification('Por favor, seleccione un método de pago.');
       return;
     }
 
@@ -489,7 +504,7 @@ export class InvoiceComponent implements OnInit {
 
       const { error: updateError } = await this.supabase
         .from('payments')
-        .update({ amount: newAmount })
+        .update({ amount: newAmount, payment_method: this.selectedPayment.payment_method })
         .eq('id_payment', this.selectedPayment.id_payment);
 
       if (updateError) {
@@ -750,24 +765,43 @@ export class InvoiceComponent implements OnInit {
     doc.text(`$${unitaryValue.toFixed(2)}`, headerXPositions[1], currentY);
     doc.text(`$${subtotal.toFixed(2)}`, headerXPositions[2], currentY, { align: 'right' });
 
+    // Añadir lista de abonos al PDF
+    if (invoice.order.payments && invoice.order.payments.length > 0) {
+      doc.setFont('helvetica', 'bold');
+      doc.text('Abonos Realizados:', 10, summaryStartY);
+      currentY = summaryStartY + rowHeight;
+      doc.setFont('helvetica', 'normal');
+      invoice.order.payments.forEach((payment) => {
+        doc.text(
+          `$${payment.amount} - ${payment.payment_method} - ${payment.payment_date ? new Date(payment.payment_date).toLocaleDateString('es-CO') : ''}`,
+          10,
+          currentY
+        );
+        currentY += rowHeight;
+      });
+    }
+
     const summaryX = headerXPositions[0];
     const valueX = headerXPositions[1];
     doc.setFont('helvetica', 'bold');
 
-    doc.text('Subtotal:', summaryX, summaryStartY);
-    doc.text(`$${subtotal.toFixed(2)}`, valueX, summaryStartY, { align: 'left' });
+    doc.text('Subtotal:', summaryX, currentY);
+    doc.text(`$${subtotal.toFixed(2)}`, valueX, currentY, { align: 'left' });
+    currentY += rowHeight;
 
     if (invoice.include_iva) {
-      doc.text('IVA (19%):', summaryX, summaryStartY + rowHeight);
-      doc.text(`$${iva.toFixed(2)}`, valueX, summaryStartY + rowHeight, { align: 'left' });
+      doc.text('IVA (19%):', summaryX, currentY);
+      doc.text(`$${iva.toFixed(2)}`, valueX, currentY, { align: 'left' });
+      currentY += rowHeight;
     }
 
     doc.setFontSize(14);
-    doc.text('Total:', summaryX, summaryStartY + rowHeight * 2);
-    doc.text(`$${total.toFixed(2)}`, valueX, summaryStartY + rowHeight * 2, { align: 'left' });
+    doc.text('Total:', summaryX, currentY);
+    doc.text(`$${total.toFixed(2)}`, valueX, currentY, { align: 'left' });
+    currentY += rowHeight;
 
     const spacing = 15;
-    const totalPagarY = summaryStartY + rowHeight * 3.5;
+    const totalPagarY = currentY + rowHeight;
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.text('Total a Pagar:', summaryX, totalPagarY);
@@ -881,7 +915,7 @@ export class InvoiceComponent implements OnInit {
     this.filteredClients = [...this.clients];
     this.clientOrders = [];
     this.showClientDropdown = false;
-    this.updateClientOrders(); // Aseguramos que las órdenes se carguen al abrir el modal
+    this.updateClientOrders();
   }
 
   editInvoice(invoice: Invoice): void {
@@ -893,7 +927,6 @@ export class InvoiceComponent implements OnInit {
       include_iva: invoice.include_iva ?? true,
       order: {
         ...invoice.order,
-        // Forzamos a mantener el mismo tipo de orden
         order_type: invoice.order.order_type
       }
     };
@@ -937,7 +970,6 @@ export class InvoiceComponent implements OnInit {
       return;
     }
 
-    // Validar y corregir payment_term
     const paymentTerm = this.selectedInvoice.payment_term
       ? parseInt(this.selectedInvoice.payment_term.toString(), 10)
       : 30;
@@ -1052,7 +1084,7 @@ export class InvoiceComponent implements OnInit {
       }
 
       await this.getInvoices();
-      await this.loadOrders(); // Recargar órdenes después de guardar
+      await this.loadOrders();
       this.closeModal();
     } catch (error) {
       console.error('Error inesperado al guardar la factura:', error);
@@ -1107,8 +1139,8 @@ export class InvoiceComponent implements OnInit {
 
       this.invoices = this.invoices.filter((i) => i.id_invoice !== invoice.id_invoice);
       this.updateFilteredInvoices();
-      await this.loadOrders(); // Recargar órdenes después de eliminar
-      this.updateClientOrders(); // Actualizar órdenes disponibles
+      await this.loadOrders();
+      this.updateClientOrders();
       this.showNotification('Factura eliminada correctamente.');
     } catch (error) {
       console.error('Error inesperado:', error);
@@ -1160,5 +1192,6 @@ export class InvoiceComponent implements OnInit {
     this.clientOrders = [];
     this.showClientDropdown = false;
     this.selectedInvoiceDetails = null;
+    this.newPaymentMethod = '';
   }
 }
