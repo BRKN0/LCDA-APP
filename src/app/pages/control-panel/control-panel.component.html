@@ -1,0 +1,63 @@
+<router-outlet></router-outlet>
+<app-main-banner></app-main-banner>
+<div class="p-6 bg-white rounded shadow-md max-w-4xl mx-auto my-6">
+  <h2 class="text-2xl font-bold mb-4">Panel de Control de Variables</h2>
+
+  <div class="mb-4">
+    <label class="block font-semibold">IVA (%)</label>
+    <input
+      type="number"
+      [(ngModel)]="variables.iva"
+      class="form-input mt-1 block w-full border rounded p-2"
+      placeholder="Ejemplo: 19"
+    />
+  </div>
+
+  <div class="mb-4">
+    <label class="block font-semibold">Margen de Utilidad Base(%)</label>
+    <input
+      type="number"
+      [(ngModel)]="variables.margenUtilidad"
+      class="form-input mt-1 block w-full border rounded p-2"
+      placeholder="Ejemplo: 30"
+    />
+  </div>
+
+  <div class="mb-4">
+    <label class="block font-semibold">Retefuente (%)</label>
+    <input
+      type="number"
+      [(ngModel)]="variables.retefuente"
+      class="form-input mt-1 block w-full border rounded p-2"
+      placeholder="Ejemplo: 2.5"
+    />
+  </div>
+
+  <div class="mb-4">
+    <label class="block font-semibold">Retención de ICA (%)</label>
+    <input
+      type="number"
+      [(ngModel)]="variables.retica"
+      class="form-input mt-1 block w-full border rounded p-2"
+      placeholder="Ejemplo: 0.5"
+    />
+  </div>
+
+  <div class="mb-4">
+    <label class="block font-semibold">Retención en Compras (%)</label>
+    <input
+      type="number"
+      [(ngModel)]="variables.reteCompras"
+      class="form-input mt-1 block w-full border rounded p-2"
+      placeholder="Ejemplo: 4"
+    />
+  </div>
+
+  <!-- Action buttons -->
+  <div class="flex justify-end mt-6 gap-4">
+    <button class="btn-danger" (click)="resetVariables()">Reiniciar</button>
+    <button class="btn-success" (click)="guardarVariables()">
+      Guardar Cambios
+    </button>
+  </div>
+</div>
