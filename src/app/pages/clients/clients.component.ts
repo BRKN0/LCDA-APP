@@ -56,6 +56,7 @@ interface Payment {
   id_order: string;
   amount: number;
   payment_date?: string;
+  payment_method: string;
 }
 
 @Component({
@@ -99,10 +100,10 @@ export class ClientsComponent implements OnInit {
     id_client: '',
     document_type: '',
     name: '',
-    document_number: '',
+    document_number: '0',
     status: 'overdue',
     created_at: new Date().toISOString(),
-    cellphone: '',
+    cellphone: '0',
     nit: '',
     company_name: '',
     email: '',
@@ -154,7 +155,7 @@ export class ClientsComponent implements OnInit {
         amount,
         id_client,
         code,
-        payments(*)
+        payments(id_payment, id_order, amount, payment_date, payment_method)
       )`
     );
 
@@ -224,6 +225,23 @@ export class ClientsComponent implements OnInit {
     return baseTotal;
   }
 
+  formatPaymentMethod(method: string): string {
+    switch (method) {
+      case 'cash':
+        return 'Efectivo';
+      case 'nequi':
+        return 'Nequi';
+      case 'bancolombia':
+        return 'Bancolombia';
+      case 'davivienda':
+        return 'Davivienda';
+      case 'other':
+        return 'Otro';
+      default:
+        return method;
+    }
+  }
+
   searchClient() {
     this.filteredClients = this.clients.filter((client) => {
       const matchesSearchQuery =
@@ -243,7 +261,7 @@ export class ClientsComponent implements OnInit {
   }
 
   openClientModal(client: Client) {
-    this.selectedClient = { ...client }; // Clonar el cliente para evitar referencias directas
+    this.selectedClient = { ...client };
     this.showClientModal = true;
     this.showDetails = false;
     this.showOrders = false;
@@ -270,7 +288,7 @@ export class ClientsComponent implements OnInit {
       this.startDate = '';
       this.endDate = '';
       this.onlyWithDebt = false;
-      this.selectedClient = { ...client }; // Clonar el cliente
+      this.selectedClient = { ...client };
       this.showOrders = true;
       this.currentOrderPage = 1;
       this.newPaymentAmounts = {};
@@ -314,6 +332,7 @@ export class ClientsComponent implements OnInit {
     const payment: Payment = {
       id_order: order.id_order,
       amount: amount,
+      payment_method: 'cash',
     };
 
     try {
@@ -363,7 +382,6 @@ export class ClientsComponent implements OnInit {
             .eq('id_client', client.id_client);
         }
 
-        // Actualizar la instancia local del cliente seleccionado
         if (
           this.selectedClient &&
           this.selectedClient.id_client === client.id_client
@@ -379,7 +397,6 @@ export class ClientsComponent implements OnInit {
           }
         }
 
-        // Actualizar la lista de clientes localmente
         this.clients = this.clients.map((c) =>
           c.id_client === client.id_client
             ? {
@@ -390,7 +407,7 @@ export class ClientsComponent implements OnInit {
               }
             : c
         );
-        this.filteredClients = [...this.clients]; // Reasignar para forzar cambio de detección
+        this.filteredClients = [...this.clients];
         this.updatePaginatedClients();
       }
 
@@ -530,23 +547,30 @@ export class ClientsComponent implements OnInit {
       10
     );
 
-    const orders = this.selectedClient.orders.map((order: any) => [
+    const orders = this.selectedClient.orders.map((order: Orders) => [
       order.code,
-      order.created_at,
+      new Date(order.created_at).toLocaleDateString('es-CO'),
       order.description,
       `$${this.calculateOrderTotal(order).toFixed(2)}`,
       order.order_payment_status === 'upToDate' ? 'Al Día' : 'En Mora',
-      order.order_payment_status === 'upToDate' ? 'Al Día' : 'En Mora',
+      (order.payments || [])
+        .map(
+          (p) =>
+            `$${p.amount.toFixed(2)} - ${this.formatPaymentMethod(p.payment_method)} - ${
+              p.payment_date ? new Date(p.payment_date).toLocaleDateString('es-CO') : 'Sin fecha'
+            }`
+        )
+        .join('\n'),
     ]);
 
     (doc as any).autoTable({
-      head: [['#', 'Fecha', 'Detalles', 'Total', 'Estado']],
+      head: [['#', 'Fecha', 'Detalles', 'Total', 'Estado', 'Abonos']],
       body: orders,
       startY: 40,
     });
 
     doc.save(
-      `Extracto-${this.selectedClient.company_name || this.selectedClient.name}`
+      `Extracto-${this.selectedClient.company_name || this.selectedClient.name}.pdf`
     );
   }
 
@@ -600,7 +624,7 @@ export class ClientsComponent implements OnInit {
           client.cellphone || 'Sin Teléfono',
           client.address || 'Sin Dirección',
           client.city || 'N/A',
-          client.province || 'N/A',
+          client.province || '',
           client.postal_code || 'N/A',
           client.status === 'upToDate'
             ? 'Al Día'
@@ -617,7 +641,7 @@ export class ClientsComponent implements OnInit {
         .join('\r\n');
       const bom = '\uFEFF';
       const blob = new Blob([bom + csvContent], {
-        type: 'text/csv;charset=utf-8;',
+        type: 'text/csv',
       });
       const url = window.URL.createObjectURL(blob);
 
@@ -626,12 +650,12 @@ export class ClientsComponent implements OnInit {
       a.download = `clients_${currentDate}.csv`;
       document.body.appendChild(a);
       a.click();
-      console.log('Archivo generado y clic simulado');
+      console.log('Archivo generado y clicado');
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
       console.error('Error en generateClientsKardex:', error);
-      alert('Ocurrió un error al generar el kardex');
+      alert('Error al generar el kardex.');
     }
   }
 
@@ -656,41 +680,38 @@ export class ClientsComponent implements OnInit {
 
   updatePaginatedOrders(): void {
     if (this.selectedClient?.orders?.length) {
-      const startIndex = Number((this.currentOrderPage - 1) * this.itemsPerOrderPage);
-      const endIndex = startIndex + Number(this.itemsPerOrderPage);
-      this.paginatedOrders = this.selectedClient?.orders.slice(startIndex, endIndex) || [];
-      this.totalOrderPages = Math.ceil((this.selectedClient?.orders.length || 0) / this.itemsPerOrderPage);
+      let filteredOrders = [...this.selectedClient.orders];
+
+      if (this.startDate) {
+        const start = new Date(this.startDate);
+        filteredOrders = filteredOrders.filter((order) =>
+          new Date(order.created_at) >= start
+        );
+      }
+
+      if (this.endDate) {
+        const end = new Date(this.endDate);
+        filteredOrders = filteredOrders.filter((order) =>
+          new Date(order.created_at) <= end
+        );
+      }
+
+      if (this.onlyWithDebt) {
+        filteredOrders = filteredOrders.filter(
+          (order) => order.order_payment_status === 'overdue'
+        );
+      }
+
+      const startIndex = (this.currentOrderPage - 1) * this.itemsPerOrderPage;
+      const endIndex = startIndex + this.itemsPerOrderPage;
+      this.paginatedOrders = filteredOrders.slice(startIndex, endIndex);
+      this.totalOrderPages = Math.ceil(
+        filteredOrders.length / this.itemsPerOrderPage
+      );
     } else {
+      this.paginatedOrders = [];
       this.totalOrderPages = 0;
-      return;
     }
-
-    // Filtrar por rango de fechas si están establecidas
-    let filteredOrders = [...this.selectedClient.orders];
-
-    if (this.startDate) {
-      const start = new Date(this.startDate);
-      filteredOrders = filteredOrders.filter(order =>
-        new Date(order.created_at) >= start
-      );
-    }
-
-    if (this.endDate) {
-      const end = new Date(this.endDate);
-      filteredOrders = filteredOrders.filter(order =>
-        new Date(order.created_at) <= end
-      );
-    }
-
-    if (this.onlyWithDebt) {
-      filteredOrders = filteredOrders.filter(order => order.order_payment_status === 'overdue');
-    }
-
-    // Paginar los resultados filtrados
-    const startIndex = (this.currentOrderPage - 1) * this.itemsPerOrderPage;
-    const endIndex = startIndex + this.itemsPerOrderPage;
-    this.paginatedOrders = filteredOrders.slice(startIndex, endIndex);
-    this.totalOrderPages = Math.ceil(filteredOrders.length / this.itemsPerOrderPage);
   }
 
   clearDateFilters(): void {
@@ -722,7 +743,7 @@ export class ClientsComponent implements OnInit {
         }" correctamente`
       );
     } catch (error) {
-      console.error('Error inesperado al actualizar estado:', error);
+      console.error('Error al actualizar estado:', error);
     }
   }
 }
