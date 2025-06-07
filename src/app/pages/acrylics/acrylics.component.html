@@ -463,12 +463,23 @@
         </select>
       </div>
       <div class="mb-4">
+        <label class="block modal-input-item">Precio Costo Lámina</label>
+        <input
+          type="number"
+          [(ngModel)]="calculatorForm.cost_price"
+          name="calcCostPrice"
+          class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+          placeholder="Ej. 237700"
+          required
+        />
+      </div>
+      <div class="mb-4">
         <label class="block modal-input-item">Utilidad (%)</label>
         <input
           type="number"
           step="0.1"
-          [(ngModel)]="calculatorForm.profit"
-          name="calcProfit"
+          [(ngModel)]="calculatorForm.margin"
+          name="calcMargin"
           class="form-input mt-1 block w-full border border-gray-300 rounded-md"
           placeholder="Ej. 30"
           required
@@ -573,8 +584,8 @@
         <input
           type="number"
           step="0.1"
-          [(ngModel)]="selectedClient!.default_profit"
-          name="defaultProfit"
+          [(ngModel)]="selectedClient!.default_margin"
+          name="defaultMargin"
           class="form-input mt-1 block w-full border border-gray-300 rounded-md"
           placeholder="Ej. 30"
           required
