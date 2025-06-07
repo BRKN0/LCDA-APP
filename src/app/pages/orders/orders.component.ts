@@ -822,222 +822,224 @@ export class OrdersComponent implements OnInit {
 
   async addOrder(newOrderForm: Partial<Orders>): Promise<void> {
     const selectedClient = this.clients.find(
-      (client) => client.id_client === newOrderForm.id_client
+        (client) => client.id_client === newOrderForm.id_client
     );
     newOrderForm.name = selectedClient ? selectedClient.name : '';
 
     const { data: clientData, error: clientError } = await this.supabase
-      .from('clients')
-      .select('debt, credit_limit')
-      .eq('id_client', newOrderForm.id_client)
-      .single();
+        .from('clients')
+        .select('debt, credit_limit')
+        .eq('id_client', newOrderForm.id_client)
+        .single();
 
     if (clientError || !clientData) {
-      console.error('Error al obtener detalles del cliente:', clientError);
-      alert('Error al verificar el cliente.');
-      return;
+        console.error('Error al obtener detalles del cliente:', clientError);
+        alert('Error al verificar el cliente.');
+        return;
     }
 
     const currentDebt = clientData.debt || 0;
     const creditLimit = clientData.credit_limit || 0;
     const orderAmount = parseFloat(newOrderForm.total as string) || 0;
+    const newDebt = currentDebt + orderAmount;
 
-    if (currentDebt + orderAmount > creditLimit && creditLimit !== 0) {
-      alert('El cliente ha alcanzado o excederá su límite de crédito.');
-      return;
+    if (creditLimit > 0 && newDebt > creditLimit) {
+        const confirmMessage = `El cliente ha excedido su límite de crédito por lo que su deuda actual aumentara en el caso de que el pedido sea autorizado.
+
+        ¿Desea autorizar este pedido de todas formas?`;
+
+        if (!confirm(confirmMessage)) {
+            return;
+        }
     }
 
     this.newOrder = {
-      order_type: newOrderForm.order_type,
-      name: newOrderForm.name,
-      client_type: newOrderForm.client_type,
-      description: newOrderForm.description,
-      order_payment_status: newOrderForm.order_payment_status || 'overdue',
-      created_at: newOrderForm.created_at || new Date().toISOString(),
-      delivery_date: newOrderForm.delivery_date,
-      order_quantity: newOrderForm.order_quantity,
-      unitary_value: newOrderForm.unitary_value || 0,
-      iva: newOrderForm.iva || 0,
-      subtotal: newOrderForm.subtotal || 0,
-      total: newOrderForm.total || 0,
-      amount: newOrderForm.amount || 0,
-      id_client: newOrderForm.id_client,
-      order_confirmed_status: newOrderForm.order_confirmed_status,
-      order_completion_status: newOrderForm.order_completion_status,
-      order_delivery_status: newOrderForm.order_delivery_status,
-      notes: newOrderForm.notes,
+        order_type: newOrderForm.order_type,
+        name: newOrderForm.name,
+        client_type: newOrderForm.client_type,
+        description: newOrderForm.description,
+        order_payment_status: newOrderForm.order_payment_status || 'overdue',
+        created_at: newOrderForm.created_at || new Date().toISOString(),
+        delivery_date: newOrderForm.delivery_date,
+        order_quantity: newOrderForm.order_quantity,
+        unitary_value: newOrderForm.unitary_value || 0,
+        iva: newOrderForm.iva || 0,
+        subtotal: newOrderForm.subtotal || 0,
+        total: newOrderForm.total || 0,
+        amount: newOrderForm.amount || 0,
+        id_client: newOrderForm.id_client,
+        order_confirmed_status: newOrderForm.order_confirmed_status,
+        order_completion_status: newOrderForm.order_completion_status,
+        order_delivery_status: newOrderForm.order_delivery_status,
+        notes: newOrderForm.notes,
     };
 
-    // Calcular due_date para la factura: delivery_date + payment_term
     const deliveryDate = newOrderForm.delivery_date
-      ? new Date(newOrderForm.delivery_date)
-      : new Date();
-    const paymentTerm = 0; // Plazo predeterminado de 30 días
+        ? new Date(newOrderForm.delivery_date)
+        : new Date();
+    const paymentTerm = 0;
     const dueDate = new Date(deliveryDate.getTime() + paymentTerm * 24 * 60 * 60 * 1000);
     const dueDateISOString = dueDate.toISOString();
 
     if (this.isEditing) {
-      if (!newOrderForm.id_order) {
-        console.error('ID del pedido no definido para actualizar.');
-        alert('Error: No se puede actualizar un pedido sin ID.');
-        return;
-      }
-
-      this.newOrder.id_order = newOrderForm.id_order;
-
-      const { error } = await this.supabase
-        .from('orders')
-        .update([this.newOrder])
-        .eq('id_order', this.newOrder.id_order);
-
-      if (error) {
-        console.error('Error al actualizar el pedido:', error);
-        return;
-      }
-
-      if (this.newOrder.order_type === 'print') {
-        const printData = { ...this.newPrint };
-        const { error: printError } = await this.supabase
-          .from('prints')
-          .upsert([{ ...printData, id_order: this.newOrder.id_order }]);
-        if (printError) {
-          console.error('Error actualizando impresión:', printError);
-          return;
+        if (!newOrderForm.id_order) {
+            console.error('ID del pedido no definido para actualizar.');
+            alert('Error: No se puede actualizar un pedido sin ID.');
+            return;
         }
-      } else if (this.newOrder.order_type === 'laser') {
-        const cutData = { ...this.newCut };
-        const { error: cutError } = await this.supabase
-          .from('cuts')
-          .upsert([{ ...cutData, id_order: this.newOrder.id_order }]);
-        if (cutError) {
-          console.error('Error actualizando corte:', cutError);
-          return;
+
+        this.newOrder.id_order = newOrderForm.id_order;
+
+        const { error } = await this.supabase
+            .from('orders')
+            .update([this.newOrder])
+            .eq('id_order', this.newOrder.id_order);
+
+        if (error) {
+            console.error('Error al actualizar el pedido:', error);
+            return;
         }
-      }
 
-      // Actualizar la factura asociada
-      const { data: existingInvoice, error: invoiceError } = await this.supabase
-        .from('invoices')
-        .select('*')
-        .eq('id_order', this.newOrder.id_order)
-        .single();
-
-      if (invoiceError && invoiceError.code !== 'PGRST116') {
-        console.error('Error al buscar factura existente:', invoiceError);
-        return;
-      }
-
-      if (existingInvoice) {
-        const updatedInvoice: Partial<Invoice> = {
-          due_date: dueDateISOString,
-        };
-        const { error: updateInvoiceError } = await this.supabase
-          .from('invoices')
-          .update(updatedInvoice)
-          .eq('id_order', this.newOrder.id_order);
-
-        if (updateInvoiceError) {
-          console.error('Error al actualizar la factura:', updateInvoiceError);
-          return;
+        if (this.newOrder.order_type === 'print') {
+            const printData = { ...this.newPrint };
+            const { error: printError } = await this.supabase
+                .from('prints')
+                .upsert([{ ...printData, id_order: this.newOrder.id_order }]);
+            if (printError) {
+                console.error('Error actualizando impresión:', printError);
+                return;
+            }
+        } else if (this.newOrder.order_type === 'laser') {
+            const cutData = { ...this.newCut };
+            const { error: cutError } = await this.supabase
+                .from('cuts')
+                .upsert([{ ...cutData, id_order: this.newOrder.id_order }]);
+            if (cutError) {
+                console.error('Error actualizando corte:', cutError);
+                return;
+            }
         }
-      }
 
-      await this.getOrders();
-      this.toggleAddOrderForm();
+        const { data: existingInvoice, error: invoiceError } = await this.supabase
+            .from('invoices')
+            .select('*')
+            .eq('id_order', this.newOrder.id_order)
+            .single();
+
+        if (invoiceError && invoiceError.code !== 'PGRST116') {
+            console.error('Error al buscar factura existente:', invoiceError);
+            return;
+        }
+
+        if (existingInvoice) {
+            const updatedInvoice: Partial<Invoice> = {
+                due_date: dueDateISOString,
+            };
+            const { error: updateInvoiceError } = await this.supabase
+                .from('invoices')
+                .update(updatedInvoice)
+                .eq('id_order', this.newOrder.id_order);
+
+            if (updateInvoiceError) {
+                console.error('Error al actualizar la factura:', updateInvoiceError);
+                return;
+            }
+        }
+
+        await this.getOrders();
+        this.toggleAddOrderForm();
     } else {
-      const { data, error } = await this.supabase
-        .from('orders')
-        .insert([this.newOrder])
-        .select();
+        const { data, error } = await this.supabase
+            .from('orders')
+            .insert([this.newOrder])
+            .select();
 
-      if (error) {
-        console.error('Error al añadir el pedido:', error);
-        return;
-      }
-
-      const insertedOrder = data[0];
-      this.newOrder.id_order = insertedOrder.id_order;
-      this.newOrder.code = insertedOrder.code;
-
-      if (this.newOrder.order_type === 'print') {
-        const printData = {
-          ...this.newPrint,
-          id_order: insertedOrder.id_order,
-        };
-        const { error: printError } = await this.supabase
-          .from('prints')
-          .insert([printData]);
-        if (printError) {
-          console.error('Error al insertar datos de impresión:', printError);
-          return;
+        if (error) {
+            console.error('Error al añadir el pedido:', error);
+            return;
         }
-        this.createNotification(insertedOrder);
-      } else if (this.newOrder.order_type === 'laser') {
-        const cutData = {
-          ...this.newCut,
-          id_order: insertedOrder.id_order,
-        };
-        const { error: cutError } = await this.supabase
-          .from('cuts')
-          .insert([cutData]);
-        if (cutError) {
-          console.error('Error al insertar datos de corte:', cutError);
-          return;
+
+        const insertedOrder = data[0];
+        this.newOrder.id_order = insertedOrder.id_order;
+        this.newOrder.code = insertedOrder.code;
+
+        if (this.newOrder.order_type === 'print') {
+            const printData = {
+                ...this.newPrint,
+                id_order: insertedOrder.id_order,
+            };
+            const { error: printError } = await this.supabase
+                .from('prints')
+                .insert([printData]);
+            if (printError) {
+                console.error('Error al insertar datos de impresión:', printError);
+                return;
+            }
+            this.createNotification(insertedOrder);
+        } else if (this.newOrder.order_type === 'laser') {
+            const cutData = {
+                ...this.newCut,
+                id_order: insertedOrder.id_order,
+            };
+            const { error: cutError } = await this.supabase
+                .from('cuts')
+                .insert([cutData]);
+            if (cutError) {
+                console.error('Error al insertar datos de corte:', cutError);
+                return;
+            }
+            this.createNotification(insertedOrder);
         }
+
+        const newInvoice: Partial<Invoice> = {
+            created_at: new Date().toISOString(),
+            invoice_status: 'overdue',
+            id_order: insertedOrder.id_order,
+            code: insertedOrder.code.toString(),
+            payment_term: paymentTerm,
+            include_iva: true,
+            due_date: dueDateISOString,
+        };
+
+        const { error: invoiceInsertError } = await this.supabase
+            .from('invoices')
+            .insert([newInvoice]);
+
+        if (invoiceInsertError) {
+            console.error('Error al crear la factura:', invoiceInsertError);
+            return;
+        }
+
+        const { data: clientData, error: clientUpdateError } = await this.supabase
+            .from('clients')
+            .select('debt')
+            .eq('id_client', insertedOrder.id_client)
+            .single();
+
+        if (clientUpdateError || !clientData) {
+            console.error('Error al obtener la deuda del cliente:', clientUpdateError);
+            return;
+        }
+
+        const currentClientDebt = clientData.debt || 0;
+        const updatedDebt = currentClientDebt + parseFloat(insertedOrder.total as string);
+        const newClientStatus = updatedDebt > 0 ? 'overdue' : 'upToDate';
+
+        const { error: updateClientError } = await this.supabase
+            .from('clients')
+            .update({ debt: updatedDebt, status: newClientStatus })
+            .eq('id_client', insertedOrder.id_client);
+
+        if (updateClientError) {
+            console.error('Error al actualizar la deuda del cliente:', updateClientError);
+            return;
+        }
+
+        await this.getOrders();
         this.createNotification(insertedOrder);
-      }
-
-      // Crear factura asociada
-      const newInvoice: Partial<Invoice> = {
-        created_at: new Date().toISOString(),
-        invoice_status: 'overdue',
-        id_order: insertedOrder.id_order,
-        code: insertedOrder.code.toString(),
-        payment_term: paymentTerm,
-        include_iva: true,
-        due_date: dueDateISOString,
-      };
-
-      const { error: invoiceInsertError } = await this.supabase
-        .from('invoices')
-        .insert([newInvoice]);
-
-      if (invoiceInsertError) {
-        console.error('Error al crear la factura:', invoiceInsertError);
-        return;
-      }
-
-      // Actualizar la deuda del cliente
-      const { data: clientData, error: clientUpdateError } = await this.supabase
-        .from('clients')
-        .select('debt')
-        .eq('id_client', insertedOrder.id_client)
-        .single();
-
-      if (clientUpdateError || !clientData) {
-        console.error('Error al obtener la deuda del cliente:', clientUpdateError);
-        return;
-      }
-
-      const currentDebt = clientData.debt || 0;
-      const newDebt = currentDebt + parseFloat(insertedOrder.total as string);
-      const newClientStatus = newDebt > 0 ? 'overdue' : 'upToDate';
-
-      const { error: updateClientError } = await this.supabase
-        .from('clients')
-        .update({ debt: newDebt, status: newClientStatus })
-        .eq('id_client', insertedOrder.id_client);
-
-      if (updateClientError) {
-        console.error('Error al actualizar la deuda del cliente:', updateClientError);
-        return;
-      }
-
-      await this.getOrders();
-      this.createNotification(insertedOrder);
-      this.toggleAddOrderForm();
+        this.toggleAddOrderForm();
     }
-  }
+}
 
   async createNotification(addedOrder: Partial<Orders>) {
     this.notificationDesc =
