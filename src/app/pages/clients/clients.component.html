@@ -291,7 +291,8 @@
                 <div *ngIf="order.payments && order.payments.length > 0">
                   <ul>
                     <li *ngFor="let payment of order.payments">
-                      ${{ payment.amount }} -
+                      ${{ payment.amount.toFixed(2) }} -
+                      {{ formatPaymentMethod(payment.payment_method) }} -
                       {{ payment.payment_date | date : "dd-MM-yyyy" }}
                     </li>
                   </ul>
