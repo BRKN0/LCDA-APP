@@ -15,6 +15,8 @@ import { BankingComponent } from './pages/banking/banking.component';
 import { NotificationsComponent } from './pages/notifications/notifications.component';
 import { BanksComponent } from './pages/banks/banks.component';
 import { EmployeesComponent } from './pages/employees/employees.component';
+import { ProvidersComponent } from './pages/providers/providers.component';
+import { ControlPanelComponent } from './pages/control-panel/control-panel.component';
 
 export const routes: Routes = [
   {
@@ -33,15 +35,14 @@ export const routes: Routes = [
       { path: 'acrylics', component: AcrylicsComponent },
       { path: 'polystyrene', component: PolystyreneComponent },
       { path: 'vinyl-cuts', component: VinylCutsComponent },
-
     ],
   },
   {
     path: 'inventory',
     children: [
       { path: 'materials', component: InventoryComponent },
-      { path: 'product', component: ProductComponent},
-    ]
+      { path: 'product', component: ProductComponent },
+    ],
   },
   {
     path: 'home',
@@ -75,5 +76,13 @@ export const routes: Routes = [
   {
     path: 'employees',
     loadComponent: () => EmployeesComponent,
+  },
+  {
+    path: 'providers',
+    loadComponent: () => ProvidersComponent,
+  },
+    {
+    path: 'control-panel',
+    loadComponent: () => ControlPanelComponent,
   },
 ];

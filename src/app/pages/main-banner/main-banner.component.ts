@@ -113,6 +113,12 @@ export class MainBannerComponent implements OnInit {
   goToEmployees() {
     this.router.navigate(['/employees']); // redirect to employees route
   }
+  goToProviders() {
+    this.router.navigate(['/providers']);
+  }
+  goToControlPanel() {
+    this.router.navigate(['/control-panel']);
+  }
   signOut() {
     this.supabase.signOut().then(() =>
       this.router.navigate(['/login'], {
