@@ -303,6 +303,18 @@
         </select>
       </div>
       <div class="mb-4" *ngIf="selectedInvoice">
+        <label class="block text-gray-700">Clasificación tributaria (para impuestos)<span class="text-red-500">*</span></label>
+        <select
+          [(ngModel)]="selectedInvoice.classification"
+          name="classification"
+          class="form-select"
+          required
+        >
+          <option value="BIEN">Bien</option>
+          <option value="SERVICIO">Servicio</option>
+        </select>
+      </div>
+      <div class="mb-4" *ngIf="selectedInvoice">
         <label class="inline-flex items-center">
           <input
             type="checkbox"
@@ -551,49 +563,45 @@
       </div>
 
       <!-- Totals Section -->
-      <div class="border-t pt-4 mt-4">
+      <div class="border-t pt-4 mt-4" *ngIf="calculateInvoiceValues(selectedInvoiceDetails[0]) as valores">
         <div class="flex justify-between">
-          <p><strong>Subtotal:</strong></p>
-          <p>
-            {{
-              calculateInvoiceValues(
-                selectedInvoiceDetails[0]
-              ).subtotal.toFixed(2)
-            }}
-          </p>
+          <p><strong>Subtotal base:</strong></p>
+          <p>{{ selectedInvoiceDetails[0].order.total | currency:'COP' }}</p>
         </div>
-        <div
-          class="flex justify-between"
-          *ngIf="selectedInvoiceDetails[0].include_iva"
-        >
+
+        <div class="flex justify-between" *ngIf="selectedInvoiceDetails[0].include_iva">
           <p><strong>IVA (19%):</strong></p>
-          <p>
-            {{
-              calculateInvoiceValues(selectedInvoiceDetails[0]).iva.toFixed(2)
-            }}
-          </p>
+          <p>{{ valores.iva.toFixed(2) }}</p>
         </div>
+
+        <div *ngIf="selectedInvoiceDetails[0].order.client?.retefuente" class="flex justify-between">
+          <p><strong>Retefuente:</strong></p>
+          <p>{{ calculateInvoiceValues(selectedInvoiceDetails[0]).retefuente | number:'1.2-2' }}</p>
+        </div>
+
+        <div *ngIf="selectedInvoiceDetails[0].order.client?.applies_ica_retention" class="flex justify-between">
+          <p><strong>ReteICA:</strong></p>
+          <p>{{ calculateInvoiceValues(selectedInvoiceDetails[0]).reteica | number:'1.2-2' }}</p>
+        </div>
+        <!--
         <div class="flex justify-between">
-          <p><strong>Total:</strong></p>
-          <p class="font-bold">
-            {{
-              (selectedInvoiceDetails[0].include_iva
-                ? calculateInvoiceValues(selectedInvoiceDetails[0]).total
-                : calculateInvoiceValues(selectedInvoiceDetails[0]).subtotal
-              ).toFixed(2)
-            }}
-          </p>
+          <p><strong>Subtotal (con retenciones aplicadas):</strong></p>
+          <p>{{ valores.subtotal.toFixed(2) }}</p>
         </div>
-        <!-- Mostrar abonos y falta por pagar -->
+        -->
+        <div class="flex justify-between border-t pt-2 mt-2">
+          <p><strong>Total a Facturar:</strong></p>
+          <p class="font-bold text-green-600">{{ valores.total.toFixed(2) }}</p>
+        </div>
+
         <div class="flex justify-between mt-2">
           <p><strong>Abonos Realizados:</strong></p>
           <p>${{ getTotalPayments(selectedInvoiceDetails[0].order) }}</p>
         </div>
+
         <div class="flex justify-between">
           <p><strong>Falta por Pagar:</strong></p>
-          <p>
-            ${{ formatNumber(getRemainingBalance(selectedInvoiceDetails[0])) }}
-          </p>
+          <p>${{ formatNumber(getRemainingBalance(selectedInvoiceDetails[0])) }}</p>
         </div>
       </div>
 

@@ -16,6 +16,7 @@ interface Invoice {
   order: Orders;
   include_iva: boolean;
   due_date: string;
+  classification: string;
 }
 
 interface Orders {
@@ -52,6 +53,10 @@ interface Client {
   city: string;
   province: string;
   postal_code: string;
+  tax_regime: number;
+  is_declarante: boolean;
+  retefuente: boolean;
+  applies_ica_retention: boolean;
 }
 
 interface Payment {
@@ -342,11 +347,62 @@ export class InvoiceComponent implements OnInit {
     this.updatePaginatedInvoices();
   }
 
-  calculateInvoiceValues(invoice: Invoice): { subtotal: number; iva: number; total: number } {
-    const baseTotal = invoice.order.total || 0;
+  calculateInvoiceValues(invoice: Invoice): {
+    subtotal: number;
+    iva: number;
+    total: number;
+    reteica: number;
+    retefuente: number;
+  } {
+    const order = invoice.order;
+    const cliente = order.client;
+    const tipo = invoice.classification?.toUpperCase(); // 'BIEN' o 'SERVICIO'
+    const baseTotal = order.total || 0;
+
+    // Definir por defecto
+    let reteica = 0;
+    let retefuente = 0;
+
+    // Si no hay datos, retornar con valores cero
+    if (!cliente || !tipo || !baseTotal) {
+      const iva = invoice.include_iva ? baseTotal * this.IVA_RATE : 0;
+      const total = baseTotal + iva;
+      return {
+        subtotal: +baseTotal.toFixed(2),
+        iva: +iva.toFixed(2),
+        total: +total.toFixed(2),
+        reteica: 0,
+        retefuente: 0
+      };
+    }
+
+    // RETEFUENTE
+    const tarifasReteFuente = {
+      BIEN: cliente.is_declarante ? 0.025 : 0.035,
+      SERVICIO: cliente.is_declarante ? 0.04 : 0.06
+    };
+    if (cliente.retefuente) {
+      if ((tipo === 'BIEN' && baseTotal >= 498000) || (tipo === 'SERVICIO' && baseTotal >= 100000)) {
+        retefuente = baseTotal * tarifasReteFuente[tipo];
+      }
+    }
+
+    // RETEICA
+    if (cliente.applies_ica_retention) {
+      reteica = baseTotal * (tipo === 'BIEN' ? 0.00749 : 0.00856);
+    }
+
+    // IVA sobre base bruta
     const iva = invoice.include_iva ? baseTotal * this.IVA_RATE : 0;
-    const total = baseTotal + iva;
-    return { subtotal: baseTotal, iva, total };
+    const total = baseTotal + iva - retefuente - reteica;
+
+    return {
+      subtotal: +baseTotal.toFixed(2),
+      iva: +iva.toFixed(2),
+      total: +total.toFixed(2),
+      reteica: +reteica.toFixed(2),
+      retefuente: +retefuente.toFixed(2)
+    };
   }
 
   getDisplayAmount(invoice: Invoice): string {
@@ -684,7 +740,7 @@ export class InvoiceComponent implements OnInit {
       return;
     }
 
-    const { subtotal, iva, total } = this.calculateInvoiceValues(invoice);
+    const { subtotal, iva, total, reteica, retefuente } = this.calculateInvoiceValues(invoice);
     const totalPaid = this.getTotalPayments(invoice.order);
     const remainingBalance = total - totalPaid;
     const quantity = invoice.order.order_quantity;
@@ -726,31 +782,41 @@ export class InvoiceComponent implements OnInit {
     doc.text('Facturar a:', 10, 70);
     doc.setFont('helvetica', 'normal');
 
-    doc.text(`Nombre: ${invoice.order.client.name}`, 10, 80);
+    let y = 80;
+    doc.text(`Nombre: ${invoice.order.client.name}`, 10, y);
+    y += 6;
     doc.text(
       `Nombre de la empresa: ${invoice.order.client.company_name || 'N/A'}`,
       10,
-      100
+      y
     );
-    doc.text(`Dirección: ${invoice.order.client.address}`, 10, 110);
-    doc.text(`Ciudad: ${invoice.order.client.city}`, 10, 120);
-    doc.text(`Provincia: ${invoice.order.client.province}`, 10, 130);
-    doc.text(`Código Postal: ${invoice.order.client.postal_code}`, 10, 140);
-    doc.text(`E-mail: ${invoice.order.client.email}`, 10, 150);
-    doc.text(`Teléfono: ${invoice.order.client.cellphone}`, 10, 160);
+    y += 6;
+    doc.text(`Dirección: ${invoice.order.client.address}`, 10, y);
+    y += 6;
+    doc.text(`Ciudad: ${invoice.order.client.city}`, 10, y);
+    y += 6;
+    doc.text(`Provincia: ${invoice.order.client.province}`, 10, y);
+    y += 6;
+    doc.text(`Código Postal: ${invoice.order.client.postal_code}`, 10, y);
+    y += 6;
+    doc.text(`E-mail: ${invoice.order.client.email}`, 10, y);
+    y += 6;
+    doc.text(`Teléfono: ${invoice.order.client.cellphone}`, 10, y);
+    y += 12;
 
     doc.setFont('helvetica', 'bold');
-    doc.text('DESCRIPCIÓN:', 10, 170);
+    doc.text('DESCRIPCIÓN:', 10, y);
+    y += 6;
     doc.setFont('helvetica', 'normal');
-    const descriptionLines = this.wrapText(doc, invoice.order.description, 180);
-    let currentY = 180;
+    const descriptionLines = this.wrapText(doc, invoice.order.description, y);
+    let currentY = y;
     descriptionLines.forEach((line) => {
       doc.text(line, 10, currentY);
       currentY += 10;
     });
 
     const startY = currentY + 10;
-    const rowHeight = 10;
+    const rowHeight = 7;
     const headerXPositions = [10, 40, 120, 170];
     const summaryStartY = startY + rowHeight * 2;
 
@@ -792,6 +858,18 @@ export class InvoiceComponent implements OnInit {
     if (invoice.include_iva) {
       doc.text('IVA (19%):', summaryX, currentY);
       doc.text(`$${iva.toFixed(2)}`, valueX, currentY, { align: 'left' });
+      currentY += rowHeight;
+    }
+
+    if (retefuente > 0) {
+      doc.text('Retefuente:', summaryX, currentY);
+      doc.text(`$${retefuente.toFixed(2)}`, valueX, currentY, { align: 'left' });
+      currentY += rowHeight;
+    }
+
+    if (reteica > 0) {
+      doc.text('ReteICA:', summaryX, currentY);
+      doc.text(`$${reteica.toFixed(2)}`, valueX, currentY, { align: 'left' });
       currentY += rowHeight;
     }
 
@@ -876,6 +954,7 @@ export class InvoiceComponent implements OnInit {
       include_iva: true,
       payment_term: 30,
       due_date: '',
+      classification: 'Bien',
       order: {
         id_order: '',
         order_type: 'print',
@@ -925,6 +1004,7 @@ export class InvoiceComponent implements OnInit {
       payment_term: invoice.payment_term || 30,
       due_date: invoice.due_date,
       include_iva: invoice.include_iva ?? true,
+      classification: invoice.classification,
       order: {
         ...invoice.order,
         order_type: invoice.order.order_type
@@ -1020,6 +1100,7 @@ export class InvoiceComponent implements OnInit {
       include_iva: this.selectedInvoice.include_iva,
       payment_term: paymentTerm,
       due_date: dueDateISOString,
+      classification: this.selectedInvoice.classification,
     };
 
     try {
@@ -1065,7 +1146,11 @@ export class InvoiceComponent implements OnInit {
         }
 
         const currentDebt = clientData.debt || 0;
-        const orderTotal = orderData.total || 0;
+
+        this.selectedInvoice.order.total = orderData.total;
+        const valores = this.calculateInvoiceValues(this.selectedInvoice);
+        const orderTotal = valores.total;
+
         const newDebt = currentDebt + orderTotal;
         const newClientStatus = newDebt > 0 ? 'overdue' : 'upToDate';
 
