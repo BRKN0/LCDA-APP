@@ -510,6 +510,44 @@
             />
           </div>
           <div class="mb-4">
+            <label class="block modal-input-item">Tipo de Cliente (Régimen Tributario)</label>
+            <select 
+              [(ngModel)]="selectedClientData.tax_regime" 
+              name="tax_regime" 
+              class="form-select mt-1 block w-full">
+              <option [ngValue]="1">Gran Contribuyente Autorretenedor</option>
+              <option [ngValue]="2">Gran Contribuyente</option>
+              <option [ngValue]="3">Responsable de IVA</option>
+              <option [ngValue]="4">No Responsable de IVA</option>
+              <option [ngValue]="5">Régimen Simple</option>
+            </select>
+          </div>
+          <div class="flex flex-wrap gap-4 mt-4">
+            <label class="block modal-input-item">
+              <input 
+              type="checkbox" 
+              [(ngModel)]="selectedClientData.is_declarante" 
+              name="is_declarante" />
+              ¿Es declarante de renta?
+            </label>
+            <label class="block modal-input-item">
+              <input 
+              type="checkbox" 
+              [(ngModel)]="selectedClientData.retefuente" 
+              name="retefuente" />
+              ¿Aplica retención en la fuente?
+            </label>
+          </div>
+          <div class="mb-4">
+            <label class="block modal-input-item">
+              <input 
+              type="checkbox" 
+              [(ngModel)]="selectedClientData.applies_ica_retention" 
+              name="applies_ica_retention" />
+              ¿Aplica retención de ICA?
+            </label>
+          </div>
+          <div class="mb-4">
             <label class="block modal-input-item">Estado</label>
             <select
               [(ngModel)]="selectedClientData.status"

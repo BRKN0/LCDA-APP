@@ -49,6 +49,10 @@ interface Client {
   province: string;
   postal_code: string;
   orders?: Orders[];
+  tax_regime: number;
+  is_declarante: boolean;
+  retefuente: boolean;
+  applies_ica_retention: boolean;
 }
 
 interface Payment {
@@ -112,6 +116,10 @@ export class ClientsComponent implements OnInit {
     city: '',
     province: '',
     postal_code: '',
+    tax_regime: 0,
+    is_declarante: false,
+    retefuente: false,
+    applies_ica_retention: false,
   };
   showAddClientForm = false;
   IVA_RATE = 0.19;
@@ -436,6 +444,10 @@ export class ClientsComponent implements OnInit {
       city: '',
       province: '',
       postal_code: '',
+      tax_regime: 0,
+      is_declarante: false,
+      retefuente: false,
+      applies_ica_retention: false,
     };
     this.isEditing = false;
     this.showModal = true;
@@ -450,7 +462,7 @@ export class ClientsComponent implements OnInit {
   async saveClient(): Promise<void> {
     if (!this.selectedClientData) return;
 
-    if (!this.selectedClientData.name || !this.selectedClientData.company_name) {
+    if (!this.selectedClientData.name) {
       alert('Por favor, digite nombre del cliente.');
       return;
     }
@@ -469,6 +481,10 @@ export class ClientsComponent implements OnInit {
       city: this.selectedClientData.city,
       province: this.selectedClientData.province,
       postal_code: this.selectedClientData.postal_code,
+      tax_regime: this.selectedClientData.tax_regime,
+      is_declarante: this.selectedClientData.is_declarante || false,
+      retefuente: this.selectedClientData.retefuente || false,
+      applies_ica_retention: this.selectedClientData.applies_ica_retention || false,
     };
 
     try {
