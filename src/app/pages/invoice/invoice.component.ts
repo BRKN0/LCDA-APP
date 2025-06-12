@@ -12,10 +12,10 @@ interface Invoice {
   invoice_status: string;
   id_order: string;
   code: string;
-  payment_term: number;
+  payment_term: number | null;
   order: Orders;
   include_iva: boolean;
-  due_date: string;
+  due_date: string | null;
   classification: string;
 }
 
@@ -289,6 +289,7 @@ export class InvoiceComponent implements OnInit {
       ...invoice,
       include_iva: invoice.include_iva ?? true,
       due_date: invoice.due_date,
+      payment_term: invoice.payment_term || null,
       order: {
         ...invoice.orders,
         client: invoice.orders?.clients || null,
@@ -952,8 +953,8 @@ export class InvoiceComponent implements OnInit {
       id_order: '',
       code: '',
       include_iva: true,
-      payment_term: 30,
-      due_date: '',
+      payment_term: null, // Removed default 30
+      due_date: null,    // Removed default calculation
       classification: 'Bien',
       order: {
         id_order: '',
@@ -1001,7 +1002,7 @@ export class InvoiceComponent implements OnInit {
     this.selectedInvoice = {
       ...invoice,
       created_at: invoice.created_at,
-      payment_term: invoice.payment_term || 30,
+      payment_term: invoice.payment_term || null,
       due_date: invoice.due_date,
       include_iva: invoice.include_iva ?? true,
       classification: invoice.classification,
@@ -1052,8 +1053,8 @@ export class InvoiceComponent implements OnInit {
 
     const paymentTerm = this.selectedInvoice.payment_term
       ? parseInt(this.selectedInvoice.payment_term.toString(), 10)
-      : 30;
-    if (isNaN(paymentTerm) || paymentTerm < 1) {
+      : null;
+    if (paymentTerm !== null && (isNaN(paymentTerm) || paymentTerm < 1)) {
       this.showNotification('El plazo de pago debe ser un número entero mayor o igual a 1.');
       return;
     }
@@ -1081,8 +1082,9 @@ export class InvoiceComponent implements OnInit {
     const deliveryDate = orderData.delivery_date
       ? new Date(orderData.delivery_date)
       : new Date();
-    const dueDate = new Date(deliveryDate.getTime() + paymentTerm * 24 * 60 * 60 * 1000);
-    const dueDateISOString = dueDate.toISOString();
+    const dueDate = paymentTerm !== null
+      ? new Date(deliveryDate.getTime() + paymentTerm * 24 * 60 * 60 * 1000).toISOString()
+      : null;
 
     console.log('Valores de invoiceData antes de guardar:', {
       invoice_status: this.selectedInvoice.invoice_status,
@@ -1090,7 +1092,7 @@ export class InvoiceComponent implements OnInit {
       code: this.selectedInvoice.code,
       include_iva: this.selectedInvoice.include_iva,
       payment_term: paymentTerm,
-      due_date: dueDateISOString,
+      due_date: dueDate,
     });
 
     const invoiceData: Partial<Invoice> = {
@@ -1099,7 +1101,7 @@ export class InvoiceComponent implements OnInit {
       code: this.selectedInvoice.code,
       include_iva: this.selectedInvoice.include_iva,
       payment_term: paymentTerm,
-      due_date: dueDateISOString,
+      due_date: dueDate,
       classification: this.selectedInvoice.classification,
     };
 
