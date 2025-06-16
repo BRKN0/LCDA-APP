@@ -36,6 +36,7 @@ interface Orders {
   client: Client;
   payments?: Payment[];
   delivery_date: string;
+  baseTotal?: number;
 }
 
 interface Client {
@@ -259,7 +260,7 @@ export class InvoiceComponent implements OnInit {
 
     this.invoice = {
       ...data[0],
-      include_iva: data[0].include_iva ?? true,
+      include_iva: data[0].include_iva ?? false,
       due_date: data[0].due_date,
       order: {
         ...data[0].orders,
@@ -287,7 +288,7 @@ export class InvoiceComponent implements OnInit {
 
     this.invoices = [...data].map((invoice) => ({
       ...invoice,
-      include_iva: invoice.include_iva ?? true,
+      include_iva: invoice.include_iva ?? false,
       due_date: invoice.due_date,
       payment_term: invoice.payment_term || null,
       order: {
@@ -357,25 +358,15 @@ export class InvoiceComponent implements OnInit {
   } {
     const order = invoice.order;
     const cliente = order.client;
-    const tipo = invoice.classification?.toUpperCase(); // 'BIEN' o 'SERVICIO'
-    const baseTotal = order.total || 0;
+    const baseTotal = order.total || 0; // Use total as the base, adjusted by include_iva for display
 
-    // Definir por defecto
+    // Define defaults
     let reteica = 0;
     let retefuente = 0;
 
-    // Si no hay datos, retornar con valores cero
-    if (!cliente || !tipo || !baseTotal) {
-      const iva = invoice.include_iva ? baseTotal * this.IVA_RATE : 0;
-      const total = baseTotal + iva;
-      return {
-        subtotal: +baseTotal.toFixed(2),
-        iva: +iva.toFixed(2),
-        total: +total.toFixed(2),
-        reteica: 0,
-        retefuente: 0
-      };
-    }
+    // IVA is only displayed based on include_iva toggle
+    const iva = invoice.include_iva ? baseTotal * this.IVA_RATE : 0;
+    const total = baseTotal + (invoice.include_iva ? iva : 0);
 
     // RETEFUENTE
     const tarifasReteFuente = {
@@ -383,19 +374,15 @@ export class InvoiceComponent implements OnInit {
       SERVICIO: cliente.is_declarante ? 0.04 : 0.06
     };
     if (cliente.retefuente) {
-      if ((tipo === 'BIEN' && baseTotal >= 498000) || (tipo === 'SERVICIO' && baseTotal >= 100000)) {
-        retefuente = baseTotal * tarifasReteFuente[tipo];
+      if ((invoice.classification === 'BIEN' && baseTotal >= 498000) || (invoice.classification === 'SERVICIO' && baseTotal >= 100000)) {
+        retefuente = baseTotal * tarifasReteFuente[invoice.classification || 'BIEN'];
       }
     }
 
     // RETEICA
     if (cliente.applies_ica_retention) {
-      reteica = baseTotal * (tipo === 'BIEN' ? 0.00749 : 0.00856);
+      reteica = baseTotal * (invoice.classification === 'BIEN' ? 0.00749 : 0.00856);
     }
-
-    // IVA sobre base bruta
-    const iva = invoice.include_iva ? baseTotal * this.IVA_RATE : 0;
-    const total = baseTotal + iva - retefuente - reteica;
 
     return {
       subtotal: +baseTotal.toFixed(2),
@@ -440,7 +427,8 @@ export class InvoiceComponent implements OnInit {
       return;
     }
 
-    const total = this.calculateInvoiceValues(this.selectedInvoiceDetails![0]).total;
+    const invoice = this.selectedInvoiceDetails![0];
+    const { total } = this.calculateInvoiceValues(invoice);
     const totalPaid = this.getTotalPayments(order);
     const remainingBalance = total - totalPaid;
 
@@ -501,8 +489,7 @@ export class InvoiceComponent implements OnInit {
       order.payments.push(newPayment);
 
       const totalPaidUpdated = this.getTotalPayments(order);
-      const orderTotal = this.calculateInvoiceValues(this.selectedInvoiceDetails![0]).total;
-      const newRemainingBalance = orderTotal - totalPaidUpdated;
+      const newRemainingBalance = total - totalPaidUpdated;
       const newStatus = newRemainingBalance <= 0 ? 'upToDate' : 'overdue';
 
       await this.supabase
@@ -604,8 +591,9 @@ export class InvoiceComponent implements OnInit {
         }
 
         const totalPaid = this.getTotalPayments(order);
-        const orderTotal = this.calculateInvoiceValues(this.selectedInvoiceDetails![0]).total;
-        const newRemainingBalance = orderTotal - totalPaid;
+        const invoice = this.selectedInvoiceDetails![0];
+        const { total } = this.calculateInvoiceValues(invoice);
+        const newRemainingBalance = total - totalPaid;
         const newStatus = newRemainingBalance <= 0 ? 'upToDate' : 'overdue';
 
         await this.supabase
@@ -681,8 +669,9 @@ export class InvoiceComponent implements OnInit {
         order.payments = order.payments.filter((p) => p.id_payment !== payment.id_payment);
 
         const totalPaid = this.getTotalPayments(order);
-        const orderTotal = this.calculateInvoiceValues(this.selectedInvoiceDetails![0]).total;
-        const newRemainingBalance = orderTotal - totalPaid;
+        const invoice = this.selectedInvoiceDetails![0];
+        const { total } = this.calculateInvoiceValues(invoice);
+        const newRemainingBalance = total - totalPaid;
         const newStatus = newRemainingBalance <= 0 ? 'upToDate' : 'overdue';
 
         await this.supabase
@@ -711,9 +700,9 @@ export class InvoiceComponent implements OnInit {
   }
 
   getRemainingBalance(invoice: Invoice): number {
-    const invoiceValues = this.calculateInvoiceValues(invoice);
+    const total = invoice.order.total || 0; // Use the saved total, not the temporary display value
     const totalPaid = this.getTotalPayments(invoice.order);
-    return Math.max(0, invoiceValues.total - totalPaid);
+    return Math.max(0, total - totalPaid);
   }
 
   public getRemainingPaymentTerm(invoice: Invoice): number {
@@ -952,9 +941,9 @@ export class InvoiceComponent implements OnInit {
       invoice_status: 'upToDate',
       id_order: '',
       code: '',
-      include_iva: true,
-      payment_term: null, // Removed default 30
-      due_date: null,    // Removed default calculation
+      include_iva: false,
+      payment_term: null,
+      due_date: null,
       classification: 'Bien',
       order: {
         id_order: '',
@@ -971,6 +960,7 @@ export class InvoiceComponent implements OnInit {
         amount: 0,
         id_client: '',
         delivery_date: '',
+        baseTotal: 0,
         client: {
           id_client: '',
           name: '',
@@ -1004,11 +994,12 @@ export class InvoiceComponent implements OnInit {
       created_at: invoice.created_at,
       payment_term: invoice.payment_term || null,
       due_date: invoice.due_date,
-      include_iva: invoice.include_iva ?? true,
+      include_iva: invoice.include_iva ?? false,
       classification: invoice.classification,
       order: {
         ...invoice.order,
-        order_type: invoice.order.order_type
+        total: invoice.order.total || invoice.order.amount || 0, // Use current total as base
+        baseTotal: invoice.order.total || invoice.order.amount || 0
       }
     };
     this.isEditing = true;
@@ -1030,6 +1021,83 @@ export class InvoiceComponent implements OnInit {
     }
     return true;
   }
+
+  // Inside the InvoiceComponent class
+  onIncludeIvaChange(): void {
+  if (this.selectedInvoice && this.selectedInvoice.order) {
+    const baseTotal = this.selectedInvoice.order.baseTotal || this.selectedInvoice.order.total || 0; // Use baseTotal as the original value
+    if (this.selectedInvoice.include_iva) {
+      // Apply IVA to the baseTotal (e.g., 14,000 * 1.19 = 16,660)
+      this.selectedInvoice.order.total = Math.round(baseTotal * (1 + this.IVA_RATE));
+    } else {
+      // Revert to the baseTotal directly when IVA is removed (e.g., 16,660 → 14,000)
+      this.selectedInvoice.order.total = baseTotal;
+    }
+  }
+}
+
+async updateOrderTotal(): Promise<void> {
+  if (!this.selectedInvoice || !this.selectedInvoice.order || !this.selectedInvoice.order.id_order) {
+    return;
+  }
+
+  const baseTotal = this.selectedInvoice.order.baseTotal || this.selectedInvoice.order.total || 0;
+  if (this.selectedInvoice.include_iva) {
+    // Save with IVA applied to baseTotal
+    this.selectedInvoice.order.total = Math.round(baseTotal * (1 + this.IVA_RATE));
+  } else {
+    // Save the baseTotal without IVA
+    this.selectedInvoice.order.total = baseTotal;
+  }
+
+  const { error } = await this.supabase
+    .from('orders')
+    .update({ total: this.selectedInvoice.order.total })
+    .eq('id_order', this.selectedInvoice.order.id_order);
+
+  if (error) {
+    console.error('Error updating order total:', error);
+    this.showNotification('Error al actualizar el total del pedido.');
+    return;
+  }
+
+  // Update the local order total
+  const invoiceIndex = this.invoices.findIndex(i => i.id_invoice === this.selectedInvoice!.id_invoice);
+  if (invoiceIndex !== -1) {
+    this.invoices[invoiceIndex].order.total = this.selectedInvoice.order.total;
+  }
+
+  // Recalculate due_date if payment_term exists
+  if (this.selectedInvoice.payment_term) {
+    const deliveryDate = this.selectedInvoice.order.delivery_date
+      ? new Date(this.selectedInvoice.order.delivery_date)
+      : new Date();
+    this.selectedInvoice.due_date = new Date(deliveryDate.getTime() + this.selectedInvoice.payment_term * 24 * 60 * 60 * 1000).toISOString();
+
+    const { error: dueDateError } = await this.supabase
+      .from('invoices')
+      .update({ due_date: this.selectedInvoice.due_date })
+      .eq('id_invoice', this.selectedInvoice.id_invoice);
+
+    if (dueDateError) {
+      console.error('Error updating due date:', dueDateError);
+      this.showNotification('Error al actualizar la fecha de vencimiento.');
+    }
+  }
+
+  this.showNotification('Total del pedido actualizado correctamente.');
+}
+
+  // Update baseTotal when the total input changes
+onTotalChange(event: Event): void {
+  const input = event.target as HTMLInputElement;
+  if (this.selectedInvoice && this.selectedInvoice.order) {
+    const newValue = parseFloat(input.value) || 0;
+    this.selectedInvoice.order.baseTotal = newValue; // Update baseTotal immediately
+    console.log('onTotalChange - new baseTotal:', newValue);
+    this.onIncludeIvaChange(); // Recalculate based on the new baseTotal
+  }
+}
 
   async saveInvoice(): Promise<void> {
     if (!this.selectedInvoice) {
@@ -1084,16 +1152,7 @@ export class InvoiceComponent implements OnInit {
       : new Date();
     const dueDate = paymentTerm !== null
       ? new Date(deliveryDate.getTime() + paymentTerm * 24 * 60 * 60 * 1000).toISOString()
-      : null;
-
-    console.log('Valores de invoiceData antes de guardar:', {
-      invoice_status: this.selectedInvoice.invoice_status,
-      id_order: this.selectedInvoice.order.id_order,
-      code: this.selectedInvoice.code,
-      include_iva: this.selectedInvoice.include_iva,
-      payment_term: paymentTerm,
-      due_date: dueDate,
-    });
+      : this.selectedInvoice.due_date;
 
     const invoiceData: Partial<Invoice> = {
       invoice_status: this.selectedInvoice.invoice_status,
@@ -1117,6 +1176,9 @@ export class InvoiceComponent implements OnInit {
           this.showNotification(`Error al actualizar la factura: ${error.message}`);
           return;
         }
+
+        // Update the order total only on save
+        await this.updateOrderTotal();
 
         this.showNotification('Factura actualizada correctamente.');
       } else {
@@ -1148,12 +1210,9 @@ export class InvoiceComponent implements OnInit {
         }
 
         const currentDebt = clientData.debt || 0;
+        const { total } = this.calculateInvoiceValues(this.selectedInvoice);
+        const newDebt = currentDebt + total;
 
-        this.selectedInvoice.order.total = orderData.total;
-        const valores = this.calculateInvoiceValues(this.selectedInvoice);
-        const orderTotal = valores.total;
-
-        const newDebt = currentDebt + orderTotal;
         const newClientStatus = newDebt > 0 ? 'overdue' : 'upToDate';
 
         const { error: updateClientError } = await this.supabase
@@ -1209,8 +1268,8 @@ export class InvoiceComponent implements OnInit {
       }
 
       const currentDebt = clientData.debt || 0;
-      const invoiceTotal = this.calculateInvoiceValues(invoice).total;
-      const newDebt = currentDebt - invoiceTotal;
+      const { total } = this.calculateInvoiceValues(invoice);
+      const newDebt = currentDebt - total;
       const newClientStatus = newDebt > 0 ? 'overdue' : 'upToDate';
 
       const { error: updateClientError } = await this.supabase

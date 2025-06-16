@@ -192,7 +192,7 @@
     <p>No hay coincidencias con la búsqueda.</p>
   </div>
 
-  <div class="flex justify-between items-centererma mb-4">
+  <div class="flex justify-between items-center mb-4">
     <!-- Controles de paginación -->
     <div class="pagination flex items-center">
       <button
@@ -245,6 +245,7 @@
   </div>
 </div>
 
+<!-- Modal para añadir/editar facturas -->
 <!-- Modal para añadir/editar facturas -->
 <div *ngIf="showModal" class="modal-overlay">
   <div class="modal-content modal-h550">
@@ -314,16 +315,50 @@
           <option value="SERVICIO">Servicio</option>
         </select>
       </div>
+     <div class="mb-4" *ngIf="selectedInvoice">
+        <label class="block modal-input-item">Incluir IVA (19%)</label>
+        <input
+          type="checkbox"
+          [(ngModel)]="selectedInvoice.include_iva"
+          (change)="onIncludeIvaChange()"
+          name="includeIva"
+          class="form-checkbox mt-1"
+          [checked]="selectedInvoice.include_iva || false"
+        />
+      </div>
       <div class="mb-4" *ngIf="selectedInvoice">
-        <label class="inline-flex items-center">
-          <input
-            type="checkbox"
-            [(ngModel)]="selectedInvoice.include_iva"
-            name="include_iva"
-            class="form-checkbox"
-          />
-          <span class="ml-2">Incluir IVA (19%)</span>
-        </label>
+        <label class="block text-gray-700">Plazo de Pago (días)</label>
+        <input
+          type="number"
+          [(ngModel)]="selectedInvoice.payment_term"
+          (change)="updateOrderTotal()"
+          name="paymentTerm"
+          class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+          placeholder="Ej. 15"
+          min="0"
+        />
+      </div>
+      <div class="mb-4" *ngIf="selectedInvoice">
+        <label class="block text-gray-700">Valor Total</label>
+        <input
+          type="number"
+          [(ngModel)]="selectedInvoice.order.total"
+          (change)="onTotalChange($event)"
+          name="total"
+          class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+          placeholder="Ej. 14000"
+          required
+        />
+      </div>
+      <div class="mb-4" *ngIf="selectedInvoice">
+        <label class="block text-gray-700">Total</label>
+        <input
+          type="number"
+          [(ngModel)]="selectedInvoice.order.total"
+          name="total"
+          class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+          readonly
+        />
       </div>
       <div class="mb-4" *ngIf="selectedInvoice">
         <label class="block text-gray-700">Estado</label>

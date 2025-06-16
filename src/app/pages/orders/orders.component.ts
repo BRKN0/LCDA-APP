@@ -997,7 +997,7 @@ export class OrdersComponent implements OnInit {
             id_order: insertedOrder.id_order,
             code: insertedOrder.code.toString(),
             payment_term: paymentTerm,
-            include_iva: true,
+            include_iva: false,
             due_date: dueDateISOString,
         };
 
