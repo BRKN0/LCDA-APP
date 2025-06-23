@@ -513,8 +513,10 @@
             <label class="block modal-input-item">Tipo de Cliente (Régimen Tributario)</label>
             <select 
               [(ngModel)]="selectedClientData.tax_regime" 
+              (ngModelChange)="onTaxRegimeChange($event)"
               name="tax_regime" 
-              class="form-select mt-1 block w-full">
+              class="form-select mt-1 block w-full"
+              >
               <option [ngValue]="1">Gran Contribuyente Autorretenedor</option>
               <option [ngValue]="2">Gran Contribuyente</option>
               <option [ngValue]="3">Responsable de IVA</option>
