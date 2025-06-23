@@ -209,6 +209,23 @@ export class ClientsComponent implements OnInit {
     this.loading = false;
   }
 
+  taxRegimeConfig: Record<number, { is_declarante: boolean; retefuente: boolean; applies_ica_retention: boolean }> = {
+    1: { is_declarante: true, retefuente: true, applies_ica_retention: true }, // Autorretenedor
+    2: { is_declarante: true, retefuente: true, applies_ica_retention: true }, // Gran Contribuyente
+    3: { is_declarante: true, retefuente: true, applies_ica_retention: false }, // Responsable IVA
+    4: { is_declarante: false, retefuente: false, applies_ica_retention: false }, // No Responsable
+    5: { is_declarante: false, retefuente: false, applies_ica_retention: false }, // Simple
+  };
+
+  onTaxRegimeChange(selectedValue: number): void {
+    const config = this.taxRegimeConfig[selectedValue];
+    if (config && this.selectedClientData) {
+      this.selectedClientData.is_declarante = config.is_declarante;
+      this.selectedClientData.retefuente = config.retefuente;
+      this.selectedClientData.applies_ica_retention = config.applies_ica_retention;
+    }
+  }
+
   calculateClientDebt(client: Client): number {
     if (!client.orders || client.orders.length === 0) return 0;
 
