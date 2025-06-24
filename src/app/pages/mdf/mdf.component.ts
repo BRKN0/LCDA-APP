@@ -7,9 +7,11 @@ import { Subject } from 'rxjs';
 import { RoleService } from '../../services/role.service';
 import { RouterOutlet } from '@angular/router';
 
-interface mdf {
+interface Mdf {
   id_mdf: string;
-  thickness: string;
+  width: number;
+  height: number;
+  thickness: number;
   cost: number;
   freight: number;
   created_at: string;
@@ -24,16 +26,16 @@ interface Client {
 }
 
 interface CalculationResult {
-  costPlusFreight: number;
-  entera25?: number;
-  entera20?: number;
-  entera15?: number;
-  media?: number;
-  oneThird?: number;
-  oneFourth?: number;
-  oneEighth30x180?: number;
-  oneEighth90x60?: number;
-  oneEighth30x45?: number;
+  priceWith30Profit: number;
+  totalSheetArea: number;
+  area: number;
+  priceWithMargin: number;
+  appliedMargin: number;
+  pricePlusMargin: number;
+  discount: number;
+  finalPriceWithoutIva: number;
+  iva: number;
+  finalPriceWithIva: number;
 }
 
 @Component({
@@ -45,27 +47,34 @@ interface CalculationResult {
 })
 
 export class MDFComponent implements OnInit {
-  mdfItems: mdf[] = [];
-  filteredMdfItems: mdf[] = [];
-  paginatedMdfItems: mdf[] = [];
-  selectedMdf: mdf | null = null;
+  mdfItems: Mdf[] = [];
+  filteredMdfItems: Mdf[] = [];
+  paginatedMdfItems: Mdf[] = [];
+  selectedMdf: Mdf | null = null;
   showModal: boolean = false;
-  newMdf: mdf = { id_mdf: '', thickness: '', cost: 0, freight: 0, created_at: '' };
-  formMdf: mdf;
+  newMdf: Mdf = { id_mdf: '', width: 0, height: 0, thickness: 0, cost: 0, freight: 0, created_at: '' };
+  formMdf: Mdf;
   loading = true;
   searchTerm: string = '';
   sortDirection: 'asc' | 'desc' = 'asc';
   currentPage: number = 1;
   itemsPerPage: number = 10;
   totalPages: number = 1;
+  selectedFormat: string = '1 Lámina';
+  selectedClientForTable: Client | null = null;
 
   // Propiedades para la calculadora
   showCalculatorModal: boolean = false;
   calculatorForm: {
-    thickness: string;
+    width: number;
+    height: number;
+    thickness: number;
     cost: number;
     freight: number;
-    cutType: string;
+    format: string;
+    margin: number;
+    discount: number;
+    includeIva: boolean;
   };
   calculationResult: CalculationResult | null = null;
   clients: Client[] = [];
@@ -73,14 +82,20 @@ export class MDFComponent implements OnInit {
   clientSearchQuery: string = '';
   showClientDropdown: boolean = false;
   selectedClient: Client | null = null;
+  showClientDefaultsModal: boolean = false;
 
   constructor(private readonly supabase: SupabaseService) {
     this.formMdf = { ...this.newMdf };
     this.calculatorForm = {
-      thickness: '',
+      width: 0,
+      height: 0,
+      thickness: 0,
       cost: 0,
       freight: 0,
-      cutType: 'Entera'
+      format: '1 Lámina',
+      margin: 30,
+      discount: 0,
+      includeIva: false
     };
   }
 
@@ -91,10 +106,7 @@ export class MDFComponent implements OnInit {
 
   async getMdfItems(): Promise<void> {
     this.loading = true;
-    const { data, error } = await this.supabase
-      .from('mdf')
-      .select('*');
-
+    const { data, error } = await this.supabase.from('mdf').select('*');
     if (error) {
       console.error('Error al obtener MDF:', error);
       alert('Error al cargar los datos.');
@@ -123,7 +135,6 @@ export class MDFComponent implements OnInit {
       this.filteredClients = [...this.clients];
       return;
     }
-
     this.filteredClients = this.clients.filter((client) =>
       client.name.toLowerCase().includes(this.clientSearchQuery.toLowerCase()) ||
       (client.company_name && client.company_name.toLowerCase().includes(this.clientSearchQuery.toLowerCase()))
@@ -134,19 +145,18 @@ export class MDFComponent implements OnInit {
     this.selectedClient = client;
     this.clientSearchQuery = `${client.name} (${client.company_name || 'Sin empresa'})`;
     this.showClientDropdown = false;
-    // No se aplican márgenes ni descuentos actualmente
+    this.calculatorForm.margin = this.selectedClient.default_margin || 30;
+    this.calculatorForm.discount = this.selectedClient.default_discount || 0;
   }
 
   hideClientDropdown(): void {
-    setTimeout(() => {
-      this.showClientDropdown = false;
-    }, 200);
+    setTimeout(() => { this.showClientDropdown = false; }, 200);
   }
 
   private applyCurrentSort(): void {
     this.filteredMdfItems.sort((a, b) => {
-      const valueA = parseFloat(a.thickness);
-      const valueB = parseFloat(b.thickness);
+      const valueA = parseFloat(a.thickness.toString());
+      const valueB = parseFloat(b.thickness.toString());
       return this.sortDirection === 'asc' ? valueA - valueB : valueB - valueA;
     });
   }
@@ -157,13 +167,13 @@ export class MDFComponent implements OnInit {
     this.updatePaginatedMdfItems();
   }
 
-  openModal(mdf?: mdf): void {
+  openModal(mdf?: Mdf): void {
     if (mdf) {
       this.selectedMdf = { ...mdf };
       this.formMdf = { ...mdf };
     } else {
       this.selectedMdf = null;
-      this.formMdf = { id_mdf: '', thickness: '', cost: 0, freight: 0, created_at: '' };
+      this.formMdf = { ...this.newMdf };
     }
     this.showModal = true;
   }
@@ -171,16 +181,21 @@ export class MDFComponent implements OnInit {
   closeModal(): void {
     this.showModal = false;
     this.selectedMdf = null;
-    this.formMdf = { id_mdf: '', thickness: '', cost: 0, freight: 0, created_at: '' };
+    this.formMdf = { ...this.newMdf };
   }
 
   openCalculatorModal(): void {
     this.showCalculatorModal = true;
     this.calculatorForm = {
-      thickness: '',
+      width: 0,
+      height: 0,
+      thickness: 0,
       cost: 0,
       freight: 0,
-      cutType: 'Entera'
+      format: '1 Lámina',
+      margin: 30,
+      discount: 0,
+      includeIva: false
     };
     this.calculationResult = null;
     this.clientSearchQuery = '';
@@ -195,52 +210,66 @@ export class MDFComponent implements OnInit {
     this.selectedClient = null;
   }
 
+  openClientDefaultsModal(): void {
+    this.showClientDefaultsModal = true;
+  }
+
+  closeClientDefaultsModal(): void {
+    this.showClientDefaultsModal = false;
+  }
+
+  async saveClientDefaults(): Promise<void> {
+    if (!this.selectedClient) return;
+    const { error } = await this.supabase
+      .from('clients')
+      .update({
+        default_margin: this.selectedClient.default_margin,
+        default_discount: this.selectedClient.default_discount
+      })
+      .eq('id_client', this.selectedClient.id_client);
+    if (error) {
+      console.error('Error updating client defaults:', error);
+      alert('Error al guardar los valores predeterminados.');
+    } else {
+      alert('Valores predeterminados guardados correctamente.');
+    }
+    this.closeClientDefaultsModal();
+  }
+
   calculateMdfValues(): void {
-    if (!this.calculatorForm.cost || !this.calculatorForm.freight) {
-      alert('Por favor, ingrese el costo y el flete.');
+    if (!this.calculatorForm.width || !this.calculatorForm.height || !this.calculatorForm.thickness || !this.calculatorForm.cost || !this.calculatorForm.freight) {
+      alert('Por favor, complete todos los campos.');
       return;
     }
 
-    const cost = this.calculatorForm.cost;
-    const freight = this.calculatorForm.freight;
-    const costPlusFreight = cost + freight;
-    const entera25 = this.calculateEntera25Percent(cost);
-
-    const result: CalculationResult = {
-      costPlusFreight
+    const mdf: Mdf = {
+      id_mdf: '',
+      width: this.calculatorForm.width,
+      height: this.calculatorForm.height,
+      thickness: this.calculatorForm.thickness,
+      cost: this.calculatorForm.cost,
+      freight: this.calculatorForm.freight,
+      created_at: ''
     };
+    const marginToUse = this.selectedClient?.default_margin || this.calculatorForm.margin || 30;
+    const discountToUse = this.selectedClient?.default_discount || this.calculatorForm.discount || 0;
 
-    switch (this.calculatorForm.cutType) {
-      case 'Entera':
-        result.entera25 = entera25;
-        result.entera20 = this.calculateEntera20Percent(entera25);
-        result.entera15 = this.calculateEntera15Percent(result.entera20);
-        break;
-      case 'Media':
-        result.media = this.calculateMedia(entera25);
-        break;
-      case '1/3':
-        result.oneThird = this.calculateOneThird(entera25);
-        break;
-      case '1/4':
-        result.oneFourth = this.calculateOneFourth(entera25);
-        break;
-      case '1/8 30x180':
-        result.oneEighth30x180 = this.calculateOneEighth30x180(entera25);
-        break;
-      case '1/8 90x60':
-        result.oneEighth90x60 = this.calculateOneEighth90x60(entera25);
-        break;
-      case '1/8 30x45':
-        result.oneEighth30x45 = this.calculateOneEighth30x45(entera25);
-        break;
-    }
-
-    this.calculationResult = result;
+    this.calculationResult = {
+      priceWith30Profit: this.calculatePriceWith30Profit(mdf),
+      totalSheetArea: this.calculateTotalSheetArea(mdf),
+      area: this.calculateArea(mdf, this.calculatorForm.format),
+      priceWithMargin: this.calculatePriceWithMargin(mdf, this.calculatorForm.format),
+      appliedMargin: this.calculateAppliedMargin(this.calculatorForm.format),
+      pricePlusMargin: this.calculatePricePlusMargin(mdf, this.calculatorForm.format),
+      discount: this.calculateDiscount(mdf, discountToUse, this.calculatorForm.format),
+      finalPriceWithoutIva: this.calculateFinalPriceWithoutIva(mdf, discountToUse, this.calculatorForm.format),
+      iva: this.calculatorForm.includeIva ? this.calculateIva(mdf, discountToUse, this.calculatorForm.format) : 0,
+      finalPriceWithIva: this.calculatorForm.includeIva ? this.calculatePriceWithIva(mdf, discountToUse, this.calculatorForm.format) : 0
+    };
   }
 
   async saveMdf(): Promise<void> {
-    if (!this.formMdf.thickness || this.formMdf.cost <= 0 || this.formMdf.freight <= 0) {
+    if (!this.formMdf.width || !this.formMdf.height || !this.formMdf.thickness || this.formMdf.cost <= 0 || this.formMdf.freight <= 0) {
       alert('Por favor, complete todos los campos.');
       return;
     }
@@ -250,6 +279,8 @@ export class MDFComponent implements OnInit {
         const { error } = await this.supabase
           .from('mdf')
           .update({
+            width: this.formMdf.width,
+            height: this.formMdf.height,
             thickness: this.formMdf.thickness,
             cost: this.formMdf.cost,
             freight: this.formMdf.freight,
@@ -261,13 +292,14 @@ export class MDFComponent implements OnInit {
           alert('Error al actualizar el MDF.');
           return;
         }
-
         alert('MDF actualizado correctamente.');
       } else {
         const { error } = await this.supabase
           .from('mdf')
           .insert([
             {
+              width: this.formMdf.width,
+              height: this.formMdf.height,
               thickness: this.formMdf.thickness,
               cost: this.formMdf.cost,
               freight: this.formMdf.freight,
@@ -279,7 +311,6 @@ export class MDFComponent implements OnInit {
           alert('Error al crear el MDF.');
           return;
         }
-
         alert('MDF creado correctamente.');
       }
 
@@ -312,46 +343,80 @@ export class MDFComponent implements OnInit {
     }
   }
 
-  calculateEntera25Percent(cost: number): number {
-    return cost + cost * 0.25;
+  calculatePriceWith30Profit(mdf: Mdf): number {
+    const totalCost = mdf.cost + mdf.freight;
+    return Math.ceil((totalCost / 0.7) / 100) * 100;
   }
 
-  calculateEntera20Percent(enter25: number): number {
-    return enter25 + enter25 * 0.2;
+  calculateTotalSheetArea(mdf: Mdf): number {
+    return mdf.width * mdf.height;
   }
 
-  calculateEntera15Percent(enter20: number): number {
-    return enter20 + enter20 * 0.15;
+  calculateArea(mdf: Mdf, format: string): number {
+    const totalArea = this.calculateTotalSheetArea(mdf);
+    const formatFactor = this.getFormatFactor(format);
+    return totalArea / formatFactor;
   }
 
-  calculateMedia(enter25: number): number {
-    return (enter25 / 2) * 1.15;
+  calculatePriceWithMargin(mdf: Mdf, format: string): number {
+    const totalArea = this.calculateTotalSheetArea(mdf);
+    const area = this.calculateArea(mdf, format);
+    const totalCost = mdf.cost + mdf.freight;
+    return area > 0 ? Math.ceil((((totalCost / totalArea) * area) / 0.7) / 100) * 100 : 0;
   }
 
-  calculateOneThird(enter25: number): number {
-    return (enter25 / 3) * 1.3;
+  calculateAppliedMargin(format: string): number {
+    const margins: { [key: string]: number } = {
+      '1 Lámina': 0,
+      '1/2 (Media Lámina)': 0.0010,
+      '1/3 (Tercio de Lámina)': 0.0040,
+      '1/4 (Cuarto de Lámina)': 0.0055,
+      '1/8 (Octavo de Lámina)': 0.0078,
+      '1/16 (Dieciseisavo de Lámina)': 0.0089,
+      '1/32 (Treintaydosavo de Lámina)': 0.0094
+    };
+    return margins[format] || 0;
   }
 
-  calculateOneFourth(enter25: number): number {
-    return (enter25 / 4) * 1.4;
+  calculatePricePlusMargin(mdf: Mdf, format: string): number {
+    const priceWithMargin = this.calculatePriceWithMargin(mdf, format);
+    const appliedMargin = this.calculateAppliedMargin(format);
+    return Math.ceil(priceWithMargin * (1 + appliedMargin) / 100) * 100;
   }
 
-  calculateOneEighth30x180(enter25: number): number {
-    return (enter25 / 8) * 1.6;
+  calculateDiscount(mdf: Mdf, discountPercent: number = 0, format: string): number {
+    const pricePlusMargin = this.calculatePricePlusMargin(mdf, format);
+    const discountAmount = Math.ceil(pricePlusMargin * (discountPercent / 100) / 100) * 100;
+    return discountAmount > pricePlusMargin ? pricePlusMargin : discountAmount;
   }
 
-  calculateOneEighth90x60(enter25: number): number {
-    return (enter25 / 16) * 1.7;
+  calculateFinalPriceWithoutIva(mdf: Mdf, discountPercent: number = 0, format: string): number {
+    const pricePlusMargin = this.calculatePricePlusMargin(mdf, format);
+    const discount = this.calculateDiscount(mdf, discountPercent, format);
+    return Math.ceil((pricePlusMargin - discount) / 100) * 100;
   }
 
-  calculateOneEighth30x45(enter25: number): number {
-    return (enter25 / 32) * 1.9;
+  calculateIva(mdf: Mdf, discountPercent: number = 0, format: string): number {
+    const finalPriceWithoutIva = this.calculateFinalPriceWithoutIva(mdf, discountPercent, format);
+    return Math.ceil(finalPriceWithoutIva * 0.19 / 100) * 100;
+  }
+
+  calculatePriceWithIva(mdf: Mdf, discountPercent: number = 0, format: string): number {
+    const finalPriceWithoutIva = this.calculateFinalPriceWithoutIva(mdf, discountPercent, format);
+    const iva = this.calculateIva(mdf, discountPercent, format);
+    return finalPriceWithoutIva + iva;
+  }
+
+  onClientSelectedForTable(): void {
+    this.calculatorForm.margin = this.selectedClientForTable?.default_margin || 30;
+    this.calculatorForm.discount = this.selectedClientForTable?.default_discount || 0;
+    this.updatePaginatedMdfItems();
   }
 
   updatePaginatedMdfItems(): void {
     const term = this.searchTerm.toLowerCase().trim();
     const filtered = this.mdfItems.filter(mdf =>
-      mdf.thickness.toLowerCase().includes(term) ||
+      mdf.thickness.toString().toLowerCase().includes(term) ||
       mdf.cost.toString().includes(term) ||
       mdf.freight.toString().includes(term)
     );
@@ -371,5 +436,18 @@ export class MDFComponent implements OnInit {
   onSearchChange(): void {
     this.currentPage = 1;
     this.updatePaginatedMdfItems();
+  }
+
+  private getFormatFactor(format: string): number {
+    const factors: { [key: string]: number } = {
+      '1 Lámina': 1,
+      '1/2 (Media Lámina)': 2,
+      '1/3 (Tercio de Lámina)': 3,
+      '1/4 (Cuarto de Lámina)': 4,
+      '1/8 (Octavo de Lámina)': 8,
+      '1/16 (Dieciseisavo de Lámina)': 16,
+      '1/32 (Treintaydosavo de Lámina)': 32
+    };
+    return factors[format] || 1;
   }
 }

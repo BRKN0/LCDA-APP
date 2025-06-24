@@ -6,85 +6,33 @@
   <p>Cargando inventario...</p>
 </div>
 <div class="flex justify-end items-center mb-4 mt-4 ml-2">
-  <button
-    class="btn-add inline-flex items-center space-x-2"
-    (click)="openModal()"
-  >
-    <svg
-      class="w-5 h-5 inline-block align-middle mt-[3px]"
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        d="M12.75 9C12.75 8.58579 12.4142 8.25 12 8.25C11.5858 8.25 11.25 8.58579 11.25 9L11.25 11.25H9C8.58579 11.25 8.25 11.5858 8.25 12C8.25 12.4142 8.58579 12.75 9 12.75H11.25V15C11.25 15.4142 11.5858 15.75 12 15.75C12.4142 15.75 12.75 15.4142 12.75 15L12.75 12.75H15C15.4142 12.75 15.75 12.4142 15.75 12C15.75 11.5858 15.4142 11.25 15 11.25H12.75V9Z"
-        fill="#ffffff"
-      />
-      <path
-        fill-rule="evenodd"
-        clip-rule="evenodd"
-        d="M12 1.25C6.06294 1.25 1.25 6.06294 1.25 12C1.25 17.9371 6.06294 22.75 12 22.75C17.9371 22.75 22.75 17.9371 22.75 12C22.75 6.06294 17.9371 1.25 12 1.25ZM2.75 12C2.75 6.89137 6.89137 2.75 12 2.75C17.1086 2.75 21.25 6.89137 21.25 12C21.25 17.1086 17.1086 21.25 12 21.25C6.89137 21.25 2.75 17.1086 2.75 12Z"
-        fill="#ffffff"
-      />
+  <button class="btn-add inline-flex items-center space-x-2" (click)="openModal()">
+    <svg class="w-5 h-5 inline-block align-middle mt-[3px]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12.75 9C12.75 8.58579 12.4142 8.25 12 8.25C11.5858 8.25 11.25 8.58579 11.25 9L11.25 11.25H9C8.58579 11.25 8.25 11.5858 8.25 12C8.25 12.4142 8.58579 12.75 9 12.75H11.25V15C11.25 15.4142 11.5858 15.75 12 15.75C12.4142 15.75 12.75 15.4142 12.75 15L12.75 12.75H15C15.4142 12.75 15.75 12.4142 15.75 12C15.75 11.5858 15.4142 11.25 15 11.25H12.75V9Z" fill="#ffffff"/>
+      <path fill-rule="evenodd" clip-rule="evenodd" d="M12 1.25C6.06294 1.25 1.25 6.06294 1.25 12C1.25 17.9371 6.06294 22.75 12 22.75C17.9371 22.75 22.75 17.9371 22.75 12C22.75 6.06294 17.9371 1.25 12 1.25ZM2.75 12C2.75 6.89137 6.89137 2.75 12 2.75C17.1086 2.75 21.25 6.89137 21.25 12C21.25 17.1086 17.1086 21.25 12 21.25C6.89137 21.25 2.75 17.1086 2.75 12Z" fill="#ffffff"/>
     </svg>
     <span>Añadir</span>
   </button>
-  <!-- Botón para abrir la calculadora -->
-  <button
-    class="btn-details inline-flex items-center space-x-2"
-    (click)="openCalculatorModal()"
-  >
-    <svg
-      class="w-8 h-8 inline-block align-middle mt-[3px]"
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
+  <button class="btn-details inline-flex items-center space-x-2" (click)="openCalculatorModal()">
+    <svg class="w-8 h-8 inline-block align-middle mt-[3px]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
-      <g
-        id="SVGRepo_tracerCarrier"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      ></g>
+      <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
       <g id="SVGRepo_iconCarrier">
-        <path
-          d="M14 7C14 6.44771 14.4477 6 15 6H16V5C16 4.44772 16.4477 4 17 4C17.5523 4 18 4.44772 18 5V6H19C19.5523 6 20 6.44771 20 7C20 7.55229 19.5523 8 19 8H18V9C18 9.55228 17.5523 10 17 10C16.4477 10 16 9.55228 16 9V8H15C14.4477 8 14 7.55229 14 7Z"
-          fill="#ffffff"
-        ></path>
-        <path
-          d="M14 15C14 14.4477 14.4477 14 15 14H19C19.5523 14 20 14.4477 20 15C20 15.5523 19.5523 16 19 16H15C14.4477 16 14 15.5523 14 15Z"
-          fill="#ffffff"
-        ></path>
-        <path
-          d="M15 18C14.4477 18 14 18.4477 14 19C14 19.5523 14.4477 20 15 20H19C19.5523 20 20 19.5523 20 19C20 18.4477 19.5523 18 19 18H15Z"
-          fill="#ffffff"
-        ></path>
-        <path
-          d="M5 6C4.44772 6 4 6.44771 4 7C4 7.55229 4.44772 8 5 8H9C9.55228 8 10 7.55229 10 7C10 6.44771 9.55228 6 9 6H5Z"
-          fill="#ffffff"
-        ></path>
-        <path
-          d="M5.92512 14.5109C5.5346 14.1204 4.90143 14.1204 4.51091 14.5109C4.12039 14.9014 4.12039 15.5346 4.51091 15.9251L5.5858 17L4.50337 18.0824C4.11284 18.4729 4.11284 19.1061 4.50337 19.4966C4.89389 19.8872 5.52705 19.8872 5.91758 19.4966L7.00002 18.4142L8.08944 19.5036C8.47996 19.8941 9.11313 19.8941 9.50365 19.5036C9.89418 19.1131 9.89418 18.4799 9.50365 18.0894L8.41423 17L9.50194 15.9123C9.89246 15.5218 9.89246 14.8886 9.50194 14.4981C9.11141 14.1075 8.47825 14.1075 8.08772 14.4981L7.00002 15.5858L5.92512 14.5109Z"
-          fill="#ffffff"
-        ></path>
-        <path
-          fill-rule="evenodd"
-          clip-rule="evenodd"
-          d="M20 1C21.6569 1 23 2.34315 23 4V20C23 21.6569 21.6569 23 20 23H4C2.34315 23 1 21.6569 1 20V4C1 2.34315 2.34315 1 4 1H20ZM20 3C20.5523 3 21 3.44772 21 4V11H13V3H20ZM21 13V20C21 20.5523 20.5523 21 20 21H13V13H21ZM4 3H11V11H3V4C3 3.44772 3.44772 3 4 3ZM3 20V13H11V21H4C3.44772 21 3 20.5523 3 20Z"
-          fill="#ffffff"
-        ></path>
+        <path d="M14 7C14 6.44771 14.4477 6 15 6H16V5C16 4.44772 16.4477 4 17 4C17.5523 4 18 4.44772 18 5V6H19C19.5523 6 20 6.44771 20 7C20 7.55229 19.5523 8 19 8H18V9C18 9.55228 17.5523 10 17 10C16.4477 10 16 9.55228 16 9V8H15C14.4477 8 14 7.55229 14 7Z" fill="#ffffff"/>
+        <path d="M14 15C14 14.4477 14.4477 14 15 14H19C19.5523 14 20 14.4477 20 15C20 15.5523 19.5523 16 19 16H15C14.4477 16 14 15.5523 14 15Z" fill="#ffffff"/>
+        <path d="M15 18C14.4477 18 14 18.4477 14 19C14 19.5523 14.4477 20 15 20H19C19.5523 20 20 19.5523 20 19C20 18.4477 19.5523 18 19 18H15Z" fill="#ffffff"/>
+        <path d="M5 6C4.44772 6 4 6.44771 4 7C4 7.55229 4.44772 8 5 8H9C9.55228 8 10 7.55229 10 7C10 6.44771 9.55228 6 9 6H5Z" fill="#ffffff"/>
+        <path d="M5.92512 14.5109C5.5346 14.1204 4.90143 14.1204 4.51091 14.5109C4.12039 14.9014 4.12039 15.5346 4.51091 15.9251L5.5858 17L4.50337 18.0824C4.11284 18.4729 4.11284 19.1061 4.50337 19.4966C4.89389 19.8872 5.52705 19.8872 5.91758 19.4966L7.00002 18.4142L8.08944 19.5036C8.47996 19.8941 9.11313 19.8941 9.50365 19.5036C9.89418 19.1131 9.89418 18.4799 9.50365 18.0894L8.41423 17L9.50194 15.9123C9.89246 15.5218 9.89246 14.8886 9.50194 14.4981C9.11141 14.1075 8.47825 14.1075 8.08772 14.4981L7.00002 15.5858L5.92512 14.5109Z" fill="#ffffff"/>
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M20 1C21.6569 1 23 2.34315 23 4V20C23 21.6569 21.6569 23 20 23H4C2.34315 23 1 21.6569 1 20V4C1 2.34315 2.34315 1 4 1H20ZM20 3C20.5523 3 21 3.44772 21 4V11H13V3H20ZM21 13V20C21 20.5523 20.5523 21 20 21H13V13H21ZM4 3H11V11H3V4C3 3.44772 3.44772 3 4 3ZM3 20V13H11V21H4C3.44772 21 3 20.5523 3 20Z" fill="#ffffff"/>
       </g>
     </svg>
     <span>Calculadora</span>
   </button>
 </div>
+
 <!-- Action buttons y barra de búsqueda -->
-<div
-  *ngIf="!loading"
-  class="flex items-center justify-center py-4 space-x-4 top-5"
->
+<div *ngIf="!loading" class="flex items-center justify-center py-4 space-x-4 top-5">
   <div class="relative w-full max-w-md">
-    <!-- Barra de búsqueda -->
     <input
       type="text"
       [(ngModel)]="searchTerm"
@@ -95,393 +43,413 @@
   </div>
 </div>
 
-<!-- Tabla de MDF -->
-<div *ngIf="!loading && paginatedMdfItems.length > 0">
-  <table class="table-std">
-    <thead>
-      <tr>
-        <th
-          rowspan="2"
-          class="table-column-std cursor-pointer"
-          (click)="toggleSortDirection()"
-        >
-          MDF <span>{{ sortDirection === "asc" ? "↑" : "↓" }}</span>
-        </th>
-        <th rowspan="2" class="table-column-std">C+F</th>
-        <th rowspan="2" class="table-column-std">Costo</th>
-        <th rowspan="2" class="table-column-std">Flete</th>
-        <th colspan="3" class="table-column-std">Entera</th>
-        <th rowspan="2" class="table-column-std">Media</th>
-        <th rowspan="2" class="table-column-std">1/3</th>
-        <th rowspan="2" class="table-column-std">1/4</th>
-        <th colspan="3" class="table-column-std">1/8</th>
-        <th rowspan="2" class="table-column-std">Acciones</th>
-      </tr>
-      <tr>
-        <th class="table-column-std">25%</th>
-        <th class="table-column-std">20%</th>
-        <th class="table-column-std">15%</th>
-        <th class="table-column-std">30x180 - 90x60</th>
-        <th class="table-column-std">1/16 45x60</th>
-        <th class="table-column-std">1/32 30x45</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let mdf of paginatedMdfItems">
-        <td class="table-column-std">{{ mdf.thickness }}</td>
-        <td class="table-column-std">
-          ${{ (mdf.cost + mdf.freight).toFixed(2) }}
-        </td>
-        <td class="table-column-std">${{ mdf.cost.toFixed(2) }}</td>
-        <td class="table-column-std">${{ mdf.freight.toFixed(2) }}</td>
-        <!-- Entera -->
-        <td class="table-column-std">
-          ${{ calculateEntera25Percent(mdf.cost).toFixed(2) }}
-        </td>
-        <td class="table-column-std">
-          ${{
-            calculateEntera20Percent(
-              calculateEntera25Percent(mdf.cost)
-            ).toFixed(2)
-          }}
-        </td>
-        <td class="table-column-std">
-          ${{
-            calculateEntera15Percent(
-              calculateEntera20Percent(calculateEntera25Percent(mdf.cost))
-            ).toFixed(2)
-          }}
-        </td>
-        <!-- Media -->
-        <td class="table-column-std">
-          ${{ calculateMedia(calculateEntera25Percent(mdf.cost)).toFixed(2) }}
-        </td>
-        <!-- 1/3 -->
-        <td class="table-column-std">
-          ${{
-            calculateOneThird(calculateEntera25Percent(mdf.cost)).toFixed(2)
-          }}
-        </td>
-        <!-- 1/4 -->
-        <td class="table-column-std">
-          ${{
-            calculateOneFourth(calculateEntera25Percent(mdf.cost)).toFixed(2)
-          }}
-        </td>
-        <!-- 1/8 -->
-        <td class="table-column-std">
-          ${{
-            calculateOneEighth30x180(
-              calculateEntera25Percent(mdf.cost)
-            ).toFixed(2)
-          }}
-        </td>
-        <td class="table-column-std">
-          ${{
-            calculateOneEighth90x60(calculateEntera25Percent(mdf.cost)).toFixed(
-              2
-            )
-          }}
-        </td>
-        <td class="table-column-std">
-          ${{
-            calculateOneEighth30x45(calculateEntera25Percent(mdf.cost)).toFixed(
-              2
-            )
-          }}
-        </td>
-        <!-- Acciones -->
-        <td class="table-column-std">
-          <button class="btn-edit" (click)="openModal(mdf)">Editar</button>
-          <button class="btn-delete" (click)="deleteMdf(mdf.id_mdf)">
-            Eliminar
-          </button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+<!-- Selección de formato y cliente -->
+<div *ngIf="!loading" class="flex items-center space-x-4 mb-4">
+  <label for="format" class="font-semibold">Formato:</label>
+  <select
+    id="format"
+    [(ngModel)]="selectedFormat"
+    (change)="updatePaginatedMdfItems()"
+    class="border border-gray-300 rounded-md p-1"
+  >
+    <option value="1 Lámina">1 Lámina</option>
+    <option value="1/2 (Media Lámina)">1/2 (Media Lámina)</option>
+    <option value="1/3 (Tercio de Lámina)">1/3 (Tercio de Lámina)</option>
+    <option value="1/4 (Cuarto de Lámina)">1/4 (Cuarto de Lámina)</option>
+    <option value="1/8 (Octavo de Lámina)">1/8 (Octavo de Lámina)</option>
+    <option value="1/16 (Dieciseisavo de Lámina)">1/16 (Dieciseisavo de Lámina)</option>
+    <option value="1/32 (Treintaydosavo de Lámina)">1/32 (Treintaydosavo de Lámina)</option>
+  </select>
+  <label for="clientSelect" class="block font-semibold mb-2">Seleccionar Cliente:</label>
+  <select
+    id="clientSelect"
+    [(ngModel)]="selectedClientForTable"
+    (change)="onClientSelectedForTable()"
+    class="border border-gray-300 rounded-md p-2 w-full md:w-1/2 lg:w-1/3"
+  >
+    <option [ngValue]="null">-- Sin Cliente --</option>
+    <option *ngFor="let client of clients" [ngValue]="client">
+      {{ client.name }} ({{ client.company_name || 'Sin empresa' }})
+    </option>
+  </select>
+</div>
 
-  <!-- Controles de paginación -->
-  <div class="flex justify-between items-center mb-4">
-    <div class="pagination flex items-center">
-      <button
-        (click)="currentPage = 1; updatePaginatedMdfItems()"
-        [disabled]="currentPage === 1"
-        class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
-      >
-        ⇐
-      </button>
-      <button
-        (click)="currentPage = currentPage - 1; updatePaginatedMdfItems()"
-        [disabled]="currentPage === 1"
-        class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-7 h-7"
-      >
-        ←
-      </button>
-      <span class="mx-4 text-gray-700">
-        Página {{ currentPage }} de {{ totalPages }}
-      </span>
-      <button
-        (click)="currentPage = currentPage + 1; updatePaginatedMdfItems()"
-        [disabled]="currentPage === totalPages"
-        class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-7 h-7"
-      >
-        →
-      </button>
-      <button
-        (click)="currentPage = totalPages; updatePaginatedMdfItems()"
-        [disabled]="currentPage === totalPages"
-        class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
-      >
-        ⇒
-      </button>
+<!-- Tabla de MDF -->
+<div *ngIf="!loading">
+  <div *ngIf="paginatedMdfItems.length > 0">
+    <div class="table-container">
+      <table class="table-std">
+        <thead>
+          <tr>
+            <th class="table-column-std">Ancho</th>
+            <th class="table-column-std">Alto</th>
+            <th class="table-column-std">Calibre</th>
+            <th class="table-column-std">Costo Lámina</th>
+            <th class="table-column-std">Costo Flete 2025</th>
+            <th class="table-column-std">Precio 30% Utilidad</th>
+            <th class="table-column-std">Área Total Lámina</th>
+            <th class="table-column-std">Área</th>
+            <th class="table-column-std">Precio con Margen</th>
+            <th class="table-column-std">Margen</th>
+            <th class="table-column-std">Precio + Margen</th>
+            <th class="table-column-std">Descuento</th>
+            <th class="table-column-std">Sin IVA</th>
+            <th class="table-column-std">IVA</th>
+            <th class="table-column-std">Con IVA</th>
+            <th class="table-column-std">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let mdf of paginatedMdfItems">
+            <td class="table-column-std">{{ mdf.width }} cm</td>
+            <td class="table-column-std">{{ mdf.height }} cm</td>
+            <td class="table-column-std">{{ mdf.thickness }} mm</td>
+            <td class="table-column-std">${{ mdf.cost.toLocaleString() }}</td>
+            <td class="table-column-std">${{ mdf.freight.toLocaleString() }}</td>
+            <td class="table-column-std">${{ calculatePriceWith30Profit(mdf).toLocaleString() }}</td>
+            <td class="table-column-std">{{ calculateTotalSheetArea(mdf).toLocaleString() }} cm²</td>
+            <td class="table-column-std">{{ calculateArea(mdf, selectedFormat).toLocaleString() }} cm²</td>
+            <td class="table-column-std">${{ calculatePriceWithMargin(mdf, selectedFormat).toLocaleString() }}</td>
+            <td class="table-column-std">{{ (calculateAppliedMargin(selectedFormat) * 100).toFixed(2) }}%</td>
+            <td class="table-column-std">${{ calculatePricePlusMargin(mdf, selectedFormat).toLocaleString() }}</td>
+            <td class="table-column-std">${{ calculateDiscount(mdf, selectedClientForTable?.default_discount || 0, selectedFormat).toLocaleString() }}</td>
+            <td class="table-column-std">${{ calculateFinalPriceWithoutIva(mdf, selectedClientForTable?.default_discount || 0, selectedFormat).toLocaleString() }}</td>
+            <td class="table-column-std">${{ calculateIva(mdf, selectedClientForTable?.default_discount || 0, selectedFormat).toLocaleString() }}</td>
+            <td class="table-column-std">${{ calculatePriceWithIva(mdf, selectedClientForTable?.default_discount || 0, selectedFormat).toLocaleString() }}</td>
+            <td class="table-column-std">
+              <button class="btn-edit" (click)="openModal(mdf)">Editar</button>
+              <button class="btn-delete" (click)="deleteMdf(mdf.id_mdf)">Eliminar</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
-    <!-- Selector de elementos por página -->
-    <div class="items-per-page flex items-center">
-      <label for="itemsPerPage" class="mr-2">Elementos por página:</label>
-      <select
-        id="itemsPerPage"
-        [(ngModel)]="itemsPerPage"
-        (change)="currentPage = 1; updatePaginatedMdfItems()"
-        class="border border-gray-300 rounded-md p-1"
-      >
-        <option *ngFor="let size of [2, 10, 15, 20]" [value]="size">
-          {{ size }}
-        </option>
-      </select>
+    <!-- Controles de paginación -->
+    <div class="flex justify-between items-center mb-4">
+      <div class="pagination flex items-center">
+        <button
+          (click)="currentPage = 1; updatePaginatedMdfItems()"
+          [disabled]="currentPage === 1"
+          class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+        >
+          ⇐
+        </button>
+        <button
+          (click)="currentPage = currentPage - 1; updatePaginatedMdfItems()"
+          [disabled]="currentPage === 1"
+          class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-7 h-7"
+        >
+          ←
+        </button>
+        <span class="mx-4 text-gray-700">Página {{ currentPage }} de {{ totalPages }}</span>
+        <button
+          (click)="currentPage = currentPage + 1; updatePaginatedMdfItems()"
+          [disabled]="currentPage === totalPages"
+          class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-7 h-7"
+        >
+          →
+        </button>
+        <button
+          (click)="currentPage = totalPages; updatePaginatedMdfItems()"
+          [disabled]="currentPage === totalPages"
+          class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+        >
+          ⇒
+        </button>
+      </div>
+      <div class="items-per-page flex items-center">
+        <label for="itemsPerPage" class="mr-2">Elementos por página:</label>
+        <select
+          id="itemsPerPage"
+          [(ngModel)]="itemsPerPage"
+          (change)="currentPage = 1; updatePaginatedMdfItems()"
+          class="border border-gray-300 rounded-md p-1"
+        >
+          <option *ngFor="let size of [2, 10, 15, 20]" [value]="size">{{ size }}</option>
+        </select>
+      </div>
     </div>
   </div>
-
-  <!-- Mensaje cuando no hay datos -->
-  <div
-    *ngIf="!loading && paginatedMdfItems.length === 0"
-    class="p-4 text-center text-gray-600"
-  >
+  <div *ngIf="!loading && paginatedMdfItems.length === 0" class="p-4 text-center text-gray-600">
     <p>No hay datos disponibles para MDF.</p>
   </div>
+</div>
 
-  <!-- Modal para crear/editar MDF -->
-  <div *ngIf="showModal" class="modal-overlay">
-    <div class="modal-content modal-h400">
-      <h3 class="text-lg font-bold mb-4">
-        {{ selectedMdf ? "Editar MDF" : "Añadir Nuevo MDF" }}
-      </h3>
-      <form (ngSubmit)="saveMdf()">
-        <div class="mb-4">
-          <label class="block modal-input-item"
-            >Grosor<span class="text-red-500">*</span></label
-          >
-          <input
-            [(ngModel)]="formMdf.thickness"
-            name="thickness"
-            class="form-input mt-1 block w-full border border-gray-300 rounded-md"
-            placeholder="Ej. 2.5mm"
-            required
-          />
-        </div>
-        <div class="mb-4">
-          <label class="block modal-input-item"
-            >Costo<span class="text-red-500">*</span></label
-          >
-          <input
-            type="number"
-            [(ngModel)]="formMdf.cost"
-            name="cost"
-            class="form-input mt-1 block w-full border border-gray-300 rounded-md"
-            placeholder="Costo"
-            required
-          />
-        </div>
-        <div class="mb-4">
-          <label class="block modal-input-item"
-            >Flete<span class="text-red-500">*</span></label
-          >
-          <input
-            type="number"
-            [(ngModel)]="formMdf.freight"
-            name="freight"
-            class="form-input mt-1 block w-full border border-gray-300 rounded-md"
-            placeholder="Flete"
-            required
-          />
-        </div>
-        <div class="flex justify-end">
-          <button type="button" class="btn-danger" (click)="closeModal()">
-            Cancelar
-          </button>
-          <button type="submit" class="btn-success">
-            {{ selectedMdf ? "Actualizar" : "Guardar MDF" }}
-          </button>
-        </div>
-      </form>
-    </div>
+<!-- Modal para crear/editar MDF -->
+<div *ngIf="showModal" class="modal-overlay">
+  <div class="modal-content modal-h400">
+    <h3 class="text-lg font-bold mb-4">{{ selectedMdf ? "Editar MDF" : "Añadir Nuevo MDF" }}</h3>
+    <form (ngSubmit)="saveMdf()">
+      <div class="mb-4">
+        <label class="block modal-input-item">Ancho (cm)<span class="text-red-500">*</span></label>
+        <input
+          type="number"
+          [(ngModel)]="formMdf.width"
+          name="width"
+          class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+          placeholder="Ej. 122"
+          required
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block modal-input-item">Alto (cm)<span class="text-red-500">*</span></label>
+        <input
+          type="number"
+          [(ngModel)]="formMdf.height"
+          name="height"
+          class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+          placeholder="Ej. 244"
+          required
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block modal-input-item">Grosor (mm)<span class="text-red-500">*</span></label>
+        <input
+          type="number"
+          step="0.1"
+          [(ngModel)]="formMdf.thickness"
+          name="thickness"
+          class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+          placeholder="Ej. 2.5"
+          required
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block modal-input-item">Costo Lámina<span class="text-red-500">*</span></label>
+        <input
+          type="number"
+          [(ngModel)]="formMdf.cost"
+          name="cost"
+          class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+          placeholder="Ej. 1000"
+          required
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block modal-input-item">Costo Flete 2025<span class="text-red-500">*</span></label>
+        <input
+          type="number"
+          [(ngModel)]="formMdf.freight"
+          name="freight"
+          class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+          placeholder="Ej. 200"
+          required
+        />
+      </div>
+      <div class="flex justify-end">
+        <button type="button" class="btn-danger" (click)="closeModal()">Cancelar</button>
+        <button type="submit" class="btn-success">{{ selectedMdf ? "Actualizar" : "Guardar MDF" }}</button>
+      </div>
+    </form>
   </div>
+</div>
 
-  <!-- Modal para la calculadora -->
-  <div *ngIf="showCalculatorModal" class="modal-overlay">
-    <div class="modal-content">
-      <h3 class="text-lg font-bold mb-4">Calculadora de MDF</h3>
-      <form (ngSubmit)="calculateMdfValues()">
-        <!-- Selección de cliente -->
-        <div class="mb-4">
-          <label class="block modal-input-item">Cliente (Opcional)</label>
-          <div class="relative">
-            <input
-              type="text"
-              placeholder="Buscar cliente por nombre..."
-              [(ngModel)]="clientSearchQuery"
-              (ngModelChange)="searchClients()"
-              name="clientSearch"
-              class="form-input mt-1 block w-full border border-gray-300 rounded-md"
-              (focus)="showClientDropdown = true"
-              (blur)="hideClientDropdown()"
-            />
+<!-- Modal para la calculadora -->
+<div *ngIf="showCalculatorModal" class="modal-overlay">
+  <div class="modal-content">
+    <h3 class="text-lg font-bold mb-4">Calculadora de MDF</h3>
+    <form (ngSubmit)="calculateMdfValues()">
+      <!-- Selección de cliente -->
+      <div class="mb-4">
+        <label class="block modal-input-item">Cliente (Opcional)</label>
+        <div class="relative">
+          <input
+            type="text"
+            placeholder="Buscar cliente por nombre..."
+            [(ngModel)]="clientSearchQuery"
+            (ngModelChange)="searchClients()"
+            name="clientSearch"
+            class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+            (focus)="showClientDropdown = true"
+            (blur)="hideClientDropdown()"
+          />
+          <div
+            *ngIf="showClientDropdown && filteredClients.length > 0"
+            class="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto"
+          >
             <div
-              *ngIf="showClientDropdown && filteredClients.length > 0"
-              class="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto"
+              *ngFor="let client of filteredClients"
+              class="p-2 hover:bg-gray-200 cursor-pointer"
+              (click)="selectClient(client)"
             >
-              <div
-                *ngFor="let client of filteredClients"
-                class="p-2 hover:bg-gray-200 cursor-pointer"
-                (click)="selectClient(client)"
-              >
-                {{ client.name }} ({{ client.company_name || "Sin empresa" }})
-              </div>
+              {{ client.name }} ({{ client.company_name || "Sin empresa" }})
             </div>
           </div>
         </div>
-        <!-- Ingreso de grosor -->
-        <div class="mb-4">
-          <label class="block modal-input-item">Grosor (Opcional)</label>
+      </div>
+      <div class="mb-4">
+        <label class="block modal-input-item">Ancho (cm)</label>
+        <input
+          type="number"
+          [(ngModel)]="calculatorForm.width"
+          name="calcWidth"
+          class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+          placeholder="Ej. 122"
+          required
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block modal-input-item">Alto (cm)</label>
+        <input
+          type="number"
+          [(ngModel)]="calculatorForm.height"
+          name="calcHeight"
+          class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+          placeholder="Ej. 244"
+          required
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block modal-input-item">Grosor (mm)</label>
+        <input
+          type="number"
+          step="0.1"
+          [(ngModel)]="calculatorForm.thickness"
+          name="calcThickness"
+          class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+          placeholder="Ej. 2.5"
+          required
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block modal-input-item">Costo Lámina</label>
+        <input
+          type="number"
+          [(ngModel)]="calculatorForm.cost"
+          name="calcCost"
+          class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+          placeholder="Ej. 1000"
+          required
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block modal-input-item">Costo Flete 2025</label>
+        <input
+          type="number"
+          [(ngModel)]="calculatorForm.freight"
+          name="calcFreight"
+          class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+          placeholder="Ej. 200"
+          required
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block modal-input-item">Formato</label>
+        <select
+          [(ngModel)]="calculatorForm.format"
+          name="calcFormat"
+          class="form-select mt-1 block w-full border border-gray-300 rounded-md"
+          required
+        >
+          <option value="1 Lámina">1 Lámina</option>
+          <option value="1/2 (Media Lámina)">1/2 (Media Lámina)</option>
+          <option value="1/3 (Tercio de Lámina)">1/3 (Tercio de Lámina)</option>
+          <option value="1/4 (Cuarto de Lámina)">1/4 (Cuarto de Lámina)</option>
+          <option value="1/8 (Octavo de Lámina)">1/8 (Octavo de Lámina)</option>
+          <option value="1/16 (Dieciseisavo de Lámina)">1/16 (Dieciseisavo de Lámina)</option>
+          <option value="1/32 (Treintaydosavo de Lámina)">1/32 (Treintaydosavo de Lámina)</option>
+        </select>
+      </div>
+      <div class="mb-4">
+        <label class="block modal-input-item">Utilidad (%)</label>
+        <input
+          type="number"
+          step="0.1"
+          [(ngModel)]="calculatorForm.margin"
+          name="calcMargin"
+          class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+          placeholder="Ej. 30"
+          required
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block modal-input-item">Descuento (%)</label>
+        <input
+          type="number"
+          step="0.1"
+          [(ngModel)]="calculatorForm.discount"
+          name="calcDiscount"
+          class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+          placeholder="Ej. 0"
+          required
+        />
+      </div>
+      <div class="mb-4">
+        <label class="inline-flex items-center">
           <input
-            [(ngModel)]="calculatorForm.thickness"
-            name="calcThickness"
-            class="form-input mt-1 block w-full border border-gray-300 rounded-md"
-            placeholder="Ej. 2.5mm"
+            type="checkbox"
+            [(ngModel)]="calculatorForm.includeIva"
+            name="includeIva"
+            class="form-checkbox"
           />
-        </div>
-        <!-- Ingreso de costo -->
-        <div class="mb-4">
-          <label class="block modal-input-item">Costo</label>
-          <input
-            type="number"
-            [(ngModel)]="calculatorForm.cost"
-            name="calcCost"
-            class="form-input mt-1 block w-full border border-gray-300 rounded-md"
-            placeholder="Ej. 1000"
-            required
-          />
-        </div>
-        <!-- Ingreso de flete -->
-        <div class="mb-4">
-          <label class="block modal-input-item">Flete</label>
-          <input
-            type="number"
-            [(ngModel)]="calculatorForm.freight"
-            name="calcFreight"
-            class="form-input mt-1 block w-full border border-gray-300 rounded-md"
-            placeholder="Ej. 200"
-            required
-          />
-        </div>
-        <!-- Selección de tipo de corte -->
-        <div class="mb-4">
-          <label class="block modal-input-item">Tipo de Corte</label>
-          <select
-            [(ngModel)]="calculatorForm.cutType"
-            name="calcCutType"
-            class="form-select mt-1 block w-full border border-gray-300 rounded-md"
-            required
-          >
-            <option value="Entera">Entera</option>
-            <option value="Media">Media</option>
-            <option value="1/3">1/3</option>
-            <option value="1/4">1/4</option>
-            <option value="1/8 30x180">1/8 (30x180 - 90x60)</option>
-            <option value="1/8 90x60">1/8 (1/16 45x60)</option>
-            <option value="1/8 30x45">1/8 (1/32 30x45)</option>
-          </select>
-        </div>
-        <!-- Resultados -->
-        <div *ngIf="calculationResult" class="mt-4">
-          <h4 class="font-semibold">Resultados:</h4>
-          <p>
-            <strong>Costo Base (C+F):</strong> ${{
-              calculationResult.costPlusFreight.toFixed(2)
-            }}
-          </p>
-          <div *ngIf="calculationResult.entera25 !== undefined">
-            <p>
-              <strong>Entera 25%:</strong> ${{
-                calculationResult.entera25.toFixed(2)
-              }}
-            </p>
-          </div>
-          <div *ngIf="calculationResult.entera20 !== undefined">
-            <p>
-              <strong>Entera 20%:</strong> ${{
-                calculationResult.entera20.toFixed(2)
-              }}
-            </p>
-          </div>
-          <div *ngIf="calculationResult.entera15 !== undefined">
-            <p>
-              <strong>Entera 15%:</strong> ${{
-                calculationResult.entera15.toFixed(2)
-              }}
-            </p>
-          </div>
-          <div *ngIf="calculationResult.media !== undefined">
-            <p>
-              <strong>Media:</strong> ${{ calculationResult.media.toFixed(2) }}
-            </p>
-          </div>
-          <div *ngIf="calculationResult.oneThird !== undefined">
-            <p>
-              <strong>1/3:</strong> ${{ calculationResult.oneThird.toFixed(2) }}
-            </p>
-          </div>
-          <div *ngIf="calculationResult.oneFourth !== undefined">
-            <p>
-              <strong>1/4:</strong> ${{
-                calculationResult.oneFourth.toFixed(2)
-              }}
-            </p>
-          </div>
-          <div *ngIf="calculationResult.oneEighth30x180 !== undefined">
-            <p>
-              <strong>1/8 (30x180 - 90x60):</strong> ${{
-                calculationResult.oneEighth30x180.toFixed(2)
-              }}
-            </p>
-          </div>
-          <div *ngIf="calculationResult.oneEighth90x60 !== undefined">
-            <p>
-              <strong>1/8 (1/16 45x60):</strong> ${{
-                calculationResult.oneEighth90x60.toFixed(2)
-              }}
-            </p>
-          </div>
-          <div *ngIf="calculationResult.oneEighth30x45 !== undefined">
-            <p>
-              <strong>1/8 (1/32 30x45):</strong> ${{
-                calculationResult.oneEighth30x45.toFixed(2)
-              }}
-            </p>
-          </div>
-        </div>
-        <div class="flex justify-end mt-4">
-          <button
-            type="button"
-            class="btn-danger"
-            (click)="closeCalculatorModal()"
-          >
-            Cerrar
-          </button>
-          <button type="submit" class="btn-success">Calcular</button>
-        </div>
-      </form>
-    </div>
+          <span class="ml-2">Incluir IVA (19%)</span>
+        </label>
+      </div>
+      <div class="mb-4" *ngIf="selectedClient">
+        <button
+          type="button"
+          class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+          (click)="openClientDefaultsModal()"
+        >
+          Modificar Utilidad/Descuento Predeterminados
+        </button>
+      </div>
+      <!-- Resultados -->
+      <div *ngIf="calculationResult" class="mt-4">
+        <h4 class="font-semibold">Resultados:</h4>
+        <p><strong>Precio 30% Utilidad:</strong> ${{ calculationResult.priceWith30Profit.toLocaleString() }}</p>
+        <p><strong>Área Total Lámina:</strong> {{ calculationResult.totalSheetArea.toLocaleString() }} cm²</p>
+        <p><strong>Área:</strong> {{ calculationResult.area.toLocaleString() }} cm²</p>
+        <p><strong>Precio con Margen:</strong> ${{ calculationResult.priceWithMargin.toLocaleString() }}</p>
+        <p><strong>Margen Aplicado:</strong> {{ (calculationResult.appliedMargin * 100).toFixed(2) }}%</p>
+        <p><strong>Precio + Margen:</strong> ${{ calculationResult.pricePlusMargin.toLocaleString() }}</p>
+        <p><strong>Descuento:</strong> ${{ calculationResult.discount.toLocaleString() }}</p>
+        <p><strong>Precio sin IVA:</strong> ${{ calculationResult.finalPriceWithoutIva.toLocaleString() }}</p>
+        <p *ngIf="calculatorForm.includeIva"><strong>IVA:</strong> ${{ calculationResult.iva.toLocaleString() }}</p>
+        <p *ngIf="calculatorForm.includeIva"><strong>Precio con IVA:</strong> ${{ calculationResult.finalPriceWithIva.toLocaleString() }}</p>
+      </div>
+      <div class="flex justify-end mt-4">
+        <button type="button" class="btn-danger" (click)="closeCalculatorModal()">Cerrar</button>
+        <button type="submit" class="btn-success">Calcular</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal para modificar valores predeterminados del cliente -->
+<div *ngIf="showClientDefaultsModal" class="modal-overlay">
+  <div class="modal-content">
+    <h3 class="text-lg font-bold mb-4">Modificar Valores Predeterminados de {{ selectedClient?.name }}</h3>
+    <form (ngSubmit)="saveClientDefaults()">
+      <div class="mb-4">
+        <label class="block modal-input-item">Utilidad Predeterminada (%)</label>
+        <input
+          type="number"
+          step="0.1"
+          [(ngModel)]="selectedClient!.default_margin"
+          name="defaultMargin"
+          class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+          placeholder="Ej. 30"
+          required
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block modal-input-item">Descuento Predeterminado (%)</label>
+        <input
+          type="number"
+          step="0.1"
+          [(ngModel)]="selectedClient!.default_discount"
+          name="defaultDiscount"
+          class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+          placeholder="Ej. 0"
+          required
+        />
+      </div>
+      <div class="flex justify-end">
+        <button type="button" class="btn-danger" (click)="closeClientDefaultsModal()">Cancelar</button>
+        <button type="submit" class="btn-success">Guardar Cambios</button>
+      </div>
+    </form>
   </div>
 </div>
