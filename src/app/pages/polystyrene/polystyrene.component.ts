@@ -8,9 +8,31 @@ import { RouterOutlet } from '@angular/router';
 interface Polystyrene {
   id_polystyrene?: string;
   created_at?: string;
+  width: number;
+  height: number;
   type: string;
   caliber: string;
   whole: number;
+}
+
+interface Client {
+  id_client: string;
+  name: string;
+  company_name?: string;
+  default_profit?: number;
+  default_margin?: number;
+  default_discount?: number;
+}
+
+interface PolystyreneCalculationResult {
+  area: number;
+  basePriceWithProfit: number;
+  appliedMargin: number;
+  priceWithMargin: number;
+  discount: number;
+  finalPriceWithoutIva: number;
+  iva: number;
+  finalPriceWithIva: number;
 }
 
 @Component({
@@ -35,19 +57,40 @@ export class PolystyreneComponent implements OnInit {
   showModal = false;
   isEditing = false;
   loading = true;
+  showCalculatorModal = false;
 
   currentPage: number = 1;
   itemsPerPage: number = 10;
   totalPages: number = 1;
 
-  private formatFactors: { [key: string]: { factor: number; margin: number } } = {
+  calculatorForm = {
+    width: 0,
+    height: 0,
+    caliber: '',
+    type: '',
+    format: '1 Lámina',
+    whole: 0,
+    margin: 30,
+    discount: 0,
+    includeIva: false
+  };
+  calculationResult: PolystyreneCalculationResult | null = null;
+
+  clients: Client[] = [];
+  filteredClients: Client[] = [];
+  clientSearchQuery: string = '';
+  showClientDropdown: boolean = false;
+  selectedClient: Client | null = null;
+  showClientDefaultsModal: boolean = false;
+
+  formatFactors: { [key: string]: { factor: number; margin: number } } = {
     '1 Lámina': { factor: 1, margin: 0 },
     '1/2 (Media Lámina)': { factor: 1 / 2, margin: 0.1 },
-    '1/3 (Tercio de Lámina)': { factor: 1 / 3, margin: 0.42 },
-    '1/4 (Cuarto de Lámina)': { factor: 1 / 4, margin: 0.3 },
-    '1/8 (Octavo de Lámina)': { factor: 1 / 8, margin: 0.4 },
-    '1/16 (Dieciseisavo de Lámina)': { factor: 1 / 16, margin: 0.45 },
-    '1/32 (Treintaydosavo de Lámina)': { factor: 1 / 32, margin: 0.48 },
+    '1/3 (Tercio de Lámina)': { factor: 1 / 3, margin: 0.3 },
+    '1/4 (Cuarto de Lámina)': { factor: 1 / 4, margin: 0.4 },
+    '1/8 (Octavo de Lámina)': { factor: 1 / 8, margin: 0.55 },
+    '1/16 (Dieciseisavo de Lámina)': { factor: 1 / 16, margin: 0.63 },
+    '1/32 (Treintaydosavo de Lámina)': { factor: 1 / 32, margin: 0.66 },
   };
 
   constructor(
@@ -63,13 +106,13 @@ export class PolystyreneComponent implements OnInit {
         });
       }
     });
+    await this.getClients();
   }
 
   async loadPolystyrenes(): Promise<void> {
     const { error, data } = await this.supabase
       .from('polystyrene')
       .select('*')
-      .order(this.sortColumn, { ascending: this.sortDirection === 'asc' });
 
     if (error) {
       console.error('Error cargando:', error);
@@ -77,6 +120,13 @@ export class PolystyreneComponent implements OnInit {
     }
 
     this.polystyrenes = data as Polystyrene[];
+
+    this.polystyrenes.sort((a, b) => {
+      const typeCompare = a.type.localeCompare(b.type);
+      if (typeCompare !== 0) return typeCompare;
+
+      return Number(a.caliber) - Number(b.caliber);
+    });
 
     const typesSet = new Set<string>();
     this.polystyrenes.forEach(p => {
@@ -88,14 +138,25 @@ export class PolystyreneComponent implements OnInit {
     this.loading = false;
   }
 
-  toggleSortDirection(column: 'caliber' | 'type'): void {
+  toggleSortDirection(column: 'caliber'): void {
     if (this.sortColumn === column) {
       this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
     } else {
       this.sortColumn = column;
       this.sortDirection = 'asc';
     }
-    this.loadPolystyrenes();
+
+    this.polystyrenes.sort((a, b) => {
+      const typeCompare = a.type.localeCompare(b.type);
+      if (typeCompare !== 0) return typeCompare;
+
+      // Calibre numérico
+      return this.sortDirection === 'asc'
+        ? Number(a.caliber) - Number(b.caliber)
+        : Number(b.caliber) - Number(a.caliber);
+    });
+
+    this.updateFilteredPolystyrenes();
   }
 
   getSortIcon(column: string): string {
@@ -126,6 +187,8 @@ export class PolystyreneComponent implements OnInit {
   addPolystyrene(): void {
     this.selectedPolystyrene = {
       type: '',
+      width: 100,
+      height: 200,
       caliber: '0',
       whole: 0
     };
@@ -142,6 +205,8 @@ export class PolystyreneComponent implements OnInit {
   async savePolystyrene(): Promise<void> {
     const itemToSave = {
       type: this.selectedPolystyrene.type,
+      width: this.selectedPolystyrene.width,
+      height: this.selectedPolystyrene.height,
       caliber: this.selectedPolystyrene.caliber,
       whole: this.selectedPolystyrene.whole
     };
@@ -200,33 +265,188 @@ export class PolystyreneComponent implements OnInit {
   }
 
   // Funciones de cálculo reutilizadas
-  calculateBasePriceWith30PercentProfit(cost: number): number {
-    return Math.ceil((cost * 1.3) / 100) * 100;
+  calculatePriceForTable(item: Polystyrene): PolystyreneCalculationResult {
+    const pedidoArea = (item.width * item.height) / 10000;
+    const factor = this.formatFactors[this.selectedFormat]?.factor || 1;
+    const extraMargin = this.formatFactors[this.selectedFormat]?.margin || 0;
+    const adjustedArea = pedidoArea * factor;
+
+    const totalSheetArea = 2.0;
+
+    const baseCost = adjustedArea >= totalSheetArea
+      ? item.whole
+      : (item.whole / totalSheetArea) * adjustedArea;
+
+    const utilidad = 0.3; // 30% fijo en la tabla
+    const priceWithUtility = Math.ceil((baseCost / (1 - utilidad)) / 100) * 100;
+
+    const priceWithMargin = Math.ceil((priceWithUtility * (1 + extraMargin)) / 100) * 100;
+
+    const discount = 0; // descuento fijo para tabla
+    const discountValue = Math.ceil((priceWithMargin * discount) / 100) * 100;
+
+    const priceWithoutIva = Math.ceil((priceWithMargin - discountValue) / 100) * 100;
+
+    const iva = Math.ceil((priceWithoutIva * 0.19) / 100) * 100;
+    const finalWithIva = priceWithoutIva + iva;
+
+    return {
+      area: adjustedArea,
+      basePriceWithProfit: priceWithUtility,
+      appliedMargin: extraMargin,
+      priceWithMargin,
+      discount: discountValue,
+      finalPriceWithoutIva: priceWithoutIva,
+      iva,
+      finalPriceWithIva: finalWithIva
+    };
   }
 
-  calculateAdjustedPriceWith30PercentProfit(cost: number): number {
-    const factor = this.formatFactors[this.selectedFormat].factor;
-    const basePrice = cost * 1.3;
-    return Math.ceil((basePrice * factor) / 100) * 100;
+  async getClients(): Promise<void> {
+    const { data, error } = await this.supabase.from('clients').select('*');
+    if (error) {
+      console.error('Error obteniendo clientes:', error);
+      return;
+    }
+    this.clients = data;
+    this.filteredClients = [...this.clients];
   }
 
-  getAppliedMargin(): number {
-    return this.formatFactors[this.selectedFormat].margin;
+  searchClients(): void {
+    const query = this.clientSearchQuery.toLowerCase().trim();
+    this.filteredClients = this.clients.filter(client =>
+      client.name.toLowerCase().includes(query) ||
+      client.company_name?.toLowerCase().includes(query)
+    );
   }
 
-  calculatePriceWithMargin(adjustedPrice: number): number {
-    return Math.ceil((adjustedPrice * (1 + this.getAppliedMargin())) / 100) * 100;
+  selectClient(client: Client): void {
+    this.selectedClient = client;
+    this.clientSearchQuery = `${client.name} (${client.company_name || 'Sin empresa'})`;
+    this.showClientDropdown = false;
+    this.calculatorForm.margin = client.default_margin || 30;
+    this.calculatorForm.discount = client.default_discount || 0;
   }
 
-  calculateFinalPriceWithoutIva(priceWithMargin: number): number {
-    return Math.ceil(priceWithMargin / 100) * 100;
+  hideClientDropdown(): void {
+    setTimeout(() => (this.showClientDropdown = false), 200);
   }
 
-  calculateIva(finalPriceWithoutIva: number): number {
-    return Math.ceil((finalPriceWithoutIva * 0.19) / 100) * 100;
+  openCalculatorModal(): void {
+    this.showCalculatorModal = true;
+    this.clientSearchQuery = '';
+    this.filteredClients = [...this.clients];
+    this.selectedClient = null;
+    this.calculatorForm = {
+      width: 0,
+      height: 0,
+      caliber: '',
+      type: '',
+      format: '1 Lámina',
+      whole: 0,
+      margin: 30,
+      discount: 0,
+      includeIva: false
+    };
+    this.calculationResult = null;
   }
 
-  calculatePriceWithIva(finalPriceWithoutIva: number, iva: number): number {
-    return finalPriceWithoutIva + iva;
+  closeCalculatorModal(): void {
+    this.showCalculatorModal = false;
+    this.selectedClient = null;
+    this.calculationResult = null;
+  }
+
+  calculatePolystyreneValues(): void {
+    const pedidoArea = (this.calculatorForm.width * this.calculatorForm.height) / 10000;
+    const factor = this.formatFactors[this.calculatorForm.format]?.factor || 1;
+    const extraMargin = this.formatFactors[this.calculatorForm.format]?.margin || 0;
+
+    // Área ajustada por formato (por si es fracción de lámina)
+    const adjustedArea = pedidoArea * factor;
+
+    // Área total de una lámina (según tu hoja)
+    const totalSheetArea = 2.0; // 100x200 cm = 2.0 m²
+
+    // Si el pedido cubre una lámina completa o más, no se divide por área
+    const baseCost = (adjustedArea >= totalSheetArea)
+      ? this.calculatorForm.whole
+      : (this.calculatorForm.whole / totalSheetArea) * adjustedArea;
+
+    // Aplicar utilidad
+    const utilidad = this.calculatorForm.margin / 100;
+    const priceWithUtility = Math.ceil((baseCost / (1 - utilidad)) / 100) * 100;
+
+    // Aplicar margen adicional por formato (si aplica)
+    const priceWithMargin = Math.ceil((priceWithUtility * (1 + extraMargin)) / 100) * 100;
+
+    // Aplicar descuento (si aplica)
+    const descuento = this.calculatorForm.discount / 100;
+    const discountValue = Math.ceil((priceWithMargin * descuento) / 100) * 100;
+
+    // Precio sin IVA
+    const priceWithoutIva = Math.ceil((priceWithMargin - discountValue) / 100) * 100;
+
+    // IVA (si se incluye)
+    const ivaValue = this.calculatorForm.includeIva
+      ? Math.ceil((priceWithoutIva * 0.19) / 100) * 100
+      : 0;
+
+    const finalPrice = priceWithoutIva + ivaValue;
+
+    // Resultado final
+    this.calculationResult = {
+      area: adjustedArea,
+      basePriceWithProfit: priceWithUtility,
+      appliedMargin: extraMargin,
+      priceWithMargin: priceWithMargin,
+      discount: discountValue,
+      finalPriceWithoutIva: priceWithoutIva,
+      iva: ivaValue,
+      finalPriceWithIva: finalPrice
+    };
+  }
+
+  openClientDefaultsModal(): void {
+    this.showClientDefaultsModal = true;
+  }
+
+  closeClientDefaultsModal(): void {
+    this.showClientDefaultsModal = false;
+  }
+
+  async saveClientDefaults(): Promise<void> {
+    if (!this.selectedClient ||
+        this.selectedClient.default_margin === undefined ||
+        this.selectedClient.default_discount === undefined) {
+      alert('Por favor, complete todos los campos.');
+      return;
+    }
+
+    try {
+      const { error } = await this.supabase
+        .from('clients')
+        .update({
+          default_margin: this.selectedClient.default_margin,
+          default_discount: this.selectedClient.default_discount
+        })
+        .eq('id_client', this.selectedClient.id_client);
+
+      if (error) {
+        console.error('Error al actualizar cliente:', error);
+        alert('Error al guardar los cambios.');
+        return;
+      }
+
+      alert('Valores predeterminados actualizados correctamente.');
+      this.calculatorForm.margin = this.selectedClient.default_margin;
+      this.calculatorForm.discount = this.selectedClient.default_discount;
+
+      await this.getClients();
+      this.closeClientDefaultsModal();
+    } catch (error) {
+      console.error('Error inesperado:', error);
+      alert('Ocurrió un error inesperado.');
+    }
   }
 }
