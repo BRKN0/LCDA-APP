@@ -28,6 +28,45 @@
     </svg>
     <span>Añadir</span>
   </button>
+  <button class="btn-details inline-flex items-center space-x-2" (click)="openCalculatorModal()">
+    <svg class="w-8 h-8 inline-block align-middle mt-[3px]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+      <g
+        id="SVGRepo_tracerCarrier"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      ></g>
+      <g id="SVGRepo_iconCarrier">
+        <path
+          d="M14 7C14 6.44771 14.4477 6 15 6H16V5C16 4.44772 16.4477 4 17 4C17.5523 4 18 4.44772 18 5V6H19C19.5523 6 20 6.44771 20 7C20 7.55229 19.5523 8 19 8H18V9C18 9.55228 17.5523 10 17 10C16.4477 10 16 9.55228 16 9V8H15C14.4477 8 14 7.55229 14 7Z"
+          fill="#ffffff"
+        ></path>
+        <path
+          d="M14 15C14 14.4477 14.4477 14 15 14H19C19.5523 14 20 14.4477 20 15C20 15.5523 19.5523 16 19 16H15C14.4477 16 14 15.5523 14 15Z"
+          fill="#ffffff"
+        ></path>
+        <path
+          d="M15 18C14.4477 18 14 18.4477 14 19C14 19.5523 14.4477 20 15 20H19C19.5523 20 20 19.5523 20 19C20 18.4477 19.5523 18 19 18H15Z"
+          fill="#ffffff"
+        ></path>
+        <path
+          d="M5 6C4.44772 6 4 6.44771 4 7C4 7.55229 4.44772 8 5 8H9C9.55228 8 10 7.55229 10 7C10 6.44771 9.55228 6 9 6H5Z"
+          fill="#ffffff"
+        ></path>
+        <path
+          d="M5.92512 14.5109C5.5346 14.1204 4.90143 14.1204 4.51091 14.5109C4.12039 14.9014 4.12039 15.5346 4.51091 15.9251L5.5858 17L4.50337 18.0824C4.11284 18.4729 4.11284 19.1061 4.50337 19.4966C4.89389 19.8872 5.52705 19.8872 5.91758 19.4966L7.00002 18.4142L8.08944 19.5036C8.47996 19.8941 9.11313 19.8941 9.50365 19.5036C9.89418 19.1131 9.89418 18.4799 9.50365 18.0894L8.41423 17L9.50194 15.9123C9.89246 15.5218 9.89246 14.8886 9.50194 14.4981C9.11141 14.1075 8.47825 14.1075 8.08772 14.4981L7.00002 15.5858L5.92512 14.5109Z"
+          fill="#ffffff"
+        ></path>
+        <path
+          fill-rule="evenodd"
+          clip-rule="evenodd"
+          d="M20 1C21.6569 1 23 2.34315 23 4V20C23 21.6569 21.6569 23 20 23H4C2.34315 23 1 21.6569 1 20V4C1 2.34315 2.34315 1 4 1H20ZM20 3C20.5523 3 21 3.44772 21 4V11H13V3H20ZM21 13V20C21 20.5523 20.5523 21 20 21H13V13H21ZM4 3H11V11H3V4C3 3.44772 3.44772 3 4 3ZM3 20V13H11V21H4C3.44772 21 3 20.5523 3 20Z"
+          fill="#ffffff"
+        ></path>
+      </g>
+    </svg>
+    <span>Calculadora</span>
+  </button>
 </div>
 <div class="flex items-center justify-center py-4 space-x-4 top-5">
   <div class="relative w-full max-w-md">
@@ -68,7 +107,13 @@
     >
       <option value="">-- Todos los tipos --</option>
       <option *ngFor="let type of availableTypes" [value]="type">
-        {{ type }}
+        {{ 
+          type === 'original' ? 'Original' :
+          type === 'eco' ? 'Eco' :
+          type === 'clear' ? 'Transparente' :
+          type === 'color' ? 'Color' :
+          type
+       }}
       </option>
     </select>
   </div>
@@ -80,9 +125,9 @@
       <table class="table-std">
         <thead>
           <tr>
-            <th (click)="toggleSortDirection('type')" class="cursor-pointer">
-              Tipo <span>{{ getSortIcon("type") }}</span>
-            </th>
+            <th>Ancho</th>
+            <th>Alto</th>
+            <th class="table-column-std">Tipo</th>
             <th (click)="toggleSortDirection('caliber')" class="cursor-pointer">
               Calibre <span>{{ getSortIcon("caliber") }}</span>
             </th>
@@ -98,57 +143,45 @@
         </thead>
         <tbody>
           <tr *ngFor="let item of paginatedPolystyrenes">
-            <td>{{ item.type }}</td>
+            <td>{{ item.width }}</td>
+            <td>{{ item.height }}</td>
+            <td>
+              {{ 
+                item.type === 'original'
+                  ? 'Original'
+                  : item.type === 'eco'
+                  ? 'Eco'
+                  : item.type === 'clear'
+                  ? 'Transparente'
+                  : item.type === 'color'
+                  ? 'Color'
+                  : 'Desconocido'
+              }}
+            </td>
             <td>{{ item.caliber }}</td>
             <td>{{ item.whole | currency : "COP" }}</td>
             <td>
-              {{
-                calculateBasePriceWith30PercentProfit(item.whole)
-                  | currency : "COP"
-              }}
+              {{ calculatePriceForTable(item).basePriceWithProfit | currency : "COP" }}
             </td>
-            <td>{{ (getAppliedMargin() * 100).toFixed(0) }}%</td>
+
             <td>
-              {{
-                calculateAdjustedPriceWith30PercentProfit(item.whole)
-                  | currency : "COP"
-              }}
+              {{ (calculatePriceForTable(item).appliedMargin * 100).toFixed(0) }}%
             </td>
+
             <td>
-              {{
-                calculatePriceWithMargin(
-                  calculateAdjustedPriceWith30PercentProfit(item.whole)
-                ) | currency : "COP"
-              }}
+              {{ calculatePriceForTable(item).priceWithMargin | currency : "COP" }}
             </td>
+
             <td>
-              {{
-                calculateIva(
-                  calculateFinalPriceWithoutIva(
-                    calculatePriceWithMargin(
-                      calculateAdjustedPriceWith30PercentProfit(item.whole)
-                    )
-                  )
-                ) | currency : "COP"
-              }}
+              {{ calculatePriceForTable(item).finalPriceWithoutIva | currency : "COP" }}
             </td>
+
             <td>
-              {{
-                calculatePriceWithIva(
-                  calculateFinalPriceWithoutIva(
-                    calculatePriceWithMargin(
-                      calculateAdjustedPriceWith30PercentProfit(item.whole)
-                    )
-                  ),
-                  calculateIva(
-                    calculateFinalPriceWithoutIva(
-                      calculatePriceWithMargin(
-                        calculateAdjustedPriceWith30PercentProfit(item.whole)
-                      )
-                    )
-                  )
-                ) | currency : "COP"
-              }}
+              {{ calculatePriceForTable(item).iva | currency : "COP" }}
+            </td>
+
+            <td>
+              {{ calculatePriceForTable(item).finalPriceWithIva | currency : "COP" }}
             </td>
             <td>
               <button class="btn-edit" (click)="editPolystyrene(item)">
@@ -225,22 +258,46 @@
 
 <!-- Modal -->
 <div *ngIf="showModal" class="modal-overlay">
-  <div class="modal-content modal-h400">
+  <div class="modal-content modal-h600">
     <h3 class="text-lg font-bold mb-4">
       {{ isEditing ? "Editar Poliestireno" : "Nuevo Poliestireno" }}
     </h3>
     <form (ngSubmit)="savePolystyrene()">
       <div class="mb-4">
         <label class="block modal-input-item"
-          >Tipo<span class="text-red-500">*</span></label
+        >Ancho (cm)<span class="text-red-500">*</span></label
         >
-        <input
-          type="text"
+        <input type="number" 
+          [(ngModel)]="selectedPolystyrene.width" 
+          name="width" 
+          class="form-input mt-1 block w-full" 
+          required 
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block modal-input-item"
+        >Alto (cm)<span class="text-red-500">*</span></label
+        >
+        <input type="number" 
+          [(ngModel)]="selectedPolystyrene.height" 
+          name="height" 
+          class="form-input mt-1 block w-full" 
+          required 
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block modal-input-item">Tipo</label>
+        <select
           [(ngModel)]="selectedPolystyrene.type"
           name="type"
-          class="form-input mt-1 block w-full"
+          class="form-select mt-1 block w-full"
           required
-        />
+        >
+          <option value="original">Original</option>
+          <option value="eco">Eco</option>
+          <option value="clear">Transparente</option>
+          <option value="color">Color</option>
+        </select>
       </div>
       <div class="mb-4">
         <label class="block modal-input-item"
@@ -277,3 +334,161 @@
     </form>
   </div>
 </div>
+
+<div *ngIf="showCalculatorModal" class="modal-overlay">
+    <div class="modal-content modal-h600">
+      <h3 class="text-lg font-bold mb-4">Calculadora de Poliestireno</h3>
+      <form (ngSubmit)="calculatePolystyreneValues()">
+        <!-- Cliente -->
+        <div class="mb-4">
+          <label class="block modal-input-item">Cliente (opcional)</label>
+          <div class="relative">
+            <input
+              type="text"
+              placeholder="Buscar cliente por nombre..."
+              [(ngModel)]="clientSearchQuery"
+              (ngModelChange)="searchClients()"
+              name="clientSearch"
+              class="form-input mt-1 block w-full"
+              (focus)="showClientDropdown = true"
+              (blur)="hideClientDropdown()"
+            />
+            <div
+              *ngIf="showClientDropdown && filteredClients.length > 0"
+              class="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto"
+            >
+              <div
+                *ngFor="let client of filteredClients"
+                class="p-2 hover:bg-gray-200 cursor-pointer"
+                (click)="selectClient(client)"
+              >
+                {{ client.name }} ({{ client.company_name || 'Sin empresa' }})
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Formulario de medidas -->
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block modal-input-item">Ancho (cm)</label>
+            <input type="number" [(ngModel)]="calculatorForm.width" name="width" required class="form-input w-full" />
+          </div>
+          <div>
+            <label class="block modal-input-item">Alto (cm)</label>
+            <input type="number" [(ngModel)]="calculatorForm.height" name="height" required class="form-input w-full" />
+          </div>
+          <div>
+            <label class="block modal-input-item">Calibre</label>
+            <input type="text" [(ngModel)]="calculatorForm.caliber" name="caliber" required class="form-input w-full" />
+          </div>
+          <div>
+            <label class="block modal-input-item">Tipo</label>
+            <input type="text" [(ngModel)]="calculatorForm.type" name="type" required class="form-input w-full" />
+          </div>
+          <div>
+            <label class="block modal-input-item">Formato</label>
+            <select [(ngModel)]="calculatorForm.format" name="format" class="form-select w-full">
+              <option *ngFor="let key of (formatFactors | keyvalue)" [value]="key.key">{{ key.key }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="block modal-input-item">Precio lámina entera</label>
+            <input type="number" [(ngModel)]="calculatorForm.whole" name="whole" required class="form-input w-full" />
+          </div>
+          <div>
+            <label class="block modal-input-item">Utilidad (%)</label>
+            <input type="number" [(ngModel)]="calculatorForm.margin" name="margin" required class="form-input w-full" />
+          </div>
+          <div>
+            <label class="block modal-input-item">Descuento (%)</label>
+            <input type="number" [(ngModel)]="calculatorForm.discount" name="discount" required class="form-input w-full" />
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <label class="inline-flex items-center">
+            <input type="checkbox" [(ngModel)]="calculatorForm.includeIva" name="includeIva" class="form-checkbox" />
+            <span class="ml-2">Incluir IVA (19%)</span>
+          </label>
+        </div>
+
+        <div class="mb-4" *ngIf="selectedClient">
+          <button
+            type="button"
+            class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+            (click)="openClientDefaultsModal()"
+          >
+            Modificar Utilidad/Descuento Predeterminados
+          </button>
+        </div>
+
+        <!-- Resultados -->
+        <div *ngIf="calculationResult" class="mt-6 space-y-1 text-sm">
+          <h4 class="font-semibold text-base">Resultados:</h4>
+          <p><strong>Área:</strong> {{ calculationResult.area.toFixed(4) }} m²</p>
+          <p><strong>Costo con utilidad:</strong> ${{ calculationResult.basePriceWithProfit.toLocaleString() }}</p>
+          <p><strong>Margen aplicado:</strong> {{ (calculationResult.appliedMargin * 100).toFixed(0) }}%</p>
+          <p><strong>Precio con margen:</strong> ${{ calculationResult.priceWithMargin.toLocaleString() }}</p>
+          <p><strong>Descuento:</strong> ${{ calculationResult.discount.toLocaleString() }}</p>
+          <p><strong>Precio sin IVA:</strong> ${{ calculationResult.finalPriceWithoutIva.toLocaleString() }}</p>
+          <p *ngIf="calculatorForm.includeIva"><strong>IVA:</strong> ${{ calculationResult.iva.toLocaleString() }}</p>
+          <p *ngIf="calculatorForm.includeIva"><strong>Precio con IVA:</strong> ${{ calculationResult.finalPriceWithIva.toLocaleString() }}</p>
+        </div>
+
+        <!-- Acciones -->
+        <div class="flex justify-end space-x-2 mt-4">
+          <button type="button" class="btn-danger" (click)="closeCalculatorModal()">Cerrar</button>
+          <button type="submit" class="btn-success">Calcular</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div *ngIf="showClientDefaultsModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3 class="text-lg font-bold mb-4">
+        Modificar Valores Predeterminados de {{ selectedClient?.name }}
+      </h3>
+      <form (ngSubmit)="saveClientDefaults()">
+        <div class="mb-4">
+          <label class="block modal-input-item"
+            >Utilidad Predeterminada (%)</label
+          >
+          <input
+            type="number"
+            step="0.1"
+            [(ngModel)]="selectedClient!.default_margin"
+            name="defaultMargin"
+            class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+            placeholder="Ej. 30"
+            required
+          />
+        </div>
+        <div class="mb-4">
+          <label class="block modal-input-item"
+            >Descuento Predeterminado (%)</label
+          >
+          <input
+            type="number"
+            step="0.1"
+            [(ngModel)]="selectedClient!.default_discount"
+            name="defaultDiscount"
+            class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+            placeholder="Ej. 0"
+            required
+          />
+        </div>
+        <div class="flex justify-end">
+          <button
+            type="button"
+            class="btn-danger"
+            (click)="closeClientDefaultsModal()"
+          >
+            Cancelar
+          </button>
+          <button type="submit" class="btn-success">Guardar Cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
