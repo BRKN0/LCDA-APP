@@ -12,23 +12,6 @@
     height="110"
   />
   <div class="mt-5 mx-auto px-4 flex flex-wrap justify-center gap-4">
-    <ng-template #roleChangeButton>
-      <div
-        class="absolute bottom-0 left-0 inline-block text-white text-left bg-[#b91c1c] shadow-md"
-      >
-        <label for="role-select" class="mr-2 font-semibold">Cambiar Rol:</label>
-        <select
-          id="role-select"
-          [(ngModel)]="userRole"
-          (change)="onRoleChange()"
-          class="border border-gray-300 rounded p-2 text-black dropdown"
-        >
-          <option value="admin">Administrador</option>
-          <option value="prints_employee">Empleado Impresiones</option>
-          <option value="cuts_employee">Empleado Cortes</option>
-        </select>
-      </div>
-    </ng-template>
     <!-- Navigation -->
     <div class="flex justify-around py-4 nav-bar shadow-md">
       <div
@@ -91,15 +74,35 @@
           >
             <li
               class="p-2 nav-item cursor-pointer"
+              [ngClass]="{ active: router.url.startsWith('/banks') }"
               (click)="goToBanks(); closeDropdowns()"
             >
               Bancos
             </li>
             <li
               class="p-2 nav-item cursor-pointer"
+              [ngClass]="{ active: router.url.startsWith('/banking') }"
               (click)="goToBanking(); closeDropdowns()"
             >
               Transacciones
+            </li>
+            <li
+              *ngIf="userRole == 'admin'"
+              class="nav-item cursor-pointer"
+              [ngClass]="{ active: router.url.startsWith('/providers') }"
+              (click)="goToProviders()"
+            >
+              <i class="fas fa-users"></i>
+              <span>Proveedores</span>
+            </li>
+            <li
+              *ngIf="userRole == 'admin'"
+              class="nav-item cursor-pointer"
+              [ngClass]="{ active: router.url.startsWith('/third') }"
+              (click)="goToThirdParties()"
+            >
+              <i class="fas fa-users"></i>
+              <span>Terceros</span>
             </li>
           </ul>
         </div>
@@ -135,24 +138,28 @@
           >
             <li
               class="p-2 nav-item cursor-pointer"
+              [ngClass]="{ active: router.url.startsWith('/pricing/acrylic') }"
               (click)="goToAcrylics(); closeDropdowns()"
             >
               Acrilicos
             </li>
             <li
               class="p-2 nav-item cursor-pointer"
+              [ngClass]="{ active: router.url.startsWith('/pricing/mdf') }"
               (click)="goToMdf(); closeDropdowns()"
             >
               MDF
             </li>
             <li
-              class="p-2 nav-item cursor-pointer"
+              class="p-2 nav-item text-sm cursor-pointer"
+              [ngClass]="{ active: router.url.startsWith('/pricing/poly') }"
               (click)="goTopolystyrene(); closeDropdowns()"
             >
               Poliestireno
             </li>
             <li
               class="p-2 nav-item cursor-pointer"
+              [ngClass]="{ active: router.url.startsWith('/pricing/vinyl') }"
               (click)="goToVinylCuts(); closeDropdowns()"
             >
               Vinilo de corte
@@ -247,17 +254,9 @@
           <i class="fas fa-users"></i>
           <span>Empleados</span>
         </div>
+
         <div
-          *ngIf="userRole == 'admin'"
-          class="nav-item cursor-pointer"
-          [ngClass]="{ active: router.url.startsWith('/providers') }"
-          (click)="goToProviders()"
-        >
-          <i class="fas fa-users"></i>
-          <span>Proveedores</span>
-        </div>
-        <div
-          *ngIf="userRole == 'admin'"
+          *ngIf="userAdmin == true"
           class="nav-item relative cursor-pointer"
           [ngClass]="{ active: router.url.startsWith('/control-panel') }"
           (click)="goToControlPanel()"
@@ -334,11 +333,5 @@
         </div>
       </ng-template>
     </div>
-    <ng-template
-      [ngIf]="isLoggedIn$ | async"
-      [ngIfThen]="roleChangeButton"
-      [ngIfElse]="null"
-    >
-    </ng-template>
   </div>
 </div>

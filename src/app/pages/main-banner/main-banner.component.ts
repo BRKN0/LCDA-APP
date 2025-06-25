@@ -19,6 +19,7 @@ export class MainBannerComponent implements OnInit {
   userEmail: string | undefined = '';
   userRole: string | null = null;
   userId: string | null = null;
+  userAdmin: boolean = false;
   message: string | null = null;
   financeDropdownOpen = false;
   priceDropdownOpen = false;
@@ -35,44 +36,12 @@ export class MainBannerComponent implements OnInit {
       .authChanges$()
       .pipe(map((session) => !!session));
   }
-  async onRoleChange() {
-    const { data, error } = await this.supabase
-      .from('roles')
-      .select('id')
-      .eq('name', this.userRole);
-    if (error) {
-      console.log('error finding new role: ', error);
-      return;
-    }
-    const userToUpdate = {
-      id: this.userId,
-      email: this.userEmail,
-      id_role: data[0].id,
-    };
-    console.log(userToUpdate);
-    this.updateRole(userToUpdate);
-  }
-  async updateRole(userToUpdate: {
-    id: any;
-    email?: string | undefined;
-    id_role?: any;
-  }) {
-    const { error } = await this.supabase
-      .from('users')
-      .update(userToUpdate)
-      .eq('id', userToUpdate.id);
 
-    if (error) {
-      console.log('error updating role: ', error);
-      return;
-    }
-    if (this.userRole) {
-      this.roleService.setRole(this.userRole);
-      this.goToHome();
-    }
-  }
   goToNotifications() {
     this.router.navigate(['/notifications']); // Redirect to root route
+  }
+   goToThirdParties() {
+    this.router.navigate(['/third-parties']); // Redirect to root route
   }
   goToHome() {
     this.router.navigate(['/home']); // Redirect to root route
@@ -129,52 +98,31 @@ export class MainBannerComponent implements OnInit {
   }
 
   async ngOnInit(): Promise<void> {
-    this.supabase.authChanges((_, session) => {
+    this.supabase.authChanges(async (_, session) => {
       if (session && !this.userId) {
-        this.zone.run(() => {
+        this.zone.run(async () => {
           this.userId = session.user.id;
+          this.userEmail = session.user.email;
+
+          const { data, error } = await this.supabase
+            .from('admins')
+            .select('user_id')
+            .eq('user_id', this.userId.trim())
+            .maybeSingle();
+
+          if (data != undefined) {
+            this.userAdmin = true;
+          } else {
+            this.userAdmin = false;
+          }
           this.roleService.fetchAndSetUserRole(this.userId);
           this.roleService.role$.subscribe((role) => {
             this.userRole = role;
             this.getNotifications();
           });
-          this.userId = session.user.id;
-          this.userEmail = session.user.email;
-          this.roleService.fetchAndSetUserRole(this.userId);
         });
       }
     });
-
-    /* I honestly don't even know what this is supposed to do here maybe it's important?
-    const type = this.route.snapshot.queryParamMap.get('type');
-    const token = this.route.snapshot.queryParamMap.get('token');
-    // Check if it's a signup confirmation
-    if (type === 'signup' && token) {
-      // You'll need the email used during signup.
-      // If you didn't store it anywhere, you might ask the user or store it in localStorage during signup.
-      const userEmail = localStorage.getItem('pendingSignupEmail') || '';
-
-      const { data, error } = await this.supabase['supabase'].auth.verifyOtp({
-        type: 'signup',
-        token,
-        email: userEmail,
-      });
-
-      if (error) {
-        console.error('Error verifying signup:', error);
-        this.message = 'There was an issue confirming your email.';
-      } else {
-        this.message =
-          'Your email has been successfully confirmed! You can now log in.';
-      }
-
-      // Remove query params from the URL
-      this.router.navigate([], {
-        queryParams: {},
-        replaceUrl: true,
-      });
-    }
-    */
   }
   async getNotifications() {
     if (!this.userId || !this.userRole) return;
