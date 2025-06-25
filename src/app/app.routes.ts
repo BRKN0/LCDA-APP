@@ -17,6 +17,7 @@ import { BanksComponent } from './pages/banks/banks.component';
 import { EmployeesComponent } from './pages/employees/employees.component';
 import { ProvidersComponent } from './pages/providers/providers.component';
 import { ControlPanelComponent } from './pages/control-panel/control-panel.component';
+import { ThirdPartiesComponent } from './pages/third-parties/third-parties.component';
 
 export const routes: Routes = [
   {
@@ -56,6 +57,10 @@ export const routes: Routes = [
     path: 'orders',
     loadComponent: () => OrdersComponent,
   },
+  {
+    path: 'third-parties',
+    loadComponent: () => ThirdPartiesComponent,
+  },
   { path: 'invoice', loadComponent: () => InvoiceComponent },
   {
     path: 'expenses',
@@ -81,7 +86,7 @@ export const routes: Routes = [
     path: 'providers',
     loadComponent: () => ProvidersComponent,
   },
-    {
+  {
     path: 'control-panel',
     loadComponent: () => ControlPanelComponent,
   },

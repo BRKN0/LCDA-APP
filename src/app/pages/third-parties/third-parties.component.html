@@ -1,0 +1,411 @@
+<router-outlet></router-outlet>
+<app-main-banner></app-main-banner>
+<!-- Loading -->
+<div *ngIf="loading" class="p-4 text-center text-gray-600">
+  <p>Cargando datos de terceros...</p>
+</div>
+
+<!-- Action buttons -->
+<div *ngIf="!loading" class="flex justify-end space-x-2 mr-4 mb-4 mt-4">
+  <button
+    class="btn-add inline-flex items-center space-x-2"
+    (click)="addParty()"
+  >
+    <svg
+      class="w-5 h-5 inline-block align-middle mt-[3px]"
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M12.75 9C12.75 8.58579 12.4142 8.25 12 8.25C11.5858 8.25 11.25 8.58579 11.25 9V11.25H9C8.58579 11.25 8.25 11.5858 8.25 12C8.25 12.4142 8.58579 12.75 9 12.75H11.25V15C11.25 15.4142 11.5858 15.75 12 15.75C12.4142 15.75 12.75 15.4142 12.75 15V12.75H15C15.4142 12.75 15.75 12.4142 15.75 12C15.75 11.5858 15.4142 11.25 15 11.25H12.75V9Z"
+        fill="#ffffff"
+      />
+      <path
+        fill-rule="evenodd"
+        clip-rule="evenodd"
+        d="M12 1.25C6.06294 1.25 1.25 6.06294 1.25 12C1.25 17.9371 6.06294 22.75 12 22.75C17.9371 22.75 22.75 17.9371 22.75 12C22.75 6.06294 17.9371 1.25 12 1.25ZM2.75 12C2.75 6.89137 6.89137 2.75 12 2.75C17.1086 2.75 21.25 6.89137 21.25 12C21.25 17.1086 17.1086 21.25 12 21.25C6.89137 21.25 2.75 17.1086 2.75 12Z"
+        fill="#ffffff"
+      />
+    </svg>
+    <span>Añadir</span>
+  </button>
+  <button class="btn-details" (click)="importFromExcel()">
+    Importar desde Excel
+  </button>
+  <button class="btn-details" (click)="exportToExcel()">
+    Exportar a Excel
+  </button>
+</div>
+
+<div class="flex items-center justify-center mt-2">
+  <div class="w-full max-w-md relative">
+    <input
+      type="text"
+      placeholder="Ingrese nombre o empresa"
+      [(ngModel)]="nameSearchQuery"
+      (input)="updateFilteredParties()"
+      class="w-full py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
+    />
+  </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div *ngIf="showModal" class="modal-overlay">
+  <div
+    #modalContent
+    class="modal-content modal-h900 modal-w600 overflow-y-auto"
+  >
+    <h3 class="text-lg font-bold mb-4">
+      {{ isEditing ? "Editar Tercero" : "Nuevo Tercero" }}
+    </h3>
+    <form [formGroup]="partyForm" (ngSubmit)="saveParty()">
+      <div class="mb-4">
+        <label class="block modal-input-item"
+          >Nombre de Empresa<span class="text-red-500">*</span></label
+        >
+        <input
+          type="text"
+          formControlName="company_name"
+          name="company_name"
+          required
+          [ngClass]="{
+            'border-red-500':
+              partyForm.get('company_name')?.invalid &&
+              partyForm.get('company_name')?.touched
+          }"
+          class="form-input mt-1 block w-full"
+        />
+        <div
+          *ngIf="
+            partyForm.get('company_name')?.invalid &&
+            partyForm.get('company_name')?.touched
+          "
+          class="text-red-500 text-sm mt-1"
+        >
+          El nombre de empresa es obligatorio.
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="block font-semibold text-sm mb-1">NIT</label>
+        <input
+          type="text"
+          formControlName="nit"
+          class="w-full border rounded px-3 py-2"
+        />
+      </div>
+
+      <div class="mb-3">
+        <label class="block font-semibold text-sm mb-1">Email</label>
+        <input
+          type="email"
+          formControlName="email"
+          class="w-full border rounded px-3 py-2"
+        />
+      </div>
+
+      <div class="mb-3">
+        <label class="block font-semibold text-sm mb-1">Teléfono</label>
+        <input
+          type="text"
+          formControlName="phone_number"
+          class="w-full border rounded px-3 py-2"
+        />
+      </div>
+
+      <div class="mb-3 grid grid-cols-3 gap-4">
+        <div>
+          <label class="block font-semibold text-sm mb-1">País</label>
+          <select
+            formControlName="country"
+            class="w-full border rounded px-3 py-2"
+          >
+            <option value="Colombia">Colombia</option>
+            <option value="Estados Unidos">Estados Unidos</option>
+            <option value="México">México</option>
+            <option value="Perú">Perú</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-semibold text-sm mb-1">Departamento</label>
+          <ng-container
+            *ngIf="
+              partyForm.get('country')?.value === 'Colombia';
+              else deptoInput
+            "
+          >
+            <select
+              formControlName="department"
+              class="w-full border rounded px-3 py-2"
+            >
+              <option *ngFor="let dept of colombianDepartments" [value]="dept">
+                {{ dept }}
+              </option>
+            </select>
+          </ng-container>
+          <ng-template #deptoInput>
+            <input
+              type="text"
+              formControlName="department"
+              class="w-full border rounded px-3 py-2"
+            />
+          </ng-template>
+        </div>
+        <div>
+          <label class="block font-semibold text-sm mb-1">Ciudad</label>
+          <ng-container
+            *ngIf="
+              partyForm.get('country')?.value === 'Colombia';
+              else cityInput
+            "
+          >
+            <select
+              formControlName="city"
+              class="w-full border rounded px-3 py-2"
+            >
+              <option *ngFor="let city of colombianCities" [value]="city">
+                {{ city }}
+              </option>
+            </select>
+          </ng-container>
+          <ng-template #cityInput>
+            <input
+              type="text"
+              formControlName="city"
+              class="w-full border rounded px-3 py-2"
+            />
+          </ng-template>
+        </div>
+      </div>
+
+      <div class="mb-3 grid grid-cols-2 gap-4 justify-between">
+        <div>
+          <label class="block font-semibold text-sm mb-1">Dirección 1</label>
+          <input
+            type="text"
+            formControlName="address1"
+            class="w-full border rounded px-3 py-2"
+          />
+        </div>
+        <div>
+          <label class="block font-semibold text-sm mb-1">Dirección 2</label>
+          <input
+            type="text"
+            formControlName="address2"
+            class="w-full border rounded px-3 py-2"
+          />
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="block font-semibold text-sm mb-1">Barrio</label>
+        <input
+          type="text"
+          formControlName="neighborhood"
+          class="w-full border rounded px-3 py-2"
+        />
+      </div>
+
+      <div class="mb-3">
+        <label class="block font-semibold text-sm mb-1">Código Postal</label>
+        <input
+          type="text"
+          formControlName="postal_code"
+          class="w-full border rounded px-3 py-2"
+        />
+      </div>
+
+      <div class="mb-3">
+        <label class="block font-semibold text-sm mb-1">Comentario</label>
+        <textarea
+          rows="2"
+          formControlName="comment"
+          class="w-full border rounded px-3 py-2"
+        ></textarea>
+      </div>
+
+      <div class="mb-3 grid grid-cols-2 gap-4">
+        <div class="mb-3">
+          <label class="block font-semibold text-sm mb-1"
+            >Cuenta contable de gastos</label
+          >
+          <input
+            type="text"
+            formControlName="cta_contable_expenses"
+            class="w-full border rounded px-3 py-2"
+          />
+        </div>
+
+        <div class="mb-4">
+          <label class="block font-semibold text-sm mb-1"
+            >Cuenta contable por pagar</label
+          >
+          <input
+            type="text"
+            formControlName="cta_contable_to_pay"
+            class="w-full border rounded px-3 py-2"
+          />
+        </div>
+      </div>
+
+      <div class="flex justify-end mt-4">
+        <button type="button" class="btn-danger mr-2" (click)="closeModal()">
+          Cancelar
+        </button>
+        <button type="submit" class="btn-success">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Table -->
+<div *ngIf="!loading">
+  <div *ngIf="paginatedParties.length > 0">
+    <table class="table-std">
+      <thead>
+        <tr>
+          <th>Nombre de Empresa</th>
+          <th>NIT</th>
+          <th>Correo</th>
+          <th>Teléfono</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let party of paginatedParties">
+          <td>{{ party.company_name }}</td>
+          <td>{{ party.nit }}</td>
+          <td>{{ party.email }}</td>
+          <td>{{ party.phone_number }}</td>
+          <td>
+            <button class="btn-details" (click)="viewPartyDetails(party)">
+              Detalles
+            </button>
+            <button class="btn-edit" (click)="editParty(party)">Editar</button>
+            <button class="btn-delete" (click)="deleteParty(party)">
+              Eliminar
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="flex justify-between items-center mb-4 mt-4">
+      <div class="pagination flex items-center">
+        <button
+          (click)="currentPage = 1; updatePaginatedParties()"
+          [disabled]="currentPage === 1"
+          class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+        >
+          &#8656;
+        </button>
+        <button
+          (click)="currentPage = currentPage - 1; updatePaginatedParties()"
+          [disabled]="currentPage === 1"
+          class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-7 h-7"
+        >
+          &#8592;
+        </button>
+
+        <span class="mx-4 text-gray-700">
+          Página {{ currentPage }} de {{ totalPages }}
+        </span>
+
+        <button
+          (click)="currentPage = currentPage + 1; updatePaginatedParties()"
+          [disabled]="currentPage === totalPages"
+          class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-7 h-7"
+        >
+          &#8594;
+        </button>
+        <button
+          (click)="currentPage = totalPages; updatePaginatedParties()"
+          [disabled]="currentPage === totalPages"
+          class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+        >
+          &#8658;
+        </button>
+      </div>
+
+      <div class="items-per-page flex items-center">
+        <label for="itemsPerPage" class="mr-2">Elementos por página:</label>
+        <select
+          id="itemsPerPage"
+          [(ngModel)]="itemsPerPage"
+          (ngModelChange)="updatePaginatedParties()"
+          class="border border-gray-300 rounded-md p-1"
+        >
+          <option *ngFor="let size of [5, 10, 15, 20]" [value]="size">
+            {{ size }}
+          </option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div
+    *ngIf="paginatedParties.length === 0"
+    class="p-4 text-center text-gray-600"
+  >
+    <p>No hay resultados para la búsqueda o filtros aplicados.</p>
+  </div>
+</div>
+
+<!-- Details Modal -->
+<div *ngIf="selectedPartyDetails" class="modal-overlay">
+  <div class="modal-content modal-h800 overflow-y-auto">
+    <h2 class="text-xl font-bold mb-4">Detalles del Tercero</h2>
+    <div class="p-4 border border-gray-300 bg-white invoice-details space-y-4">
+      <div>
+        <h3 class="font-semibold text-lg/9 mb-2">Contacto</h3>
+        <p><strong>Empresa:</strong> {{ selectedPartyDetails.company_name }}</p>
+        <p><strong>NIT:</strong> {{ selectedPartyDetails.nit }}</p>
+        <p><strong>Email:</strong> {{ selectedPartyDetails.email }}</p>
+        <p>
+          <strong>Teléfono:</strong> {{ selectedPartyDetails.phone_number }}
+        </p>
+      </div>
+
+      <div>
+        <h3 class="font-semibold text-lg/9 mb-2">Ubicación</h3>
+        <p><strong>Dirección 1:</strong> {{ selectedPartyDetails.address1 }}</p>
+        <p><strong>Dirección 2:</strong> {{ selectedPartyDetails.address2 }}</p>
+        <p><strong>Barrio:</strong> {{ selectedPartyDetails.neighborhood }}</p>
+        <p><strong>Ciudad:</strong> {{ selectedPartyDetails.city }}</p>
+        <p>
+          <strong>Departamento:</strong>
+          {{ selectedPartyDetails.department }}
+        </p>
+        <p>
+          <strong>Código Postal:</strong>
+          {{ selectedPartyDetails.postal_code }}
+        </p>
+        <p><strong>País:</strong> {{ selectedPartyDetails.country }}</p>
+      </div>
+      <div>
+        <p>
+          <strong>Cta Contable Gastos:</strong>
+          {{ selectedPartyDetails.cta_contable_expenses }}
+        </p>
+        <p>
+          <strong>Cta Contable a Pagar:</strong>
+          {{ selectedPartyDetails.cta_contable_to_pay }}
+        </p>
+      </div>
+      <div>
+        <h3 class="font-semibold text-lg/9 mb-2">Comentario</h3>
+        <p>{{ selectedPartyDetails.comment }}</p>
+      </div>
+
+      <div class="flex justify-end mt-4">
+        <button
+          type="button"
+          class="btn-danger mr-2"
+          (click)="closePartyDetails()"
+        >
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
