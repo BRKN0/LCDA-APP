@@ -16,7 +16,7 @@
       class="btn-add inline-flex items-center space-x-2"
       (click)="addNewClient()"
     >
-          <svg
+      <svg
         class="w-5 h-5 inline-block align-middle mt-[3px]"
         viewBox="0 0 24 24"
         fill="none"
@@ -35,10 +35,7 @@
       </svg>
       <span>Añadir</span>
     </button>
-    <button
-      class="btn-details"
-      (click)="generateClientsKardex()"
-    >
+    <button class="btn-details" (click)="generateClientsKardex()">
       Generar Kardex
     </button>
   </div>
@@ -139,16 +136,10 @@
           >
             Mostrar Pedidos
           </button>
-          <button
-            class="btn-liquidation"
-            (click)="generatePDF()"
-          >
+          <button class="btn-liquidation" (click)="generatePDF()">
             Descargar Extracto
           </button>
-          <button
-            class="btn-details"
-            (click)="toggleClientDetails()"
-          >
+          <button class="btn-details" (click)="toggleClientDetails()">
             {{ showDetails ? "Ocultar Detalles" : "Mostrar Detalles" }}
           </button>
         </div>
@@ -170,35 +161,16 @@
               }}
             </span>
           </p>
-          <p>
-            <strong>Límite de Crédito:</strong> ${{ selectedClient.credit_limit }}
-          </p>
-          <!-- Campo para editar el límite de crédito (solo admin) -->
-          <div *ngIf="userRole === 'admin' && selectedClient" class="mt-2">
-            <label for="creditLimit" class="block text-gray-700">
-              Actualizar Límite de Crédito:
-            </label>
-            <input
-              type="number"
-              id="creditLimit"
-              [(ngModel)]="selectedClient.credit_limit"
-              name="creditLimit"
-              class="border p-1 mt-1 block w-full"
-            />
-          </div>
         </div>
 
         <!-- Botones en la parte inferior derecha -->
-        <div class="flex justify-end absolute bottom-2 right-2 mt-4 mb-2 space-x-2">
-          <!-- Botón Guardar (solo visible para admin cuando los detalles están abiertos) -->
+        <div
+          class="flex justify-end absolute bottom-2 right-2 mt-4 mb-2 space-x-2"
+        >
           <button
-            *ngIf="userRole === 'admin' && showDetails"
-            class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
-            (click)="updateCreditLimit(selectedClient)"
+            class="btn-danger px-4 py-2 rounded-md"
+            (click)="closeClientModal()"
           >
-            Guardar
-          </button>
-          <button class="btn-danger px-4 py-2 rounded-md" (click)="closeClientModal()">
             Cerrar
           </button>
         </div>
@@ -238,7 +210,11 @@
           </div>
 
           <label>
-            <input type="checkbox" [(ngModel)]="onlyWithDebt" (change)="updatePaginatedOrders()" />
+            <input
+              type="checkbox"
+              [(ngModel)]="onlyWithDebt"
+              (change)="updatePaginatedOrders()"
+            />
             Mostrar solo pedidos con deuda
           </label>
 
@@ -303,7 +279,10 @@
               </td>
             </tr>
             <tr *ngIf="paginatedOrders.length === 0">
-              <td colspan="6" class="modal-table-column text-center text-gray-500">
+              <td
+                colspan="6"
+                class="modal-table-column text-center text-gray-500"
+              >
                 No hay pedidos en el rango de fechas seleccionado
               </td>
             </tr>
@@ -433,7 +412,9 @@
         </h3>
         <form (ngSubmit)="saveClient()">
           <div class="mb-4">
-            <label class="block modal-input-item">Nombre<span class="text-red-500">*</span></label>
+            <label class="block modal-input-item"
+              >Nombre<span class="text-red-500">*</span></label
+            >
             <input
               [(ngModel)]="selectedClientData.name"
               name="name"
@@ -510,13 +491,15 @@
             />
           </div>
           <div class="mb-4">
-            <label class="block modal-input-item">Tipo de Cliente (Régimen Tributario)</label>
-            <select 
-              [(ngModel)]="selectedClientData.tax_regime" 
+            <label class="block modal-input-item"
+              >Tipo de Cliente (Régimen Tributario)</label
+            >
+            <select
+              [(ngModel)]="selectedClientData.tax_regime"
               (ngModelChange)="onTaxRegimeChange($event)"
-              name="tax_regime" 
+              name="tax_regime"
               class="form-select mt-1 block w-full"
-              >
+            >
               <option [ngValue]="1">Gran Contribuyente Autorretenedor</option>
               <option [ngValue]="2">Gran Contribuyente</option>
               <option [ngValue]="3">Responsable de IVA</option>
@@ -526,26 +509,29 @@
           </div>
           <div class="flex flex-wrap gap-4 mt-4">
             <label class="block modal-input-item">
-              <input 
-              type="checkbox" 
-              [(ngModel)]="selectedClientData.is_declarante" 
-              name="is_declarante" />
+              <input
+                type="checkbox"
+                [(ngModel)]="selectedClientData.is_declarante"
+                name="is_declarante"
+              />
               ¿Es declarante de renta?
             </label>
             <label class="block modal-input-item">
-              <input 
-              type="checkbox" 
-              [(ngModel)]="selectedClientData.retefuente" 
-              name="retefuente" />
+              <input
+                type="checkbox"
+                [(ngModel)]="selectedClientData.retefuente"
+                name="retefuente"
+              />
               ¿Aplica retención en la fuente?
             </label>
           </div>
           <div class="mb-4">
             <label class="block modal-input-item">
-              <input 
-              type="checkbox" 
-              [(ngModel)]="selectedClientData.applies_ica_retention" 
-              name="applies_ica_retention" />
+              <input
+                type="checkbox"
+                [(ngModel)]="selectedClientData.applies_ica_retention"
+                name="applies_ica_retention"
+              />
               ¿Aplica retención de ICA?
             </label>
           </div>
@@ -559,6 +545,14 @@
               <option value="upToDate">Al Día</option>
               <option value="overdue">En Mora</option>
             </select>
+          </div>
+          <div class="mb-4">
+            <label class="block modal-input-item">Limite de creditos</label>
+            <input
+              [(ngModel)]="selectedClientData.credit_limit"
+              name="credit_limit"
+              class="form-input mt-1 block w-full"
+            />
           </div>
           <div class="flex justify-end">
             <button type="button" class="btn-danger" (click)="closeModal()">

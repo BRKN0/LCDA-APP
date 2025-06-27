@@ -1,4 +1,4 @@
-import { Component, OnInit, NgZone, HostListener } from '@angular/core';
+import { Component, OnInit, NgZone, HostListener, } from '@angular/core';
 import { RoleService } from '../../services/role.service';
 import { MainBannerComponent } from '../main-banner/main-banner.component';
 import { SupabaseService } from '../../services/supabase.service';
@@ -6,10 +6,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { map } from 'rxjs';
 import { Router, RouterOutlet } from '@angular/router';
+import { CarouselComponent } from '../carousel/carousel.component';
+
 
 @Component({
   selector: 'app-home',
-  imports: [MainBannerComponent, CommonModule, FormsModule, RouterOutlet],
+  imports: [MainBannerComponent, CommonModule, FormsModule, RouterOutlet, CarouselComponent],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss',
 })
@@ -18,6 +20,7 @@ export class HomeComponent implements OnInit {
   userId: string | null = null;
   userRole: string = 'visitor';
   isLoggedIn$;
+ 
 
   constructor(
     private readonly supabase: SupabaseService,
@@ -74,4 +77,9 @@ export class HomeComponent implements OnInit {
       element.scrollIntoView({ behavior: 'smooth' });
     }
   }
+
 }
+
+
+
+
