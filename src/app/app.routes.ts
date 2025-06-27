@@ -18,7 +18,7 @@ import { EmployeesComponent } from './pages/employees/employees.component';
 import { ProvidersComponent } from './pages/providers/providers.component';
 import { ControlPanelComponent } from './pages/control-panel/control-panel.component';
 import { ThirdPartiesComponent } from './pages/third-parties/third-parties.component';
-
+import { CarouselComponent } from './pages/carousel/carousel.component';
 export const routes: Routes = [
   {
     path: '',

@@ -1,0 +1,51 @@
+<div class="w-full max-w-5xl mx-auto mb-10 px-4 mt-10">
+  <div
+    class="relative overflow-hidden rounded-3xl shadow-2xl bg-gradient-to-tr from-white to-gray-100 h-[420px] md:h-[600px]"
+  >
+    <!-- Slides -->
+    <div
+      *ngFor="let slide of slides; let i = index"
+      [class.hidden]="i !== currentIndex"
+      class="absolute inset-0 w-full h-full transition-opacity duration-700 ease-in-out flex items-center justify-center"
+    >
+      <img
+        [src]="slide.src"
+        [alt]="slide.alt"
+        class="w-full h-full object-contain md:object-cover rounded-3xl"
+      />
+    </div>
+
+    <!-- Flechas -->
+    <button
+      (click)="prevSlide()"
+      class="absolute left-6 top-1/2 -translate-y-1/2 bg-red-600 hover:bg-red-700 border border-white p-3 rounded-full shadow-md transition duration-300 opacity-100 visible"
+    >
+      <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+      </svg>
+    </button>
+    <button
+      (click)="nextSlide()"
+      class="absolute right-6 top-1/2 -translate-y-1/2 bg-red-600 hover:bg-red-700 border border-white p-3 rounded-full shadow-md transition duration-300 opacity-100 visible"
+    >
+      <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+      </svg>
+    </button>
+
+    <!-- Indicadores -->
+    <div class="absolute bottom-5 left-1/2 -translate-x-1/2 flex space-x-2">
+      <ng-container *ngFor="let slide of slides; let i = index">
+        <div
+          (click)="goToSlide(i)"
+          [class]="
+            i === currentIndex
+              ? 'bg-red-600 w-4 h-4 rounded-full scale-110 shadow-lg transition-all'
+              : 'bg-red-400 w-4 h-4 rounded-full transition-all hover:scale-110'
+          "
+          [attr.aria-label]="'Ir al slide ' + (i + 1)"
+        ></div>
+      </ng-container>
+    </div>
+  </div>
+</div>
