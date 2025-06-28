@@ -1,6 +1,5 @@
 import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MainBannerComponent } from '../main-banner/main-banner.component';
 import { FormsModule } from '@angular/forms';
 import { RouterOutlet } from '@angular/router';
 
@@ -8,7 +7,7 @@ import { RouterOutlet } from '@angular/router';
 @Component({
   selector: 'app-carousel',
   standalone: true,
-  imports: [MainBannerComponent, CommonModule, FormsModule, RouterOutlet],
+  imports: [ CommonModule, FormsModule],
   templateUrl: './carousel.component.html',
   styleUrl: './carousel.component.scss',
 })
@@ -48,30 +47,7 @@ export class CarouselComponent implements OnInit, OnDestroy {
   ];
 
   galleryImages = [
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+  
   ];
 
   currentIndex = 0;
