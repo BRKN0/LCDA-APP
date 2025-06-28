@@ -47,6 +47,30 @@ export class CarouselComponent implements OnInit, OnDestroy {
   ];
 
   galleryImages = [
+    '/Alitas.jpg',
+    '/barco.jpg',
+    '/barco2.jpg',
+    '/copacabana.jpg',
+    '/Habbab.jpg',
+    '/plazacentral.jpg',
+    '/BSL.jpg',
+    '/barco2.jpg',
+    '/bote.jpg',
+    '/casa.jpg',
+    '/consultorio.jpg',
+    '/cubiculos.jpg',
+    '/Ditica.jpg',
+    '/etilico.jpg',
+    '/extrella.jpg',
+    '/hospedaje.jpg',
+    '/lancha.jpg',
+    '/marco.jpg',
+    '/ministerio.jpg',
+    '/multic.jpg',
+    '/nails.jpg',
+    '/nooolapolicia.jpg',
+    '/plaza2.jpg',
+    '/puertita.jpg'
   
   ];
 
