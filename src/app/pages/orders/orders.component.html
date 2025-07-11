@@ -594,6 +594,9 @@
         <ul class="list-none">
           <li>
             <p>
+              <strong>Categoría:</strong> {{ selectedOrderTypeDetail[0].category }}
+            </p>
+            <p>
               <strong>Tipo de Material:</strong>
               {{ selectedOrderTypeDetail[0].material_type }}
             </p>
@@ -882,26 +885,30 @@
         class="mb-4 border-t pt-4"
       >
         <h4 class="font-semibold text-red-600">Datos de Corte</h4>
-        <label class="block mt-2 modal-input-item">Tipo de Material</label>
-        <input
-          [(ngModel)]="newCut.material_type"
-          name="material_type"
-          class="form-input mt-1 block w-full"
-        />
+        <!-- Encadenado: CATEGORÍA -->
+        <label class="block mt-2 modal-input-item">Categoría</label>
+        <select [(ngModel)]="selectedCategory" name="category" class="form-select mt-1 block w-full" (change)="selectedType = ''; selectedCaliber = ''; selectedColor = ''">
+          <option *ngFor="let c of getUniqueCategories()" [value]="c">{{ c }}</option>
+        </select>
 
-        <label class="block mt-2 modal-input-item">Color</label>
-        <input
-          [(ngModel)]="newCut.color"
-          name="color"
-          class="form-input mt-1 block w-full"
-        />
+        <!-- Encadenado: TIPO -->
+        <label class="block mt-2 modal-input-item">Tipo</label>
+        <select [(ngModel)]="selectedType" name="type" class="form-select mt-1 block w-full" (change)="selectedCaliber = ''; selectedColor = ''">
+          <option *ngFor="let t of getFilteredTypes()" [value]="t">{{ t }}</option>
+        </select>
 
+        <!-- Encadenado: CALIBRE -->
         <label class="block mt-2 modal-input-item">Calibre</label>
-        <input
-          [(ngModel)]="newCut.caliber"
-          name="caliber"
-          class="form-input mt-1 block w-full"
-        />
+        <select [(ngModel)]="selectedCaliber" name="caliber" class="form-select mt-1 block w-full" (change)="selectedColor = ''">
+          <option *ngFor="let cal of getFilteredCalibers()" [value]="cal">{{ cal }}</option>
+        </select>
+
+        <!-- Encadenado: COLOR -->
+        <label class="block mt-2 modal-input-item">Color</label>
+        <select [(ngModel)]="selectedColor" name="color" class="form-select mt-1 block w-full">
+          <option *ngFor="let col of getFilteredColors()" [value]="col">{{ col }}</option>
+        </select>
+
 
         <label class="block mt-2 modal-input-item">Alto</label>
         <input

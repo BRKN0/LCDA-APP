@@ -62,6 +62,7 @@ interface Notifications {
 
 interface Cuts {
   id: string;
+  category: string;
   material_type: string;
   color: string;
   caliber: string;
@@ -171,6 +172,12 @@ export class OrdersComponent implements OnInit {
   newOrder: Partial<Orders> = {};
   newCut: Partial<Cuts> = {};
   newPrint: Partial<Prints> = {};
+  allMaterials: any[] = [];
+  selectedCategory: string = '';
+  selectedType: string = '';
+  selectedCaliber: string = '';
+  selectedColor: string = '';
+
 
   newClient = {
     name: '',
@@ -201,6 +208,7 @@ export class OrdersComponent implements OnInit {
           });
           this.getOrders();
           this.getClients();
+          this.getMaterials();
         });
       } else {
         console.error('Usuario no autenticado.');
@@ -262,6 +270,17 @@ export class OrdersComponent implements OnInit {
     }
     this.clients = data;
     this.filteredClients = [...this.clients];
+  }
+
+  async getMaterials(): Promise<void> {
+    const { data, error } = await this.supabase.from('materials').select('*').neq('material_quantity', '0');
+
+    if (error) {
+      console.error('Error al cargar materiales:', error);
+      return;
+    }
+
+    this.allMaterials = data || [];
   }
 
   openAddClientModal(): void {
@@ -726,6 +745,46 @@ export class OrdersComponent implements OnInit {
     this.loadingDetails = false;
   }
 
+  getUniqueCategories(): string[] {
+    return [...new Set(this.allMaterials.map(m => m.category))];
+  }
+
+  getFilteredTypes(): string[] {
+    return [...new Set(
+      this.allMaterials
+        .filter(m => m.category === this.selectedCategory)
+        .map(m => m.type)
+    )];
+  }
+
+  getFilteredCalibers(): string[] {
+    return [...new Set(
+      this.allMaterials
+        .filter(m => m.category === this.selectedCategory && m.type === this.selectedType)
+        .map(m => m.caliber)
+    )];
+  }
+
+  getFilteredColors(): string[] {
+    return [...new Set(
+      this.allMaterials
+        .filter(m =>
+          m.category === this.selectedCategory &&
+          m.type === this.selectedType &&
+          m.caliber === this.selectedCaliber
+        ).map(m => m.color)
+    )];
+  }
+
+  getSelectedMaterial(): any | undefined {
+    return this.allMaterials.find(m =>
+      m.category === this.selectedCategory &&
+      m.type === this.selectedType &&
+      m.caliber === this.selectedCaliber &&
+      m.color === this.selectedColor
+    );
+  }
+
   async toggleOrderConfirmedStatus(order: Orders) {
     order.order_confirmed_status =
       order.order_confirmed_status === 'confirmed'
@@ -817,6 +876,10 @@ export class OrdersComponent implements OnInit {
       if (!error && data) {
         this.newCut = { ...data };
       }
+      this.selectedCategory = this.newCut.category || '';
+      this.selectedType = this.newCut.material_type || '';
+      this.selectedCaliber = this.newCut.caliber || '';
+      this.selectedColor = this.newCut.color || '';
     }
   }
 
@@ -910,14 +973,60 @@ export class OrdersComponent implements OnInit {
                 return;
             }
         } else if (this.newOrder.order_type === 'laser') {
-            const cutData = { ...this.newCut };
-            const { error: cutError } = await this.supabase
-                .from('cuts')
-                .upsert([{ ...cutData, id_order: this.newOrder.id_order }]);
-            if (cutError) {
-                console.error('Error actualizando corte:', cutError);
-                return;
+          const selectedMaterial = this.getSelectedMaterial();
+
+          if (!selectedMaterial) {
+            alert('Material seleccionado no encontrado o sin stock.');
+            return;
+          }
+
+          const quantityToUse = parseInt(this.newCut.quantity || '0');
+
+          if (parseFloat(selectedMaterial.material_quantity) < quantityToUse) {
+            alert(`No hay suficiente stock. Disponible: ${selectedMaterial.material_quantity}`);
+            return;
+          }
+
+          const newStock = parseFloat(selectedMaterial.material_quantity) - quantityToUse;
+
+          await this.supabase
+            .from('materials')
+            .update({ material_quantity: newStock.toString() })
+            .eq('id_material', selectedMaterial.id_material);
+
+          const cutData = {
+            ...this.newCut,
+            id_order: this.newOrder.id_order,
+            material_type: selectedMaterial.type,
+            caliber: selectedMaterial.caliber,
+            color: selectedMaterial.color,
+            category: selectedMaterial.category, // ← solo si ya lo agregaste a la tabla
+          };
+
+          const { data: existingCut, error: cutSearchError } = await this.supabase
+            .from('cuts')
+            .select('id')
+            .eq('id_order', this.newOrder.id_order)
+            .maybeSingle();
+
+          if (existingCut) {
+            const { error: cutUpdateError } = await this.supabase
+              .from('cuts')
+              .update(cutData)
+              .eq('id_order', this.newOrder.id_order);
+            if (cutUpdateError) {
+              console.error('Error actualizando corte:', cutUpdateError);
+              return;
             }
+          } else {
+            const { error: cutInsertError } = await this.supabase
+              .from('cuts')
+              .insert([cutData]);
+            if (cutInsertError) {
+              console.error('Error insertando corte:', cutInsertError);
+              return;
+            }
+          }
         }
 
         const { data: existingInvoice, error: invoiceError } = await this.supabase
@@ -977,10 +1086,37 @@ export class OrdersComponent implements OnInit {
             }
             this.createNotification(insertedOrder);
         } else if (this.newOrder.order_type === 'laser') {
+            const selectedMaterial = this.getSelectedMaterial();
+
+            if (!selectedMaterial) {
+              alert('Material seleccionado no encontrado o sin stock.');
+              return;
+            }
+
+            const quantityToUse = parseInt(this.newCut.quantity || '0');
+
+            if (parseFloat(selectedMaterial.material_quantity) < quantityToUse) {
+              alert(`No hay suficiente stock. Disponible: ${selectedMaterial.material_quantity}`);
+              return;
+            }
+
+            // Descuento automático del stock
+            const newStock = parseFloat(selectedMaterial.material_quantity) - quantityToUse;
+
+            await this.supabase
+              .from('materials')
+              .update({ material_quantity: newStock.toString() })
+              .eq('id_material', selectedMaterial.id_material);
+
+            // Guardar corte con datos reales
             const cutData = {
-                ...this.newCut,
-                id_order: insertedOrder.id_order,
+              ...this.newCut,
+              id_order: insertedOrder.id_order,
+              material_type: selectedMaterial.type,
+              caliber: selectedMaterial.caliber,
+              color: selectedMaterial.color,
             };
+
             const { error: cutError } = await this.supabase
                 .from('cuts')
                 .insert([cutData]);
