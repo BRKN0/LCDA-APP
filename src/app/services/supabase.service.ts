@@ -64,8 +64,8 @@ export class SupabaseService {
       environment.supabaseKey,
       {
         auth: {
-          debug: true
-        }
+          debug: true,
+        },
       }
     );
     // Retrieve the session during initialization
@@ -221,6 +221,9 @@ export class SupabaseService {
       .upload(filePath, file, { upsert: true });
   }
 
+  downloadFile(filePath: string, bucketName: string) {
+    return this.supabase.storage.from(bucketName).createSignedUrl(filePath, 60);
+  }
   /**
    * signUp signs up a user.
    * @param email The email of the user.

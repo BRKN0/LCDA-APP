@@ -574,7 +574,9 @@
               <strong>Descripción:</strong>
               {{ selectedOrderDetails[0].description }}
             </p>
-            <p class="text-red-600"><strong>Notas:</strong> {{ selectedOrderDetails[0].notes }}</p>
+            <p class="text-red-600">
+              <strong>Notas:</strong> {{ selectedOrderDetails[0].notes }}
+            </p>
             <p>
               <strong>Cantidad:</strong>
               {{ selectedOrderDetails[0].order_quantity }}
@@ -594,7 +596,8 @@
         <ul class="list-none">
           <li>
             <p>
-              <strong>Categoría:</strong> {{ selectedOrderTypeDetail[0].category }}
+              <strong>Categoría:</strong>
+              {{ selectedOrderTypeDetail[0].category }}
             </p>
             <p>
               <strong>Tipo de Material:</strong>
@@ -622,6 +625,7 @@
           </li>
         </ul>
       </div>
+
       <!-- Specific details for prints -->
       <div *ngIf="selectedOrderDetails[0].order_type === 'print'" class="my-6">
         <ul class="list-none">
@@ -674,14 +678,40 @@
           <p class="font-bold">{{ selectedOrderDetails[0].total }}</p>
         </div>
       </div>
+      <div *ngIf="selectedOrderDetails[0]?.file_path" class="mt-4">
+        <p class="font-semibold">Archivo adjunto:</p>
+        <button
+          class="btn-secondary mt-2"
+          (click)="downloadFile(selectedOrderDetails[0].file_path)"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4"
+            />
+          </svg>
+          <span class="text-blue-400 hover:text-blue-800">
+            Descargar Archivo</span
+          >
+        </button>
+      </div>
+
       <div class="flex justify-end mt-4">
-      <button
-        type="button"
-        class="btn-danger"
-        (click)="selectedOrderDetails = null"
-      >
-        Cerrar
-      </button>
+        <button
+          type="button"
+          class="btn-danger"
+          (click)="selectedOrderDetails = null"
+        >
+          Cerrar
+        </button>
       </div>
     </div>
   </div>
@@ -770,7 +800,9 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block modal-input-item">Fecha de Entrega<span class="text-red-500">*</span></label>
+        <label class="block modal-input-item"
+          >Fecha de Entrega<span class="text-red-500">*</span></label
+        >
         <input
           type="date"
           [(ngModel)]="newOrder.delivery_date"
@@ -792,7 +824,7 @@
 
       <!-- Campos específicos para Impresiones -->
       <div
-        *ngIf="newOrder.order_type === 'print' && userRole != 'admin'"
+        *ngIf="newOrder.order_type === 'print'"
         class="mb-4 border-t pt-4"
       >
         <h4 class="font-semibold text-red-600">Datos de Impresión</h4>
@@ -880,35 +912,62 @@
       </div>
 
       <!-- Campos específicos para Cortes -->
+      <!-- removed userRole !='admin' requirement, otherwise admin can't select material-->
       <div
-        *ngIf="newOrder.order_type === 'laser' && userRole != 'admin'"
+        *ngIf="newOrder.order_type === 'laser'"
         class="mb-4 border-t pt-4"
       >
         <h4 class="font-semibold text-red-600">Datos de Corte</h4>
         <!-- Encadenado: CATEGORÍA -->
         <label class="block mt-2 modal-input-item">Categoría</label>
-        <select [(ngModel)]="selectedCategory" name="category" class="form-select mt-1 block w-full" (change)="selectedType = ''; selectedCaliber = ''; selectedColor = ''">
-          <option *ngFor="let c of getUniqueCategories()" [value]="c">{{ c }}</option>
+        <select
+          [(ngModel)]="selectedCategory"
+          name="category"
+          class="form-select mt-1 block w-full"
+          (change)="selectedType = ''; selectedCaliber = ''; selectedColor = ''"
+        >
+          <option *ngFor="let c of getUniqueCategories()" [value]="c">
+            {{ c }}
+          </option>
         </select>
 
         <!-- Encadenado: TIPO -->
         <label class="block mt-2 modal-input-item">Tipo</label>
-        <select [(ngModel)]="selectedType" name="type" class="form-select mt-1 block w-full" (change)="selectedCaliber = ''; selectedColor = ''">
-          <option *ngFor="let t of getFilteredTypes()" [value]="t">{{ t }}</option>
+        <select
+          [(ngModel)]="selectedType"
+          name="type"
+          class="form-select mt-1 block w-full"
+          (change)="selectedCaliber = ''; selectedColor = ''"
+        >
+          <option *ngFor="let t of getFilteredTypes()" [value]="t">
+            {{ t }}
+          </option>
         </select>
 
         <!-- Encadenado: CALIBRE -->
         <label class="block mt-2 modal-input-item">Calibre</label>
-        <select [(ngModel)]="selectedCaliber" name="caliber" class="form-select mt-1 block w-full" (change)="selectedColor = ''">
-          <option *ngFor="let cal of getFilteredCalibers()" [value]="cal">{{ cal }}</option>
+        <select
+          [(ngModel)]="selectedCaliber"
+          name="caliber"
+          class="form-select mt-1 block w-full"
+          (change)="selectedColor = ''"
+        >
+          <option *ngFor="let cal of getFilteredCalibers()" [value]="cal">
+            {{ cal }}
+          </option>
         </select>
 
         <!-- Encadenado: COLOR -->
         <label class="block mt-2 modal-input-item">Color</label>
-        <select [(ngModel)]="selectedColor" name="color" class="form-select mt-1 block w-full">
-          <option *ngFor="let col of getFilteredColors()" [value]="col">{{ col }}</option>
+        <select
+          [(ngModel)]="selectedColor"
+          name="color"
+          class="form-select mt-1 block w-full"
+        >
+          <option *ngFor="let col of getFilteredColors()" [value]="col">
+            {{ col }}
+          </option>
         </select>
-
 
         <label class="block mt-2 modal-input-item">Alto</label>
         <input
@@ -936,7 +995,15 @@
           class="form-input mt-1 block w-full"
         />
       </div>
+      <!-- Archivo adjunto -->
+      <div class="mb-4">
+        <label class="block modal-input-item">Archivo adjunto</label>
+        <input type="file" (change)="onFileSelected($event)" />
 
+        <p *ngIf="uploadedFileName" class="text-green-600 text-sm mt-1">
+          Archivo subido: {{ uploadedFileName }}
+        </p>
+      </div>
       <div class="flex justify-end mt-4">
         <button type="button" class="btn-danger" (click)="toggleAddOrderForm()">
           Cancelar
@@ -1200,6 +1267,20 @@
     <div class="flex justify-end mt-4">
       <button type="button" class="btn-danger" (click)="closeCalculator()">
         Cerrar
+      </button>
+    </div>
+  </div>
+</div>
+<div *ngIf="showStockWarningModal" class="modal-overlay top">
+  <div class="modal-content modal-h250 top">
+    <h3 class="text-lg font-bold mb-4">Advertencia de Stock</h3>
+    <p class="mb-6">{{ stockWarningMessage }}</p>
+    <div class="flex justify-end gap-4">
+      <button class="btn-danger" (click)="onCancelStockOverride()">
+        Cancelar pedido
+      </button>
+      <button class="btn-primary" (click)="onConfirmStockOverride()">
+        Continuar de todas formas
       </button>
     </div>
   </div>
