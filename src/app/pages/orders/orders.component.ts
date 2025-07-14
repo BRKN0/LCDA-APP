@@ -800,14 +800,26 @@ export class OrdersComponent implements OnInit {
   }
 
   async toggleOrderCompletionStatus(order: Orders) {
-    const { error } = await this.supabase
-      .from('orders')
-      .update({ order_completion_status: order.order_completion_status })
-      .eq('id_order', order.id_order);
-    if (error) {
-      console.error('Error actualizando estado:', error);
-    }
+  const newCompletionStatus = order.order_completion_status;
+  const newDeliveryStatus = newCompletionStatus === 'finished' ? 'Completado' : 'toBeDelivered';
+
+  const { error } = await this.supabase
+    .from('orders')
+    .update({
+      order_completion_status: newCompletionStatus,
+      order_delivery_status: newDeliveryStatus
+    })
+    .eq('id_order', order.id_order);
+
+  if (error) {
+    console.error('Error actualizando estado:', error);
+    // Revertir el cambio local en caso de error
+    order.order_completion_status = order.order_completion_status === 'finished' ? 'standby' : 'finished';
+  } else {
+    // Actualizar localmente para reflejar el cambio inmediato
+    order.order_delivery_status = newDeliveryStatus;
   }
+}
 
   async toggleOrderPaymentStatus(order: Orders) {
     const { error } = await this.supabase

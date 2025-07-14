@@ -525,12 +525,13 @@
           <p>
             <strong>Estado de entrega:</strong>
             {{
-              selectedOrderDetails[0].order_delivery_status === "onTime"
+              selectedOrderDetails[0].order_completion_status === "finished"
+                ? "Completado"
+                : selectedOrderDetails[0].order_delivery_status === "onTime"
                 ? "A tiempo"
                 : selectedOrderDetails[0].order_delivery_status === "late"
                 ? "Tarde"
-                : selectedOrderDetails[0].order_delivery_status ===
-                  "toBeDelivered"
+                : selectedOrderDetails[0].order_delivery_status === "toBeDelivered"
                 ? "En espera"
                 : "No especificado"
             }}
