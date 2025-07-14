@@ -485,7 +485,6 @@ export class ClientsComponent implements OnInit {
     }
 
     const clientToSave = {
-      credit_limit: this.selectedClientData.credit_limit,
       name: this.selectedClientData.name || null,
       document_type: this.selectedClientData.document_type,
       document_number: this.selectedClientData.document_number || null,
@@ -503,6 +502,7 @@ export class ClientsComponent implements OnInit {
       is_declarante: this.selectedClientData.is_declarante || false,
       retefuente: this.selectedClientData.retefuente || false,
       applies_ica_retention: this.selectedClientData.applies_ica_retention || false,
+      credit_limit: this.selectedClientData.credit_limit,
     };
 
     try {
