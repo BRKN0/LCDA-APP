@@ -146,8 +146,20 @@
 
         <!-- Detalles del cliente -->
         <div *ngIf="showDetails && selectedClient">
+          <p><strong>Nombre:</strong> {{ selectedClient.name}}</p>
+          <p><strong>Email:</strong> {{ selectedClient.email }}</p>
+          <p><strong>Tipo de Documento:</strong> {{ selectedClient.document_type }}</p>
+          <p><strong>Docuemnto:</strong> {{ selectedClient.document_number }}</p>
+          <p><strong>Empresa:</strong> {{ selectedClient.company_name }}</p>
           <p><strong>Teléfono:</strong> {{ selectedClient.cellphone }}</p>
           <p><strong>Dirección:</strong> {{ selectedClient.address }}</p>
+          <p><strong>Tipo de Cliente(Regimen Tributario):</strong> {{ selectedClient.tax_regime}}</p>
+          <p><strong>Es declarante de renta:</strong> {{ selectedClient.retefuente }}</p>
+          <p><strong>Aplica retencion de ICA:</strong> {{ selectedClient.applies_ica_retention }}</p>
+          <p><strong>Aplica retencion de fuente:</strong> {{ selectedClient.retefuente }}</p>
+          <p><strong>Estado:</strong> {{ selectedClient.status }}</p>
+          <p><strong>Limite de credito:</strong> {{ selectedClient.credit_limit }}</p>
+          
           <p>
             <strong>Deuda:</strong>
             <span
