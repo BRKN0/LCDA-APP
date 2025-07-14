@@ -164,11 +164,7 @@
           }}
         </td>
         <td class="table-column-std">
-          {{
-            getRemainingPaymentTerm(invoice) > 0
-              ? getRemainingPaymentTerm(invoice) + " días"
-              : "Vencido"
-          }}
+          {{ getRemainingPaymentTerm(invoice) }}
         </td>
         <td class="table-column-std">
           <button class="btn-details" (click)="selectInvoice(invoice)">
@@ -335,8 +331,8 @@
         <label class="block text-gray-700">Plazo de Pago (días)</label>
         <input
           type="number"
-          [(ngModel)]="selectedInvoice.payment_term"
-          (change)="updateOrderTotal()"
+          [(ngModel)]="selectedInvoice.payment_term" min="0"
+          (change)="saveInvoice()"
           name="paymentTerm"
           class="form-input mt-1 block w-full border border-gray-300 rounded-md"
           placeholder="Ej. 15"
@@ -561,11 +557,7 @@
           </p>
           <p>
             <strong>Plazo de Pago:</strong>
-            {{
-              getRemainingPaymentTerm(selectedInvoiceDetails[0]) > 0
-                ? getRemainingPaymentTerm(selectedInvoiceDetails[0]) + " días"
-                : "Vencido"
-            }}
+            {{ getRemainingPaymentTerm(selectedInvoiceDetails[0]) }}
           </p>
         </div>
         <div class="text-right">
@@ -750,11 +742,11 @@
               class="form-select w-full mt-1"
             >
               <option value="" disabled selected>Seleccione un método</option>
-              <option value="cash">Efectivo</option>
-              <option value="nequi">Nequi</option>
-              <option value="bancolombia">Bancolombia</option>
-              <option value="davivienda">Davivienda</option>
-              <option value="other">Otro</option>
+              <option value="Efectivo">Efectivo</option>
+              <option value="Nequi">Nequi</option>
+              <option value="Bancolombia">Bancolombia</option>
+              <option value="Davivienda">Davivienda</option>
+              <option value="Other">Otro</option>
             </select>
           </div>
           <div class="flex justify-end mt-4">
@@ -810,10 +802,10 @@
             name="editPaymentMethod"
             class="form-select w-full mt-1"
           >
-            <option value="cash">Efectivo</option>
-            <option value="nequi">Nequi</option>
-            <option value="bancolombia">Bancolombia</option>
-            <option value="davivienda">Davivienda</option>
+            <option value="Efectivo">Efectivo</option>
+            <option value="Nequi">Nequi</option>
+            <option value="Bancolombia">Bancolombia</option>
+            <option value="Davivienda">Davivienda</option>
             <option value="other">Otro</option>
           </select>
         </div>
