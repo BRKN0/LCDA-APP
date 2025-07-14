@@ -1,8 +1,23 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MainBannerComponent } from '../main-banner/main-banner.component';
 import { FormsModule } from '@angular/forms';
 import { RouterOutlet } from '@angular/router';
+import { SupabaseService } from '../../services/supabase.service';
+import { RoleService } from '../../services/role.service';
+
+interface Product {
+  id: string;
+  created_at: string;
+  code: number;
+  name: string;
+  description: string;
+  category: string;
+  stock: number;
+  cost: number;
+  price: number;
+  utility_margin: number;
+}
 
 @Component({
   selector: 'app-product',
@@ -16,6 +31,205 @@ export class ProductComponent implements OnInit, OnDestroy {
   showAcrylic = true;
   showPolystyrene = true;
   showVinyl = true;
+  userId: string | null = null;
+  userRole: string | null = null;
+  Products: Product[] = [];
+  filteredProducts: Product[] = [];
+  selectedProduct: Partial<Product> = {};
+  loading = true;
+  showModal = false;
+  isEditing = false;
+  searchQuery = '';
+  noResultsFound = false;
+  availableCategories: string[] = [];
+  selectedCategory: string = '';
+  minPrice: number | null = null;
+  maxPrice: number | null = null;
+  filterStockAvailable: boolean = false;
+
+  currentPage = 1;
+  itemsPerPage = 10;
+  totalPages = 1;
+  paginatedProducts: Product[] = [];
+
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly roleService: RoleService,
+    private readonly zone: NgZone
+  ) {}
+
+  async ngOnInit(): Promise<void> {
+    this.intervalId = setInterval(() => {
+      this.nextSlide();
+    }, 5000); // Cambia cada 5 segundos (5000 ms)
+    this.supabase.authChanges((_, session) => {
+      if (session) {
+        this.zone.run(() => {
+          this.userId = session.user.id;
+          this.roleService.fetchAndSetUserRole(this.userId);
+          this.roleService.role$.subscribe((role) => {
+            this.userRole = role;
+          });
+          this.getProducts();
+          this.getCategories();
+        });
+      }
+    });
+  }
+
+  async getProducts(): Promise<void> {
+    this.loading = true;
+    const { data, error } = await this.supabase.from('products').select('*');
+    if (error) {
+      console.error('Error al obtener productos:', error);
+      this.loading = false;
+      return;
+    }
+    this.Products = data as Product[];
+    this.searchProduct();
+    this.loading = false;
+  }
+
+  async getCategories(): Promise<void> {
+    const { data, error } = await this.supabase
+      .from('products')
+      .select('category', { count: 'exact', head: false });
+
+    if (error) {
+      console.error('Error obteniendo categorías:', error);
+      return;
+    }
+
+    const categories = data
+      .map((p: { category: string }) => p.category)
+      .filter((c, i, arr) => c && arr.indexOf(c) === i); // Elimina duplicados
+
+    this.availableCategories = categories.sort();
+  }
+
+  searchProduct(): void {
+    const query = this.searchQuery.toLowerCase();
+
+    this.filteredProducts = this.Products.filter((p) => {
+      const matchesSearch = p.name.toLowerCase().includes(query);
+
+      const matchesPrice =
+        (this.minPrice === null || p.price >= this.minPrice) &&
+        (this.maxPrice === null || p.price <= this.maxPrice);
+
+      const matchesStock = this.filterStockAvailable ? p.stock > 0 : true;
+
+      return matchesSearch && matchesPrice && matchesStock;
+    });
+
+    this.noResultsFound = this.filteredProducts.length === 0;
+    this.currentPage = 1;
+    this.updatePaginatedProducts();
+  }
+
+
+  addNewProduct(): void {
+    this.selectedProduct = {
+      created_at: new Date().toISOString(),
+      code: 0,
+      name: '',
+      description: '',
+      category: '',
+      stock: 0,
+      cost: 0,
+      price: 0,
+      utility_margin: 0,
+    };
+    this.isEditing = false;
+    this.showModal = true;
+  }
+
+  editProduct(product: Product): void {
+    this.selectedProduct = { ...product };
+    this.isEditing = true;
+    this.showModal = true;
+  }
+
+  saveProduct(): void {
+    if (!this.selectedProduct.name || !this.selectedProduct.category) {
+      alert('Por favor, complete todos los campos requeridos.');
+      return;
+    }
+
+    const productToSave = {
+      code: this.selectedProduct.code ?? 0,
+      name: this.selectedProduct.name,
+      description: this.selectedProduct.description,
+      category: this.selectedProduct.category,
+      stock: this.selectedProduct.stock ?? 0,
+      cost: this.selectedProduct.cost ?? 0,
+      price: this.selectedProduct.price ?? 0,
+      utility_margin: this.selectedProduct.utility_margin ?? 0,
+    };
+
+    if (this.isEditing && this.selectedProduct.id) {
+      this.supabase
+        .from('products')
+        .update(productToSave)
+        .eq('id', this.selectedProduct.id)
+        .then(({ error }) => {
+          if (error) {
+            console.error('Error actualizando producto:', error);
+          } else {
+            alert('Producto actualizado');
+            this.getProducts();
+          }
+          this.closeModal();
+        });
+    } else {
+      this.supabase
+        .from('products')
+        .insert([productToSave])
+        .then(({ error }) => {
+          if (error) {
+            console.error('Error añadiendo producto:', error);
+          } else {
+            alert('Producto añadido');
+            this.getProducts();
+          }
+          this.closeModal();
+        });
+    }
+  }
+
+  deleteProduct(product: Product): void {
+    if (confirm(`¿Eliminar el producto "${product.name}"?`)) {
+      this.supabase
+        .from('products')
+        .delete()
+        .eq('id', product.id)
+        .then(({ error }) => {
+          if (error) {
+            console.error('Error eliminando producto:', error);
+          } else {
+            alert('Producto eliminado');
+            this.getProducts();
+          }
+        });
+    }
+  }
+
+  closeModal(): void {
+    this.showModal = false;
+    this.isEditing = false;
+    this.selectedProduct = {};
+  }
+
+  updatePaginatedProducts(): void {
+    this.totalPages = Math.max(
+      1,
+      Math.ceil(this.filteredProducts.length / this.itemsPerPage)
+    );
+    this.currentPage = Math.min(Math.max(this.currentPage, 1), this.totalPages);
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    const endIndex = startIndex + this.itemsPerPage;
+    this.paginatedProducts = this.filteredProducts.slice(startIndex, endIndex);
+  }
 
   slides = [
     { src: '/consultorio.jpg', alt: '1' },
@@ -55,12 +269,6 @@ export class ProductComponent implements OnInit, OnDestroy {
   currentIndex = 0;
   private intervalId: any;
   selectedImageIndex: number | null = null;
-
-  ngOnInit(): void {
-    this.intervalId = setInterval(() => {
-      this.nextSlide();
-    }, 5000); // Cambia cada 5 segundos (5000 ms)
-  }
 
   ngOnDestroy(): void {
     if (this.intervalId) {
