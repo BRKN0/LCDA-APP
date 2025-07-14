@@ -128,10 +128,15 @@ export class NotificationsComponent implements OnInit {
     const { error, data } = await this.supabase
       .from('notifications')
       .select('*')
-      .eq('id_user', this.userId);
+      .or(`id_user.eq.${this.userId},id_user.is.null`);
+
+    this.loading = false;
+
     if (error) {
+      console.error('Error loading notifications:', error);
       return;
     }
+
     this.notifications = data as Notifications[];
     this.lowStock = [];
     this.toPay = [];
