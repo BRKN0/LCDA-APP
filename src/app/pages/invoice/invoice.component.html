@@ -331,12 +331,11 @@
         <label class="block text-gray-700">Plazo de Pago (días)</label>
         <input
           type="number"
-          [(ngModel)]="selectedInvoice.payment_term" min="0"
-          (change)="saveInvoice()"
+          [(ngModel)]="selectedInvoice.payment_term"
           name="paymentTerm"
           class="form-input mt-1 block w-full border border-gray-300 rounded-md"
           placeholder="Ej. 15"
-          min="0"
+          [readonly]="isEditing"
         />
       </div>
       <div class="mb-4" *ngIf="selectedInvoice">
