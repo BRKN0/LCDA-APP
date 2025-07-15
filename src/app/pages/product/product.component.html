@@ -52,57 +52,181 @@ barra de navegacion debatible a cambio
 </nav>
 -->
 <!-- Contenedor principal -->
-<div class="w-full max-w-5xl mx-auto mb-10 px-4 mt-10">
-  <div
-    class="relative overflow-hidden rounded-3xl shadow-2xl bg-gradient-to-tr from-white to-gray-100 h-[420px] md:h-[600px]"
-  >
-    <!-- Slides -->
+<ng-container *ngIf="userRole !== 'admin'">
+  <div class="w-full max-w-5xl mx-auto mb-10 px-4 mt-10">
     <div
-      *ngFor="let slide of slides; let i = index"
-      [class.hidden]="i !== currentIndex"
-      class="absolute inset-0 w-full h-full transition-opacity duration-700 ease-in-out flex items-center justify-center"
+      class="relative overflow-hidden rounded-3xl shadow-2xl bg-gradient-to-tr from-white to-gray-100 h-[420px] md:h-[600px]"
     >
+      <!-- Slides -->
+      <div
+        *ngFor="let slide of slides; let i = index"
+        [class.hidden]="i !== currentIndex"
+        class="absolute inset-0 w-full h-full transition-opacity duration-700 ease-in-out flex items-center justify-center"
+      >
+        <img
+          [src]="slide.src"
+          [alt]="slide.alt"
+          class="w-full h-full object-contain md:object-cover rounded-3xl"
+        />
+      </div>
+
+      <!-- Flechas -->
+      <button
+        (click)="prevSlide()"
+        class="absolute left-6 top-1/2 -translate-y-1/2 bg-red-600 hover:bg-red-700 border border-white p-3 rounded-full shadow-md transition duration-300 opacity-100 visible"
+      >
+        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+      <button
+        (click)="nextSlide()"
+        class="absolute right-6 top-1/2 -translate-y-1/2 bg-red-600 hover:bg-red-700 border border-white p-3 rounded-full shadow-md transition duration-300 opacity-100 visible"
+      >
+        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+
+      <!-- Indicadores -->
+      <div class="absolute bottom-5 left-1/2 -translate-x-1/2 flex space-x-2">
+        <ng-container *ngFor="let slide of slides; let i = index">
+          <div
+            (click)="goToSlide(i)"
+            [class]="
+              i === currentIndex
+                ? 'bg-red-600 w-4 h-4 rounded-full scale-110 shadow-lg transition-all'
+                : 'bg-red-400 w-4 h-4 rounded-full transition-all hover:scale-110'
+            "
+            [attr.aria-label]="'Ir al slide ' + (i + 1)"
+          ></div>
+        </ng-container>
+      </div>
+    </div>
+  </div>  
+
+  
+  <div class="text-center my-10 px-6">
+    <h2 class="text-2xl md:text-3xl font-bold text-[#510A32] mb-2">
+      Más de 10 años ofreciendo soluciones en acrílico a medida
+    </h2>
+    <p class="text-gray-600 text-lg">
+      Calidad, compromiso y personalización en cada proyecto
+    </p>
+  </div>
+
+  <div class="grid max-w-[800px] mx-auto grid-cols-3 gap-4">
+    <div *ngFor="let img of galleryImages; let i = index">
       <img
-        [src]="slide.src"
-        [alt]="slide.alt"
-        class="w-full h-full object-contain md:object-cover rounded-3xl"
+        [src]="img"
+        class="h-60 w-full object-cover rounded-lg cursor-pointer hover:scale-105 transition"
+        alt="Imagen de producto"
+        (click)="openImageAt(i)"
       />
     </div>
-
-    <!-- Flechas -->
+  </div>
+  <!-- Modal de imagen ampliada -->
+  <div
+    *ngIf="selectedImageIndex !== null"
+    class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50"
+  >
+    <!-- Botón cerrar -->
     <button
-      (click)="prevSlide()"
-      class="absolute left-6 top-1/2 -translate-y-1/2 bg-red-600 hover:bg-red-700 border border-white p-3 rounded-full shadow-md transition duration-300 opacity-100 visible"
+      (click)="closeImage()"
+      class="absolute top-5 right-5 bg-red-600 hover:bg-red-700 text-white p-2 rounded-full shadow-md transition"
+    >
+      <svg
+        class="w-5 h-5 text-white"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        viewBox="0 0 24 24"
+      >
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    </button>
+
+    <!-- Flecha izquierda -->
+    <button
+      *ngIf="selectedImageIndex > 0"
+      (click)="prevImage()"
+      class="absolute left-5 top-1/2 -translate-y-1/2 bg-red-600 hover:bg-red-700 text-white p-3 rounded-full shadow-md transition"
     >
       <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
       </svg>
     </button>
+
+    <!-- Flecha derecha -->
     <button
-      (click)="nextSlide()"
-      class="absolute right-6 top-1/2 -translate-y-1/2 bg-red-600 hover:bg-red-700 border border-white p-3 rounded-full shadow-md transition duration-300 opacity-100 visible"
+      *ngIf="selectedImageIndex < galleryImages.length - 1"
+      (click)="nextImage()"
+      class="absolute right-5 top-1/2 -translate-y-1/2 bg-red-600 hover:bg-red-700 text-white p-3 rounded-full shadow-md transition"
     >
       <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
       </svg>
     </button>
 
-    <!-- Indicadores -->
-    <div class="absolute bottom-5 left-1/2 -translate-x-1/2 flex space-x-2">
-      <ng-container *ngFor="let slide of slides; let i = index">
-        <div
-          (click)="goToSlide(i)"
-          [class]="
-            i === currentIndex
-              ? 'bg-red-600 w-4 h-4 rounded-full scale-110 shadow-lg transition-all'
-              : 'bg-red-400 w-4 h-4 rounded-full transition-all hover:scale-110'
-          "
-          [attr.aria-label]="'Ir al slide ' + (i + 1)"
-        ></div>
-      </ng-container>
-    </div>
+    <!-- Imagen ampliada -->
+    <img
+      [src]="galleryImages[selectedImageIndex]"
+      class="max-w-[90%] max-h-[90%] rounded-lg shadow-lg border-4 border-white"
+      alt="Imagen ampliada"
+  />
   </div>
-</div>
+  <!--seccion de contacto-->
+  <hr class="mt-8 mb-4 border-t-2 border-gray-300 w-4/5 mx-auto" />
+  <section class="pt-4 pb-16 bg-secondary text-gray-800">
+    <div class="container mx-auto px-4">
+      <div class="max-w-4xl mx-auto">
+        <h2 class="text-3xl font-bold text-center mb-8">Contáctenos</h2>
+        <div class="grid md:grid-cols-2 gap-8">
+          <div>
+            <h3 class="text-xl font-semibold mb-4 text-primary-light">
+              Información de Contacto
+            </h3>
+            <p class="mb-4">
+              <span class="font-semibold">Dirección:</span> Blas de Lezo Cl. 21A Mz. 11A Lt. 12
+            </p>
+            <p class="mb-4">
+              <span class="font-semibold">Teléfono:</span> 300 4947020
+            </p>
+            <p class="mb-4">
+              <span class="font-semibold">Email:</span> lacasadelacrilico21&#64;gmail.com
+            </p>
+          </div>
+          <div>
+            <form class="space-y-4">
+              <input
+                type="text"
+                placeholder="Nombre"
+                class="w-full px-4 py-2 rounded bg-primary-darkest border border-primary-dark focus:border-primary-light focus:ring-2 focus:ring-primary-light focus:outline-none transition duration-200"
+              />
+              <input
+                type="email"
+                placeholder="Email"
+                class="w-full px-4 py-2 rounded bg-primary-darkest border border-primary-dark focus:border-primary-light focus:ring-2 focus:ring-primary-light focus:outline-none transition duration-200"
+              />
+              <textarea
+                placeholder="Mensaje"
+                rows="4"
+                class="w-full px-4 py-2 rounded bg-primary-darkest border border-primary-dark focus:border-primary-light focus:ring-2 focus:ring-primary-light focus:outline-none transition duration-200"
+              ></textarea>
+              <button
+                type="submit"
+                class="!bg-[#510A32] hover:!bg-[#6a0d47] text-white px-6 py-3 rounded-lg font-semibold transition w-full"
+              >
+                Enviar Mensaje
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</ng-container>
+
 
 
 <!--seccion de gallery
@@ -124,123 +248,248 @@ barra de navegacion debatible a cambio
 </div>
 -->
 
-<div class="text-center my-10 px-6">
-  <h2 class="text-2xl md:text-3xl font-bold text-[#510A32] mb-2">
-    Más de 10 años ofreciendo soluciones en acrílico a medida
-  </h2>
-  <p class="text-gray-600 text-lg">
-    Calidad, compromiso y personalización en cada proyecto
-  </p>
+<!-- Indicador de carga -->
+<div *ngIf="loading" class="p-4 text-center text-gray-600">
+  <p>Cargando productos...</p>
 </div>
 
-<div class="grid max-w-[800px] mx-auto grid-cols-3 gap-4">
-  <div *ngFor="let img of galleryImages; let i = index">
-    <img
-      [src]="img"
-      class="h-60 w-full object-cover rounded-lg cursor-pointer hover:scale-105 transition"
-      alt="Imagen de producto"
-      (click)="openImageAt(i)"
-    />
+<div *ngIf="!loading">
+  <div class="flex justify-end items-center mb-4 mt-4 ml-2">
+    <!-- Botón Añadir producto -->
+    <button class="btn-add inline-flex items-center space-x-2" (click)="addNewProduct()">
+      <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M12 4v16m8-8H4" stroke="#fff" stroke-width="2" stroke-linecap="round" />
+      </svg>
+      <span>Añadir</span>
+    </button>
   </div>
-</div>
-<!-- Modal de imagen ampliada -->
-<div
-  *ngIf="selectedImageIndex !== null"
-  class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50"
->
-  <!-- Botón cerrar -->
-  <button
-    (click)="closeImage()"
-    class="absolute top-5 right-5 bg-red-600 hover:bg-red-700 text-white p-2 rounded-full shadow-md transition"
-  >
-    <svg
-      class="w-5 h-5 text-white"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-      viewBox="0 0 24 24"
-    >
-      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-    </svg>
-  </button>
 
-  <!-- Flecha izquierda -->
-  <button
-    *ngIf="selectedImageIndex > 0"
-    (click)="prevImage()"
-    class="absolute left-5 top-1/2 -translate-y-1/2 bg-red-600 hover:bg-red-700 text-white p-3 rounded-full shadow-md transition"
-  >
-    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
-    </svg>
-  </button>
-
-  <!-- Flecha derecha -->
-  <button
-    *ngIf="selectedImageIndex < galleryImages.length - 1"
-    (click)="nextImage()"
-    class="absolute right-5 top-1/2 -translate-y-1/2 bg-red-600 hover:bg-red-700 text-white p-3 rounded-full shadow-md transition"
-  >
-    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-    </svg>
-  </button>
-
-  <!-- Imagen ampliada -->
-  <img
-    [src]="galleryImages[selectedImageIndex]"
-    class="max-w-[90%] max-h-[90%] rounded-lg shadow-lg border-4 border-white"
-    alt="Imagen ampliada"
-/>
-</div>
-<!--seccion de contacto-->
-<hr class="mt-8 mb-4 border-t-2 border-gray-300 w-4/5 mx-auto" />
-<section class="pt-4 pb-16 bg-secondary text-gray-800">
-  <div class="container mx-auto px-4">
-    <div class="max-w-4xl mx-auto">
-      <h2 class="text-3xl font-bold text-center mb-8">Contáctenos</h2>
-      <div class="grid md:grid-cols-2 gap-8">
-        <div>
-          <h3 class="text-xl font-semibold mb-4 text-primary-light">
-            Información de Contacto
-          </h3>
-          <p class="mb-4">
-            <span class="font-semibold">Dirección:</span> Blas de Lezo Cl. 21A Mz. 11A Lt. 12
-          </p>
-          <p class="mb-4">
-            <span class="font-semibold">Teléfono:</span> 300 4947020
-          </p>
-          <p class="mb-4">
-            <span class="font-semibold">Email:</span> lacasadelacrilico21&#64;gmail.com
-          </p>
-        </div>
-        <div>
-          <form class="space-y-4">
-            <input
-              type="text"
-              placeholder="Nombre"
-              class="w-full px-4 py-2 rounded bg-primary-darkest border border-primary-dark focus:border-primary-light focus:ring-2 focus:ring-primary-light focus:outline-none transition duration-200"
-            />
-            <input
-              type="email"
-              placeholder="Email"
-              class="w-full px-4 py-2 rounded bg-primary-darkest border border-primary-dark focus:border-primary-light focus:ring-2 focus:ring-primary-light focus:outline-none transition duration-200"
-            />
-            <textarea
-              placeholder="Mensaje"
-              rows="4"
-              class="w-full px-4 py-2 rounded bg-primary-darkest border border-primary-dark focus:border-primary-light focus:ring-2 focus:ring-primary-light focus:outline-none transition duration-200"
-            ></textarea>
-            <button
-              type="submit"
-              class="!bg-[#510A32] hover:!bg-[#6a0d47] text-white px-6 py-3 rounded-lg font-semibold transition w-full"
-            >
-              Enviar Mensaje
-            </button>
-          </form>
-        </div>
-      </div>
+  <!-- Input de búsqueda -->
+  <div class="flex items-center justify-center py-4 space-x-4">
+    <div class="relative w-full max-w-md">
+      <input
+        type="text"
+        placeholder="Buscar producto..."
+        [(ngModel)]="searchQuery"
+        (ngModelChange)="searchProduct()"
+        class="w-full py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
+      />
     </div>
   </div>
-</section>
 
+  <div class="flex flex-wrap items-center justify-between mb-4 gap-4 px-2">
+    <div>
+      <label class="font-semibold mr-2">Categoría:</label>
+      <select
+        [(ngModel)]="selectedCategory"
+        (change)="searchProduct()"
+        class="border border-gray-300 rounded-md p-1"
+      >
+        <option value="">-- Todas --</option>
+        <option *ngFor="let c of availableCategories" [value]="c">
+          {{ c }}
+        </option>
+      </select>
+    </div>
+    
+    <!-- Filtros de precio desde/hasta agrupados -->
+    <div class="flex items-center space-x-2">
+      <div>
+        <label class="font-semibold mr-2">Precio desde:</label>
+        <input
+          type="number"
+          [(ngModel)]="minPrice"
+          (change)="searchProduct()"
+          class="border border-gray-300 rounded-md p-1 w-24"
+        />
+      </div>
+      <div>
+        <label class="font-semibold mr-2">Hasta:</label>
+        <input
+          type="number"
+          [(ngModel)]="maxPrice"
+          (change)="searchProduct()"
+          class="border border-gray-300 rounded-md p-1 w-24"
+        />
+      </div>
+    </div>
+
+    <!-- Solo disponibles -->
+    <div>
+      <label class="font-semibold mr-2">Solo disponibles:</label>
+      <input
+        type="checkbox"
+        [(ngModel)]="filterStockAvailable"
+        (change)="searchProduct()"
+        class="ml-1"
+      />
+    </div>
+  </div>
+
+  <table class="table-std">
+    <thead>
+      <tr>
+        <th class="table-column-std">Código</th>
+        <th class="table-column-std">Nombre</th>
+        <th class="table-column-std">Categoría</th>
+        <th class="table-column-std">Stock</th>
+        <th class="table-column-std">Costo</th>
+        <th class="table-column-std">Precio</th>
+        <th class="table-column-std">% Utilidad</th>
+        <th class="table-column-std">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let product of paginatedProducts">
+        <td>{{ product.code }}</td>
+        <td>{{ product.name }}</td>
+        <td>{{ product.category }}</td>
+        <td>{{ product.stock }}</td>
+        <td>{{ product.cost }}</td>
+        <td>{{ product.price }}</td>
+        <td>{{ product.utility_margin }}%</td>
+        <td>
+          <button class="btn-edit" (click)="editProduct(product)">Editar</button>
+          <button class="btn-delete" (click)="deleteProduct(product)">Eliminar</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Sin resultados -->
+  <div *ngIf="noResultsFound" class="p-4 text-center text-gray-600">
+    <p>No se encontraron productos.</p>
+  </div>
+
+  <!-- Paginación -->
+  <div class="flex justify-between items-center mt-4">
+    <div class="pagination flex items-center">
+      <button
+        (click)="currentPage = 1; updatePaginatedProducts()"
+        [disabled]="currentPage === 1"
+        class="px-2 py-1 border rounded-full disabled:opacity-50 w-8 h-8"
+      >
+        &#8656;
+      </button>
+      <button
+        (click)="currentPage = currentPage - 1; updatePaginatedProducts()"
+        [disabled]="currentPage === 1"
+        class="px-2 py-1 border rounded-full disabled:opacity-50 w-7 h-7"
+      >
+        &#8592;
+      </button>
+      <span class="mx-4 text-gray-700">Página {{ currentPage }} de {{ totalPages }}</span>
+      <button
+        (click)="currentPage = currentPage + 1; updatePaginatedProducts()"
+        [disabled]="currentPage === totalPages"
+        class="px-2 py-1 border rounded-full disabled:opacity-50 w-7 h-7"
+      >
+        &#8594;
+      </button>
+      <button
+        (click)="currentPage = totalPages; updatePaginatedProducts()"
+        [disabled]="currentPage === totalPages"
+        class="px-2 py-1 border rounded-full disabled:opacity-50 w-8 h-8"
+      >
+        &#8658;
+      </button>
+    </div>
+
+    <!-- Selector de elementos por página -->
+    <div class="items-per-page flex items-center">
+      <label for="itemsPerPage" class="mr-2">Elementos por página:</label>
+      <select
+        id="itemsPerPage"
+        [(ngModel)]="itemsPerPage"
+        (change)="currentPage = 1; updatePaginatedProducts()"
+        class="border border-gray-300 rounded-md p-1"
+      >
+        <option *ngFor="let size of [5, 10, 15, 20]" [value]="size">{{ size }}</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div *ngIf="showModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3 class="text-lg font-bold mb-4">
+        {{ isEditing ? 'Editar Producto' : 'Nuevo Producto' }}
+      </h3>
+      <form (ngSubmit)="saveProduct()">
+        <div class="mb-4">
+          <label class="block modal-input-item">Nombre</label>
+          <input
+            [(ngModel)]="selectedProduct.name"
+            name="name"
+            class="form-input block w-full border border-gray-300 rounded-md"
+            required
+          />
+        </div>
+        <div class="mb-4">
+          <label class="block modal-input-item">Descripción</label>
+          <textarea
+            [(ngModel)]="selectedProduct.description"
+            name="description"
+            rows="2"
+            class="form-input block w-full border border-gray-300 rounded-md"
+          ></textarea>
+        </div>
+        <div class="mb-4">
+          <label class="block modal-input-item">Categoría</label>
+          <input
+            [(ngModel)]="selectedProduct.category"
+            name="category"
+            class="form-input block w-full border border-gray-300 rounded-md"
+            required
+          />
+        </div>
+        <div class="mb-4">
+          <label class="block modal-input-item">Stock</label>
+          <input
+            type="number"
+            [(ngModel)]="selectedProduct.stock"
+            name="stock"
+            class="form-input block w-full border border-gray-300 rounded-md"
+          />
+        </div>
+        <div class="mb-4">
+          <label class="block modal-input-item">Costo</label>
+          <input
+            type="number"
+            [(ngModel)]="selectedProduct.cost"
+            name="cost"
+            step="0.01"
+            class="form-input block w-full border border-gray-300 rounded-md"
+          />
+        </div>
+        <div class="mb-4">
+          <label class="block modal-input-item">Precio</label>
+          <input
+            type="number"
+            [(ngModel)]="selectedProduct.price"
+            name="price"
+            step="0.01"
+            class="form-input block w-full border border-gray-300 rounded-md"
+          />
+        </div>
+        <div class="mb-4">
+          <label class="block modal-input-item">% Utilidad</label>
+          <input
+            type="number"
+            [(ngModel)]="selectedProduct.utility_margin"
+            name="utility_margin"
+            step="0.01"
+            class="form-input block w-full border border-gray-300 rounded-md"
+          />
+        </div>
+
+        <div class="flex justify-end space-x-4">
+          <button type="button" class="btn-danger" (click)="closeModal()">Cancelar</button>
+          <button type="submit" class="btn-success">
+            {{ isEditing ? 'Actualizar' : 'Guardar' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
