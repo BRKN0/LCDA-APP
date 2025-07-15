@@ -6,6 +6,7 @@ import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { RoleService } from '../../services/role.service';
 import { RouterOutlet } from '@angular/router';
+
 interface Orders {
   id_order: string;
   order_type: string;
@@ -28,6 +29,7 @@ interface Orders {
   amount: string | number;
   id_client: string;
   payments?: Payment[];
+  file_path: string;
 }
 
 interface Client {
@@ -177,7 +179,11 @@ export class OrdersComponent implements OnInit {
   selectedType: string = '';
   selectedCaliber: string = '';
   selectedColor: string = '';
-
+  selectedFile: File | null = null;
+  uploadedFileName: string | null = null;
+  uploadedFilePath: string | null = null;
+  showStockWarningModal = false;
+  stockWarningMessage = '';
 
   newClient = {
     name: '',
@@ -252,7 +258,10 @@ export class OrdersComponent implements OnInit {
       swapped = false;
       for (let i = 0; i < n - 1; i++) {
         if (this.orders[i].code < this.orders[i + 1].code) {
-          [this.orders[i], this.orders[i + 1]] = [this.orders[i + 1], this.orders[i]];
+          [this.orders[i], this.orders[i + 1]] = [
+            this.orders[i + 1],
+            this.orders[i],
+          ];
           swapped = true;
         }
       }
@@ -273,7 +282,10 @@ export class OrdersComponent implements OnInit {
   }
 
   async getMaterials(): Promise<void> {
-    const { data, error } = await this.supabase.from('materials').select('*').neq('material_quantity', '0');
+    const { data, error } = await this.supabase
+      .from('materials')
+      .select('*')
+      .neq('material_quantity', '0');
 
     if (error) {
       console.error('Error al cargar materiales:', error);
@@ -307,7 +319,9 @@ export class OrdersComponent implements OnInit {
       return;
     }
 
-    const { data, error } = await this.supabase.from('clients').insert([this.newClient]);
+    const { data, error } = await this.supabase
+      .from('clients')
+      .insert([this.newClient]);
 
     if (error) {
       console.error('Error añadiendo el cliente:', error);
@@ -345,7 +359,9 @@ export class OrdersComponent implements OnInit {
 
     if (amount > remainingBalance) {
       this.showNotification(
-        `El abono no puede exceder el monto pendiente de $${remainingBalance.toFixed(2)}.`
+        `El abono no puede exceder el monto pendiente de $${remainingBalance.toFixed(
+          2
+        )}.`
       );
       return;
     }
@@ -403,7 +419,8 @@ export class OrdersComponent implements OnInit {
 
       const updatedTotalPaid = this.getTotalPayments(order);
       const orderTotal = parseFloat(String(order.total)) || 0;
-      const newStatus = updatedTotalPaid >= orderTotal && newDebt <= 0 ? 'upToDate' : 'overdue';
+      const newStatus =
+        updatedTotalPaid >= orderTotal && newDebt <= 0 ? 'upToDate' : 'overdue';
 
       await this.supabase
         .from('orders')
@@ -504,12 +521,15 @@ export class OrdersComponent implements OnInit {
           (p) => p.id_payment === this.selectedPayment!.id_payment
         );
         if (paymentIndex !== -1) {
-          this.selectedOrder.payments[paymentIndex] = { ...this.selectedPayment };
+          this.selectedOrder.payments[paymentIndex] = {
+            ...this.selectedPayment,
+          };
         }
 
         const totalPaid = this.getTotalPayments(this.selectedOrder);
         const orderTotal = parseFloat(String(this.selectedOrder.total)) || 0;
-        const newStatus = totalPaid >= orderTotal && newDebt <= 0 ? 'upToDate' : 'overdue';
+        const newStatus =
+          totalPaid >= orderTotal && newDebt <= 0 ? 'upToDate' : 'overdue';
 
         await this.supabase
           .from('orders')
@@ -543,7 +563,10 @@ export class OrdersComponent implements OnInit {
             .eq('id_order', order.id_order);
 
           if (deletePrintsError) {
-            console.error('Error al eliminar registros de prints:', deletePrintsError);
+            console.error(
+              'Error al eliminar registros de prints:',
+              deletePrintsError
+            );
             this.showNotification('Error al eliminar registros de prints.');
             return;
           }
@@ -554,7 +577,10 @@ export class OrdersComponent implements OnInit {
             .eq('id_order', order.id_order);
 
           if (deleteCutsError) {
-            console.error('Error al eliminar registros de cuts:', deleteCutsError);
+            console.error(
+              'Error al eliminar registros de cuts:',
+              deleteCutsError
+            );
             this.showNotification('Error al eliminar registros de cuts.');
             return;
           }
@@ -566,7 +592,10 @@ export class OrdersComponent implements OnInit {
           .eq('id_order', order.id_order);
 
         if (deleteNotificationsError) {
-          console.error('Error al eliminar notificaciones:', deleteNotificationsError);
+          console.error(
+            'Error al eliminar notificaciones:',
+            deleteNotificationsError
+          );
           this.showNotification('Error al eliminar notificaciones asociadas.');
           return;
         }
@@ -577,7 +606,10 @@ export class OrdersComponent implements OnInit {
           .eq('id_order', order.id_order);
 
         if (deleteInvoicesError) {
-          console.error('Error al eliminar facturas asociadas:', deleteInvoicesError);
+          console.error(
+            'Error al eliminar facturas asociadas:',
+            deleteInvoicesError
+          );
           this.showNotification('Error al eliminar facturas asociadas.');
           return;
         }
@@ -588,7 +620,10 @@ export class OrdersComponent implements OnInit {
           .eq('id_order', order.id_order);
 
         if (deletePaymentsError) {
-          console.error('Error al eliminar pagos asociados:', deletePaymentsError);
+          console.error(
+            'Error al eliminar pagos asociados:',
+            deletePaymentsError
+          );
           this.showNotification('Error al eliminar pagos asociados.');
           return;
         }
@@ -616,7 +651,10 @@ export class OrdersComponent implements OnInit {
           .eq('id_client', order.id_client);
 
         if (updateClientError) {
-          console.error('Error al actualizar la deuda del cliente:', updateClientError);
+          console.error(
+            'Error al actualizar la deuda del cliente:',
+            updateClientError
+          );
           this.showNotification('Error al actualizar la deuda del cliente.');
           return;
         }
@@ -637,7 +675,9 @@ export class OrdersComponent implements OnInit {
         this.showNotification('Orden eliminada correctamente.');
       } catch (error) {
         console.error('Error inesperado al eliminar la orden:', error);
-        this.showNotification('Ocurrió un error inesperado al eliminar la orden.');
+        this.showNotification(
+          'Ocurrió un error inesperado al eliminar la orden.'
+        );
       }
     }
   }
@@ -746,42 +786,55 @@ export class OrdersComponent implements OnInit {
   }
 
   getUniqueCategories(): string[] {
-    return [...new Set(this.allMaterials.map(m => m.category))];
+    return [...new Set(this.allMaterials.map((m) => m.category))];
   }
 
   getFilteredTypes(): string[] {
-    return [...new Set(
-      this.allMaterials
-        .filter(m => m.category === this.selectedCategory)
-        .map(m => m.type)
-    )];
+    return [
+      ...new Set(
+        this.allMaterials
+          .filter((m) => m.category === this.selectedCategory)
+          .map((m) => m.type)
+      ),
+    ];
   }
 
   getFilteredCalibers(): string[] {
-    return [...new Set(
-      this.allMaterials
-        .filter(m => m.category === this.selectedCategory && m.type === this.selectedType)
-        .map(m => m.caliber)
-    )];
+    return [
+      ...new Set(
+        this.allMaterials
+          .filter(
+            (m) =>
+              m.category === this.selectedCategory &&
+              m.type === this.selectedType
+          )
+          .map((m) => m.caliber)
+      ),
+    ];
   }
 
   getFilteredColors(): string[] {
-    return [...new Set(
-      this.allMaterials
-        .filter(m =>
-          m.category === this.selectedCategory &&
-          m.type === this.selectedType &&
-          m.caliber === this.selectedCaliber
-        ).map(m => m.color)
-    )];
+    return [
+      ...new Set(
+        this.allMaterials
+          .filter(
+            (m) =>
+              m.category === this.selectedCategory &&
+              m.type === this.selectedType &&
+              m.caliber === this.selectedCaliber
+          )
+          .map((m) => m.color)
+      ),
+    ];
   }
 
   getSelectedMaterial(): any | undefined {
-    return this.allMaterials.find(m =>
-      m.category === this.selectedCategory &&
-      m.type === this.selectedType &&
-      m.caliber === this.selectedCaliber &&
-      m.color === this.selectedColor
+    return this.allMaterials.find(
+      (m) =>
+        m.category === this.selectedCategory &&
+        m.type === this.selectedType &&
+        m.caliber === this.selectedCaliber &&
+        m.color === this.selectedColor
     );
   }
 
@@ -854,6 +907,7 @@ export class OrdersComponent implements OnInit {
         order_completion_status: 'standby',
         order_delivery_status: 'toBeDelivered',
         notes: '',
+        file_path: '',
       };
     }
     this.showModal = !this.showModal;
@@ -897,20 +951,20 @@ export class OrdersComponent implements OnInit {
 
   async addOrder(newOrderForm: Partial<Orders>): Promise<void> {
     const selectedClient = this.clients.find(
-        (client) => client.id_client === newOrderForm.id_client
+      (client) => client.id_client === newOrderForm.id_client
     );
     newOrderForm.name = selectedClient ? selectedClient.name : '';
 
     const { data: clientData, error: clientError } = await this.supabase
-        .from('clients')
-        .select('debt, credit_limit')
-        .eq('id_client', newOrderForm.id_client)
-        .single();
+      .from('clients')
+      .select('debt, credit_limit')
+      .eq('id_client', newOrderForm.id_client)
+      .single();
 
     if (clientError || !clientData) {
-        console.error('Error al obtener detalles del cliente:', clientError);
-        alert('Error al verificar el cliente.');
-        return;
+      console.error('Error al obtener detalles del cliente:', clientError);
+      alert('Error al verificar el cliente.');
+      return;
     }
 
     const currentDebt = clientData.debt || 0;
@@ -919,275 +973,299 @@ export class OrdersComponent implements OnInit {
     const newDebt = currentDebt + orderAmount;
 
     if (creditLimit > 0 && newDebt > creditLimit) {
-        const confirmMessage = `El cliente ha excedido su límite de crédito por lo que su deuda actual aumentara en el caso de que el pedido sea autorizado.
+      const confirmMessage = `El cliente ha excedido su límite de crédito por lo que su deuda actual aumentara en el caso de que el pedido sea autorizado.
 
         ¿Desea autorizar este pedido de todas formas?`;
 
-        if (!confirm(confirmMessage)) {
-            return;
-        }
+      if (!confirm(confirmMessage)) {
+        return;
+      }
     }
 
     this.newOrder = {
-        order_type: newOrderForm.order_type,
-        name: newOrderForm.name,
-        client_type: newOrderForm.client_type,
-        description: newOrderForm.description,
-        order_payment_status: newOrderForm.order_payment_status || 'overdue',
-        created_at: newOrderForm.created_at || new Date().toISOString(),
-        delivery_date: newOrderForm.delivery_date,
-        order_quantity: newOrderForm.order_quantity,
-        unitary_value: newOrderForm.unitary_value || 0,
-        iva: newOrderForm.iva || 0,
-        subtotal: newOrderForm.subtotal || 0,
-        total: newOrderForm.total || 0,
-        amount: newOrderForm.amount || 0,
-        id_client: newOrderForm.id_client,
-        order_confirmed_status: newOrderForm.order_confirmed_status,
-        order_completion_status: newOrderForm.order_completion_status,
-        order_delivery_status: newOrderForm.order_delivery_status,
-        notes: newOrderForm.notes,
+      order_type: newOrderForm.order_type,
+      name: newOrderForm.name,
+      client_type: newOrderForm.client_type,
+      description: newOrderForm.description,
+      order_payment_status: newOrderForm.order_payment_status || 'overdue',
+      created_at: newOrderForm.created_at || new Date().toISOString(),
+      delivery_date: newOrderForm.delivery_date,
+      order_quantity: newOrderForm.order_quantity,
+      unitary_value: newOrderForm.unitary_value || 0,
+      iva: newOrderForm.iva || 0,
+      subtotal: newOrderForm.subtotal || 0,
+      total: newOrderForm.total || 0,
+      amount: newOrderForm.amount || 0,
+      id_client: newOrderForm.id_client,
+      order_confirmed_status: newOrderForm.order_confirmed_status,
+      order_completion_status: newOrderForm.order_completion_status,
+      order_delivery_status: newOrderForm.order_delivery_status,
+      notes: newOrderForm.notes,
+      file_path: newOrderForm.file_path,
     };
 
     const deliveryDate = newOrderForm.delivery_date
-        ? new Date(newOrderForm.delivery_date)
-        : new Date();
+      ? new Date(newOrderForm.delivery_date)
+      : new Date();
     const paymentTerm = 0;
-    const dueDate = new Date(deliveryDate.getTime() + paymentTerm * 24 * 60 * 60 * 1000);
+    const dueDate = new Date(
+      deliveryDate.getTime() + paymentTerm * 24 * 60 * 60 * 1000
+    );
     const dueDateISOString = dueDate.toISOString();
 
     if (this.isEditing) {
-        if (!newOrderForm.id_order) {
-            console.error('ID del pedido no definido para actualizar.');
-            alert('Error: No se puede actualizar un pedido sin ID.');
-            return;
+      if (!newOrderForm.id_order) {
+        console.error('ID del pedido no definido para actualizar.');
+        alert('Error: No se puede actualizar un pedido sin ID.');
+        return;
+      }
+
+      this.newOrder.id_order = newOrderForm.id_order;
+      if (this.selectedFile) {
+        const file = this.selectedFile;
+        const filePath = `order-files/${newOrderForm.id_order}/${Date.now()}_${
+          file.name
+        }`;
+        this.newOrder.file_path = filePath;
+        await this.uploadOrderFile(newOrderForm.id_order, filePath, file);
+      }
+
+      this.selectedFile = null;
+      this.uploadedFileName = null;
+      const { error } = await this.supabase
+        .from('orders')
+        .update([this.newOrder])
+        .eq('id_order', this.newOrder.id_order);
+
+      if (error) {
+        console.error('Error al actualizar el pedido:', error);
+        return;
+      }
+
+      if (this.newOrder.order_type === 'print') {
+        const printData = { ...this.newPrint };
+        const { error: printError } = await this.supabase
+          .from('prints')
+          .upsert([{ ...printData, id_order: this.newOrder.id_order }]);
+        if (printError) {
+          console.error('Error actualizando impresión:', printError);
+          return;
+        }
+      } else if (this.newOrder.order_type === 'laser') {
+        const selectedMaterial = this.getSelectedMaterial();
+
+        if (!selectedMaterial) {
+          alert('Material seleccionado no encontrado');
+          return;
         }
 
-        this.newOrder.id_order = newOrderForm.id_order;
+        const quantityToUse = parseInt(this.newCut.quantity || '0');
 
-        const { error } = await this.supabase
-            .from('orders')
-            .update([this.newOrder])
-            .eq('id_order', this.newOrder.id_order);
+        if (parseFloat(selectedMaterial.material_quantity) < quantityToUse) {
+          this.stockWarningMessage = `No hay suficiente stock. Disponible: ${selectedMaterial.material_quantity}`;
+          const proceed = await this.confirmStockOverride();
+          if (!proceed) return;
 
-        if (error) {
-            console.error('Error al actualizar el pedido:', error);
-            return;
         }
 
-        if (this.newOrder.order_type === 'print') {
-            const printData = { ...this.newPrint };
-            const { error: printError } = await this.supabase
-                .from('prints')
-                .upsert([{ ...printData, id_order: this.newOrder.id_order }]);
-            if (printError) {
-                console.error('Error actualizando impresión:', printError);
-                return;
-            }
-        } else if (this.newOrder.order_type === 'laser') {
-          const selectedMaterial = this.getSelectedMaterial();
+        const newStock =
+          parseFloat(selectedMaterial.material_quantity) - quantityToUse;
 
-          if (!selectedMaterial) {
-            alert('Material seleccionado no encontrado o sin stock.');
-            return;
-          }
+        await this.supabase
+          .from('materials')
+          .update({ material_quantity: newStock.toString() })
+          .eq('id_material', selectedMaterial.id_material);
 
-          const quantityToUse = parseInt(this.newCut.quantity || '0');
-
-          if (parseFloat(selectedMaterial.material_quantity) < quantityToUse) {
-            alert(`No hay suficiente stock. Disponible: ${selectedMaterial.material_quantity}`);
-            return;
-          }
-
-          const newStock = parseFloat(selectedMaterial.material_quantity) - quantityToUse;
-
-          await this.supabase
-            .from('materials')
-            .update({ material_quantity: newStock.toString() })
-            .eq('id_material', selectedMaterial.id_material);
-
-          const cutData = {
-            ...this.newCut,
-            id_order: this.newOrder.id_order,
-            material_type: selectedMaterial.type,
-            caliber: selectedMaterial.caliber,
-            color: selectedMaterial.color,
-            category: selectedMaterial.category, // ← solo si ya lo agregaste a la tabla
-          };
-
-          const { data: existingCut, error: cutSearchError } = await this.supabase
-            .from('cuts')
-            .select('id')
-            .eq('id_order', this.newOrder.id_order)
-            .maybeSingle();
-
-          if (existingCut) {
-            const { error: cutUpdateError } = await this.supabase
-              .from('cuts')
-              .update(cutData)
-              .eq('id_order', this.newOrder.id_order);
-            if (cutUpdateError) {
-              console.error('Error actualizando corte:', cutUpdateError);
-              return;
-            }
-          } else {
-            const { error: cutInsertError } = await this.supabase
-              .from('cuts')
-              .insert([cutData]);
-            if (cutInsertError) {
-              console.error('Error insertando corte:', cutInsertError);
-              return;
-            }
-          }
-        }
-
-        const { data: existingInvoice, error: invoiceError } = await this.supabase
-            .from('invoices')
-            .select('*')
-            .eq('id_order', this.newOrder.id_order)
-            .single();
-
-        if (invoiceError && invoiceError.code !== 'PGRST116') {
-            console.error('Error al buscar factura existente:', invoiceError);
-            return;
-        }
-
-        if (existingInvoice) {
-            const updatedInvoice: Partial<Invoice> = {
-                due_date: dueDateISOString,
-            };
-            const { error: updateInvoiceError } = await this.supabase
-                .from('invoices')
-                .update(updatedInvoice)
-                .eq('id_order', this.newOrder.id_order);
-
-            if (updateInvoiceError) {
-                console.error('Error al actualizar la factura:', updateInvoiceError);
-                return;
-            }
-        }
-
-        await this.getOrders();
-        this.toggleAddOrderForm();
-    } else {
-        const { data, error } = await this.supabase
-            .from('orders')
-            .insert([this.newOrder])
-            .select();
-
-        if (error) {
-            console.error('Error al añadir el pedido:', error);
-            return;
-        }
-
-        const insertedOrder = data[0];
-        this.newOrder.id_order = insertedOrder.id_order;
-        this.newOrder.code = insertedOrder.code;
-
-        if (this.newOrder.order_type === 'print') {
-            const printData = {
-                ...this.newPrint,
-                id_order: insertedOrder.id_order,
-            };
-            const { error: printError } = await this.supabase
-                .from('prints')
-                .insert([printData]);
-            if (printError) {
-                console.error('Error al insertar datos de impresión:', printError);
-                return;
-            }
-            this.createNotification(insertedOrder);
-        } else if (this.newOrder.order_type === 'laser') {
-            const selectedMaterial = this.getSelectedMaterial();
-
-            if (!selectedMaterial) {
-              alert('Material seleccionado no encontrado o sin stock.');
-              return;
-            }
-
-            const quantityToUse = parseInt(this.newCut.quantity || '0');
-
-            if (parseFloat(selectedMaterial.material_quantity) < quantityToUse) {
-              alert(`No hay suficiente stock. Disponible: ${selectedMaterial.material_quantity}`);
-              return;
-            }
-
-            // Descuento automático del stock
-            const newStock = parseFloat(selectedMaterial.material_quantity) - quantityToUse;
-
-            await this.supabase
-              .from('materials')
-              .update({ material_quantity: newStock.toString() })
-              .eq('id_material', selectedMaterial.id_material);
-
-            // Guardar corte con datos reales
-            const cutData = {
-              ...this.newCut,
-              id_order: insertedOrder.id_order,
-              material_type: selectedMaterial.type,
-              caliber: selectedMaterial.caliber,
-              color: selectedMaterial.color,
-            };
-
-            const { error: cutError } = await this.supabase
-                .from('cuts')
-                .insert([cutData]);
-            if (cutError) {
-                console.error('Error al insertar datos de corte:', cutError);
-                return;
-            }
-            this.createNotification(insertedOrder);
-        }
-
-        const newInvoice: Partial<Invoice> = {
-            created_at: new Date().toISOString(),
-            invoice_status: 'overdue',
-            id_order: insertedOrder.id_order,
-            code: insertedOrder.code.toString(),
-            payment_term: paymentTerm,
-            include_iva: false,
-            due_date: dueDateISOString,
+        const cutData = {
+          ...this.newCut,
+          id_order: this.newOrder.id_order,
+          material_type: selectedMaterial.type,
+          caliber: selectedMaterial.caliber,
+          color: selectedMaterial.color,
+          category: selectedMaterial.category,
         };
 
-        const { error: invoiceInsertError } = await this.supabase
-            .from('invoices')
-            .insert([newInvoice]);
+        const { data: existingCut, error: cutSearchError } = await this.supabase
+          .from('cuts')
+          .select('id')
+          .eq('id_order', this.newOrder.id_order)
+          .maybeSingle();
 
-        if (invoiceInsertError) {
-            console.error('Error al crear la factura:', invoiceInsertError);
+        if (existingCut) {
+          const { error: cutUpdateError } = await this.supabase
+            .from('cuts')
+            .update(cutData)
+            .eq('id_order', this.newOrder.id_order);
+          if (cutUpdateError) {
+            console.error('Error actualizando corte:', cutUpdateError);
             return;
-        }
-
-        const { data: clientData, error: clientUpdateError } = await this.supabase
-            .from('clients')
-            .select('debt')
-            .eq('id_client', insertedOrder.id_client)
-            .single();
-
-        if (clientUpdateError || !clientData) {
-            console.error('Error al obtener la deuda del cliente:', clientUpdateError);
+          }
+        } else {
+          const { error: cutInsertError } = await this.supabase
+            .from('cuts')
+            .insert([cutData]);
+          if (cutInsertError) {
+            console.error('Error insertando corte:', cutInsertError);
             return;
+          }
         }
+      }
+      // ????
+      const { data: existingInvoice, error: invoiceError } = await this.supabase
+        .from('invoices')
+        .select('*')
+        .eq('id_order', this.newOrder.id_order)
+        .single();
 
-        const currentClientDebt = clientData.debt || 0;
-        const updatedDebt = currentClientDebt + parseFloat(insertedOrder.total as string);
-        const newClientStatus = updatedDebt > 0 ? 'overdue' : 'upToDate';
+      if (invoiceError && invoiceError.code !== 'PGRST116') {
+        console.error('Error al buscar factura existente:', invoiceError);
+        return;
+      }
 
-        const { error: updateClientError } = await this.supabase
-            .from('clients')
-            .update({ debt: updatedDebt, status: newClientStatus })
-            .eq('id_client', insertedOrder.id_client);
+      if (existingInvoice) {
+        const updatedInvoice: Partial<Invoice> = {
+          due_date: dueDateISOString,
+        };
+        const { error: updateInvoiceError } = await this.supabase
+          .from('invoices')
+          .update(updatedInvoice)
+          .eq('id_order', this.newOrder.id_order);
 
-        if (updateClientError) {
-            console.error('Error al actualizar la deuda del cliente:', updateClientError);
-            return;
+        if (updateInvoiceError) {
+          console.error('Error al actualizar la factura:', updateInvoiceError);
+          return;
         }
+      }
 
-        await this.getOrders();
+      await this.getOrders();
+      this.toggleAddOrderForm();
+    } else {
+      const { data, error } = await this.supabase
+        .from('orders')
+        .insert([this.newOrder])
+        .select();
+
+      if (error) {
+        console.error('Error al añadir el pedido:', error);
+        return;
+      }
+
+      const insertedOrder = data[0];
+      this.newOrder.id_order = insertedOrder.id_order;
+      this.newOrder.code = insertedOrder.code;
+
+      if (this.newOrder.order_type === 'print') {
+        const printData = {
+          ...this.newPrint,
+          id_order: insertedOrder.id_order,
+        };
+        const { error: printError } = await this.supabase
+          .from('prints')
+          .insert([printData]);
+        if (printError) {
+          console.error('Error al insertar datos de impresión:', printError);
+          return;
+        }
         this.createNotification(insertedOrder);
-        this.toggleAddOrderForm();
+      } else if (this.newOrder.order_type === 'laser') {
+        const selectedMaterial = this.getSelectedMaterial();
+
+        if (!selectedMaterial) {
+          alert('Material seleccionado no encontrado');
+          return;
+        }
+
+        const quantityToUse = parseInt(this.newCut.quantity || '0');
+
+        if (parseFloat(selectedMaterial.material_quantity) < quantityToUse) {
+          this.stockWarningMessage = `No hay suficiente stock. Disponible: ${selectedMaterial.material_quantity}`;
+          const proceed = await this.confirmStockOverride();
+          if (!proceed) return;
+
+        }
+
+        const newStock =
+          parseFloat(selectedMaterial.material_quantity) - quantityToUse;
+
+        await this.supabase
+          .from('materials')
+          .update({ material_quantity: newStock.toString() })
+          .eq('id_material', selectedMaterial.id_material);
+
+        const cutData = {
+          ...this.newCut,
+          id_order: insertedOrder.id_order,
+          material_type: selectedMaterial.type,
+          caliber: selectedMaterial.caliber,
+          color: selectedMaterial.color,
+        };
+
+        const { error: cutError } = await this.supabase
+          .from('cuts')
+          .insert([cutData]);
+        if (cutError) {
+          console.error('Error al insertar datos de corte:', cutError);
+          return;
+        }
+        this.createNotification(insertedOrder);
+      }
+
+      const newInvoice: Partial<Invoice> = {
+        created_at: new Date().toISOString(),
+        invoice_status: 'overdue',
+        id_order: insertedOrder.id_order,
+        code: insertedOrder.code.toString(),
+        payment_term: paymentTerm,
+        include_iva: false,
+        due_date: dueDateISOString,
+      };
+
+      const { error: invoiceInsertError } = await this.supabase
+        .from('invoices')
+        .insert([newInvoice]);
+
+      if (invoiceInsertError) {
+        console.error('Error al crear la factura:', invoiceInsertError);
+        return;
+      }
+
+      const { data: clientData, error: clientUpdateError } = await this.supabase
+        .from('clients')
+        .select('debt')
+        .eq('id_client', insertedOrder.id_client)
+        .single();
+
+      if (clientUpdateError || !clientData) {
+        console.error(
+          'Error al obtener la deuda del cliente:',
+          clientUpdateError
+        );
+        return;
+      }
+
+      const currentClientDebt = clientData.debt || 0;
+      const updatedDebt =
+        currentClientDebt + parseFloat(insertedOrder.total as string);
+      const newClientStatus = updatedDebt > 0 ? 'overdue' : 'upToDate';
+
+      const { error: updateClientError } = await this.supabase
+        .from('clients')
+        .update({ debt: updatedDebt, status: newClientStatus })
+        .eq('id_client', insertedOrder.id_client);
+
+      if (updateClientError) {
+        console.error(
+          'Error al actualizar la deuda del cliente:',
+          updateClientError
+        );
+        return;
+      }
+
+      await this.getOrders();
+      this.createNotification(insertedOrder);
+      this.toggleAddOrderForm();
     }
-}
+  }
 
   async createNotification(addedOrder: Partial<Orders>) {
     this.notificationDesc =
@@ -1320,7 +1398,7 @@ export class OrdersComponent implements OnInit {
     }
   }
 
-    public getRemainingDeliveryDays(order: Orders): number {
+  public getRemainingDeliveryDays(order: Orders): number {
     // Si el estado es "finished", retornar un valor especial (por ejemplo, -999)
     if (order.order_completion_status === 'finished') {
       return -999; // Valor especial para indicar "Completo"
@@ -1334,5 +1412,60 @@ export class OrdersComponent implements OnInit {
     const remainingDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     return remainingDays;
+  }
+  onFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files?.length) {
+      this.selectedFile = input.files[0];
+    }
+  }
+
+  async uploadOrderFile(orderId: string, filePath: string, file: File) {
+    if (!this.selectedFile || !orderId) return;
+
+    await this.supabase.uploadFile(filePath, file, 'order-files');
+
+    this.uploadedFileName = file.name;
+    this.selectedFile = null;
+  }
+
+  async downloadFile(filePath: string) {
+    const { data, error } = await this.supabase.downloadFile(
+      filePath,
+      'order-files'
+    );
+    if (error) {
+      console.error('error downloading image: ', error);
+      return;
+    }
+    const response = await fetch(data.signedUrl);
+    const blob = await response.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+
+    const anchor = document.createElement('a');
+    anchor.href = blobUrl;
+    anchor.download = filePath.split('/').pop() || 'archivo';
+    anchor.style.display = 'none';
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    window.URL.revokeObjectURL(blobUrl);
+  }
+  private stockDecisionResolver!: (proceed: boolean) => void;
+  async confirmStockOverride(): Promise<boolean> {
+    this.showStockWarningModal = true;
+
+    return new Promise<boolean>((resolve) => {
+      this.stockDecisionResolver = resolve;
+    });
+  }
+  onConfirmStockOverride() {
+    this.showStockWarningModal = false;
+    this.stockDecisionResolver(true);
+  }
+
+  onCancelStockOverride() {
+    this.showStockWarningModal = false;
+    this.stockDecisionResolver(false);
   }
 }
