@@ -77,8 +77,10 @@ interface Cuts {
 
 interface Prints {
   id: string;
-  material: string;
   material_type: string;
+  category: string;
+  caliber: string;
+  color: string;
   laminating: boolean;
   die_cutting: boolean;
   assembly: boolean;
@@ -932,6 +934,10 @@ export class OrdersComponent implements OnInit {
       if (!error && data) {
         this.newPrint = { ...data };
       }
+      this.selectedCategory = this.newPrint.category || '';
+      this.selectedType = this.newPrint.material_type || '';
+      this.selectedCaliber = this.newPrint.caliber || '';
+      this.selectedColor = this.newPrint.color || '';
     } else if (order.order_type === 'laser') {
       const { data, error } = await this.supabase
         .from('cuts')
@@ -1043,13 +1049,61 @@ export class OrdersComponent implements OnInit {
       }
 
       if (this.newOrder.order_type === 'print') {
-        const printData = { ...this.newPrint };
-        const { error: printError } = await this.supabase
-          .from('prints')
-          .upsert([{ ...printData, id_order: this.newOrder.id_order }]);
-        if (printError) {
-          console.error('Error actualizando impresión:', printError);
+        const selectedMaterial = this.getSelectedMaterial();
+
+        if (!selectedMaterial) {
+          alert('Material seleccionado no encontrado');
           return;
+        }
+
+        const quantityToUse = parseInt(this.newPrint.quantity || '0');
+
+        if (parseFloat(selectedMaterial.material_quantity) < quantityToUse) {
+          this.stockWarningMessage = `No hay suficiente stock. Disponible: ${selectedMaterial.material_quantity}`;
+          const proceed = await this.confirmStockOverride();
+          if (!proceed) return;
+        }
+
+        const newStock =
+          parseFloat(selectedMaterial.material_quantity) - quantityToUse;
+
+        await this.supabase
+          .from('materials')
+          .update({ material_quantity: newStock.toString() })
+          .eq('id_material', selectedMaterial.id_material);
+
+        const printData = {
+          ...this.newPrint,
+          id_order: this.newOrder.id_order,
+          material_type: selectedMaterial.type,
+          caliber: selectedMaterial.caliber,
+          color: selectedMaterial.color,
+          category: selectedMaterial.category,
+        };
+
+        const { data: existingPrint, error: printSearchError } = await this.supabase
+          .from('prints')
+          .select('id')
+          .eq('id_order', this.newOrder.id_order)
+          .maybeSingle();
+
+        if (existingPrint) {
+          const { error: printUpdateError } = await this.supabase
+            .from('prints')
+            .update(printData)
+            .eq('id_order', this.newOrder.id_order);
+          if (printUpdateError) {
+            console.error('Error actualizando impresión:', printUpdateError);
+            return;
+          }
+        } else {
+          const { error: printInsertError } = await this.supabase
+            .from('prints')
+            .insert([printData]);
+          if (printInsertError) {
+            console.error('Error insertando impresión:', printInsertError);
+            return;
+          }
         }
       } else if (this.newOrder.order_type === 'laser') {
         const selectedMaterial = this.getSelectedMaterial();
@@ -1155,17 +1209,47 @@ export class OrdersComponent implements OnInit {
       this.newOrder.code = insertedOrder.code;
 
       if (this.newOrder.order_type === 'print') {
+        const selectedMaterial = this.getSelectedMaterial();
+
+        if (!selectedMaterial) {
+          alert('Material seleccionado no encontrado');
+          return;
+        }
+
+        const quantityToUse = parseInt(this.newPrint.quantity || '0');
+
+        if (parseFloat(selectedMaterial.material_quantity) < quantityToUse) {
+          this.stockWarningMessage = `No hay suficiente stock. Disponible: ${selectedMaterial.material_quantity}`;
+          const proceed = await this.confirmStockOverride();
+          if (!proceed) return;
+        }
+
+        const newStock =
+          parseFloat(selectedMaterial.material_quantity) - quantityToUse;
+
+        await this.supabase
+          .from('materials')
+          .update({ material_quantity: newStock.toString() })
+          .eq('id_material', selectedMaterial.id_material);
+
         const printData = {
           ...this.newPrint,
           id_order: insertedOrder.id_order,
+          material_type: selectedMaterial.type,
+          caliber: selectedMaterial.caliber,
+          color: selectedMaterial.color,
+          category: selectedMaterial.category,
         };
+
         const { error: printError } = await this.supabase
           .from('prints')
           .insert([printData]);
+
         if (printError) {
           console.error('Error al insertar datos de impresión:', printError);
           return;
         }
+
         this.createNotification(insertedOrder);
       } else if (this.newOrder.order_type === 'laser') {
         const selectedMaterial = this.getSelectedMaterial();
