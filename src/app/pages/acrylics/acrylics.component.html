@@ -83,6 +83,55 @@
     />
   </div>
 </div>
+
+<!-- Formulario para dimensiones globales -->
+<div class="flex items-center space-x-4 mb-4">
+  <div class="flex flex-col">
+    <label for="globalWidth" class="font-semibold">Ancho Global (cm):</label>
+    <input
+      type="number"
+      [(ngModel)]="globalWidth"
+      (ngModelChange)="updatePaginatedAcrylicItems()"
+      id="globalWidth"
+      class="border border-gray-300 rounded-md p-1"
+      placeholder="Ej. 120"
+    />
+  </div>
+  <div class="flex flex-col">
+    <label for="globalHeight" class="font-semibold">Alto Global (cm):</label>
+    <input
+      type="number"
+      [(ngModel)]="globalHeight"
+      (ngModelChange)="updatePaginatedAcrylicItems()"
+      id="globalHeight"
+      class="border border-gray-300 rounded-md p-1"
+      placeholder="Ej. 180"
+    />
+  </div>
+  <div class="flex flex-col">
+    <label for="formatPercentage" class="font-semibold">Margen Aplicado (%):</label>
+      <input
+        type="number"
+        step="0.1"
+        min="0"
+        [(ngModel)]="appliedMargin"
+        (ngModelChange)="appliedMargin = +$event.toFixed(2)"
+        id="appliedMargin"
+        class="border border-gray-300 rounded-md p-1"
+        placeholder="Ej. 40"
+        [readonly]="selectedFormat === 'Sin formato'"
+     />
+  </div>
+  <div class="flex flex-col justify-end">
+    <button
+      class="btn-clear bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+      (click)="clearGlobalValues()"
+    >
+      Limpiar
+    </button>
+  </div>
+</div>
+
 <!-- Selección de formato y botón de acción -->
 <div *ngIf="!loading" class="flex items-center space-x-4 mb-4">
   <label for="format" class="font-semibold">Formato:</label>
@@ -92,6 +141,7 @@
     (change)="updatePaginatedAcrylicItems()"
     class="border border-gray-300 rounded-md p-1"
   >
+    <option value="Sin formato">Sin formato</option>
     <option value="1 Lámina">1 Lámina</option>
     <option value="1/2 (Media Lámina)">1/2 (Media Lámina)</option>
     <option value="1/3 (Tercio de Lámina)">1/3 (Tercio de Lámina)</option>
@@ -172,7 +222,7 @@
               }}
             </td>
             <td class="table-column-std">
-              {{ (calculateAppliedMargin(selectedFormat) * 100).toFixed(2) }}%
+              {{ (calculateAppliedMargin(acrylic) * 100).toFixed(2)}}%
             </td>
             <td class="table-column-std">
               ${{
@@ -537,6 +587,10 @@
       <!-- Resultados -->
       <div *ngIf="calculationResult" class="mt-4">
         <h4 class="font-semibold">Resultados:</h4>
+        <p *ngIf="!calculationResult.orderArea">No cabe en ninguna medida estándar.</p>
+        <p *ngIf="calculationResult.orderArea">
+          <strong>Área del Pedido:</strong> {{ calculationResult.orderArea.toFixed(2) }} m²
+        </p>
         <p>
           <strong>Costo Base (con Utilidad):</strong> ${{
             calculationResult.basePriceWithProfit.toLocaleString()
@@ -544,7 +598,7 @@
         </p>
         <p>
           <strong>Margen Aplicado:</strong>
-          {{ (calculationResult.appliedMargin * 100).toFixed(2) }}%
+          {{ (calculationResult.appliedMargin * 100).toFixed(2)}}%
         </p>
         <p>
           <strong>Precio con Margen:</strong> ${{
