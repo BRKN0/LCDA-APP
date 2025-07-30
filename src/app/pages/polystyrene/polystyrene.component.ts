@@ -50,6 +50,8 @@ export class PolystyreneComponent implements OnInit {
   availableTypes: string[] = [];
   sortDirection: 'asc' | 'desc' = 'asc'; // Orden ascendente por defecto
   sortColumn: 'caliber' | 'type' = 'caliber'; // Columna por la que ordenar
+  customWidth: number | null = null;
+  customHeight: number | null = null;
 
   searchType: string = '';
   searchCaliber: string = '';
@@ -265,13 +267,54 @@ export class PolystyreneComponent implements OnInit {
   }
 
   // Funciones de cálculo reutilizadas
-  calculatePriceForTable(item: Polystyrene): PolystyreneCalculationResult {
-    const pedidoArea = (item.width * item.height) / 10000;
-    const factor = this.formatFactors[this.selectedFormat]?.factor || 1;
-    const extraMargin = this.formatFactors[this.selectedFormat]?.margin || 0;
-    const adjustedArea = pedidoArea * factor;
+  calculatePriceForTable(item: Polystyrene): PolystyreneCalculationResult & { noCabe?: boolean } {
+    const useCustom = !this.selectedFormat || this.selectedFormat.trim() === '';
 
+    const width = useCustom ? this.customWidth ?? item.width : item.width;
+    const height = useCustom ? this.customHeight ?? item.height : item.height;
+
+    const pedidoArea = (width * height) / 10000;
     const totalSheetArea = 2.0;
+
+    // 1. Validar si cabe
+    if (pedidoArea > totalSheetArea) {
+      return {
+        area: pedidoArea,
+        basePriceWithProfit: 0,
+        appliedMargin: 0,
+        priceWithMargin: 0,
+        discount: 0,
+        finalPriceWithoutIva: 0,
+        iva: 0,
+        finalPriceWithIva: 0,
+        noCabe: true
+      };
+    }
+
+    // 2. Margen
+    let extraMargin = this.formatFactors[this.selectedFormat]?.margin || 0;
+
+    if (useCustom) {
+      const marginResult = this.calculateAppliedMarginReal(width, height);
+      if (marginResult === 'NO_CABE') {
+        return {
+          area: pedidoArea,
+          basePriceWithProfit: 0,
+          appliedMargin: 0,
+          priceWithMargin: 0,
+          discount: 0,
+          finalPriceWithoutIva: 0,
+          iva: 0,
+          finalPriceWithIva: 0,
+          noCabe: true
+        };
+      }
+      extraMargin = marginResult as number;
+    }
+
+    // 3. Calcular precios (lógica existente)
+    const factor = this.formatFactors[this.selectedFormat]?.factor || 1;
+    const adjustedArea = pedidoArea * factor;
 
     const baseCost = adjustedArea >= totalSheetArea
       ? item.whole
@@ -281,12 +324,10 @@ export class PolystyreneComponent implements OnInit {
     const priceWithUtility = Math.ceil((baseCost / (1 - utilidad)) / 100) * 100;
 
     const priceWithMargin = Math.ceil((priceWithUtility * (1 + extraMargin)) / 100) * 100;
-
-    const discount = 0; // descuento fijo para tabla
+    const discount = 0;
     const discountValue = Math.ceil((priceWithMargin * discount) / 100) * 100;
 
     const priceWithoutIva = Math.ceil((priceWithMargin - discountValue) / 100) * 100;
-
     const iva = Math.ceil((priceWithoutIva * 0.19) / 100) * 100;
     const finalWithIva = priceWithoutIva + iva;
 
@@ -346,7 +387,7 @@ export class PolystyreneComponent implements OnInit {
       whole: 0,
       margin: 30,
       discount: 0,
-      includeIva: false
+      includeIva: true
     };
     this.calculationResult = null;
   }
@@ -358,40 +399,76 @@ export class PolystyreneComponent implements OnInit {
   }
 
   calculatePolystyreneValues(): void {
-    const pedidoArea = (this.calculatorForm.width * this.calculatorForm.height) / 10000;
-    const factor = this.formatFactors[this.calculatorForm.format]?.factor || 1;
-    const extraMargin = this.formatFactors[this.calculatorForm.format]?.margin || 0;
-
-    // Área ajustada por formato (por si es fracción de lámina)
-    const adjustedArea = pedidoArea * factor;
-
-    // Área total de una lámina (según tu hoja)
-    const totalSheetArea = 2.0; // 100x200 cm = 2.0 m²
-
-    // Si el pedido cubre una lámina completa o más, no se divide por área
-    const baseCost = (adjustedArea >= totalSheetArea)
-      ? this.calculatorForm.whole
-      : (this.calculatorForm.whole / totalSheetArea) * adjustedArea;
-
-    // Aplicar utilidad
+    const width = this.calculatorForm.width;
+    const height = this.calculatorForm.height;
+    const format = this.calculatorForm.format;
+    const cost = this.calculatorForm.whole;
     const utilidad = this.calculatorForm.margin / 100;
+    const discount = this.calculatorForm.discount / 100;
+
+    const areaCm2 = width * height;
+    const totalSheetAreaCm2 = 100 * 200; // 20,000 cm²
+    const areaM2 = areaCm2 / 10000;
+
+    const isCustom = !format || format.trim() === '';
+
+    // Verificar si NO CABE
+    if (areaCm2 > totalSheetAreaCm2) {
+      this.calculationResult = {
+        area: areaM2,
+        basePriceWithProfit: 0,
+        appliedMargin: 0,
+        priceWithMargin: 0,
+        discount: 0,
+        finalPriceWithoutIva: 0,
+        iva: 0,
+        finalPriceWithIva: 0,
+        noCabe: true
+      } as any;
+      return;
+    }
+
+    //Determinar margen aplicado
+    let extraMargin = 0;
+    if (isCustom) {
+      const marginResult = this.calculateAppliedMarginReal(width, height);
+      if (marginResult === 'NO_CABE') {
+        this.calculationResult = {
+          area: areaM2,
+          basePriceWithProfit: 0,
+          appliedMargin: 0,
+          priceWithMargin: 0,
+          discount: 0,
+          finalPriceWithoutIva: 0,
+          iva: 0,
+          finalPriceWithIva: 0,
+          noCabe: true
+        } as any;
+        return;
+      }
+      extraMargin = marginResult as number;
+    } else {
+      extraMargin = this.formatFactors[format]?.margin || 0;
+    }
+
+    // Calcular factor de formato
+    const factor = this.formatFactors[format]?.factor || 1;
+    const adjustedArea = areaM2 * factor;
+
+    // Calcular precios
+    const totalSheetAreaM2 = 2.0; // 100x200 cm en m²
+    const baseCost = adjustedArea >= totalSheetAreaM2
+      ? cost
+      : (cost / totalSheetAreaM2) * adjustedArea;
+
     const priceWithUtility = Math.ceil((baseCost / (1 - utilidad)) / 100) * 100;
-
-    // Aplicar margen adicional por formato (si aplica)
     const priceWithMargin = Math.ceil((priceWithUtility * (1 + extraMargin)) / 100) * 100;
+    const discountValue = Math.ceil((priceWithMargin * discount) / 100) * 100;
 
-    // Aplicar descuento (si aplica)
-    const descuento = this.calculatorForm.discount / 100;
-    const discountValue = Math.ceil((priceWithMargin * descuento) / 100) * 100;
-
-    // Precio sin IVA
     const priceWithoutIva = Math.ceil((priceWithMargin - discountValue) / 100) * 100;
-
-    // IVA (si se incluye)
     const ivaValue = this.calculatorForm.includeIva
       ? Math.ceil((priceWithoutIva * 0.19) / 100) * 100
       : 0;
-
     const finalPrice = priceWithoutIva + ivaValue;
 
     // Resultado final
@@ -406,6 +483,40 @@ export class PolystyreneComponent implements OnInit {
       finalPriceWithIva: finalPrice
     };
   }
+
+
+  isUsingCustomSize(): boolean {
+    return !this.selectedFormat || this.selectedFormat.trim() === '';
+  }
+
+  calculateAppliedMarginReal(width: number, height: number): number | 'NO_CABE' {
+    const areaTotal = 100 * 200; // Área base de la lámina
+    const area = width * height;
+
+    // Si el área solicitada es mayor que la lámina → NO CABE
+    if (area > areaTotal) return 'NO_CABE';
+    if (area <= 0) return 0;
+
+    const fraction = area / areaTotal;
+    const exactFractions = [1/2, 1/3, 1/4, 1/8, 1/16, 1/32];
+
+    const isExactFraction = exactFractions.some(f => Math.abs(f - fraction) < 0.001);
+
+    // Parámetros basados en tu hoja
+    const M1 = 0.80; // Margen máximo general
+    const M2 = 0.65; // Delta general
+    const M3 = 0.80; // Margen máximo para fracciones exactas
+    const M4 = 0.30; // Delta fracciones exactas
+
+    if (fraction === 1) return 0; // Si es una lámina completa → margen 0
+
+    if (isExactFraction) {
+      return M3 - M4 * (area / (areaTotal / 2));
+    } else {
+      return M1 - M2 * (area / areaTotal);
+    }
+  }
+
 
   openClientDefaultsModal(): void {
     this.showClientDefaultsModal = true;
