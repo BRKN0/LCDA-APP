@@ -98,6 +98,7 @@
       <option value="1/32 (Treintaydosavo de Lámina)">
         1/32 (Treintaydosavo de Lámina)
       </option>
+      <option value="">Personalizado</option>
     </select>
 
     <select
@@ -117,6 +118,31 @@
       </option>
     </select>
   </div>
+
+  <div class="flex items-center space-x-4 ml-auto">
+      <div>
+        <label class="block font-semibold">Ancho (cm)</label>
+        <input
+          type="number"
+          [(ngModel)]="customWidth"
+          (input)="updatePaginatedPolystyrenes()"
+          class="border border-gray-300 rounded-md p-2 w-28"
+          placeholder="Ej. 50"
+          [disabled]="selectedFormat.trim() !== ''"
+        />
+      </div>
+      <div>
+        <label class="block font-semibold">Alto (cm)</label>
+        <input
+          type="number"
+          [(ngModel)]="customHeight"
+          (input)="updatePaginatedPolystyrenes()"
+          class="border border-gray-300 rounded-md p-2 w-28"
+          placeholder="Ej. 100"
+          [disabled]="selectedFormat.trim() !== ''"
+        />
+      </div>
+    </div>
 </div>
 <!-- Tabla -->
 <div *ngIf="!loading">
@@ -172,8 +198,12 @@
               {{ calculatePriceForTable(item).priceWithMargin | currency : "COP" }}
             </td>
 
-            <td>
-              {{ calculatePriceForTable(item).finalPriceWithoutIva | currency : "COP" }}
+            <td [ngClass]="{'text-red-600 font-bold': calculatePriceForTable(item).noCabe}">
+              {{ 
+                calculatePriceForTable(item).noCabe 
+                  ? 'NO CABE' 
+                  : (calculatePriceForTable(item).finalPriceWithoutIva | currency:'COP') 
+              }}
             </td>
 
             <td>
@@ -390,6 +420,7 @@
             <label class="block modal-input-item">Formato</label>
             <select [(ngModel)]="calculatorForm.format" name="format" class="form-select w-full">
               <option *ngFor="let key of (formatFactors | keyvalue)" [value]="key.key">{{ key.key }}</option>
+              <option value="">Personalizado</option>
             </select>
           </div>
           <div>
