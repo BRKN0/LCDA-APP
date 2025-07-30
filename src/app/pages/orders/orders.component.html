@@ -171,7 +171,7 @@
           <th class="table-column-std">Código</th>
           <th class="table-column-std">Tipo</th>
           <th class="table-column-std">Cliente</th>
-          <th class="table-column-std">Tipo de cliente</th>
+          <th class="table-column-std">Atención</th>
           <th class="table-column-std">Estado de pago</th>
           <th class="table-column-std">Estado de trabajo</th>
           <th class="table-column-std">Fecha</th>
@@ -215,13 +215,7 @@
           </td>
           <td>{{ order.name }}</td>
           <td>
-            {{
-              order.client_type === "finall"
-                ? "Final"
-                : order.client_type === "intermediary"
-                ? "Intermediario"
-                : "Desconocido"
-            }}
+            {{ order.scheduler }}
           </td>
           <td
             [ngClass]="{
@@ -558,6 +552,16 @@
                 : "Otro"
             }}
           </p>
+          <p>
+            <strong>Tipo de cliente:</strong>
+            {{ 
+              selectedOrderDetails[0].client_type === "finall"
+                ? "Final"
+                : selectedOrderDetails[0].client_type === "intermediary"
+                ? "Intermediario"
+                : "Desconocido"
+            }}
+          </p>
         </div>
         <div class="text-right">
           <p>
@@ -827,6 +831,14 @@
           class="form-input mt-1 block w-full"
           required
         />
+      </div>
+      <div class="mb-4">
+        <label class="block modal-input-item">Atendido por</label>
+        <input
+          [(ngModel)]="newOrder.scheduler"
+          name="scheduler"
+          class="form-input mt-1 block w-full"
+        >
       </div>
 
       <!-- Campos específicos para Impresiones -->
