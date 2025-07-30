@@ -30,6 +30,7 @@ interface Orders {
   id_client: string;
   payments?: Payment[];
   file_path: string;
+  scheduler: string;
 }
 
 interface Client {
@@ -910,6 +911,7 @@ export class OrdersComponent implements OnInit {
         order_delivery_status: 'toBeDelivered',
         notes: '',
         file_path: '',
+        scheduler: '',
       };
     }
     this.showModal = !this.showModal;
@@ -1008,6 +1010,7 @@ export class OrdersComponent implements OnInit {
       order_delivery_status: newOrderForm.order_delivery_status,
       notes: newOrderForm.notes,
       file_path: newOrderForm.file_path,
+      scheduler: newOrderForm.scheduler,
     };
 
     const deliveryDate = newOrderForm.delivery_date
