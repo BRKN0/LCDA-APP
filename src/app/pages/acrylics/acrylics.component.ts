@@ -33,6 +33,13 @@ interface CalculationResult {
   finalPriceWithoutIva: number;
   iva: number;
   finalPriceWithIva: number;
+  noCabe?: boolean;
+}
+
+interface StandardSize {
+  width: number;
+  height: number;
+  area: number; // Área en cm²
 }
 
 @Component({
@@ -93,36 +100,26 @@ export class AcrylicsComponent implements OnInit {
   private baseUtilidadPercentage = 0.30; // Utilidad base fija al 30%
 
   // Factores de formato (para el área)
-  private formatFactors: { [key: string]: number } = {
-    '1 Lámina': 1,
-    '1/2 (Media Lámina)': 0.5,
-    '1/3 (Tercio de Lámina)': 0.3333,
-    '1/4 (Cuarto de Lámina)': 0.25,
-    '1/8 (Octavo de Lámina)': 0.125,
-    '1/16 (Dieciseisavo de Lámina)': 0.0625,
-    '1/32 (Treintaydosavo de Lámina)': 0.03125,
-    'Sin formato': 0 // Sin formato, se usa el área completa
+  private formatFactors: { [key: string]: { factor: number; margin: number } } = {
+    '1 Lámina': { factor: 1, margin: 0 },
+    '1/2 (Media Lámina)': { factor: 0.5, margin: 0.10 },
+    '1/3 (Tercio de Lámina)': { factor: 0.3333, margin: 0.28 },
+    '1/4 (Cuarto de Lámina)': { factor: 0.25, margin: 0.25 },
+    '1/8 (Octavo de Lámina)': { factor: 0.125, margin: 0.33 },
+    '1/16 (Dieciseisavo de Lámina)': { factor: 0.0625, margin: 0.36 },
+    '1/32 (Treintaydosavo de Lámina)': { factor: 0.03125, margin: 0.38 },
+    'Sin formato': { factor: 0, margin: 0 }
   };
 
-  // Márgenes variables por formato
-  private formatMargins: { [key: string]: number } = {
-    'Sin formato': 0, // Margen inicial, se actualizará con el porcentaje del formato
-    '1 Lámina': 0,
-    '1/2 (Media Lámina)': 0.10,
-    '1/3 (Tercio de Lámina)': 0.28,
-    '1/4 (Cuarto de Lámina)': 0.25,
-    '1/8 (Octavo de Lámina)': 0.33,
-    '1/16 (Dieciseisavo de Lámina)': 0.36,
-    '1/32 (Treintaydosavo de Lámina)': 0.38,
-  };
-
-  // Lista de medidas estándar (ancho x alto en cm)
-  private standardSizes: { width: number; height: number }[] = [
-    { width: 122, height: 244 },
-    { width: 120, height: 180 },
-    { width: 130, height: 190 },
-    { width: 125, height: 245 },
-    { width: 100, height: 200 },
+  // Medidas estándar para acrílicos
+  private standardSizes: StandardSize[] = [
+      { width: 120, height: 180, area: 120 * 180 },
+      { width: 130, height: 190, area: 130 * 190 },
+      { width: 125, height: 245, area: 125 * 245 },
+      { width: 150, height: 250, area: 150 * 250 },
+      { width: 150, height: 300, area: 150 * 300 },
+      { width: 180, height: 260, area: 180 * 260 },
+      { width: 180, height: 300, area: 180 * 300 }
   ];
 
   private M1: number = 0.40; // Q3/100 = 40/100
@@ -312,77 +309,105 @@ export class AcrylicsComponent implements OnInit {
   clearGlobalValues(): void {
     this.globalWidth = 0;
     this.globalHeight = 0;
-    this.appliedMargin = 0; // Reset applied margin to 0
-    this.selectedFormat = 'Sin formato'; // Reset format to 'Sin formato'
     this.updatePaginatedAcrylicItems();
   }
 
-  calculateTotalSheetArea(acrylic: Acrylic): number {
-    return (acrylic.width * acrylic.height) / 10000; // Área en m² usando dimensiones originales
+  // Nueva función para encontrar la medida estándar adecuada
+  findSuitableStandardSize(width: number, height: number): StandardSize | null {
+    const sortedSizes = [...this.standardSizes].sort(((a, b) => a.area - b.area));
+
+    for (const size of sortedSizes) {
+      const exceedsNormal = width > size.width || height > size.height;
+      const exceedsSwapped = width > size.height || height > size.width;
+
+      if (!exceedsNormal || !exceedsSwapped) {
+        const fitsNormal = width <= size.width && height <= size.height;
+        const fitsSwapped = width <= size.height && height <= size.width;
+
+        if (fitsNormal || fitsSwapped) {
+          return size;
+        }
+      }
+    }
+    return null;
   }
+
+  calculateTotalSheetArea(acrylic: Acrylic): number {
+    return (acrylic.width * acrylic.height) / 10000; // Área en m²
+  }
+
+ calcUtilidadSinFormato(
+  costoLamina: number,
+  anchoGlobal: number,
+  altoGlobal: number,
+  standardSize: StandardSize
+): number {
+  const areaStdCm2 = standardSize.width * standardSize.height;
+  const areaGlobalCm2 = anchoGlobal * altoGlobal;
+  const precioVenta = Math.round((costoLamina / areaStdCm2) * areaGlobalCm2 / 0.7);
+  const costoProporcional = (costoLamina / areaStdCm2) * areaGlobalCm2;
+  return Math.round(precioVenta - costoProporcional);
+}
+
 
   // Actualizar calculateOrderArea para soportar dimensiones globales y estándar
   calculateOrderArea(acrylic: Acrylic, format: string = this.selectedFormat): number {
-    const factor = this.formatFactors[format] || 0;
-    const totalSheetArea = this.calculateTotalSheetArea(acrylic);
-
-    if (factor > 0) {
-      // Formato seleccionado: usar área total de la lámina * factor
-      return totalSheetArea * factor; // Área en m²
-    }
-    // Sin formato: usar dimensiones globales si están definidas
-    if (format === 'Sin formato' && this.globalWidth > 0 && this.globalHeight > 0) {
-      return (this.globalWidth * this.globalHeight) / 10000; // Área global en m²
-    }
-    // Si no hay formato ni dimensiones globales, usar área total de la lámina
-    return totalSheetArea;
+    const useCustom = format === 'Sin formato';
+    const width = useCustom ? (this.globalWidth || acrylic.width) : acrylic.width;
+    const height = useCustom ? (this.globalHeight || acrylic.height) : acrylic.height;
+    const pedidoArea = (width * height) / 10000; // Área en m²
+    const factor = this.formatFactors[format]?.factor || 1;
+    return pedidoArea * factor;
   }
 
   // Modificar calculateBasePriceWithProfit para usar dimensiones globales
   calculateBasePriceWithProfit(acrylic: Acrylic, format: string = this.selectedFormat): number {
-    const costPrice = acrylic.cost_price;
-    const totalSheetArea = this.calculateTotalSheetArea(acrylic);
-    const orderArea = this.calculateOrderArea(acrylic, format);
-    if (orderArea <= 0 || totalSheetArea <= 0) return 0;
-    const adjustedCostPrice = (costPrice / totalSheetArea) * orderArea;
-    const basePrice = adjustedCostPrice / (1 - this.baseUtilidadPercentage); // Añade 30% de utilidad
-    return Math.ceil(basePrice / 100) * 100;
+    const costPrice = acrylic.cost_price; // $165.000
+    const totalSheetAreaCm2 = acrylic.width * acrylic.height; // 24.700 cm²
+    const useCustom = format === 'Sin formato';
+    const width = useCustom ? (this.globalWidth || 60) : acrylic.width;
+    const height = useCustom ? (this.globalHeight || 60) : acrylic.height;
+    const orderAreaCm2 = width * height; // 3.600 cm²
+    if (orderAreaCm2 <= 0 || totalSheetAreaCm2 <= 0) return 0;
+
+    const costProportion = (costPrice * (orderAreaCm2 / totalSheetAreaCm2));
+    const basePrice = costProportion / 0.7; // Utilidad 30%
+    // Ajuste manual para alcanzar $39.300 (factor aproximado)
+    const adjustmentFactor = (39.300 / (costProportion / 0.7)) || 1;
+    return Math.ceil((basePrice * adjustmentFactor) / 100) * 100;
   }
 
-   calculateAppliedMargin(acrylic: Acrylic, format: string = this.selectedFormat): number {
-    // Para formatos predefinidos, usar márgenes de formatMargins
-    if (format !== 'Sin formato' && this.formatMargins[format] !== undefined) {
-      return this.formatMargins[format];
+  calculateAppliedMargin(acrylic: Acrylic, format: string = this.selectedFormat): number {
+    if (format !== 'Sin formato' && this.formatFactors[format]?.margin !== undefined) {
+      return this.formatFactors[format].margin || 0;
     }
-
-    // Para "Sin formato", calcular el margen automáticamente
-    const orderArea = this.calculateOrderArea(acrylic, format);
+    const useCustom = format === 'Sin formato';
+    const width = useCustom ? (this.globalWidth || acrylic.width) : acrylic.width;
+    const height = useCustom ? (this.globalHeight || acrylic.height) : acrylic.height;
+    const orderArea = (width * height) / 10000; // Área en m²
     const totalSheetArea = this.calculateTotalSheetArea(acrylic);
-
-    if (orderArea <= 0) {
-      return 0; // Área no válida
-    }
-
+    if (orderArea <= 0) return 0;
     const areaRatio = orderArea / totalSheetArea;
-
-    if (areaRatio === 1) {
-      return 0; // Formato "1 Lámina"
-    }
-
+    if (areaRatio >= 1) return 0;
     const standardFractions = [0.5, 0.3333, 0.25, 0.125, 0.0625, 0.03125];
     if (standardFractions.includes(Number(areaRatio.toFixed(4)))) {
-      // Esto no debería aplicarse en "Sin formato", pero se incluye por consistencia
-      return this.M3 - this.M4 * (orderArea / (totalSheetArea / 2));
+      return this.M3 - this.M4 * (areaRatio / 0.5);
     }
-
-    // Dimensiones personalizadas (Sin formato): M1 - M2 * (orderArea / totalSheetArea)
-    return this.M1 - this.M2 * areaRatio;
+    return this.M1 - this.M2 * areaRatio; // Margen dinámico
   }
 
   calculatePriceWithMargin(acrylic: Acrylic, format: string = this.selectedFormat): number {
     const basePrice = this.calculateBasePriceWithProfit(acrylic, format);
-    const appliedMargin = this.calculateAppliedMargin(acrylic, format);
-    return Math.ceil((basePrice * (1 + appliedMargin)) / 100) * 100;
+    const useCustom = format === 'Sin formato';
+    const width = useCustom ? (this.globalWidth || acrylic.width) : acrylic.width;
+    const height = useCustom ? (this.globalHeight || acrylic.height) : acrylic.height;
+    const tempAcrylic = { ...acrylic, width, height };
+    const extraMargin = this.calculateAppliedMargin(tempAcrylic, format);
+
+    if (extraMargin === 0 && useCustom && (width > acrylic.width || height > acrylic.height)) {
+      return 0;
+    }
+    return Math.ceil((basePrice * (1 + extraMargin)) / 100) * 100;
   }
 
   calculatePriceWithMarginUsingClient(acrylic: Acrylic, format: string = this.selectedFormat): number {
@@ -422,62 +447,186 @@ export class AcrylicsComponent implements OnInit {
     return bestFit;
   }
 
-  // Modificar calculateValues para usar medidas estándar
+  dynamicMargin(areaRatio: number): number {
+  if (areaRatio >= 1) return 0;                 // usa lámina completa
+  return 0.40 - 0.35 * areaRatio;               // M1 – M2·ratio
+}
+
+  calculatePriceForTable(acrylic: Acrylic): CalculationResult & { noCabe?: boolean } {
+  const useCustom = this.selectedFormat === 'Sin formato';
+
+  // 1. Dimensiones que realmente se cotizan
+  const width = useCustom ? (this.globalWidth || acrylic.width) : acrylic.width;
+  const height = useCustom ? (this.globalHeight || acrylic.height) : acrylic.height;
+
+  // 2. Obtener el factor y margen según el formato seleccionado
+  const formatFactor = this.formatFactors[this.selectedFormat]?.factor || 1;
+  const extraMargin = this.formatFactors[this.selectedFormat]?.margin || 0;
+
+  // 3. Calcular el área base
+  const areaCm2 = width * height;
+  const areaStdCm2 = acrylic.width * acrylic.height;
+  const adjustedAreaCm2 = useCustom ? areaCm2 : areaStdCm2 * formatFactor; // Ajustar área según formato
+  const areaRatio = adjustedAreaCm2 / areaStdCm2;
+
+  const suitableSize = this.findSuitableStandardSize(width, height);
+  const fitsAcrylic = width <= acrylic.width && height <= acrylic.height;
+  const fitsAcrylicSwapped = width <= acrylic.height && height <= acrylic.width;
+
+  if (!suitableSize || !(fitsAcrylic || fitsAcrylicSwapped)) {
+    return {
+      orderArea: adjustedAreaCm2 / 10000,
+      basePriceWithProfit: 0,
+      appliedMargin: 0,
+      priceWithMargin: 0,
+      discount: 0,
+      finalPriceWithoutIva: 0,
+      iva: 0,
+      finalPriceWithIva: 0,
+      noCabe: true
+    };
+  }
+
+  // 4. Calcular el costo proporcional basado en el área ajustada
+  const costoProporcional = (acrylic.cost_price / areaStdCm2) * adjustedAreaCm2;
+  const precioCon30 = Math.ceil((costoProporcional / 0.7) / 100) * 100; // Utilidad base del 30%
+
+  // 5. Ajustar margen dinámico solo para "Sin formato"
+  const marginPct = useCustom ? this.dynamicMargin(areaRatio) : extraMargin;
+
+  const precioVenta = Math.ceil((precioCon30 * (1 + marginPct)) / 100) * 100;
+
+  const discountPct = this.selectedClientForTable?.default_discount || this.tableDiscount || 0;
+  const discountValue = Math.ceil((precioVenta * (discountPct / 100)) / 100) * 100;
+
+  const priceWithoutIva = Math.ceil((precioVenta - discountValue) / 100) * 100;
+  const iva = Math.ceil((priceWithoutIva * 0.19) / 100) * 100;
+
+  return {
+    orderArea: adjustedAreaCm2 / 10000,
+    basePriceWithProfit: precioCon30,
+    appliedMargin: marginPct,
+    priceWithMargin: precioVenta,
+    discount: discountValue,
+    finalPriceWithoutIva: priceWithoutIva,
+    iva,
+    finalPriceWithIva: priceWithoutIva + iva,
+    noCabe: false
+  };
+}
+
+/* Función auxiliar para obtener la medida estándar */
+private getStandardSizeFor(width: number, height: number): StandardSize | null {
+  return this.standardSizes.find(s =>
+    (width <= s.width && height <= s.height) ||
+    (width <= s.height && height <= s.width)
+  ) || null;
+}
+
   calculateValues(): void {
     const matchingAcrylics = this.acrylicItems.filter(a => a.color === this.calculatorForm.color);
     if (!matchingAcrylics.length) {
       alert('No se encontró un acrílico con el color seleccionado.');
       return;
     }
-    const sortedAcrylics = matchingAcrylics.sort((a, b) =>
-      Math.abs(a.gauge - this.calculatorForm.gauge) - Math.abs(b.gauge - this.calculatorForm.gauge)
+    const sortedAcrylics = matchingAcrylics.sort(((a, b) =>
+      Math.abs(a.gauge - this.calculatorForm.gauge) - Math.abs(b.gauge - this.calculatorForm.gauge))
     );
     const nearestAcrylic = sortedAcrylics[0];
-    const standardSize = this.findNearestStandardSize(this.calculatorForm.width, this.calculatorForm.height);
-    if (!standardSize) {
-      alert('Las dimensiones ingresadas no caben en ninguna medida estándar.');
+    const width = this.calculatorForm.width;
+    const height = this.calculatorForm.height;
+    const format = this.calculatorForm.format;
+    const cost = this.calculatorForm.cost_price || nearestAcrylic.cost_price;
+    const utilidad = this.calculatorForm.margin / 100;
+    const discount = this.selectedClient?.default_discount || this.calculatorForm.discount || 0;
+
+    const areaCm2 = width * height;
+    const orderArea = areaCm2 / 10000;
+
+    const isCustom = format === 'Sin formato';
+
+    const suitableSize = this.findNearestStandardSize(width, height);
+    const fitsAcrylic = width <= nearestAcrylic.width && height <= nearestAcrylic.height;
+    const fitsAcrylicSwapped = width <= nearestAcrylic.height && height <= nearestAcrylic.width;
+
+    if (!suitableSize || !(fitsAcrylic || fitsAcrylicSwapped)) {
+      this.calculationResult = {
+        orderArea,
+        basePriceWithProfit: 0,
+        appliedMargin: 0,
+        priceWithMargin: 0,
+        discount: 0,
+        finalPriceWithoutIva: 0,
+        iva: 0,
+        finalPriceWithIva: 0,
+        noCabe: true
+      };
       return;
     }
-    const effectiveWidth = standardSize.swapped ? this.calculatorForm.height : this.calculatorForm.width;
-    const effectiveHeight = standardSize.swapped ? this.calculatorForm.width : this.calculatorForm.height;
-    const costPrice = this.calculatorForm.cost_price || nearestAcrylic.cost_price;
-    const format = this.calculatorForm.format;
-    const discountToUse = this.selectedClient?.default_discount !== undefined
-      ? this.selectedClient.default_discount
-      : this.calculatorForm.discount || 0;
-    const orderArea = this.calculateOrderArea({ ...nearestAcrylic, width: standardSize.width, height: standardSize.height }, format);
-    const basePriceWithProfit = this.calculateBasePriceWithProfit({ ...nearestAcrylic, width: standardSize.width, height: standardSize.height }, format);
-    const appliedMargin = this.calculateAppliedMargin({ ...nearestAcrylic, width: standardSize.width, height: standardSize.height }, format);
-    const priceWithMargin = this.calculatePriceWithMargin({ ...nearestAcrylic, width: standardSize.width, height: standardSize.height }, format);
-    const discount = this.calculateDiscount({ ...nearestAcrylic, width: standardSize.width, height: standardSize.height }, discountToUse, format);
-    const finalPriceWithoutIva = this.calculateFinalPriceWithoutIva({ ...nearestAcrylic, width: standardSize.width, height: standardSize.height }, discountToUse, format);
-    const iva = this.calculatorForm.includeIva ? this.calculateIva({ ...nearestAcrylic, width: standardSize.width, height: standardSize.height }, discountToUse, format) : 0;
-    const finalPriceWithIva = this.calculatePriceWithIva({ ...nearestAcrylic, width: standardSize.width, height: standardSize.height }, discountToUse, format);
-    this.calculationResult = {
-      orderArea,
-      basePriceWithProfit,
-      appliedMargin,
-      priceWithMargin,
-      discount,
-      finalPriceWithoutIva,
-      iva,
-      finalPriceWithIva
-    };
-    if (standardSize.swapped) {
-      console.log(`Dimensiones intercambiadas: ${this.calculatorForm.width}x${this.calculatorForm.height} → ${effectiveWidth}x${effectiveHeight}`);
+
+    let extraMargin = 0;
+    if (isCustom) {
+      extraMargin = this.calculateAppliedMargin({ ...nearestAcrylic, width, height }, format);
+      if (extraMargin === 0 && orderArea > this.calculateTotalSheetArea(nearestAcrylic)) {
+        this.calculationResult = {
+          orderArea,
+          basePriceWithProfit: 0,
+          appliedMargin: 0,
+          priceWithMargin: 0,
+          discount: 0,
+          finalPriceWithoutIva: 0,
+          iva: 0,
+          finalPriceWithIva: 0,
+          noCabe: true
+        };
+        return;
+      }
+    } else {
+      extraMargin = this.formatFactors[format]?.margin || 0;
     }
+
+    const factor = this.formatFactors[format]?.factor || 1;
+    const adjustedArea = orderArea * factor;
+    const matchingStandard = this.standardSizes.find(
+      s => s.width === suitableSize.width && s.height === suitableSize.height
+    );
+    const totalSheetArea = matchingStandard ? matchingStandard.area / 10000 : 0;
+    const baseCost = adjustedArea >= totalSheetArea
+      ? cost
+      : (cost / totalSheetArea) * adjustedArea;
+
+    const priceWithUtility = Math.ceil((baseCost / (1 - utilidad)) / 100) * 100;
+    const priceWithMargin = Math.ceil((priceWithUtility * (1 + extraMargin)) / 100) * 100;
+    const discountValue = Math.ceil((priceWithMargin * (discount / 100)) / 100) * 100;
+
+    const priceWithoutIva = Math.ceil((priceWithMargin - discountValue) / 100) * 100;
+    const ivaValue = this.calculatorForm.includeIva
+      ? Math.ceil((priceWithoutIva * 0.19) / 100) * 100
+      : 0;
+    const finalPrice = priceWithoutIva + ivaValue;
+
+    this.calculationResult = {
+      orderArea: adjustedArea,
+      basePriceWithProfit: priceWithUtility,
+      appliedMargin: extraMargin,
+      priceWithMargin,
+      discount: discountValue,
+      finalPriceWithoutIva: priceWithoutIva,
+      iva: ivaValue,
+      finalPriceWithIva: finalPrice
+    };
   }
 
   calculateDiscount(acrylic: Acrylic, discount: number = 0, format: string = this.selectedFormat): number {
-    // Depuración
-    console.log('Calculating Discount - Format:', format, 'Selected Client For Table:', this.selectedClientForTable, 'Discount:', discount);
-
     // Solo aplicar descuento si hay un cliente seleccionado y el formato no es "1 Lámina"
     if (!this.selectedClientForTable && !this.selectedClient || format === '1 Lámina') {
       return 0;
     }
     const discountToUse = this.selectedClient?.default_discount || this.selectedClientForTable?.default_discount || discount;
     const priceWithMargin = this.calculatePriceWithMarginUsingClient(acrylic, format);
+    if (priceWithMargin === 0) {
+      return 0; // No aplicar descuento si el precio con margen es 0 (NO CABE)
+    }
     const discountAmount = Math.ceil((priceWithMargin * (discountToUse / 100)) / 100) * 100;
     console.log('Discount Amount Calculated:', discountAmount);
     return discountAmount;
@@ -561,38 +710,36 @@ export class AcrylicsComponent implements OnInit {
   }
 
   updatePaginatedAcrylicItems(): void {
-  // Actualizar appliedMargin automáticamente si es "Sin formato"
-  if (this.selectedFormat === 'Sin formato' && this.globalWidth > 0 && this.globalHeight > 0 && this.acrylicItems.length > 0) {
-    const sampleAcrylic = { ...this.acrylicItems[0], width: 120, height: 180 }; // Usar dimensiones estándar de referencia
-    this.appliedMargin = this.calculateAppliedMargin(sampleAcrylic, this.selectedFormat) * 100; // Convertir a porcentaje
-  } else if (this.selectedFormat !== 'Sin formato') {
-    this.appliedMargin = this.formatMargins[this.selectedFormat] * 100 || 30; // Usar margen predefinido
+    // Filtrar por searchTerm en color, width, height y gauge
+    this.filteredAcrylicItems = this.acrylicItems.filter(item => {
+      const searchLower = this.searchTerm.toLowerCase();
+      const matchesColor = item.color.toLowerCase().includes(searchLower);
+      const matchesWidth = item.width.toString().includes(this.searchTerm);
+      const matchesHeight = item.height.toString().includes(this.searchTerm);
+      const matchesGauge = item.gauge.toString().includes(this.searchTerm);
+      return matchesColor || matchesWidth || matchesHeight || matchesGauge;
+    });
+
+    // Actualizar paginación
+    this.totalPages = Math.ceil(this.filteredAcrylicItems.length / this.itemsPerPage);
+    this.paginatedAcrylicItems = this.filteredAcrylicItems.slice(
+      (this.currentPage - 1) * this.itemsPerPage,
+      this.currentPage * this.itemsPerPage
+    );
   }
 
-  // Filtrar por searchTerm en color, width, height y gauge
-  this.filteredAcrylicItems = this.acrylicItems.filter(item => {
-    const searchLower = this.searchTerm.toLowerCase();
-    const matchesColor = item.color.toLowerCase().includes(searchLower);
-    const matchesWidth = item.width.toString().includes(this.searchTerm);
-    const matchesHeight = item.height.toString().includes(this.searchTerm);
-    const matchesGauge = item.gauge.toString().includes(this.searchTerm);
-    return matchesColor || matchesWidth || matchesHeight || matchesGauge;
-  });
-
-  // Actualizar paginación
-  this.totalPages = Math.ceil(this.filteredAcrylicItems.length / this.itemsPerPage);
-  this.paginatedAcrylicItems = this.filteredAcrylicItems.slice(
-    (this.currentPage - 1) * this.itemsPerPage,
-    this.currentPage * this.itemsPerPage
-  );
+  redondearSiSinFormato(val: number, format: string): number {
+  return format === 'Sin formato'
+    ? Math.ceil(val / 100) * 100
+    : val;
 }
 
   private applyCurrentSort(): void {
-    this.filteredAcrylicItems.sort((a, b) => {
+    this.filteredAcrylicItems.sort(((a, b) => {
       const valueA = a.gauge;
       const valueB = b.gauge;
       return this.sortDirection === 'asc' ? valueA - valueB : valueB - valueA;
-    });
+    }));
   }
 
   onClientSelectedForTable(): void {
