@@ -85,46 +85,34 @@
 </div>
 
 <!-- Formulario para dimensiones globales -->
-<div class="flex items-center space-x-4 mb-4">
+<div class="flex items-end space-x-4 mb-4">
   <div class="flex flex-col">
-    <label for="globalWidth" class="font-semibold">Ancho Global (cm):</label>
+    <label for="globalWidth" class="font-semibold mb-1">Ancho Global (cm):</label>
     <input
       type="number"
       [(ngModel)]="globalWidth"
       (ngModelChange)="updatePaginatedAcrylicItems()"
       id="globalWidth"
-      class="border border-gray-300 rounded-md p-1"
+      class="border border-gray-300 rounded-md p-2 h-10"
       placeholder="Ej. 120"
+      [disabled]="selectedFormat !== 'Sin formato'"
     />
   </div>
   <div class="flex flex-col">
-    <label for="globalHeight" class="font-semibold">Alto Global (cm):</label>
+    <label for="globalHeight" class="font-semibold mb-1">Alto Global (cm):</label>
     <input
       type="number"
       [(ngModel)]="globalHeight"
       (ngModelChange)="updatePaginatedAcrylicItems()"
       id="globalHeight"
-      class="border border-gray-300 rounded-md p-1"
+      class="border border-gray-300 rounded-md p-2 h-10"
       placeholder="Ej. 180"
+      [disabled]="selectedFormat !== 'Sin formato'"
     />
   </div>
-  <div class="flex flex-col">
-    <label for="formatPercentage" class="font-semibold">Margen Aplicado (%):</label>
-      <input
-        type="number"
-        step="0.1"
-        min="0"
-        [(ngModel)]="appliedMargin"
-        (ngModelChange)="appliedMargin = +$event.toFixed(2)"
-        id="appliedMargin"
-        class="border border-gray-300 rounded-md p-1"
-        placeholder="Ej. 40"
-        [readonly]="selectedFormat === 'Sin formato'"
-     />
-  </div>
-  <div class="flex flex-col justify-end">
+  <div class="flex items-end">
     <button
-      class="btn-clear bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+      class="btn-clear bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 h-10"
       (click)="clearGlobalValues()"
     >
       Limpiar
@@ -214,49 +202,26 @@
               ${{ acrylic.cost_price.toLocaleString() }}
             </td>
             <td class="table-column-std">
-              ${{
-                calculateBasePriceWithProfit(
-                  acrylic,
-                  selectedFormat
-                ).toLocaleString()
-              }}
+              ${{ redondearSiSinFormato(calculatePriceForTable(acrylic).basePriceWithProfit, selectedFormat).toLocaleString() }}
             </td>
             <td class="table-column-std">
-              {{ (calculateAppliedMargin(acrylic) * 100).toFixed(2)}}%
+              {{ (calculatePriceForTable(acrylic).appliedMargin * 100).toFixed(0) }}%
             </td>
             <td class="table-column-std">
-              ${{
-                calculatePriceWithMargin(
-                  acrylic,
-                  selectedFormat
-                ).toLocaleString()
-              }}
+              ${{ redondearSiSinFormato(calculatePriceForTable(acrylic).priceWithMargin, selectedFormat).toLocaleString() }}
             </td>
             <td class="table-column-std">
-              ${{
-                calculateDiscount(acrylic, 0, selectedFormat).toLocaleString()
-              }}
+              ${{ calculatePriceForTable(acrylic).discount.toLocaleString() }}
+            </td>
+            <td class="table-column-std" [ngClass]="{'text-red-600 font-bold': calculatePriceForTable(acrylic).noCabe}">
+              {{ calculatePriceForTable(acrylic).noCabe ? 'NO CABE' :
+                (redondearSiSinFormato(calculatePriceForTable(acrylic).finalPriceWithoutIva, selectedFormat) | currency:'COP') }}
             </td>
             <td class="table-column-std">
-              ${{
-                calculateFinalPriceWithoutIva(
-                  acrylic,
-                  0,
-                  selectedFormat
-                ).toLocaleString()
-              }}
+              ${{ redondearSiSinFormato(calculatePriceForTable(acrylic).iva, selectedFormat).toLocaleString() }}
             </td>
             <td class="table-column-std">
-              ${{ calculateIva(acrylic, 0, selectedFormat).toLocaleString() }}
-            </td>
-            <td class="table-column-std">
-              ${{
-                calculatePriceWithIva(
-                  acrylic,
-                  0,
-                  selectedFormat
-                ).toLocaleString()
-              }}
+              ${{ redondearSiSinFormato(calculatePriceForTable(acrylic).finalPriceWithIva, selectedFormat).toLocaleString() }}
             </td>
             <td class="table-column-std">
               <button class="btn-edit" (click)="openModal(acrylic)">
@@ -587,41 +552,30 @@
       <!-- Resultados -->
       <div *ngIf="calculationResult" class="mt-4">
         <h4 class="font-semibold">Resultados:</h4>
-        <p *ngIf="!calculationResult.orderArea">No cabe en ninguna medida estándar.</p>
-        <p *ngIf="calculationResult.orderArea">
+        <p *ngIf="calculationResult.noCabe" class="text-red-600 font-bold">NO CABE</p>
+        <p *ngIf="!calculationResult.noCabe">
           <strong>Área del Pedido:</strong> {{ calculationResult.orderArea.toFixed(2) }} m²
         </p>
-        <p>
-          <strong>Costo Base (con Utilidad):</strong> ${{
-            calculationResult.basePriceWithProfit.toLocaleString()
-          }}
+        <p *ngIf="!calculationResult.noCabe">
+          <strong>Costo Base (con Utilidad):</strong> ${{ calculationResult.basePriceWithProfit.toLocaleString() }}
         </p>
-        <p>
-          <strong>Margen Aplicado:</strong>
-          {{ (calculationResult.appliedMargin * 100).toFixed(2)}}%
+        <p *ngIf="!calculationResult.noCabe">
+          <strong>Margen Aplicado:</strong> {{ (calculationResult.appliedMargin * 100).toFixed(0) }}%
         </p>
-        <p>
-          <strong>Precio con Margen:</strong> ${{
-            calculationResult.priceWithMargin.toLocaleString()
-          }}
+        <p *ngIf="!calculationResult.noCabe">
+          <strong>Precio con Margen:</strong> ${{ calculationResult.priceWithMargin.toLocaleString() }}
         </p>
-        <p>
-          <strong>Descuento:</strong> ${{
-            calculationResult.discount.toLocaleString()
-          }}
+        <p *ngIf="!calculationResult.noCabe">
+          <strong>Descuento:</strong> ${{ calculationResult.discount.toLocaleString() }}
         </p>
-        <p>
-          <strong>Precio sin IVA:</strong> ${{
-            calculationResult.finalPriceWithoutIva.toLocaleString()
-          }}
+        <p *ngIf="!calculationResult.noCabe">
+          <strong>Precio sin IVA:</strong> ${{ calculationResult.finalPriceWithoutIva.toLocaleString() }}
         </p>
-        <p *ngIf="calculatorForm.includeIva">
+        <p *ngIf="calculatorForm.includeIva && !calculationResult.noCabe">
           <strong>IVA:</strong> ${{ calculationResult.iva.toLocaleString() }}
         </p>
-        <p *ngIf="calculatorForm.includeIva">
-          <strong>Precio con IVA:</strong> ${{
-            calculationResult.finalPriceWithIva.toLocaleString()
-          }}
+        <p *ngIf="calculatorForm.includeIva && !calculationResult.noCabe">
+          <strong>Precio con IVA:</strong> ${{ calculationResult.finalPriceWithIva.toLocaleString() }}
         </p>
       </div>
       <div class="flex justify-end mt-4">
