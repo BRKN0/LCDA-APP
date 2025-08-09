@@ -1304,197 +1304,46 @@ export class InvoiceComponent implements OnInit {
 }
 
 async downloadDeliveryNotePDF(): Promise<void> {
-  if (!this.selectedInvoiceDetails) {
-    alert('Por favor, selecciona una factura primero.');
-    return;
-  }
+  if (!this.selectedInvoiceDetails) return;
 
   const invoice = this.selectedInvoiceDetails[0];
-  if (!invoice.order) {
-    alert('Por favor, elija una orden válida.');
-    return;
-  }
-
-  const { subtotal, iva, total, reteica, retefuente } =
-    await this.calculateInvoiceValues(invoice);
-  const totalPaid = this.getTotalPayments(invoice.order);
-  const remainingBalance = total - totalPaid;
-  const quantity = invoice.order.order_quantity;
-  const unitaryValue = subtotal / quantity;
+  const order = invoice.order;
+  const client = order.client;
 
   const doc = new jsPDF();
-  const invoice_date = new Date(invoice.created_at);
-  const year = invoice_date.getFullYear();
-  const month = (invoice_date.getMonth() + 1).toString().padStart(2, '0');
-  const day = invoice_date.getDate().toString().padStart(2, '0');
+  const date = new Date(invoice.created_at);
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
 
   doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
   doc.text('La Casa del Acrilico', 10, 10);
-
-  const logoUrl = '/Logo.png';
-  const logo = await this.loadImage(logoUrl);
-  doc.addImage(logo, 'JPEG', 90, 5, 30, 20);
-
-  doc.setTextColor(200);
   doc.setFontSize(20);
   doc.text('NOTA DE REMISIÓN', 190, 10, { align: 'right' });
-  doc.setTextColor(0);
 
   doc.setFontSize(12);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Barrio Blas de Lezo Cl. 21A Mz. 11A - Lt. 12', 10, 30);
   doc.text(`Fecha: ${day}-${month}-${year}`, 190, 30, { align: 'right' });
-
-  doc.text('Cartagena de Indias, Colombia', 10, 40);
   doc.text(`Nota de Remisión N°: ${invoice.code}`, 190, 40, { align: 'right' });
 
-  doc.text('3004947020', 10, 50);
-  if (invoice.order.client.nit) {
-    doc.text(`NIT: ${invoice.order.client.nit}`, 10, 60);
-  }
+  doc.text('Cliente:', 10, 60);
+  doc.text(`Nombre: ${client.name}`, 10, 70);
+  doc.text(`Empresa: ${client.company_name || 'N/A'}`, 10, 78);
+  doc.text(`Dirección: ${client.address}`, 10, 86);
+  doc.text(`Teléfono: ${client.cellphone}`, 10, 94);
 
-  doc.setFont('helvetica', 'bold');
-  doc.text('Remisión:', 10, 70);
-  doc.setFont('helvetica', 'normal');
+  doc.text('Descripción del Pedido:', 10, 110);
+  const descLines = doc.splitTextToSize(order.description || 'Sin descripción', 180);
+  doc.text(descLines, 10, 120);
 
-  let y = 80;
-  doc.text(`Nombre: ${invoice.order.client.name}`, 10, y);
-  y += 6;
-  doc.text(
-    `Nombre de la empresa: ${invoice.order.client.company_name || 'N/A'}`,
-    10,
-    y
-  );
-  y += 6;
-  doc.text(`Dirección: ${invoice.order.client.address}`, 10, y);
-  y += 6;
-  doc.text(`Ciudad: ${invoice.order.client.city}`, 10, y);
-  y += 6;
-  doc.text(`Provincia: ${invoice.order.client.province}`, 10, y);
-  y += 6;
-  doc.text(`Código Postal: ${invoice.order.client.postal_code}`, 10, y);
-  y += 6;
-  doc.text(`E-mail: ${invoice.order.client.email}`, 10, y);
-  y += 6;
-  doc.text(`Teléfono: ${invoice.order.client.cellphone}`, 10, y);
-  y += 12;
+  doc.text(`Cantidad: ${order.order_quantity}`, 10, 140);
 
-  doc.setFont('helvetica', 'bold');
-  doc.text('DESCRIPCIÓN:', 10, y);
-  y += 6;
-  doc.setFont('helvetica', 'normal');
-  const descriptionLines = this.wrapText(doc, invoice.order.description, y);
-  let currentY = y;
-  descriptionLines.forEach((line) => {
-    doc.text(line, 10, currentY);
-    currentY += 10;
-  });
+  // Nota
+  doc.text('Nota:', 10, 165);
 
-  const startY = currentY + 10;
-  const rowHeight = 7;
-  const headerXPositions = [10, 40, 120, 170];
-  const summaryStartY = startY + rowHeight * 2;
 
-  doc.setFont('helvetica', 'bold');
-  doc.text('CANTIDAD', headerXPositions[0], startY);
-  doc.text('VALOR UNITARIO', headerXPositions[1], startY);
-  doc.text('ABONO', headerXPositions[2], startY, { align: 'right' });
-
-  currentY = startY + rowHeight;
-  doc.setFont('helvetica', 'normal');
-  doc.text(`${invoice.order.order_quantity}`, headerXPositions[0], currentY);
-  doc.text(`$${unitaryValue.toFixed(2)}`, headerXPositions[1], currentY);
-  doc.text(`$${subtotal.toFixed(2)}`, headerXPositions[2], currentY, {
-    align: 'right',
-  });
-
-  if (invoice.order.payments && invoice.order.payments.length > 0) {
-    doc.setFont('helvetica', 'bold');
-    doc.text('Abonos Realizados:', 10, summaryStartY);
-    currentY = summaryStartY + rowHeight;
-    doc.setFont('helvetica', 'normal');
-    invoice.order.payments.forEach((payment) => {
-      doc.text(
-        `$${payment.amount} - ${payment.payment_method} - ${
-          payment.payment_date
-            ? new Date(payment.payment_date).toLocaleDateString('es-CO')
-            : ''
-        }`,
-        10,
-        currentY
-      );
-      currentY += rowHeight;
-    });
-  }
-
-  const summaryX = headerXPositions[0];
-  const valueX = headerXPositions[1];
-  doc.setFont('helvetica', 'bold');
-
-  doc.text('Subtotal:', summaryX, currentY);
-  doc.text(`$${subtotal.toFixed(2)}`, valueX, currentY, { align: 'left' });
-  currentY += rowHeight;
-
-  if (invoice.include_iva) {
-    doc.text('IVA (19%):', summaryX, currentY);
-    doc.text(`$${iva.toFixed(2)}`, valueX, currentY, { align: 'left' });
-    currentY += rowHeight;
-  }
-
-  if (retefuente > 0) {
-    doc.text('Retefuente:', summaryX, currentY);
-    doc.text(`$${retefuente.toFixed(2)}`, valueX, currentY, {
-      align: 'left',
-    });
-    currentY += rowHeight;
-  }
-
-  if (reteica > 0) {
-    doc.text('ReteICA:', summaryX, currentY);
-    doc.text(`$${reteica.toFixed(2)}`, valueX, currentY, { align: 'left' });
-    currentY += rowHeight;
-  }
-
-  doc.setFontSize(14);
-  doc.text('Total:', summaryX, currentY);
-  doc.text(`$${total.toFixed(2)}`, valueX, currentY, { align: 'left' });
-  currentY += rowHeight;
-
-  const spacing = 15;
-  const totalPagarY = currentY + rowHeight;
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Total a pagar:', summaryX, totalPagarY);
-  doc.text(`$${remainingBalance.toFixed(2)}`, valueX + spacing, totalPagarY, {
-    align: 'left',
-  });
-
-  const footerStartY = totalPagarY + rowHeight * 3;
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'italic');
-  doc.text(
-    'Todos los cheques se extenderán a nombre de La casa del acrilico',
-    10,
-    footerStartY
-  );
-  doc.text(
-    'Si tiene cualquier tipo de pregunta acerca de esta nota de remisión, póngase en contacto al número 3004947020',
-    10,
-    footerStartY + 10
-  );
-
-  doc.setFont('helvetica', 'bold');
-  doc.text('GRACIAS POR SU CONFIANZA', 10, footerStartY + 25);
-
-  const signatureY = footerStartY + 40;
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Firma Recibido:', 10, signatureY);
-
-  const lineY = signatureY + 15; // Aquí decides cuánto más abajo: 10, 15, 20, etc.
-  doc.setLineWidth(0.5);
-  doc.line(10, lineY, 80, lineY); // Línea para la firma
+  // Firma
+  doc.text('Firma Recibido:', 10, 200);
+  doc.line(10, 210, 80, 210);
 
   doc.save(`Nota_de_Remisión_${invoice.code}.pdf`);
 }
