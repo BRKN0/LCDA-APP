@@ -67,6 +67,12 @@
     </svg>
     <span>Calculadora</span>
   </button>
+  <button
+    class="btn-clear inline-flex items-center space-x-2 "
+    (click)="clearFilters()"
+  >
+    Limpiar filtros
+  </button>
 </div>
 <div class="flex items-center justify-center py-4 space-x-4 top-5">
   <div class="relative w-full max-w-md">
@@ -108,7 +114,7 @@
     >
       <option value="">-- Todos los tipos --</option>
       <option *ngFor="let type of availableTypes" [value]="type">
-        {{ 
+        {{
           type === 'original' ? 'Original' :
           type === 'eco' ? 'Eco' :
           type === 'clear' ? 'Transparente' :
@@ -172,7 +178,7 @@
             <td>{{ item.width }}</td>
             <td>{{ item.height }}</td>
             <td>
-              {{ 
+              {{
                 item.type === 'original'
                   ? 'Original'
                   : item.type === 'eco'
@@ -199,10 +205,10 @@
             </td>
 
             <td [ngClass]="{'text-red-600 font-bold': calculatePriceForTable(item).noCabe}">
-              {{ 
-                calculatePriceForTable(item).noCabe 
-                  ? 'NO CABE' 
-                  : (calculatePriceForTable(item).finalPriceWithoutIva | currency:'COP') 
+              {{
+                calculatePriceForTable(item).noCabe
+                  ? 'NO CABE'
+                  : (calculatePriceForTable(item).finalPriceWithoutIva | currency:'COP')
               }}
             </td>
 
@@ -297,22 +303,22 @@
         <label class="block modal-input-item"
         >Ancho (cm)<span class="text-red-500">*</span></label
         >
-        <input type="number" 
-          [(ngModel)]="selectedPolystyrene.width" 
-          name="width" 
-          class="form-input mt-1 block w-full" 
-          required 
+        <input type="number"
+          [(ngModel)]="selectedPolystyrene.width"
+          name="width"
+          class="form-input mt-1 block w-full"
+          required
         />
       </div>
       <div class="mb-4">
         <label class="block modal-input-item"
         >Alto (cm)<span class="text-red-500">*</span></label
         >
-        <input type="number" 
-          [(ngModel)]="selectedPolystyrene.height" 
-          name="height" 
-          class="form-input mt-1 block w-full" 
-          required 
+        <input type="number"
+          [(ngModel)]="selectedPolystyrene.height"
+          name="height"
+          class="form-input mt-1 block w-full"
+          required
         />
       </div>
       <div class="mb-4">

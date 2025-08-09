@@ -1555,4 +1555,14 @@ export class OrdersComponent implements OnInit {
     this.showStockWarningModal = false;
     this.stockDecisionResolver(false);
   }
+  clearFilters(): void {
+    this.startDate = '';
+    this.endDate = '';
+    this.searchByNameQuery = '';
+    this.showPrints = true;
+    this.showCuts = true;
+    this.showSales = true;
+    this.searchQuery = '';
+    this.updateFilteredOrders();
+  }
 }

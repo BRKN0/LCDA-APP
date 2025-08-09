@@ -122,6 +122,13 @@ export class BankingComponent implements OnInit {
     this.router.navigate(['/banks']);
   }
 
+  clearFilters(): void {
+    this.selectedBank = '';
+    this.startDate = '';
+    this.endDate = '';
+    this.updateFilteredTransactions();
+  }
+
   //Paginacion
   paginateItems<T>(items: T[], page: number, itemsPerPage: number): T[] {
     const startIndex = (page - 1) * itemsPerPage;

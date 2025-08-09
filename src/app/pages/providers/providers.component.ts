@@ -195,6 +195,11 @@ export class ProvidersComponent implements OnInit {
     this.updatePaginatedProviders();
   }
 
+  clearFilters(): void {
+    this.nameSearchQuery = '';
+    this.updateFilteredProviders();
+  }
+
   paginateItems<T>(items: T[], page: number, itemsPerPage: number): T[] {
     const startIndex = (page - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;

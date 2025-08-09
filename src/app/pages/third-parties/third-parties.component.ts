@@ -277,6 +277,10 @@ export class ThirdPartiesComponent implements OnInit {
     );
     this.updatePaginatedParties();
   }
+  clearFilters(): void {
+    this.nameSearchQuery = '';
+    this.updateFilteredParties();
+  }
   paginateItems<T>(items: T[], page: number, itemsPerPage: number): T[] {
     const startIndex = (page - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;

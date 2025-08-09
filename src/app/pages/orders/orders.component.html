@@ -108,6 +108,12 @@
       </svg>
       <span>Calculadora</span>
     </button>
+    <button
+      class="btn-clear "
+      (click)="clearFilters()"
+    >
+      Limpiar
+  </button>
   </div>
 </div>
 
@@ -554,7 +560,7 @@
           </p>
           <p>
             <strong>Tipo de cliente:</strong>
-            {{ 
+            {{
               selectedOrderDetails[0].client_type === "finall"
                 ? "Final"
                 : selectedOrderDetails[0].client_type === "intermediary"

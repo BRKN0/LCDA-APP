@@ -525,6 +525,18 @@ export class InventoryComponent implements OnInit {
     this.updatePaginatedInventory();
   }
 
+    clearFilters(): void {
+    this.searchCode = '';
+    this.searchType = '';
+    this.showVinyls = true;
+    this.showCutVinyls = true;
+    this.showAcrylic = true;
+    this.showPolystyrene = true;
+    this.showDieCut = true;
+    this.showMDF = true;
+    this.updateFilteredInventory();
+  }
+
   //Paginacion
   paginateItems<T>(items: T[], page: number, itemsPerPage: number): T[] {
     const startIndex = (page - 1) * itemsPerPage;

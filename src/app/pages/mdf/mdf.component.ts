@@ -433,6 +433,10 @@ export class MDFComponent implements OnInit {
     this.paginatedMdfItems = this.filteredMdfItems.slice(startIndex, endIndex);
   }
 
+  clearFilters(): void {
+    this.searchTerm = '';
+    this.updatePaginatedMdfItems();
+  }
   onSearchChange(): void {
     this.currentPage = 1;
     this.updatePaginatedMdfItems();

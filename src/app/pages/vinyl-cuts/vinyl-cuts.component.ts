@@ -118,9 +118,9 @@ export class VinylCutsComponent {
   async saveVinylCut(): Promise<void> {
     this.selectedVinylCut.linearCm = this.round(this.selectedVinylCut.saleXmt / 100);
 
-    if (!this.selectedVinylCut.supplier || !this.selectedVinylCut.unds_mts || 
+    if (!this.selectedVinylCut.supplier || !this.selectedVinylCut.unds_mts ||
         !this.selectedVinylCut.type || !this.selectedVinylCut.description ||
-        !this.selectedVinylCut.costXmt || !this.selectedVinylCut.saleXmt || 
+        !this.selectedVinylCut.costXmt || !this.selectedVinylCut.saleXmt ||
         !this.selectedVinylCut.linearCm) {
       alert ('Por favor, complete todos los campos.');
       return;
@@ -182,6 +182,12 @@ export class VinylCutsComponent {
   closeModal(): void {
     this.showModal = false;
     this.isEditing = false;
+  }
+
+  clearFilters(): void {
+    this.searchType = '';
+    this.searchSupplier = '';
+    this.updateFilteredVinylCuts();
   }
 
   round(value: number): number {
