@@ -309,6 +309,7 @@ export class AcrylicsComponent implements OnInit {
   clearGlobalValues(): void {
     this.globalWidth = 0;
     this.globalHeight = 0;
+    this.searchTerm = '';
     this.updatePaginatedAcrylicItems();
   }
 

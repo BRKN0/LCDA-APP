@@ -1987,6 +1987,21 @@ async downloadDeliveryNotePDF(): Promise<void> {
     };
   }
 
+  clearFilters(): void {
+  // Resetear todas las variables de filtro
+  this.searchQuery = '';
+  this.nameSearchQuery = '';
+  this.startDate = '';
+  this.endDate = '';
+  this.showPrints = true;
+  this.showCuts = true;
+  this.showSales = true;
+  this.showDebt = false;
+
+  // Recargar la lista completa
+  this.updateFilteredInvoices();
+}
+
   closeModal(): void {
     this.showModal = false;
     this.isEditing = false;

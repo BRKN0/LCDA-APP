@@ -517,6 +517,18 @@ export class PolystyreneComponent implements OnInit {
     }
   }
 
+    clearFilters(): void {
+    // Resetear todos los filtros
+    this.searchCaliber = '';
+    this.searchType = '';
+    this.selectedFormat = '1 Lámina';
+    this.customWidth = null;
+    this.customHeight = null;
+
+    // Recargar la lista completa
+    this.updateFilteredPolystyrenes();
+  }
+
 
   openClientDefaultsModal(): void {
     this.showClientDefaultsModal = true;

@@ -44,8 +44,15 @@
           class="border border-gray-300 rounded-md p-1"
         />
       </div>
+      <button
+        class="btn-clear"
+        (click)="clearFilters()"
+      >
+        Limpiar filtros
+      </button>
     </div>
-   
+
+
 
 
 
@@ -123,7 +130,7 @@
           &#8658;
         </button>
       </div>
-    
+
       <!-- Selector de elementos por página -->
       <div class="items-per-page flex items-center">
         <label for="itemsPerPage" class="mr-2">Elementos por página:</label>
@@ -135,6 +142,6 @@
         >
           <option *ngFor="let size of [2, 10, 15, 20]" [value]="size">{{ size }}</option>
         </select>
-      </div>  
+      </div>
     </div>
   </div>

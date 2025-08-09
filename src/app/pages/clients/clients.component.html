@@ -38,6 +38,12 @@
     <button class="btn-details" (click)="generateClientsKardex()">
       Generar Kardex
     </button>
+    <button
+      class="btn-clear "
+      (click)="clearFilters()"
+    >
+      Limpiar
+  </button>
   </div>
 </div>
 <!-- Search bar and filter by debt -->
@@ -159,7 +165,7 @@
           <p><strong>Aplica retencion de fuente:</strong> {{ selectedClient.retefuente }}</p>
           <p><strong>Estado:</strong> {{ selectedClient.status }}</p>
           <p><strong>Limite de credito:</strong> {{ selectedClient.credit_limit }}</p>
-          
+
           <p>
             <strong>Deuda:</strong>
             <span

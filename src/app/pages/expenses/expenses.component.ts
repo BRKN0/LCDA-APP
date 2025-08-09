@@ -386,4 +386,21 @@ export class ExpensesComponent implements OnInit {
     // Obtener los elementos para la página actual
     this.paginatedExpenses = this.filteredExpenses.slice(startIndex, endIndex);
   }
+  clearFilters(): void {
+  // Limpiar fechas
+  this.startDate = '';
+  this.endDate = '';
+
+  // Limpiar categorías seleccionadas
+  Object.keys(this.categoryCheckboxes).forEach((key) => {
+    this.categoryCheckboxes[key] = true;
+  });
+
+  // Limpiar campo "Otros"
+  this.otherCategory = '';
+  this.showOtherCategoryInput = false;
+
+  // Reaplicar filtros (que ahora estarán vacíos)
+  this.applyFilters();
+}
 }

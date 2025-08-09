@@ -447,4 +447,15 @@ export class EmployeesComponent implements OnInit {
       endIndex
     );
   }
+  clearFilters(): void {
+    // Limpiar búsqueda
+    this.searchQuery = '';
+
+    // Limpiar fechas
+    this.startDate = '';
+    this.endDate = '';
+
+    // Aplicar filtros vacíos
+    this.searchEmployee();
+  }
 }

@@ -780,4 +780,12 @@ export class ClientsComponent implements OnInit {
       console.error('Error al actualizar estado:', error);
     }
   }
+  clearFilters(): void {
+    this.searchQuery = '';
+    this.filterDebt = false;
+    this.filteredClients = this.clients;
+    this.currentPage = 1;
+    this.updatePaginatedClients();
+    this.noResultsFound = false;
+  }
 }
