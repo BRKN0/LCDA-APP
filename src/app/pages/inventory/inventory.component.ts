@@ -16,6 +16,10 @@ interface InventoryItem {
   cost: number;
   sale_price: number;
   status: string;
+   // new fields
+  standard_size?: string;   // '120x180', '130x190', ...
+  custom_width?: number;
+  custom_height?: number;
 }
 
 @Component({
@@ -46,6 +50,9 @@ export class InventoryComponent implements OnInit {
     cost: 0,
     sale_price: 0,
     status: '',
+    standard_size: '',
+    custom_width: 0,
+    custom_height: 0
   };
   loading = true;
   comparisonResult: any[] = [];
@@ -66,6 +73,8 @@ export class InventoryComponent implements OnInit {
   itemsPerPage: number = 10; // Elementos por página
   totalPages: number = 1; // Total de páginas
   paginatedInventory: InventoryItem[] = []; // Lista paginada
+
+  selectedStandardSize = ''; // empty = custom
 
   constructor(
     private readonly supabase: SupabaseService,
@@ -381,6 +390,9 @@ export class InventoryComponent implements OnInit {
       cost: 0,
       sale_price: 0,
       status: '',
+      standard_size: '',
+      custom_width: 0,
+      custom_height: 0,
     };
     this.isEditing = false; // Indicar que no estamos editando
     this.showModal = true; // Mostrar el modal
@@ -388,6 +400,11 @@ export class InventoryComponent implements OnInit {
 
   editItem(item: InventoryItem): void {
     this.selectedItem = { ...item };
+    this.selectedStandardSize = item.standard_size || ''
+    // Si NO hay estándar, fuerza la vista “Personalizada” y carga los números
+    if (!this.selectedStandardSize) {
+      this.selectedStandardSize = ''; // activa la sección *ngIf
+    }
     this.isEditing = true; // Indicar que estamos editando
     this.showModal = true; // Mostrar el modal
   }
@@ -405,6 +422,15 @@ export class InventoryComponent implements OnInit {
       return;
     }
 
+    if (this.selectedStandardSize) {
+      const [w, h] = this.selectedStandardSize.split('x').map(Number);
+      this.selectedItem.custom_width  = w;
+      this.selectedItem.custom_height = h;
+      this.selectedItem.standard_size = this.selectedStandardSize;
+    } else {
+      this.selectedItem.standard_size = 'custom';
+    }
+
     const itemToSave = {
       category: this.selectedItem.category,
       type: this.selectedItem.type,
@@ -414,7 +440,20 @@ export class InventoryComponent implements OnInit {
       cost: this.selectedItem.cost,
       sale_price: this.selectedItem.sale_price,
       status: this.selectedItem.status,
+      standard_size: this.selectedItem.standard_size,
+      custom_width: this.selectedItem.custom_width,
+      custom_height: this.selectedItem.custom_height,
     };
+
+    // if user picked a predefined size
+    if (this.selectedStandardSize) {
+      const [w, h] = this.selectedStandardSize.split('x').map(Number);
+      this.selectedItem.custom_width  = w;
+      this.selectedItem.custom_height = h;
+      this.selectedItem.standard_size = this.selectedStandardSize;
+    } else {
+      this.selectedItem.standard_size = 'custom';
+    }
 
     if (this.selectedItem.id_material) {
       // Actualizar

@@ -205,6 +205,44 @@
           required
         />
       </div>
+      <!-- predefined sizes -->
+      <div class="mb-4">
+        <label class="block">Medida estándar</label>
+        <select
+          [(ngModel)]="selectedStandardSize"
+          name="standard_size"
+          class="form-select"
+        >
+          <option value="">Personalizada</option>
+          <option value="120x180">120 × 180 cm</option>
+          <option value="130x190">130 × 190 cm</option>
+          <option value="125x245">125 × 245 cm</option>
+          <option value="150x250">150 × 250 cm</option>
+          <option value="180x300">180 × 300 cm</option>
+        </select>
+      </div>
+
+      <!-- manual entry (only if “Personalizada” chosen) -->
+      <div class="flex space-x-4" *ngIf="!selectedStandardSize">
+        <div class="w-1/2">
+          <label class="block">Ancho (cm)</label>
+          <input
+            type="number"
+            [(ngModel)]="selectedItem.custom_width"
+            name="custom_width"
+            class="form-input"
+          />
+        </div>
+        <div class="w-1/2">
+          <label class="block">Alto (cm)</label>
+          <input
+            type="number"
+            [(ngModel)]="selectedItem.custom_height"
+            name="custom_height"
+            class="form-input"
+          />
+        </div>
+      </div>
       <div class="mb-4">
         <label class="block modal-input-item">Tipo</label>
         <input
@@ -303,6 +341,7 @@
       <tr>
         <th class="table-column-std">Código</th>
         <th class="table-column-std">Categoría</th>
+        <th class="table-column-std">Medida (cm)</th>
         <th class="table-column-std">Tipo</th>
         <th class="table-column-std">Calibre</th>
         <th class="table-column-std">Cantidad</th>
@@ -320,6 +359,13 @@
       >
         <td>{{ item.code }}</td>
         <td>{{ item.category || "Sin Categoria" }}</td>
+        <td class="table-column-std">
+          {{
+            item.standard_size === 'custom'
+              ? (item.custom_width || 0)+'x'+(item.custom_height || 0)
+              : (item.standard_size || 'Sin medida')
+          }}
+        </td>
         <td>{{ item.type || "Sin Tipo" }}</td>
         <td>{{ item.caliber || "Sin Calibre" }}</td>
         <td
@@ -330,6 +376,7 @@
         >
           {{ item.material_quantity || 0 }}
         </td>
+
         <td>{{ item.color || "Sin Color" }}</td>
         <td>{{ item.cost | currency }}</td>
         <td>{{ item.sale_price | currency }}</td>
