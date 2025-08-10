@@ -31,6 +31,8 @@ interface Orders {
   payments?: Payment[];
   file_path: string;
   scheduler: string;
+  extra_charges?: { description: string; amount: number }[];
+  base_total?: number;
 }
 
 interface Client {
@@ -783,7 +785,12 @@ export class OrdersComponent implements OnInit {
       }
     }
 
-    this.selectedOrderDetails = [order];
+    this.selectedOrderDetails = [
+      {
+        ...order,
+        extra_charges: order.extra_charges || []
+      }
+    ];
     this.selectedOrder = order;
     this.loadingDetails = false;
   }
@@ -904,6 +911,7 @@ export class OrdersComponent implements OnInit {
         iva: '',
         subtotal: '',
         total: '0',
+        extra_charges: [],
         amount: '',
         id_client: '',
         order_confirmed_status: 'notConfirmed',
@@ -925,6 +933,22 @@ export class OrdersComponent implements OnInit {
     this.showModal = true;
 
     this.newOrder = { ...order };
+
+    if (
+      !this.newOrder.base_total ||
+      isNaN(Number(this.newOrder.base_total))
+    ) {
+      // Si tienes subtotal, úsalo como base
+      if (this.newOrder.subtotal && !isNaN(Number(this.newOrder.subtotal))) {
+        this.newOrder.base_total = Number(this.newOrder.subtotal);
+      } else {
+        // Si no, calcula base_total como total menos suma de cargos extras
+        const extras =
+          this.newOrder.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
+        this.newOrder.base_total =
+          Number(this.newOrder.total) - extras;
+      }
+    }
 
     if (order.order_type === 'print') {
       const { data, error } = await this.supabase
@@ -1011,6 +1035,8 @@ export class OrdersComponent implements OnInit {
       notes: newOrderForm.notes,
       file_path: newOrderForm.file_path,
       scheduler: newOrderForm.scheduler,
+      extra_charges: newOrderForm.extra_charges || [],
+      base_total: parseFloat(newOrderForm.unitary_value as string) * parseFloat(newOrderForm.order_quantity as string),
     };
 
     const deliveryDate = newOrderForm.delivery_date
@@ -1352,6 +1378,39 @@ export class OrdersComponent implements OnInit {
       this.createNotification(insertedOrder);
       this.toggleAddOrderForm();
     }
+  }
+
+  extraChargeDescription: string = '';
+  extraChargeAmount: number = 0;
+
+  addExtraCharge() {
+    if (!this.newOrder.extra_charges) this.newOrder.extra_charges = [];
+    if (this.extraChargeDescription && this.extraChargeAmount > 0) {
+      this.newOrder.extra_charges.push({
+        description: this.extraChargeDescription,
+        amount: this.extraChargeAmount,
+      });
+      this.extraChargeDescription = '';
+      this.extraChargeAmount = 0;
+      this.updateOrderTotalWithExtras();
+    }
+  }
+
+  removeExtraCharge(index: number) {
+    if (this.newOrder.extra_charges) {
+      this.newOrder.extra_charges.splice(index, 1);
+      this.updateOrderTotalWithExtras();
+    }
+  }
+
+  updateOrderTotalWithExtras() {
+    const baseTotal =
+      parseFloat(this.newOrder.base_total as any) ||
+      parseFloat(this.newOrder.subtotal as any) ||
+      0;
+    const extras =
+      this.newOrder.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
+    this.newOrder.total = (baseTotal + extras).toString();
   }
 
   async createNotification(addedOrder: Partial<Orders>) {

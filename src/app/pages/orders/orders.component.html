@@ -569,6 +569,14 @@
             }}
           </p>
         </div>
+        <div *ngIf="selectedOrderDetails[0]?.extra_charges?.length" class="my-4">
+          <p class="font-semibold text-blue-600">Cargos Extras</p>
+          <ul>
+            <li *ngFor="let charge of selectedOrderDetails[0].extra_charges">
+              {{ charge.description }}: ${{ charge.amount }}
+            </li>
+          </ul>
+        </div>
         <div class="text-right">
           <p>
             <strong>De:</strong>
@@ -689,6 +697,19 @@
         <div class="flex justify-between">
           <p *ngIf="selectedOrderDetails[0].iva"><strong>IVA:</strong></p>
           <p>{{ selectedOrderDetails[0].iva }}</p>
+        </div>
+        <div
+          *ngIf="selectedOrderDetails[0]?.extra_charges?.length"
+          class="flex flex-col gap-1 my-2"
+        >
+          <p class="font-semibold text-blue-600 mb-1">Cargos Extras:</p>
+          <div
+            *ngFor="let charge of selectedOrderDetails[0].extra_charges"
+            class="flex justify-between"
+          >
+            <span>{{ charge.description }}</span>
+            <span>${{ charge.amount }}</span>
+          </div>
         </div>
         <div class="flex justify-between">
           <p><strong>Total:</strong></p>
@@ -846,6 +867,35 @@
           class="form-input mt-1 block w-full"
         >
       </div>
+      <div class="mb-4 border-t pt-4">
+        <h4 class="font-semibold text-blue-600">Cargos Extras</h4>
+        <div class="flex gap-2 mb-2">
+          <input
+            type="text"
+            [(ngModel)]="extraChargeDescription"
+            placeholder="Descripción"
+            class="form-input w-1/2"
+            name="extraChargeDescription"
+          />
+          <input
+            type="number"
+            [(ngModel)]="extraChargeAmount"
+            placeholder="Valor"
+            class="form-input w-1/4"
+            name="extraChargeAmount"
+          />
+          <button type="button" class="btn-primary" (click)="addExtraCharge()">
+            Añadir
+          </button>
+        </div>
+        <ul>
+          <li *ngFor="let charge of newOrder.extra_charges; let i = index" class="flex items-center gap-2">
+            <span>{{ charge.description }}: ${{ charge.amount }}</span>
+            <button type="button" class="btn-danger btn-xs" (click)="removeExtraCharge(i)">Eliminar</button>
+          </li>
+        </ul>
+      </div>
+
 
       <!-- Campos específicos para Impresiones -->
       <div
