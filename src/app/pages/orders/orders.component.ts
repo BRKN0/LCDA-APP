@@ -189,6 +189,7 @@ export class OrdersComponent implements OnInit {
   uploadedFilePath: string | null = null;
   showStockWarningModal = false;
   stockWarningMessage = '';
+  selectedScheduler: string = '';
 
   newClient = {
     name: '',
@@ -736,9 +737,12 @@ export class OrdersComponent implements OnInit {
         order.name
           .toLowerCase()
           .includes(this.searchByNameQuery.toLowerCase().trim());
+        
+      const matchesScheduler =
+        !this.selectedScheduler || order.scheduler === this.selectedScheduler;
 
       if (allTypeCheckboxesOff) {
-        return matchesDateRange && matchesNameSearch;
+        return matchesDateRange && matchesNameSearch && matchesScheduler;;
       }
 
       const isPrintsFilter = this.showPrints && order.order_type === 'print';
@@ -747,7 +751,7 @@ export class OrdersComponent implements OnInit {
 
       const matchesType = isPrintsFilter || isCutsFilter || isSalesFilter;
 
-      return matchesType && matchesDateRange && matchesNameSearch;
+      return matchesType && matchesDateRange && matchesNameSearch && matchesScheduler;;
     });
 
     this.noResultsFound =
@@ -755,6 +759,11 @@ export class OrdersComponent implements OnInit {
       this.filteredOrdersList.length === 0;
     this.currentPage = 1;
     this.updatePaginatedOrder();
+  }
+
+  getUniqueSchedulers(): string[] {
+    const schedulers = this.orders.map((o) => o.scheduler).filter(Boolean);
+    return Array.from(new Set(schedulers));
   }
 
   async selectOrder(order: Orders) {
@@ -981,6 +990,16 @@ export class OrdersComponent implements OnInit {
     }
   }
 
+  async getUserName(): Promise<string | null> {
+    const { data, error } = await this.supabase
+      .from('users')
+      .select('user_name')
+      .eq('id', this.userId)
+      .maybeSingle();
+
+    return error || !data ? null : data.user_name;
+  }
+
   async addOrder(newOrderForm: Partial<Orders>): Promise<void> {
     const selectedClient = this.clients.find(
       (client) => client.id_client === newOrderForm.id_client
@@ -1013,6 +1032,7 @@ export class OrdersComponent implements OnInit {
         return;
       }
     }
+    const userName = await this.getUserName();
 
     this.newOrder = {
       order_type: newOrderForm.order_type,
@@ -1034,7 +1054,7 @@ export class OrdersComponent implements OnInit {
       order_delivery_status: newOrderForm.order_delivery_status,
       notes: newOrderForm.notes,
       file_path: newOrderForm.file_path,
-      scheduler: newOrderForm.scheduler,
+      scheduler: userName || '',
       extra_charges: newOrderForm.extra_charges || [],
       base_total: parseFloat(newOrderForm.unitary_value as string) * parseFloat(newOrderForm.order_quantity as string),
     };
@@ -1080,34 +1100,32 @@ export class OrdersComponent implements OnInit {
       if (this.newOrder.order_type === 'print') {
         const selectedMaterial = this.getSelectedMaterial();
 
-        if (!selectedMaterial) {
-          alert('Material seleccionado no encontrado');
-          return;
+
+        if (selectedMaterial) {
+          const quantityToUse = parseInt(this.newPrint.quantity || '0');
+
+          if (parseFloat(selectedMaterial.material_quantity) < quantityToUse) {
+            this.stockWarningMessage = `No hay suficiente stock. Disponible: ${selectedMaterial.material_quantity}`;
+            const proceed = await this.confirmStockOverride();
+            if (!proceed) return;
+          }
+
+          const newStock =
+            parseFloat(selectedMaterial.material_quantity) - quantityToUse;
+
+          await this.supabase
+            .from('materials')
+            .update({ material_quantity: newStock.toString() })
+            .eq('id_material', selectedMaterial.id_material);
         }
-
-        const quantityToUse = parseInt(this.newPrint.quantity || '0');
-
-        if (parseFloat(selectedMaterial.material_quantity) < quantityToUse) {
-          this.stockWarningMessage = `No hay suficiente stock. Disponible: ${selectedMaterial.material_quantity}`;
-          const proceed = await this.confirmStockOverride();
-          if (!proceed) return;
-        }
-
-        const newStock =
-          parseFloat(selectedMaterial.material_quantity) - quantityToUse;
-
-        await this.supabase
-          .from('materials')
-          .update({ material_quantity: newStock.toString() })
-          .eq('id_material', selectedMaterial.id_material);
 
         const printData = {
           ...this.newPrint,
           id_order: this.newOrder.id_order,
-          material_type: selectedMaterial.type,
-          caliber: selectedMaterial.caliber,
-          color: selectedMaterial.color,
-          category: selectedMaterial.category,
+          material_type: selectedMaterial?.type || '',
+          caliber: selectedMaterial?.caliber || '',
+          color: selectedMaterial?.color || '',
+          category: selectedMaterial?.category || '',
         };
 
         const { data: existingPrint, error: printSearchError } = await this.supabase
@@ -1137,35 +1155,32 @@ export class OrdersComponent implements OnInit {
       } else if (this.newOrder.order_type === 'laser') {
         const selectedMaterial = this.getSelectedMaterial();
 
-        if (!selectedMaterial) {
-          alert('Material seleccionado no encontrado');
-          return;
+
+        if (selectedMaterial) {
+          const quantityToUse = parseInt(this.newCut.quantity || '0');
+
+          if (parseFloat(selectedMaterial.material_quantity) < quantityToUse) {
+            this.stockWarningMessage = `No hay suficiente stock. Disponible: ${selectedMaterial.material_quantity}`;
+            const proceed = await this.confirmStockOverride();
+            if (!proceed) return;
+          }
+
+          const newStock =
+            parseFloat(selectedMaterial.material_quantity) - quantityToUse;
+
+          await this.supabase
+            .from('materials')
+            .update({ material_quantity: newStock.toString() })
+            .eq('id_material', selectedMaterial.id_material);
         }
-
-        const quantityToUse = parseInt(this.newCut.quantity || '0');
-
-        if (parseFloat(selectedMaterial.material_quantity) < quantityToUse) {
-          this.stockWarningMessage = `No hay suficiente stock. Disponible: ${selectedMaterial.material_quantity}`;
-          const proceed = await this.confirmStockOverride();
-          if (!proceed) return;
-
-        }
-
-        const newStock =
-          parseFloat(selectedMaterial.material_quantity) - quantityToUse;
-
-        await this.supabase
-          .from('materials')
-          .update({ material_quantity: newStock.toString() })
-          .eq('id_material', selectedMaterial.id_material);
 
         const cutData = {
           ...this.newCut,
           id_order: this.newOrder.id_order,
-          material_type: selectedMaterial.type,
-          caliber: selectedMaterial.caliber,
-          color: selectedMaterial.color,
-          category: selectedMaterial.category,
+          material_type: selectedMaterial?.type || '',
+          caliber: selectedMaterial?.caliber || '',
+          color: selectedMaterial?.color || '',
+          category: selectedMaterial?.category || '',
         };
 
         const { data: existingCut, error: cutSearchError } = await this.supabase
@@ -1240,34 +1255,32 @@ export class OrdersComponent implements OnInit {
       if (this.newOrder.order_type === 'print') {
         const selectedMaterial = this.getSelectedMaterial();
 
-        if (!selectedMaterial) {
-          alert('Material seleccionado no encontrado');
-          return;
+
+        if (selectedMaterial) {
+          const quantityToUse = parseInt(this.newPrint.quantity || '0');
+
+          if (parseFloat(selectedMaterial.material_quantity) < quantityToUse) {
+            this.stockWarningMessage = `No hay suficiente stock. Disponible: ${selectedMaterial.material_quantity}`;
+            const proceed = await this.confirmStockOverride();
+            if (!proceed) return;
+          }
+
+          const newStock =
+            parseFloat(selectedMaterial.material_quantity) - quantityToUse;
+
+          await this.supabase
+            .from('materials')
+            .update({ material_quantity: newStock.toString() })
+            .eq('id_material', selectedMaterial.id_material);
         }
-
-        const quantityToUse = parseInt(this.newPrint.quantity || '0');
-
-        if (parseFloat(selectedMaterial.material_quantity) < quantityToUse) {
-          this.stockWarningMessage = `No hay suficiente stock. Disponible: ${selectedMaterial.material_quantity}`;
-          const proceed = await this.confirmStockOverride();
-          if (!proceed) return;
-        }
-
-        const newStock =
-          parseFloat(selectedMaterial.material_quantity) - quantityToUse;
-
-        await this.supabase
-          .from('materials')
-          .update({ material_quantity: newStock.toString() })
-          .eq('id_material', selectedMaterial.id_material);
 
         const printData = {
           ...this.newPrint,
-          id_order: insertedOrder.id_order,
-          material_type: selectedMaterial.type,
-          caliber: selectedMaterial.caliber,
-          color: selectedMaterial.color,
-          category: selectedMaterial.category,
+          id_order: this.newOrder.id_order,
+          material_type: selectedMaterial?.type || '',
+          caliber: selectedMaterial?.caliber || '',
+          color: selectedMaterial?.color || '',
+          category: selectedMaterial?.category || '',
         };
 
         const { error: printError } = await this.supabase
@@ -1283,34 +1296,32 @@ export class OrdersComponent implements OnInit {
       } else if (this.newOrder.order_type === 'laser') {
         const selectedMaterial = this.getSelectedMaterial();
 
-        if (!selectedMaterial) {
-          alert('Material seleccionado no encontrado');
-          return;
+
+        if (selectedMaterial) {
+          const quantityToUse = parseInt(this.newCut.quantity || '0');
+
+          if (parseFloat(selectedMaterial.material_quantity) < quantityToUse) {
+            this.stockWarningMessage = `No hay suficiente stock. Disponible: ${selectedMaterial.material_quantity}`;
+            const proceed = await this.confirmStockOverride();
+            if (!proceed) return;
+          }
+
+          const newStock =
+            parseFloat(selectedMaterial.material_quantity) - quantityToUse;
+
+          await this.supabase
+            .from('materials')
+            .update({ material_quantity: newStock.toString() })
+            .eq('id_material', selectedMaterial.id_material);
         }
-
-        const quantityToUse = parseInt(this.newCut.quantity || '0');
-
-        if (parseFloat(selectedMaterial.material_quantity) < quantityToUse) {
-          this.stockWarningMessage = `No hay suficiente stock. Disponible: ${selectedMaterial.material_quantity}`;
-          const proceed = await this.confirmStockOverride();
-          if (!proceed) return;
-
-        }
-
-        const newStock =
-          parseFloat(selectedMaterial.material_quantity) - quantityToUse;
-
-        await this.supabase
-          .from('materials')
-          .update({ material_quantity: newStock.toString() })
-          .eq('id_material', selectedMaterial.id_material);
 
         const cutData = {
           ...this.newCut,
-          id_order: insertedOrder.id_order,
-          material_type: selectedMaterial.type,
-          caliber: selectedMaterial.caliber,
-          color: selectedMaterial.color,
+          id_order: this.newOrder.id_order,
+          material_type: selectedMaterial?.type || '',
+          caliber: selectedMaterial?.caliber || '',
+          color: selectedMaterial?.color || '',
+          category: selectedMaterial?.category || '',
         };
 
         const { error: cutError } = await this.supabase

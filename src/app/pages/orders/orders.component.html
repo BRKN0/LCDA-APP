@@ -166,6 +166,19 @@
       class="border border-gray-300 rounded-md p-1"
     />
   </div>
+  <div>
+    <label class="font-semibold mr-2">Agendado por:</label>
+    <select
+      [(ngModel)]="selectedScheduler"
+      (change)="updateFilteredOrders()"
+      class="border border-gray-300 rounded-md p-1"
+    >
+      <option value="">-- Todos --</option>
+      <option *ngFor="let u of getUniqueSchedulers()" [value]="u">
+        {{ u }}
+      </option>
+    </select>
+  </div>
 </div>
 
 <!-- Orders Table -->
@@ -859,14 +872,6 @@
           required
         />
       </div>
-      <div class="mb-4">
-        <label class="block modal-input-item">Atendido por</label>
-        <input
-          [(ngModel)]="newOrder.scheduler"
-          name="scheduler"
-          class="form-input mt-1 block w-full"
-        >
-      </div>
       <div class="mb-4 border-t pt-4">
         <h4 class="font-semibold text-blue-600">Cargos Extras</h4>
         <div class="flex gap-2 mb-2">
@@ -911,6 +916,7 @@
           class="form-select mt-1 block w-full"
           (change)="selectedType = ''; selectedCaliber = ''; selectedColor = ''"
         >
+          <option value="">-- Seleccionar --</option>
           <option *ngFor="let c of getUniqueCategories()" [value]="c">
             {{ c }}
           </option>
@@ -924,6 +930,7 @@
           class="form-select mt-1 block w-full"
           (change)="selectedCaliber = ''; selectedColor = ''"
         >
+          <option value="">-- Seleccionar --</option>
           <option *ngFor="let t of getFilteredTypes()" [value]="t">
             {{ t }}
           </option>
@@ -937,6 +944,7 @@
           class="form-select mt-1 block w-full"
           (change)="selectedColor = ''"
         >
+          <option value="">-- Seleccionar --</option>
           <option *ngFor="let cal of getFilteredCalibers()" [value]="cal">
             {{ cal }}
           </option>
@@ -949,6 +957,7 @@
           name="color"
           class="form-select mt-1 block w-full"
         >
+          <option value="">-- Seleccionar --</option>
           <option *ngFor="let col of getFilteredColors()" [value]="col">
             {{ col }}
           </option>
@@ -1038,6 +1047,7 @@
           class="form-select mt-1 block w-full"
           (change)="selectedType = ''; selectedCaliber = ''; selectedColor = ''"
         >
+          <option value="">-- Seleccionar --</option>
           <option *ngFor="let c of getUniqueCategories()" [value]="c">
             {{ c }}
           </option>
@@ -1051,6 +1061,7 @@
           class="form-select mt-1 block w-full"
           (change)="selectedCaliber = ''; selectedColor = ''"
         >
+          <option value="">-- Seleccionar --</option>
           <option *ngFor="let t of getFilteredTypes()" [value]="t">
             {{ t }}
           </option>
@@ -1064,6 +1075,7 @@
           class="form-select mt-1 block w-full"
           (change)="selectedColor = ''"
         >
+          <option value="">-- Seleccionar --</option>
           <option *ngFor="let cal of getFilteredCalibers()" [value]="cal">
             {{ cal }}
           </option>
@@ -1076,6 +1088,7 @@
           name="color"
           class="form-select mt-1 block w-full"
         >
+          <option value="">-- Seleccionar --</option>
           <option *ngFor="let col of getFilteredColors()" [value]="col">
             {{ col }}
           </option>

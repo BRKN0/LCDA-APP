@@ -100,6 +100,7 @@ export class ClientsComponent implements OnInit {
   startDate: string = '';
   endDate: string = '';
   onlyWithDebt: boolean = false;
+  selectedPaymentMethod: string = 'cash';
   newClient: Partial<Client> = {
     id_client: '',
     document_type: '',
@@ -266,6 +267,147 @@ export class ClientsComponent implements OnInit {
         return method;
     }
   }
+
+  async applyGlobalPaymentToSelectedClient(amount: number, paymentMethod: string) {
+    if (!this.selectedClient) {
+      alert('No hay cliente seleccionado.');
+      return;
+    }
+    await this.allocatePaymentAcrossOrders(this.selectedClient, amount, paymentMethod);
+  }
+
+
+  private getOrderDebt(order: Orders): number {
+    const total = this.calculateOrderTotal(order);
+    const paid = order.payments?.reduce((s, p) => s + p.amount, 0) || 0;
+    return Math.max(0, total - paid);
+  }
+
+  async allocatePaymentAcrossOrders(client: Client, amount: number, paymentMethod: string = 'cash'): Promise<void> {
+    if (!client || !client.orders || amount <= 0) {
+      alert('Cliente o monto inválido.');
+      return;
+    }
+
+    // Ordena por más antiguo
+    const ordersByOldest = [...client.orders].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+
+    let remaining = amount;
+    const paymentsBatch: Payment[] = [];
+    const ordersToUpdate: Array<{ id_order: string; newStatus: string }> = [];
+
+    for (const order of ordersByOldest) {
+      if (remaining <= 0) break;
+
+      const debt = this.getOrderDebt(order);
+      if (debt <= 0) continue;
+
+      const applied = Math.min(remaining, debt);
+      remaining -= applied;
+
+      // acumula el payment para este pedido
+      paymentsBatch.push({
+        id_order: order.id_order,
+        amount: applied,
+        payment_method: paymentMethod,
+        payment_date: new Date().toISOString(),
+      });
+
+      // actualiza en memoria
+      if (!order.payments) order.payments = [];
+      order.payments.push({
+        id_order: order.id_order,
+        amount: applied,
+        payment_method: paymentMethod,
+        payment_date: new Date().toISOString(),
+      });
+
+      const newDebt = this.getOrderDebt(order);
+      // Si manejas solo 'overdue' | 'upToDate':
+      const newStatus = newDebt <= 0 ? 'upToDate' : 'overdue';
+      ordersToUpdate.push({ id_order: order.id_order, newStatus });
+      order.order_payment_status = newStatus;
+    }
+
+    // Persistencia: inserta todos los payments y actualiza estados de pedidos
+    try {
+      if (paymentsBatch.length) {
+        const { error: insertErr } = await this.supabase.from('payments').insert(paymentsBatch);
+        if (insertErr) {
+          console.error('Error insertando pagos masivos:', insertErr);
+          alert('Error al registrar los abonos.');
+          return;
+        }
+      }
+
+      // Actualiza estado de pedidos afectados (uno por uno para claridad)
+      for (const upd of ordersToUpdate) {
+        const { error: updErr } = await this.supabase
+          .from('orders')
+          .update({ order_payment_status: upd.newStatus })
+          .eq('id_order', upd.id_order);
+        if (updErr) {
+          console.error('Error actualizando estado de pedido:', updErr, upd.id_order);
+        }
+
+        await this.syncInvoiceStatusForOrder(upd.id_order, upd.newStatus);
+      }
+
+      // Recalcula deuda/estado del cliente y persiste
+      const totalDebt = this.calculateClientDebt(client);
+      const hasOverdue = client.orders?.some(o => o.order_payment_status === 'overdue');
+      const newClientStatus = (totalDebt > 0 || hasOverdue) ? 'overdue' : 'upToDate';
+
+      client.debt = totalDebt;
+      client.status = newClientStatus;
+
+      await this.supabase
+        .from('clients')
+        .update({ debt: totalDebt, status: newClientStatus })
+        .eq('id_client', client.id_client);
+
+      // Refresca UI local
+      this.clients = this.clients.map(c =>
+        c.id_client === client.id_client ? { ...client } : c
+      );
+      this.filteredClients = [...this.clients];
+      this.updatePaginatedClients();
+
+      if (this.selectedClient && this.selectedClient.id_client === client.id_client) {
+        this.selectedClient = { ...client };
+        this.updatePaginatedOrders();
+      }
+
+      const aplicado = amount - remaining;
+      alert(`Abono aplicado: $${aplicado.toFixed(2)}. Saldo sin aplicar: $${remaining.toFixed(2)}.`);
+    } catch (err) {
+      console.error('Error en allocatePaymentAcrossOrders:', err);
+      alert('Ocurrió un error aplicando el abono global.');
+    }
+  }
+
+  // En ClientsComponent
+  private async syncInvoiceStatusForOrder(
+    id_order: string,
+    status: string // acepta string
+  ): Promise<void> {
+    // normaliza a los únicos valores válidos
+    const normalized: 'upToDate' | 'overdue' =
+      status === 'upToDate' ? 'upToDate' : 'overdue';
+
+    const { error } = await this.supabase
+      .from('invoices')
+      .update({ invoice_status: normalized })
+      .eq('id_order', id_order); // ajusta si tu relación es por id_invoice
+
+    if (error) {
+      console.error('Error actualizando invoice_status:', error, id_order, status);
+    }
+  }
+
+
 
   searchClient() {
     this.filteredClients = this.clients.filter((client) => {

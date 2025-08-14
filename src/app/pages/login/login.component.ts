@@ -92,10 +92,10 @@ export class LoginComponent implements OnInit {
 
   async signUp() {
     this.message = '';
-    const { email, password } = this.form.value;
+    const { email, password, user_name } = this.form.value;
 
-    if (!email || !password) {
-      window.alert('El email y la contraseña son requeridos');
+    if (!email || !password || !user_name) {
+      window.alert('Todos los campos son requeridos para registrarse');
       return;
     }
     if (this.form.hasError('passwordMismatch')) {
@@ -103,12 +103,23 @@ export class LoginComponent implements OnInit {
       return;
     }
 
-    const { error } = await this.supabase.signUpWithPassword(email, password);
+    const { data, error } = await this.supabase.signUpWithPassword(email, password);
     if (error) {
       window.alert('Hubo un error al registrarse, intente nuevamente');
       console.log(JSON.stringify(error, undefined, 2));
       return;
     }
+
+    await this.supabase
+      .from('users')
+      .insert([
+        {
+          id: data.user.id,   // mismo id del auth
+          email,
+          user_name,
+        }
+      ]);
+
     this.message =
       'Su usuario ha sido creado con éxito, revise la bandeja de entrada de su correo y abra el enlace de confirmación de correo electrónico para activar su cuenta';
   
