@@ -335,63 +335,66 @@ export class InvoiceComponent implements OnInit {
   }
 
   async getInvoices() {
-  this.loading = true;
-  const { data, error } = await this.supabase.from('invoices').select(`
-    *,
-    orders(*,
-      clients(*),
-      payments(*)
-    )
-  `);
-  if (error) {
-    console.error('Error fetching invoices:', error);
-    this.loading = false;
-    return;
-  }
-
-  this.invoices = [...data].map((invoice) => {
-    // Usar el payment_term guardado en la base de datos, solo calcular si es null
-    let paymentTerm = invoice.payment_term !== null ? invoice.payment_term : null;
-    if (invoice.orders?.delivery_date && paymentTerm === null) {
-      const currentDate = new Date();
-      currentDate.setHours(0, 0, 0, 0);
-      const delivery = new Date(invoice.orders.delivery_date);
-      delivery.setHours(0, 0, 0, 0);
-      paymentTerm = Math.max(0, Math.ceil((delivery.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24)));
+    this.loading = true;
+    const { data, error } = await this.supabase.from('invoices').select(`
+      *,
+      orders(*,
+        clients(*),
+        payments(*)
+      )
+    `);
+    if (error) {
+      console.error('Error fetching invoices:', error);
+      this.loading = false;
+      return;
     }
-    return {
-      ...invoice,
-      include_iva: invoice.include_iva ?? false,
-      due_date: invoice.due_date,
-      payment_term: paymentTerm, // Usar el valor guardado o calculado solo si es null
-      order: {
-        ...invoice.orders,
-        total: invoice.orders.total || (invoice.orders.amount || 0),
-        client: invoice.orders?.clients || null,
-        payments: invoice.orders?.payments || [],
-      },
-    };
-  }) as Invoice[];
 
-  let n = this.invoices.length;
-  let swapped: boolean;
-
-  do {
-    swapped = false;
-    for (let i = 0; i < n - 1; i++) {
-      if (this.invoices[i].code < this.invoices[i + 1].code) {
-        [this.invoices[i], this.invoices[i + 1]] = [
-          this.invoices[i + 1],
-          this.invoices[i],
-        ];
-        swapped = true;
+    this.invoices = [...data].map((invoice) => {
+      // Usar el payment_term guardado en la base de datos, solo calcular si es null
+      let paymentTerm = invoice.payment_term !== null ? invoice.payment_term : null;
+      if (invoice.orders?.delivery_date && paymentTerm === null) {
+        const currentDate = new Date();
+        currentDate.setHours(0, 0, 0, 0);
+        const delivery = new Date(invoice.orders.delivery_date);
+        delivery.setHours(0, 0, 0, 0);
+        paymentTerm = Math.max(0, Math.ceil((delivery.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24)));
       }
-    }
-    n--;
-  } while (swapped);
-  this.loading = false;
-  this.updateFilteredInvoices();
-}
+      return {
+        ...invoice,
+        include_iva: invoice.include_iva ?? false,
+        due_date: invoice.due_date,
+        payment_term: paymentTerm, // Usar el valor guardado o calculado solo si es null
+        order: {
+          ...invoice.orders,
+          total: invoice.orders.total || (invoice.orders.amount || 0),
+          client: invoice.orders?.clients || null,
+          payments: invoice.orders?.payments || [],
+        },
+      };
+    }) as Invoice[];
+
+    let n = this.invoices.length;
+    let swapped: boolean;
+
+    do {
+      swapped = false;
+      for (let i = 0; i < n - 1; i++) {
+        if (this.invoices[i].code < this.invoices[i + 1].code) {
+          [this.invoices[i], this.invoices[i + 1]] = [
+            this.invoices[i + 1],
+            this.invoices[i],
+          ];
+          swapped = true;
+        }
+      }
+      n--;
+    } while (swapped);
+
+    await this.syncInvoicesStatusOnLoad(this.invoices);
+
+    this.loading = false;
+    this.updateFilteredInvoices();
+  }
 
   updateFilteredInvoices(): void {
     const allTypeCheckboxesOff =
@@ -454,14 +457,24 @@ export class InvoiceComponent implements OnInit {
     const order = invoice.order;
     const cliente = order.client;
     const classification = invoice.classification?.toLowerCase();
-    let baseTotal = order.total || 0;
-    let subtotal = baseTotal;
+    let subtotal = 0;
     let iva = 0;
+    let total = subtotal;
 
-    if (invoice.include_iva && this.variables.iva > 0) {
-      subtotal = +(baseTotal / (1 + this.variables.iva)).toFixed(2);
-      iva = +(baseTotal - subtotal).toFixed(2);
+    // Cuando el pedido incluye IVA
+    if (invoice.include_iva && order.total) {
+      subtotal = +(order.total / 1.19).toFixed(2);
+      iva = +(order.total - subtotal).toFixed(2);
+      total = order.total;
     }
+
+    // Cuando el pedido NO incluye IVA
+    else if (!invoice.include_iva) {
+      subtotal = order.total || 0;
+      iva = 0;
+      total = subtotal;
+    }
+    
 
     const classificationKey =
       classification === 'bienes' ? 'bienes' : 'servicios';
@@ -501,15 +514,10 @@ export class InvoiceComponent implements OnInit {
     return {
       subtotal,
       iva,
-      total: baseTotal,
+      total,
       reteica,
       retefuente,
     };
-  }
-  // No Idea what this is, is not used at all
-  async getDisplayAmount(invoice: Invoice) {
-    const { total } = await this.calculateInvoiceValues(invoice);
-    return total.toFixed(2);
   }
 
   async selectInvoice(invoice: Invoice) {
@@ -532,113 +540,113 @@ export class InvoiceComponent implements OnInit {
   }
 
   async addPayment(
-  order: Orders,
-  amount: number,
-  paymentMethod: string
-): Promise<void> {
-  if (!order || !order.id_order || amount <= 0) {
-    this.showNotification('Por favor, ingrese un monto válido.');
-    return;
-  }
-
-  if (!paymentMethod) {
-    this.showNotification('Por favor, seleccione un método de pago.');
-    return;
-  }
-
-  const invoice = this.selectedInvoiceDetails![0];
-  const { total } = await this.calculateInvoiceValues(invoice);
-  const totalPaid = this.getTotalPayments(order);
-  const remainingBalance = total - totalPaid;
-
-  if (amount > remainingBalance) {
-    this.showNotification(
-      `El abono no puede exceder el monto pendiente de $${remainingBalance.toFixed(2)}.`
-    );
-    return;
-  }
-
-  const payment: Payment = {
-    id_order: order.id_order,
-    amount: amount,
-    payment_method: paymentMethod,
-  };
-
-  try {
-    const { data, error: insertError } = await this.supabase
-      .from('payments')
-      .insert([payment])
-      .select();
-
-    if (insertError || !data || data.length === 0) {
-      console.error('Error al añadir el abono:', insertError);
-      this.showNotification('Error al añadir el abono.');
+    order: Orders,
+    amount: number,
+    paymentMethod: string
+  ): Promise<void> {
+    if (!order || !order.id_order || amount <= 0) {
+      this.showNotification('Por favor, ingrese un monto válido.');
       return;
     }
 
-    const newPayment = data[0];
-    newPayment.payment_date = new Date().toISOString();
-
-    const { data: clientData, error: clientError } = await this.supabase
-      .from('clients')
-      .select('debt')
-      .eq('id_client', order.id_client)
-      .single();
-
-    if (clientError || !clientData) {
-      console.error('Error al obtener la deuda del cliente:', clientError);
-      this.showNotification('Error al actualizar la deuda del cliente.');
+    if (!paymentMethod) {
+      this.showNotification('Por favor, seleccione un método de pago.');
       return;
     }
 
-    const currentDebt = clientData.debt || 0;
-    const newDebt = currentDebt - amount;
-    const newClientStatus = newDebt > 0 ? 'overdue' : 'upToDate';
+    const invoice = this.selectedInvoiceDetails![0];
+    const { total } = await this.calculateInvoiceValues(invoice);
+    const totalPaid = this.getTotalPayments(order);
+    const remainingBalance = total - totalPaid;
 
-    const { error: updateError } = await this.supabase
-      .from('clients')
-      .update({ debt: newDebt, status: newClientStatus })
-      .eq('id_client', order.id_client);
-
-    if (updateError) {
-      console.error('Error al actualizar la deuda:', updateError);
-      this.showNotification('Error al actualizar la deuda del cliente.');
+    if (amount > remainingBalance) {
+      this.showNotification(
+        `El abono no puede exceder el monto pendiente de $${remainingBalance.toFixed(2)}.`
+      );
       return;
     }
 
-    if (!order.payments) {
-      order.payments = [];
+    const payment: Payment = {
+      id_order: order.id_order,
+      amount: amount,
+      payment_method: paymentMethod,
+    };
+
+    try {
+      const { data, error: insertError } = await this.supabase
+        .from('payments')
+        .insert([payment])
+        .select();
+
+      if (insertError || !data || data.length === 0) {
+        console.error('Error al añadir el abono:', insertError);
+        this.showNotification('Error al añadir el abono.');
+        return;
+      }
+
+      const newPayment = data[0];
+      newPayment.payment_date = new Date().toISOString();
+
+      const { data: clientData, error: clientError } = await this.supabase
+        .from('clients')
+        .select('debt')
+        .eq('id_client', order.id_client)
+        .single();
+
+      if (clientError || !clientData) {
+        console.error('Error al obtener la deuda del cliente:', clientError);
+        this.showNotification('Error al actualizar la deuda del cliente.');
+        return;
+      }
+
+      const currentDebt = clientData.debt || 0;
+      const newDebt = currentDebt - amount;
+      const newClientStatus = newDebt > 0 ? 'overdue' : 'upToDate';
+
+      const { error: updateError } = await this.supabase
+        .from('clients')
+        .update({ debt: newDebt, status: newClientStatus })
+        .eq('id_client', order.id_client);
+
+      if (updateError) {
+        console.error('Error al actualizar la deuda:', updateError);
+        this.showNotification('Error al actualizar la deuda del cliente.');
+        return;
+      }
+
+      if (!order.payments) {
+        order.payments = [];
+      }
+      order.payments.push(newPayment);
+
+      const totalPaidUpdated = this.getTotalPayments(order);
+      const newRemainingBalance = total - totalPaidUpdated;
+      const newOrderStatus = newRemainingBalance <= 0 ? 'finished' : order.order_completion_status || '';
+      const newPaymentStatus = newRemainingBalance <= 0 ? 'upToDate' : 'overdue';
+
+      await this.supabase
+        .from('orders')
+        .update({
+          order_payment_status: newPaymentStatus,
+          order_completion_status: newOrderStatus
+        })
+        .eq('id_order', order.id_order);
+
+      await this.supabase
+        .from('invoices')
+        .update({ invoice_status: newPaymentStatus })
+        .eq('id_order', order.id_order);
+
+      await this.getInvoices();
+
+      this.newPaymentAmount = 0;
+      this.newPaymentMethod = '';
+      this.showNotification('Abono añadido correctamente.');
+    } catch (error) {
+      console.error('Error inesperado:', error);
+      this.showNotification('Ocurrió un error inesperado.');
     }
-    order.payments.push(newPayment);
-
-    const totalPaidUpdated = this.getTotalPayments(order);
-    const newRemainingBalance = total - totalPaidUpdated;
-    const newOrderStatus = newRemainingBalance <= 0 ? 'finished' : order.order_completion_status || '';
-    const newPaymentStatus = newRemainingBalance <= 0 ? 'upToDate' : 'overdue';
-
-    await this.supabase
-      .from('orders')
-      .update({
-        order_payment_status: newPaymentStatus,
-        order_completion_status: newOrderStatus
-      })
-      .eq('id_order', order.id_order);
-
-    await this.supabase
-      .from('invoices')
-      .update({ invoice_status: newPaymentStatus })
-      .eq('id_order', order.id_order);
-
-    await this.getInvoices();
-
-    this.newPaymentAmount = 0;
-    this.newPaymentMethod = '';
-    this.showNotification('Abono añadido correctamente.');
-  } catch (error) {
-    console.error('Error inesperado:', error);
-    this.showNotification('Ocurrió un error inesperado.');
   }
-}
 
   editPayment(payment: Payment): void {
     this.selectedPayment = { ...payment };
@@ -848,28 +856,69 @@ export class InvoiceComponent implements OnInit {
     return Math.max(0, total - totalPaid);
   }
 
+  private isZeroish(n: number): boolean {
+    return Math.abs(n) < 1e-6;
+  }
+
+  
+  private async syncInvoicesStatusOnLoad(invoices: Invoice[]): Promise<void> {
+    const updates: Array<Promise<void>> = [];
+
+    for (const inv of invoices) {
+      const remaining = this.getRemainingBalance(inv); // ya la tienes
+      const newStatus: 'upToDate' | 'overdue' = this.isZeroish(remaining) ? 'upToDate' : 'overdue';
+
+      if (inv.invoice_status === newStatus) continue; // evita escrituras innecesarias
+
+      updates.push((async () => {
+        const q = this.supabase.from('invoices').update({ invoice_status: newStatus });
+        const { error } = (inv as any).id_invoice
+          ? await q.eq('id_invoice', (inv as any).id_invoice) // si tienes id de factura
+          : await q.eq('id_order', inv.order.id_order);       // si relacionas por pedido
+
+        if (!error) {
+          inv.invoice_status = newStatus; // refleja en memoria
+        } else {
+          console.error('Error actualizando invoice_status:', error, inv);
+        }
+      })());
+    }
+
+    await Promise.all(updates);
+  }
+
+
+
   public getRemainingPaymentTerm(invoice: Invoice): string {
-  if (!invoice.due_date) return 'Sin plazo definido';
-  const dueDate = new Date(invoice.due_date);
-  const currentDate = new Date();
-  currentDate.setHours(0, 0, 0, 0); // Normalizar hora actual
-  dueDate.setHours(0, 0, 0, 0); // Normalizar due_date
-  const diffTime = dueDate.getTime() - currentDate.getTime();
-  const remainingDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const isInvoiceUpToDate =
+      invoice?.invoice_status?.toLowerCase() === 'uptodate' ||
+      invoice?.order?.order_payment_status?.toLowerCase() === 'uptodate' ||
+      this.isZeroish(this.getRemainingBalance(invoice));
 
-  const orderStatus = invoice.order.order_completion_status || '';
-  const paymentStatus = invoice.order.order_payment_status || '';
-  const isOrderCompleted = orderStatus.toLowerCase() === 'finished';
-  const isPaymentUpToDate = paymentStatus.toLowerCase() === 'uptodate';
+    if (isInvoiceUpToDate) return 'Realizado';
 
-  if (isOrderCompleted && isPaymentUpToDate) {
-    return 'Realizado';
+
+    if (!invoice.due_date) return 'Sin plazo definido';
+    const dueDate = new Date(invoice.due_date);
+    const currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0); // Normalizar hora actual
+    dueDate.setHours(0, 0, 0, 0); // Normalizar due_date
+    const diffTime = dueDate.getTime() - currentDate.getTime();
+    const remainingDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    const orderStatus = invoice.order.order_completion_status || '';
+    const paymentStatus = invoice.order.order_payment_status || '';
+    const isOrderCompleted = orderStatus.toLowerCase() === 'finished';
+    const isPaymentUpToDate = paymentStatus.toLowerCase() === 'uptodate';
+
+    if (isOrderCompleted && isPaymentUpToDate) {
+      return 'Realizado';
+    }
+    if (remainingDays <= 0) {
+      return 'Pendiente';
+    }
+    return remainingDays > 0 ? `${remainingDays} días` : 'Pendiente';
   }
-  if (remainingDays <= 0) {
-    return 'Pendiente';
-  }
-  return remainingDays > 0 ? `${remainingDays} días` : 'Pendiente';
-}
 
   formatNumber(value: number): string {
     return value.toFixed(2);
@@ -1396,39 +1445,39 @@ async downloadDeliveryNotePDF(): Promise<void> {
   }
 
   editInvoice(invoice: Invoice): void {
-  this.selectedInvoice = {
-    ...invoice,
-    created_at: invoice.created_at,
-    payment_term: invoice.payment_term || null,
-    due_date: invoice.due_date,
-    include_iva: invoice.include_iva ?? false,
-    classification: invoice.classification,
-    order: {
-      ...invoice.order,
-      total: invoice.order.total || invoice.order.amount || 0,
-      baseTotal: invoice.order.total || invoice.order.amount || 0,
-    },
-  };
-  this.isEditing = true;
-  this.showModal = true;
-  this.clientSearchQuery = `${invoice.order.client.name} (${
-    invoice.order.client.company_name || 'Sin empresa'
-  })`;
-  this.updateClientOrders();
+    this.selectedInvoice = {
+      ...invoice,
+      created_at: invoice.created_at,
+      payment_term: invoice.payment_term || null,
+      due_date: invoice.due_date,
+      include_iva: invoice.include_iva ?? false,
+      classification: invoice.classification,
+      order: {
+        ...invoice.order,
+        total: invoice.order.total || invoice.order.amount || 0,
+        baseTotal: invoice.order.total || invoice.order.amount || 0,
+      },
+    };
+    this.isEditing = true;
+    this.showModal = true;
+    this.clientSearchQuery = `${invoice.order.client.name} (${
+      invoice.order.client.company_name || 'Sin empresa'
+    })`;
+    this.updateClientOrders();
 
-  // Calcular payment_term desde delivery_date al abrir en modo edición
-  if (this.selectedInvoice.order.delivery_date) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const delivery = new Date(this.selectedInvoice.order.delivery_date);
-    delivery.setHours(0, 0, 0, 0);
-    const diffDays = Math.max(
-      0,
-      Math.ceil((delivery.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-    );
-    this.selectedInvoice.payment_term = diffDays;
+    // Calcular payment_term desde delivery_date al abrir en modo edición
+    if (this.selectedInvoice.order.delivery_date) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const delivery = new Date(this.selectedInvoice.order.delivery_date);
+      delivery.setHours(0, 0, 0, 0);
+      const diffDays = Math.max(
+        0,
+        Math.ceil((delivery.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+      );
+      this.selectedInvoice.payment_term = diffDays;
+    }
   }
-}
 
   async validateOrderExists(orderId: string): Promise<boolean> {
     const { data, error } = await this.supabase
@@ -1443,25 +1492,26 @@ async downloadDeliveryNotePDF(): Promise<void> {
     }
     return true;
   }
-  onIncludeIvaChange(): void {
-  if (this.selectedInvoice && this.selectedInvoice.order) {
-    const order = this.selectedInvoice.order;
-    const total = order.total || 0;
 
-    if (this.selectedInvoice.include_iva) {
-      // Agrega el IVA al total base
-      const baseTotal = order.baseTotal || Math.round(total / (1 + this.IVA_RATE)); // Calcular baseTotal si no existe
-      order.total = Math.round(baseTotal * (1 + this.IVA_RATE));
-      order.baseTotal = baseTotal;
-    } else {
-      // Eliminar el IVA del total actual
-      const calculatedBase = +Math.round((total / (1 + this.IVA_RATE))).toFixed(2);
-      order.total = Math.round(calculatedBase);
-      order.baseTotal = calculatedBase;
+  onIncludeIvaChange(): void {
+    if (this.selectedInvoice && this.selectedInvoice.order) {
+      const order = this.selectedInvoice.order;
+      const total = order.total || 0;
+
+      if (this.selectedInvoice.include_iva) {
+        // Agrega el IVA al total base
+        const baseTotal = order.baseTotal || Math.round(total / (1 + this.IVA_RATE)); // Calcular baseTotal si no existe
+        order.total = Math.round(baseTotal * (1 + this.IVA_RATE));
+        order.baseTotal = baseTotal;
+      } else {
+        // Eliminar el IVA del total actual
+        const calculatedBase = +Math.round((total / (1 + this.IVA_RATE))).toFixed(2);
+        order.total = Math.round(calculatedBase);
+        order.baseTotal = calculatedBase;
+      }
+      // No guardar automáticamente, dejar que saveInvoice lo haga
     }
-    // No guardar automáticamente, dejar que saveInvoice lo haga
   }
-}
 
   async updateOrderTotal(): Promise<void> {
     if (
