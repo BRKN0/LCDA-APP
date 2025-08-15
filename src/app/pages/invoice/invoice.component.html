@@ -615,7 +615,7 @@
           <div class="flex justify-between">
             <p><strong>Subtotal base:</strong></p>
             <p>
-              {{ selectedInvoiceDetails[0].order.total | currency : "COP" }}
+              {{  valores.subtotal | currency : "COP" }}
             </p>
           </div>
 
@@ -624,7 +624,7 @@
             *ngIf="selectedInvoiceDetails[0].include_iva"
           >
             <p><strong>IVA (19%):</strong></p>
-            <p>{{ valores.iva | number : "1.2-2" }}</p>
+            <p>{{ valores.iva | currency : "COP" }}</p>
           </div>
         </div>
 
