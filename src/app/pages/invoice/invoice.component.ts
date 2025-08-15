@@ -910,7 +910,7 @@ export class InvoiceComponent implements OnInit {
 
     doc.setTextColor(200);
     doc.setFontSize(30);
-    doc.text('FACTURA', 190, 10, { align: 'right' });
+    doc.text('Recibo ', 190, 10, { align: 'right' });
     doc.setTextColor(0);
 
     doc.setFontSize(12);
@@ -919,7 +919,7 @@ export class InvoiceComponent implements OnInit {
     doc.text(`Fecha: ${day}-${month}-${year}`, 190, 30, { align: 'right' });
 
     doc.text('Cartagena de Indias, Colombia', 10, 40);
-    doc.text(`Factura N°: ${invoice.code}`, 190, 40, { align: 'right' });
+    doc.text(`Recibo de Venta N°: ${invoice.code}`, 190, 40, { align: 'right' });
 
     doc.text('3004947020', 10, 50);
     if (invoice.order.client.nit) {
@@ -927,7 +927,7 @@ export class InvoiceComponent implements OnInit {
     }
 
     doc.setFont('helvetica', 'bold');
-    doc.text('Facturar a:', 10, 70);
+    doc.text('Recibo De:', 10, 70);
     doc.setFont('helvetica', 'normal');
 
     let y = 80;
@@ -1060,7 +1060,7 @@ export class InvoiceComponent implements OnInit {
     doc.setFont('helvetica', 'bold');
     doc.text('GRACIAS POR SU CONFIANZA', 10, footerStartY + 25);
 
-    doc.save(`Factura-${invoice.code}.pdf`);
+    doc.save(`Recibo de Venta-${invoice.code}.pdf`);
   }
 
   private wrapText(doc: jsPDF, text: string, maxWidth: number): string[] {
@@ -1143,15 +1143,13 @@ export class InvoiceComponent implements OnInit {
 
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.text('La Casa del Acrilico', 10, 10);
+  doc.text('Jhon Fredy', 10, 10);
 
-  const logoUrl = '/Logo.png';
-  const logo = await this.loadImage(logoUrl);
-  doc.addImage(logo, 'JPEG', 90, 5, 30, 20);
+
 
   doc.setTextColor(200);
   doc.setFontSize(30);
-  doc.text('COTIZACIÓN', 190, 10, { align: 'right' });
+  doc.text('cuenta de cobro', 205, 10, { align: 'right' });
   doc.setTextColor(0);
 
   doc.setFontSize(12);
@@ -1160,7 +1158,7 @@ export class InvoiceComponent implements OnInit {
   doc.text(`Fecha: ${day}-${month}-${year}`, 190, 30, { align: 'right' });
 
   doc.text('Cartagena de Indias, Colombia', 10, 40);
-  doc.text(`Cotización N°: ${invoice.code}`, 190, 40, { align: 'right' });
+  doc.text(`Cuenta de Cobro N°: ${invoice.code}`, 190, 40, { align: 'right' });
 
   doc.text('3004947020', 10, 50);
   if (invoice.order.client.nit) {
@@ -1168,17 +1166,12 @@ export class InvoiceComponent implements OnInit {
   }
 
   doc.setFont('helvetica', 'bold');
-  doc.text('Cotizar a:', 10, 70);
+  doc.text('Cuenta de Cobro A:', 10, 70);
   doc.setFont('helvetica', 'normal');
 
   let y = 80;
   doc.text(`Nombre: ${invoice.order.client.name}`, 10, y);
-  y += 6;
-  doc.text(
-    `Nombre de la empresa: ${invoice.order.client.company_name || 'N/A'}`,
-    10,
-    y
-  );
+ 
   y += 6;
   doc.text(`Dirección: ${invoice.order.client.address}`, 10, y);
   y += 6;
@@ -1287,7 +1280,7 @@ export class InvoiceComponent implements OnInit {
   doc.setFontSize(10);
   doc.setFont('helvetica', 'italic');
   doc.text(
-    'Todos los cheques se extenderán a nombre de La casa del acrilico',
+    'Todos los cheques se extenderán a nombre de Jhon Fredy',
     10,
     footerStartY
   );
@@ -1300,7 +1293,7 @@ export class InvoiceComponent implements OnInit {
   doc.setFont('helvetica', 'bold');
   doc.text('GRACIAS POR SU CONFIANZA', 10, footerStartY + 25);
 
-  doc.save(`Cotización_${invoice.code}.pdf`);
+  doc.save(`Cuenta de cobro_${invoice.code}.pdf`);
 }
 
 async downloadDeliveryNotePDF(): Promise<void> {

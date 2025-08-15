@@ -193,7 +193,6 @@
           <th class="table-column-std">Código</th>
           <th class="table-column-std">Tipo</th>
           <th class="table-column-std">Cliente</th>
-          <th class="table-column-std">Estado de pago</th>
           <th class="table-column-std">Estado de trabajo</th>
           <th class="table-column-std">Fecha</th>
           <th class="table-column-std">Fecha de Entrega</th>
@@ -327,20 +326,7 @@
             }}
           </td>
           <td>{{ order.name }}</td>
-          <td
-            [ngClass]="{
-              'text-green-600': order.order_payment_status === 'upToDate',
-              'text-red-600': order.order_payment_status === 'overdue'
-            }"
-          >
-            {{
-              order.order_payment_status === "upToDate"
-                ? "Al Día"
-                : order.order_payment_status === "overdue"
-                ? "En Mora"
-                : "Desconocido"
-            }}
-          </td>
+          
           <td
             [ngClass]="{
               'text-green-600': order.order_completion_status === 'finished',
