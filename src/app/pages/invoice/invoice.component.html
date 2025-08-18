@@ -615,7 +615,7 @@
           <div class="flex justify-between">
             <p><strong>Subtotal base:</strong></p>
             <p>
-              {{ selectedInvoiceDetails[0].order.total | currency : "COP" }}
+              {{  valores.subtotal | currency : "COP" }}
             </p>
           </div>
 
@@ -624,7 +624,7 @@
             *ngIf="selectedInvoiceDetails[0].include_iva"
           >
             <p><strong>IVA (19%):</strong></p>
-            <p>{{ valores.iva | number : "1.2-2" }}</p>
+            <p>{{ valores.iva | currency : "COP" }}</p>
           </div>
         </div>
 
@@ -780,14 +780,14 @@
               class="btn-success justify-between py-2 px-4 mr-2 mt-2 rounded"
               (click)="generatePdf()"
             >
-              Descargar PDF
+              Descargar Recibo de venta 
             </button>
             <button
               type="button"
               class="btn-success justify-between py-2 px-4 mr-2 mt-2 rounded"
               (click)="downloadQuotePDF()"
             >
-              Descargar Cotización
+              Descargar Cuenta de Cobro
             </button>
             <button
               type="button"

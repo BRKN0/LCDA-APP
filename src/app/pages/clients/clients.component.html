@@ -38,12 +38,7 @@
     <button class="btn-details" (click)="generateClientsKardex()">
       Generar Kardex
     </button>
-    <button
-      class="btn-clear "
-      (click)="clearFilters()"
-    >
-      Limpiar
-  </button>
+    <button class="btn-clear" (click)="clearFilters()">Limpiar</button>
   </div>
 </div>
 <!-- Search bar and filter by debt -->
@@ -152,19 +147,65 @@
 
         <!-- Detalles del cliente -->
         <div *ngIf="showDetails && selectedClient">
-          <p><strong>Nombre:</strong> {{ selectedClient.name}}</p>
+          <p><strong>Nombre:</strong> {{ selectedClient.name }}</p>
           <p><strong>Email:</strong> {{ selectedClient.email }}</p>
-          <p><strong>Tipo de Documento:</strong> {{ selectedClient.document_type }}</p>
-          <p><strong>Docuemnto:</strong> {{ selectedClient.document_number }}</p>
-          <p><strong>Empresa:</strong> {{ selectedClient.company_name }}</p>
+          <p>
+            <strong>Tipo de Documento:</strong>
+            {{ selectedClient.document_type }}
+          </p>
+          <p>
+            <strong>Docuemnto:</strong> {{ selectedClient.document_number }}
+          </p>
           <p><strong>Teléfono:</strong> {{ selectedClient.cellphone }}</p>
           <p><strong>Dirección:</strong> {{ selectedClient.address }}</p>
-          <p><strong>Tipo de Cliente(Regimen Tributario):</strong> {{ selectedClient.tax_regime}}</p>
-          <p><strong>Es declarante de renta:</strong> {{ selectedClient.retefuente }}</p>
-          <p><strong>Aplica retencion de ICA:</strong> {{ selectedClient.applies_ica_retention }}</p>
-          <p><strong>Aplica retencion de fuente:</strong> {{ selectedClient.retefuente }}</p>
-          <p><strong>Estado:</strong> {{ selectedClient.status }}</p>
-          <p><strong>Limite de credito:</strong> {{ selectedClient.credit_limit }}</p>
+          <p>
+            <strong>Tipo de Cliente(Regimen Tributario):</strong>
+            {{ selectedClient.tax_regime }}
+          </p>
+          <p>
+            <strong>Es declarante de renta:</strong>
+            {{
+              selectedClient.retefuente === true
+                ? "si"
+                : selectedClient.retefuente === false
+                ? "no"
+                : "otro"
+            }}
+          </p>
+          <p>
+            <strong>Aplica retencion de ICA:</strong>
+            {{
+              selectedClient.applies_ica_retention === true
+                ? "si"
+                : selectedClient.applies_ica_retention === false
+                ? "no"
+                : "otro"
+            }}
+          </p>
+          <p>
+            <strong>Aplica retencion de fuente:</strong>
+            {{
+              selectedClient.retefuente === true
+                ? "si"
+                : selectedClient.retefuente === false
+                ? "no"
+                : "otro"
+            }}
+          </p>
+          <p>
+            <strong>Estado:</strong>
+            {{
+              selectedClient.status === "upToDate"
+                ? "Al Dia"
+                : selectedClient.status === "overdue"
+                ? "En Mora"
+                : "otro"
+            }}
+          </p>
+          <p>
+            <strong>Limite de credito:</strong>
+            {{ selectedClient.credit_limit }}
+          </p>
 
           <p>
             <strong>Deuda:</strong>
@@ -364,6 +405,35 @@
             </select>
           </div>
         </div>
+        <!-- Campo y botón para Abono Global -->
+        <div class="flex items-center gap-2 mb-4" *ngIf="selectedClient">
+          <input
+            type="number"
+            min="0"
+            [(ngModel)]="newPaymentAmount"
+            placeholder="Monto del abono global"
+            class="border border-gray-300 rounded-md p-2 w-48"
+          />
+
+          <select
+            [(ngModel)]="selectedPaymentMethod"
+            class="border border-gray-300 rounded-md p-2"
+          >
+            <option value="cash">Efectivo</option>
+            <option value="nequi">Nequi</option>
+            <option value="bancolombia">Bancolombia</option>
+            <option value="davivienda">Davivienda</option>
+            <option value="other">Otro</option>
+          </select>
+
+          <button
+            (click)="applyGlobalPaymentToSelectedClient(newPaymentAmount, selectedPaymentMethod)"
+            class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-md"
+          >
+            Aplicar Abono Global
+          </button>
+        </div>
+
         <div class="flex justify-end mt-4">
           <button class="btn-danger" (click)="toggleOrders(null)">
             Cerrar

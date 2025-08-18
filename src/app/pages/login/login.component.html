@@ -38,6 +38,14 @@
         <div class="text-red-600 text-sm mt-1" *ngIf="form.hasError('passwordMismatch')">
           Las contraseñas no coinciden
         </div>
+        
+        <!-- Campo nombre de usuario (solo en modo registro) -->
+        <div class="font-bold">Nombre de Usuario</div>
+        <input
+          formControlName="user_name"
+          placeholder="Ej: JuanP"
+          class="input-field p-2 w-full rounded-md"
+        />
       </div>
       
       <button
