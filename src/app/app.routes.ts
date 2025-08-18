@@ -19,6 +19,7 @@ import { ProvidersComponent } from './pages/providers/providers.component';
 import { ControlPanelComponent } from './pages/control-panel/control-panel.component';
 import { ThirdPartiesComponent } from './pages/third-parties/third-parties.component';
 import { CarouselComponent } from './pages/carousel/carousel.component';
+import { ScheduleComponent } from './pages/schedule/schedule.component';
 export const routes: Routes = [
   {
     path: '',
@@ -89,5 +90,9 @@ export const routes: Routes = [
   {
     path: 'control-panel',
     loadComponent: () => ControlPanelComponent,
+  },
+  {
+    path: 'schedule',
+    loadComponent: () => ScheduleComponent,
   },
 ];

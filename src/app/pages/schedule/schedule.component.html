@@ -1,0 +1,274 @@
+<router-outlet></router-outlet>
+<app-main-banner></app-main-banner>
+<div class="px-4 py-6 max-w-7xl mx-auto">
+  <!-- Top controls -->
+  <div class="flex flex-wrap items-end gap-4 mb-6">
+    <div>
+      <label class="block text-sm font-semibold mb-1">Fecha</label>
+      <input
+        type="date"
+        class="border rounded px-3 py-2"
+        [(ngModel)]="selectedDate"
+        (change)="onDateChange()"
+      />
+    </div>
+
+    <div class="ml-auto flex gap-2">
+      <button class="btn-details" (click)="autoPack()">Autollenar 9–5</button>
+      <button class="btn-delete" (click)="clearDay()">Limpiar Día</button>
+      <button class="btn-success" [disabled]="saving" (click)="saveSchedule()">
+        {{ saving ? "Guardando…" : "Guardar Horario" }}
+      </button>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+    <!-- Left column: Unscheduled + Recent + Search -->
+    <div class="xl:col-span-4 space-y-6">
+      <!-- Unscheduled -->
+      <div>
+        <h3 class="font-semibold mb-2">Cortes sin programar</h3>
+        <div class="border rounded p-3 max-h-[320px] overflow-auto">
+          <div
+            *ngFor="let cut of unscheduledCuts"
+            class="flex items-center justify-between border-b py-2 last:border-b-0"
+          >
+            <div class="min-w-0">
+              <div class="text-xs text-gray-500">
+                {{ cut.category }} · {{ cut.material_type }}
+                {{ cut.color }}
+
+                {{ cut.cutting_time || 0 }} min · Encargado:
+                {{ cut.order?.scheduler || "—" }}
+              </div>
+            </div>
+            <button
+              class="btn-add"
+              [disabled]="isScheduled(cut.id)"
+              (click)="addToSchedule(cut)"
+            >
+              {{ isScheduled(cut.id) ? "Programado" : "Añadir" }}
+            </button>
+          </div>
+          <div
+            *ngIf="unscheduledCuts.length === 0"
+            class="text-sm text-gray-500 py-2"
+          >
+            No hay cortes sin programar.
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent (last X days) -->
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="font-semibold">Agregados recientemente</h3>
+          <div class="flex items-center gap-2">
+            <label class="text-sm text-gray-600">Últimos días</label>
+            <input
+              type="number"
+              min="1"
+              class="w-20 border rounded px-2 py-1"
+              [(ngModel)]="lastDays"
+              (change)="onDaysChange()"
+            />
+          </div>
+        </div>
+        <div class="border rounded p-3 max-h-[240px] overflow-auto">
+          <div
+            *ngFor="let cut of recentCuts"
+            class="flex items-center justify-between border-b py-2 last:border-b-0"
+          >
+            <div class="min-w-0">
+              <div class="text-xs text-gray-500">
+                {{ cut.category }} · {{ cut.material_type }}
+                {{ cut.color }}
+
+                {{ cut.cutting_time || 0 }} min · Encargado:
+                {{ cut.order?.scheduler || "—" }} ·
+                {{ cut.order?.created_at | date : "short" }}
+              </div>
+            </div>
+            <button class="btn-add" (click)="addToSchedule(cut)">Añadir</button>
+          </div>
+          <div
+            *ngIf="recentCuts.length === 0"
+            class="text-sm text-gray-500 py-2"
+          >
+            No hay cortes recientes.
+          </div>
+        </div>
+      </div>
+
+      <!-- Search by order code -->
+      <div>
+        <h3 class="font-semibold mb-2">Buscar por código de pedido</h3>
+        <div class="flex gap-2 mb-2">
+          <input
+            type="text"
+            class="border rounded px-3 py-2 w-full"
+            placeholder="Ej: 23"
+            [(ngModel)]="orderCodeQuery"
+          />
+          <button class="btn-details" (click)="searchByOrderCode()">
+            Buscar
+          </button>
+        </div>
+        <div class="border rounded p-3 max-h-[240px] overflow-auto">
+          <div
+            *ngFor="let cut of searchResults"
+            class="flex items-center justify-between border-b py-2 last:border-b-0"
+          >
+            <div class="min-w-0">
+              <div class="text-xs text-gray-500">
+                {{ cut.category }} · {{ cut.material_type }}
+                {{ cut.color }}
+
+                {{ cut.cutting_time || 0 }} min · Encargado:
+                {{ cut.order?.scheduler || "—" }}
+              </div>
+            </div>
+            <button class="btn-add" (click)="addToSchedule(cut)">Añadir</button>
+          </div>
+          <div
+            *ngIf="searchResults.length === 0"
+            class="text-sm text-gray-500 py-2"
+          >
+            Sin resultados.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Middle: Timeline -->
+    <div class="xl:col-span-5">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-semibold">Horario 09:00–17:00</h3>
+        <div class="text-sm">
+          Ocupado: <span class="font-semibold">{{ usedMinutes }}</span> min ·
+          Libre: <span class="font-semibold">{{ remainingMinutes }}</span> min
+        </div>
+      </div>
+
+      <div
+        class="relative border rounded bg-gray-50 overflow-hidden h-[480px]"
+        [style.--lanes]="lanesCount"
+      >
+        <!-- hour markers -->
+        <div
+          *ngFor="let h of [9, 10, 11, 12, 13, 14, 15, 16, 17]; let i = index"
+          class="absolute left-0 right-0"
+          [style.top.px]="i * 60"
+        >
+          <div class="border-t border-gray-200"></div>
+          <div
+            class="absolute -left-16 -translate-y-1/2 text-xs text-gray-500 pl-2"
+          >
+            {{ h < 10 ? "0" + h : h }}:00
+          </div>
+        </div>
+
+        <!-- blocks -->
+        <div
+          *ngFor="let b of scheduled; let i = index"
+          class="absolute rounded text-white px-3 py-2 flex items-center justify-between cursor-pointer border"
+          [style.top]="blockTopPx(b)"
+          [style.height]="blockHeightPx(b)"
+          [style.left]="'6rem'"
+          [style.right]="'1rem'"
+          [ngStyle]="{
+            'background-color': i % 2 === 0 ? '#c72c41' : '#df3c3c',
+            'border-color': 'rgba(255,255,255,0.9)'
+          }"
+          (click)="onBlockClick(b)"
+        >
+          <div class="pr-2 min-w-0">
+            <div class="text-xs opacity-90">
+              {{ toClock(b.startMin) }}–{{ toClock(b.endMin) }} ({{
+                b.actualDuration
+              }}m) ·
+              {{ b.cut.order?.scheduler || "—" }}
+            </div>
+          </div>
+          <button
+            class="bg-white/20 hover:bg-white/30 rounded px-2 py-1 text-xs"
+            (click)="removeFromSchedule(b); $event.stopPropagation()"
+          >
+            Quitar
+          </button>
+        </div>
+
+        <!-- gutter -->
+        <div
+          class="absolute left-0 top-0 bottom-0 w-24 bg-white border-r"
+        ></div>
+      </div>
+    </div>
+
+    <!-- Right: Block details -->
+    <div class="xl:col-span-3">
+      <h3 class="font-semibold mb-2">Detalles del corte</h3>
+      <div class="border rounded p-4 min-h-[200px]">
+        <ng-container *ngIf="selectedBlock; else noSel">
+          <div class="space-y-1">
+            <div>
+              <span class="text-gray-500 text-xs">Horario</span>
+              <div class="font-medium">
+                {{ toClock(selectedBlock!.startMin) }} –
+                {{ toClock(selectedBlock!.endMin) }}
+              </div>
+            </div>
+            <div>
+              <span class="text-gray-500 text-xs">Duración</span>
+              <div class="font-medium">{{ selectedBlock!.actualDuration }} min</div>
+            </div>
+            <div>
+              <span class="text-gray-500 text-xs">Encargado</span>
+              <div class="font-medium">
+                {{ selectedBlock!.cut.order?.scheduler || "—" }}
+              </div>
+            </div>
+                        <div>
+              <span class="text-gray-500 text-xs">Codigo de pedido</span>
+              <div class="font-medium">
+                {{ selectedBlock!.cut.order?.code }}
+              </div>
+            </div>
+            <div>
+              <span class="text-gray-500 text-xs">Categoría</span>
+              <div class="font-medium">
+                {{ selectedBlock!.cut.category || "—" }}
+              </div>
+            </div>
+            <div>
+              <span class="text-gray-500 text-xs">Tipo de material</span>
+              <div class="font-medium">
+                {{ selectedBlock!.cut.material_type || "—" }}
+              </div>
+            </div>
+            <div>
+              <span class="text-gray-500 text-xs">Color</span>
+              <div class="font-medium">
+                {{ selectedBlock!.cut.color || "—" }}
+              </div>
+            </div>
+            <div>
+              <span class="text-gray-500 text-xs">Tiempo de corte</span>
+              <div class="font-medium">
+                {{ selectedBlock!.cut.cutting_time || 0 }} min
+              </div>
+            </div>
+          </div>
+          <div class="mt-4 text-right">
+            <button class="btn-details" (click)="closeDetails()">Cerrar</button>
+          </div>
+        </ng-container>
+        <ng-template #noSel>
+          <div class="text-sm text-gray-500">
+            Selecciona un bloque del horario para ver sus detalles.
+          </div>
+        </ng-template>
+      </div>
+    </div>
+  </div>
+</div>

@@ -88,6 +88,9 @@ export class MainBannerComponent implements OnInit {
   goToControlPanel() {
     this.router.navigate(['/control-panel']);
   }
+    goToSchedule() {
+    this.router.navigate(['/schedule']);
+  }
   signOut() {
     this.supabase.signOut().then(() =>
       this.router.navigate(['/login'], {
