@@ -1,1 +1,392 @@
-<p>quotation works!</p>
+<router-outlet></router-outlet>
+<app-main-banner></app-main-banner>
+
+<!-- Filtros y búsqueda -->
+<div class="flex justify-between items-center mb-4 mt-4 ml-2">
+  <div class="flex space-x-2">
+    <!-- (Opcional) filtros por estado -->
+    <label>
+      <input type="checkbox" [(ngModel)]="showDrafts" class="form-checkbox" (change)="updateFiltered()" />
+      <span class="ml-2">Borrador</span>
+    </label>
+    <label>
+      <input type="checkbox" [(ngModel)]="showSent" class="form-checkbox" (change)="updateFiltered()" />
+      <span class="ml-2">Enviadas</span>
+    </label>
+    <label>
+      <input type="checkbox" [(ngModel)]="showApproved" class="form-checkbox" (change)="updateFiltered()" />
+      <span class="ml-2">Aprobadas</span>
+    </label>
+    <label>
+      <input type="checkbox" [(ngModel)]="showConverted" class="form-checkbox" (change)="updateFiltered()" />
+      <span class="ml-2">Convertidas</span>
+    </label>
+  </div>
+
+  <div class="flex space-x-2">
+    <button class="btn-add inline-flex items-center space-x-2" (click)="addNewQuotation()">
+      <svg class="w-5 h-5 inline-block align-middle mt-[3px]" viewBox="0 0 24 24" fill="none">
+        <path d="M12.75 9C12.75 8.58579 12.4142 8.25 12 8.25C11.5858 8.25 11.25 8.58579 11.25 9L11.25 11.25H9C8.58579 11.25 8.25 11.5858 8.25 12C8.25 12.4142 8.58579 12.75 9 12.75H11.25V15C11.25 15.4142 11.5858 15.75 12 15.75C12.4142 15.75 12.75 15.4142 12.75 15L12.75 12.75H15C15.4142 12.75 15.75 12.4142 15.75 12C15.75 11.5858 15.4142 11.25 15 11.25H12.75V9Z" fill="#ffffff"/>
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M12 1.25C6.06294 1.25 1.25 6.06294 1.25 12C1.25 17.9371 6.06294 22.75 12 22.75C17.9371 22.75 22.75 17.9371 22.75 12C22.75 6.06294 17.9371 1.25 12 1.25ZM2.75 12C2.75 6.89137 6.89137 2.75 12 2.75C17.1086 2.75 21.25 6.89137 21.25 12C21.25 17.1086 17.1086 21.25 12 21.25C6.89137 21.25 2.75 17.1086 2.75 12Z" fill="#ffffff"/>
+      </svg>
+      <span>Añadir</span>
+    </button>
+    <button class="btn-clear" (click)="clearFilters()">Limpiar</button>
+  </div>
+</div>
+
+<!-- Búsquedas -->
+<div class="flex items-center justify-center mt-2">
+  <div class="w-full max-w-md relative">
+    <input
+      type="text"
+      placeholder="Buscar por título, consecutivo o cliente"
+      [(ngModel)]="searchText"
+      (input)="updateFiltered()"
+      class="w-full py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
+    />
+  </div>
+</div>
+
+<!-- Rango de fechas -->
+<div class="mb-2 mt-2 ml-2">
+  <div class="flex items-center space-x-4">
+    <div>
+      <label for="startDate" class="mr-2 font-semibold">Desde:</label>
+      <input type="date" id="startDate" [(ngModel)]="startDate" (ngModelChange)="updateFiltered()" class="form-input"/>
+    </div>
+    <div>
+      <label for="endDate" class="mr-2 font-semibold">Hasta:</label>
+      <input type="date" id="endDate" [(ngModel)]="endDate" (ngModelChange)="updateFiltered()" class="form-input"/>
+    </div>
+  </div>
+</div>
+
+<!-- Tabla de Cotizaciones -->
+<div class="mt-4">
+  <table class="table-std">
+    <thead>
+      <tr>
+        <th class="table-column-std">N° Cotización</th>
+        <th class="table-column-std">Título</th>
+        <th class="table-column-std">Cliente / Mostrador</th>
+        <th class="table-column-std">Fecha</th>
+        <th class="table-column-std">Total</th>
+        <th class="table-column-std">Estado</th>
+        <th class="table-column-std">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let q of paginated">
+        <td class="table-column-std">{{ q.consecutive || '-' }}</td>
+        <td class="table-column-std">{{ q.title }}</td>
+        <td class="table-column-std">
+          <ng-container *ngIf="q.client; else mostrador">
+            {{ q.client.company_name || q.client.name }}
+          </ng-container>
+          <ng-template #mostrador>
+            {{ q.customer_label || 'Cliente Mostrador' }}
+          </ng-template>
+        </td>
+        <td class="table-column-std">{{ (q.created_at || q.issue_date) | date:'dd-MM-yyyy' }}</td>
+        <td class="table-column-std">
+          <!-- calculado al vuelo: suma line_total con descuento+IVA -->
+          {{ calculateQuotationTotals(q, q.items || []).grandTotal | currency:q.currency:'symbol-narrow' }}
+        </td>
+        <td class="table-column-std">
+          <span
+            [class.text-green-600]="q.status === 'approved' || q.status === 'converted'"
+            [class.text-red-600]="q.status === 'rejected' || q.status === 'expired'"
+          >
+            {{
+              q.status === 'draft' ? 'Borrador' :
+              q.status === 'sent' ? 'Enviada' :
+              q.status === 'approved' ? 'Aprobada' :
+              q.status === 'converted' ? 'Convertida' :
+              q.status === 'rejected' ? 'Rechazada' :
+              q.status === 'expired' ? 'Vencida' : '—'
+            }}
+          </span>
+        </td>
+        <td class="table-column-std">
+          <button class="btn-details" (click)="selectQuotation(q)">Detalles</button>
+          <button class="btn-edit" (click)="editQuotation(q)">Editar</button>
+          <button class="btn-delete" (click)="deleteQuotation(q)">Eliminar</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Sin resultados -->
+  <div *ngIf="filteredQuotations.length === 0" class="p-4 text-center text-gray-600">
+    <p>No hay coincidencias con la búsqueda.</p>
+  </div>
+
+  <!-- Paginación / Items por página -->
+  <div class="flex justify-between items-center mb-4">
+    <div class="pagination flex items-center">
+      <button (click)="currentPage = 1; updatePaginated()" [disabled]="currentPage === 1" class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8">⇐</button>
+      <button (click)="currentPage = currentPage - 1; updatePaginated()" [disabled]="currentPage === 1" class="btn-primary flex items-center justify-center px-2 py-1 rounded-full disabled:bg-gray-300 disabled:cursor-not-allowed w-7 h-7">←</button>
+      <span class="mx-4 text-gray-700">Página {{ currentPage }} de {{ totalPages }}</span>
+      <button (click)="currentPage = currentPage + 1; updatePaginated()" [disabled]="currentPage === totalPages" class="btn-primary flex items-center justify-center px-2 py-1 rounded-full disabled:bg-gray-300 disabled:cursor-not-allowed w-7 h-7">→</button>
+      <button (click)="currentPage = totalPages; updatePaginated()" [disabled]="currentPage === totalPages" class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8">⇒</button>
+    </div>
+
+    <div class="items-per-page flex items-center">
+      <label for="itemsPerPage" class="mr-2">Elementos por página:</label>
+      <select id="itemsPerPage" [(ngModel)]="itemsPerPage" (change)="currentPage = 1; updatePaginated()" class="form-select">
+        <option *ngFor="let size of [2,10,15,20]" [value]="size">{{ size }}</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Añadir/Editar Cotización -->
+<div *ngIf="showModal" class="modal-overlay">
+  <div class="modal-content modal-h750">
+    <h3 class="text-lg font-bold mb-4">{{ isEditing ? 'Editar Cotización' : 'Añadir Cotización' }}</h3>
+
+    <form (ngSubmit)="saveQuotation()">
+      <!-- Título -->
+      <div class="mb-4">
+        <label class="block text-gray-700">Título<span class="text-red-500">*</span></label>
+        <input [(ngModel)]="selectedQuotation.title" name="title" class="form-input" placeholder="Ej: Aviso acrílico 50x70 con impresión" required />
+      </div>
+
+      <!-- Cliente o Mostrador -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label class="block text-gray-700">¿Cotización de mostrador?</label>
+          <input type="checkbox" [(ngModel)]="selectedQuotation.walk_in" name="walk_in" class="form-checkbox mt-1"/>
+        </div>
+        <div *ngIf="selectedQuotation?.walk_in">
+          <label class="block text-gray-700">Etiqueta de cliente</label>
+          <input [(ngModel)]="selectedQuotation.customer_label" name="customer_label" class="form-input" placeholder="Cliente Mostrador"/>
+        </div>
+      </div>
+
+      <div class="mb-4" *ngIf="!selectedQuotation?.walk_in">
+        <label class="block text-gray-700">Cliente</label>
+        <div class="relative">
+          <input
+            type="text"
+            placeholder="Buscar cliente por nombre..."
+            [(ngModel)]="clientSearch"
+            (ngModelChange)="searchClients()"
+            name="clientSearch"
+            class="form-input"
+            (focus)="onClientSearchFocus()"
+            (blur)="onClientSearchBlur()"
+          />
+          <div
+            *ngIf="showClientDropdown && filteredClients.length > 0"
+            class="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto"
+          >
+            <div
+              *ngFor="let c of filteredClients"
+              class="p-2 hover:bg-gray-200 cursor-pointer"
+              (mousedown)="selectClientFromDropdown(c)"
+            >
+              {{ c.name }} ({{ c.company_name || 'Sin empresa' }})
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Opciones generales -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div>
+          <label class="block">Fecha</label>
+          <input type="date" [(ngModel)]="selectedQuotation.issue_date" name="issue_date" class="form-input"/>
+        </div>
+        <div>
+          <label class="block">Moneda</label>
+          <input [(ngModel)]="selectedQuotation.currency" name="currency" class="form-input" placeholder="COP"/>
+        </div>
+        <div>
+          <label class="block">Incluir IVA (19%)</label>
+          <input type="checkbox" [(ngModel)]="selectedQuotation.include_iva" name="include_iva" class="form-checkbox mt-2"/>
+        </div>
+      </div>
+
+      <!-- Descuento global -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label class="block">Descuento global</label>
+          <select [(ngModel)]="selectedQuotation.global_discount_type" name="global_discount_type" class="form-select">
+            <option value="none">Ninguno</option>
+            <option value="percent">% Porcentaje</option>
+            <option value="value">Valor fijo</option>
+          </select>
+        </div>
+        <div>
+          <label class="block">Valor</label>
+          <input type="number" step="0.01" [(ngModel)]="selectedQuotation.global_discount_value" name="global_discount_value" class="form-input" />
+        </div>
+      </div>
+
+      <!-- Notas -->
+      <div class="mb-4">
+        <label class="block">Notas (se muestran en PDF)</label>
+        <textarea [(ngModel)]="selectedQuotation.notes_public" name="notes_public" class="form-input" rows="2"></textarea>
+      </div>
+      <div class="mb-4">
+        <label class="block">Notas internas (no se imprimen)</label>
+        <textarea [(ngModel)]="selectedQuotation.notes_private" name="notes_private" class="form-input" rows="2"></textarea>
+      </div>
+
+      <!-- Tabla de ítems -->
+      <div class="mt-4">
+        <table class="table-std">
+          <thead>
+            <tr>
+              <th class="table-column-std">Cantidad</th>
+              <th class="table-column-std">Detalle</th>
+              <th class="table-column-std">Costo</th>
+              <th class="table-column-std">Nota</th>
+              <th class="table-column-std">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let it of selectedQuotation?.items; let i = index">
+              <td class="table-column-std w-24">
+                <input type="number" min="0" step="0.001" [(ngModel)]="it.quantity" name="qty{{i}}" class="form-input"/>
+              </td>
+              <td class="table-column-std relative">
+                <input
+                  type="text"
+                  [(ngModel)]="it.detail"
+                  name="detail{{i}}"
+                  class="form-input"
+                  placeholder="Material o servicio"
+                  (input)="onDetailInput(i, it.detail)"
+                />
+                <ul *ngIf="suggestions[i]?.length" class="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto">
+                  <li *ngFor="let m of suggestions[i]" class="p-2 hover:bg-gray-100 cursor-pointer" (click)="selectMaterial(i, m)">
+                    {{ m.name }} <small *ngIf="m.code">({{ m.code }})</small>
+                  </li>
+                  <li class="p-2 bg-gray-100 hover:bg-gray-200 cursor-pointer" (click)="clearMaterial(i)">Usar texto escrito</li>
+                </ul>
+              </td>
+              <td class="table-column-std w-40">
+                <input type="number" min="0" step="0.01" [(ngModel)]="it.line_total" name="cost{{i}}" class="form-input"/>
+              </td>
+              <td class="table-column-std">
+                <input type="text" [(ngModel)]="it.note_internal" name="note{{i}}" class="form-input" placeholder="Medidas / notas internas"/>
+              </td>
+              <td class="table-column-std w-24">
+                <button type="button" class="btn-delete" (click)="removeItem(i)">Eliminar</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="flex justify-between mt-3">
+          <button type="button" class="btn-add" (click)="addItem()">Añadir línea</button>
+
+          <!-- Totales en tiempo real -->
+          <div class="text-right w-80">
+            <div class="flex justify-between"><span>Subtotal:</span><span>{{ calculateQuotationTotals(selectedQuotation, selectedQuotation.items || []).subTotal | currency:selectedQuotation.currency:'symbol-narrow' }}</span></div>
+            <div class="flex justify-between" *ngIf="selectedQuotation?.global_discount_type !== 'none'">
+              <span>Descuento:</span><span>{{ calculateQuotationTotals(selectedQuotation, selectedQuotation.items || []).globalDiscount | currency:selectedQuotation.currency:'symbol-narrow' }}</span>
+            </div>
+            <div class="flex justify-between" *ngIf="selectedQuotation?.include_iva">
+              <span>IVA (19%):</span><span>{{ calculateQuotationTotals(selectedQuotation, selectedQuotation.items || []).ivaTotal | currency:selectedQuotation.currency:'symbol-narrow' }}</span>
+            </div>
+            <div class="flex justify-between font-bold border-t pt-2 mt-2">
+              <span>Total:</span><span>{{ calculateQuotationTotals(selectedQuotation, selectedQuotation.items || []).grandTotal | currency:selectedQuotation.currency:'symbol-narrow' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Acciones -->
+      <div class="flex justify-end mt-4">
+        <button type="button" class="btn-danger" (click)="closeModal()">Cancelar</button>
+        <button type="submit" class="btn-success px-4 py-2 rounded-md">{{ isEditing ? 'Actualizar Cotización' : 'Guardar Cotización' }}</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Detalle de cotización (overlay) -->
+<div *ngIf="selectedQuotationDetails" class="modal-overlay">
+  <div class="modal-content modal-h750">
+    <h2 class="text-xl font-bold mb-2">Detalles de Cotización</h2>
+
+    <div class="p-4 border border-gray-300 bg-white invoice-details">
+      <div class="flex justify-between mb-4">
+        <div>
+          <h3 class="font-semibold text-lg">
+            Cotización N°: {{ selectedQuotationDetails.consecutive || '-' }}
+          </h3>
+          <p><strong>Fecha:</strong> {{ (selectedQuotationDetails.created_at || selectedQuotationDetails.issue_date) | date:'dd-MM-yyyy' }}</p>
+          <p>
+            <strong>Estado:</strong>
+            {{
+              selectedQuotationDetails.status === 'draft' ? 'Borrador' :
+              selectedQuotationDetails.status === 'sent' ? 'Enviada' :
+              selectedQuotationDetails.status === 'approved' ? 'Aprobada' :
+              selectedQuotationDetails.status === 'converted' ? 'Convertida' :
+              selectedQuotationDetails.status === 'rejected' ? 'Rechazada' :
+              selectedQuotationDetails.status === 'expired' ? 'Vencida' : '—'
+            }}
+          </p>
+        </div>
+        <div class="text-right">
+          <p><strong>Para:</strong>
+            <ng-container *ngIf="selectedQuotationDetails.client; else lblMostrador">
+              {{ selectedQuotationDetails.client.company_name || selectedQuotationDetails.client.name }}
+            </ng-container>
+            <ng-template #lblMostrador>{{ selectedQuotationDetails.customer_label || 'Cliente Mostrador' }}</ng-template>
+          </p>
+        </div>
+      </div>
+
+      <div class="my-2">
+        <p><strong>Título:</strong> {{ selectedQuotationDetails.title }}</p>
+      </div>
+
+      <!-- Tabla simple de items -->
+      <table class="table-std my-4">
+        <thead>
+          <tr>
+            <th class="table-column-std">Cantidad</th>
+            <th class="table-column-std">Detalle</th>
+            <th class="table-column-std">Costo</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let it of (selectedQuotationDetails.items || [])">
+            <td class="table-column-std">{{ it.quantity }}</td>
+            <td class="table-column-std">{{ it.detail }}</td>
+            <td class="table-column-std">{{ it.line_total | currency:selectedQuotationDetails.currency:'symbol-narrow' }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Totales -->
+      <div class="border-t pt-4 mt-4 space-y-2" *ngIf="selectedQuotationDetails as qd">
+        <ng-container *ngIf="calculateQuotationTotals(qd, qd.items || []) as tot">
+          <div class="flex justify-between"><p><strong>Subtotal base:</strong></p><p>{{ tot.subTotal | currency:qd.currency:'symbol-narrow' }}</p></div>
+          <div class="flex justify-between" *ngIf="qd.global_discount_type !== 'none'">
+            <p><strong>Descuento global:</strong></p><p>{{ tot.globalDiscount | currency:qd.currency:'symbol-narrow' }}</p>
+          </div>
+          <div class="flex justify-between" *ngIf="qd.include_iva">
+            <p><strong>IVA (19%):</strong></p><p>{{ tot.ivaTotal | currency:qd.currency:'symbol-narrow' }}</p>
+          </div>
+          <div class="flex justify-between border-t pt-2">
+            <p><strong>Total a Cotizar:</strong></p><p class="font-bold text-green-600">{{ tot.grandTotal | currency:qd.currency:'symbol-narrow' }}</p>
+          </div>
+        </ng-container>
+      </div>
+
+      <!-- Acciones -->
+      <div class="flex justify-end mt-4">
+        <button type="button" class="btn-success py-2 px-4 mr-2 rounded" (click)="generateQuotationPdf()">Descargar Cotización</button>
+        <button type="button" class="btn-success py-2 px-4 mr-2 rounded" (click)="convertQuotationToOrder(selectedQuotationDetails)">Convertir a Pedido</button>
+        <button type="button" class="btn-danger py-2 px-4 rounded" (click)="selectedQuotationDetails = null">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
