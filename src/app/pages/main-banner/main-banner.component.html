@@ -291,7 +291,15 @@
           <i class="fas fa-users"></i>
           <span>Empleados</span>
         </div>
-
+        <div
+          *ngIf="userRole == 'admin'"
+          class="nav-item cursor-pointer"
+          [ngClass]="{ active: router.url.startsWith('/schedule') }"
+          (click)="goToSchedule()"
+        >
+          <i class="fas fa-users"></i>
+          <span>Horario</span>
+        </div>
         <div
           *ngIf="userAdmin == true"
           class="nav-item relative cursor-pointer"
