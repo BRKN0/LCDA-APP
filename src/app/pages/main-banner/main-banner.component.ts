@@ -89,6 +89,9 @@ export class MainBannerComponent implements OnInit {
   goToControlPanel() {
     this.router.navigate(['/control-panel']);
   }
+    goToSchedule() {
+    this.router.navigate(['/schedule']);
+  }
   goToQuotation() {
     this.router.navigate(['/quotation']); // redirect to quotation route
   }
