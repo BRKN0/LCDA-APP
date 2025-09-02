@@ -24,6 +24,7 @@ export class MainBannerComponent implements OnInit {
   financeDropdownOpen = false;
   priceDropdownOpen = false;
   inventoryDropdownOpen = false;
+  quotationDropdownOpen = false;
   newNotification = false;
   constructor(
     private readonly supabase: SupabaseService,
@@ -87,6 +88,9 @@ export class MainBannerComponent implements OnInit {
   }
   goToControlPanel() {
     this.router.navigate(['/control-panel']);
+  }
+  goToQuotation() {
+    this.router.navigate(['/quotation']); // redirect to quotation route
   }
   signOut() {
     this.supabase.signOut().then(() =>
@@ -155,16 +159,19 @@ export class MainBannerComponent implements OnInit {
     this.financeDropdownOpen = !this.financeDropdownOpen;
     this.priceDropdownOpen = false;
     this.inventoryDropdownOpen = false;
+    this.quotationDropdownOpen = false;
   }
 
   async closeDropdowns() {
     this.financeDropdownOpen = false;
     this.priceDropdownOpen = false;
     this.inventoryDropdownOpen = false;
+    this.quotationDropdownOpen = false;
   }
   togglePriceDropdown(event: MouseEvent): void {
     event.stopPropagation(); // Prevents the document click listener from firing
     this.priceDropdownOpen = !this.priceDropdownOpen;
+    this.quotationDropdownOpen = false;
     this.financeDropdownOpen = false;
     this.inventoryDropdownOpen = false;
   }
@@ -172,6 +179,15 @@ export class MainBannerComponent implements OnInit {
   toggleInventoryDropdown(event: MouseEvent): void {
     event.stopPropagation(); // Prevents the document click listener from firing
     this.inventoryDropdownOpen = !this.inventoryDropdownOpen;
+    this.quotationDropdownOpen = false;
+    this.financeDropdownOpen = false;
+    this.priceDropdownOpen = false;
+  }
+
+  toggleQuotationDropdown(event: MouseEvent): void {
+    event.stopPropagation();
+    this.quotationDropdownOpen = !this.quotationDropdownOpen;
+    this.inventoryDropdownOpen = false;
     this.financeDropdownOpen = false;
     this.priceDropdownOpen = false;
   }

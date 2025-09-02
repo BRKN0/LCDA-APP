@@ -219,15 +219,52 @@
           <i class="fas fa-users"></i>
           <span>Clientes</span>
         </div>
+
         <div
           *ngIf="userRole == 'admin'"
-          class="nav-item cursor-pointer"
-          [ngClass]="{ active: router.url.startsWith('/invoice') }"
-          (click)="goToInvoices()"
+          class="relative"
+          (clickOutside)="closeDropdowns()"
         >
-          <i class="fas fa-users"></i>
-          <span>Facturas</span>
+          <!-- Billing Button -->
+          <div
+            class="cursor-pointer nav-item-dropdown flex items-center"
+            [ngClass]="{ active: router.url.startsWith('/invoice') }"
+            (click)="toggleQuotationDropdown($event)"
+          >
+            <i class="fas fa-dollar-sign"></i>
+            <span>Facturacion</span>
+            <i
+              class="ml-2 fas"
+              [ngClass]="{
+                'fa-chevron-down': !quotationDropdownOpen,
+                'fa-chevron-up': quotationDropdownOpen
+              }"
+            ></i>
+          </div>
+
+          <!-- Dropdown button -->
+          <ul
+            *ngIf="quotationDropdownOpen"
+            class="absolute dropdown bg-white shadow-lg mt-2 w-40 z-10"
+            style="left: 0"
+          >
+            <li
+              class="p-2 nav-item cursor-pointer"
+              [ngClass]="{ active: router.url.startsWith('/invoice') }"
+              (click)="goToInvoices(); closeDropdowns()"
+            >
+              Facturas
+            </li>
+            <li
+              class="p-2 nav-item cursor-pointer"
+              [ngClass]="{ active: router.url.startsWith('/quotation') }"
+              (click)="goToQuotation(); closeDropdowns()"
+            >
+              Cotizacion
+            </li>
+          </ul>
         </div>
+        
         <div
           class="nav-item cursor-pointer"
           [ngClass]="{ active: router.url.startsWith('/orders') }"
