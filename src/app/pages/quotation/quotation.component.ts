@@ -24,16 +24,16 @@ interface Client {
 }
 
 interface Material {
-  id: string;
+  id_material: string;
   code?: string;
-  name: string;
+  type: string;
   category?: string | null;
   color?: string | null;
   caliber?: string | null;
 }
 
 interface Quotation {
-  id: string;
+  id_quotation: string;
   consecutive: string;
   title: string;
   id_client: string | null;
@@ -59,12 +59,13 @@ interface QuotationItem {
   id_quotation: string;
   line_number: number;
   id_material?: string | null;
-  detail: string;        // visible al cliente
+  description: string;        // visible al cliente
   quantity: number;
-  unit: string;          // 'und', 'm²', etc.
-  line_total: number;    // total línea SIN IVA
-  note_internal?: string | null; // NO se imprime
+  unit_price?: number;          // 'und', 'm²', etc.
+  total_price: number;    // total línea SIN IVA
+  notes_admin?: string | null; // NO se imprime
   metadata?: any;
+  unit?: string;
 }
 
 @Component({
@@ -89,6 +90,7 @@ export class QuotationComponent implements OnInit {
   showConverted = true;
   showClientDropdown = false;
   filteredClients: Client[] = [];
+  userId: string | null = null;
 
   // filtros / búsqueda / paginación
   searchText = '';
@@ -111,30 +113,31 @@ export class QuotationComponent implements OnInit {
   constructor(private readonly supabase: SupabaseService, private readonly zone: NgZone) {}
 
   private newEmptyQuotation(): Quotation {
-  return {
-    id: '',
-    consecutive: '',
-    title: '',
-    id_client: null,
-    walk_in: false,
-    customer_label: '',
-    status: 'draft',
-    issue_date: new Date().toISOString().slice(0,10),
-    currency: 'COP',
-    include_iva: true,
-    global_discount_type: 'none',
-    global_discount_value: 0,
-    notes_public: '',
-    notes_private: '',
-    items: [],
-  };
-}
+    return {
+      id_quotation: '',
+      consecutive: '',
+      title: '',
+      id_client: null,
+      walk_in: false,
+      customer_label: '',
+      status: 'draft',
+      issue_date: new Date().toISOString().slice(0,10),
+      currency: 'COP',
+      include_iva: true,
+      global_discount_type: 'none',
+      global_discount_value: 0,
+      notes_public: '',
+      notes_private: '',
+      items: [],
+    };
+  }
 
 
   // ====== CICLO DE VIDA ======
   async ngOnInit(): Promise<void> {
     this.supabase.authChanges((_, session) => {
       if (session) {
+        this.userId = session.user?.id ?? null;
         this.zone.run(async () => {
           await Promise.all([this.getQuotations(), this.getClients(), this.getSomeMaterials()]);
           this.updateFiltered();
@@ -173,10 +176,6 @@ export class QuotationComponent implements OnInit {
     const { data, error } = await this.supabase.from('clients').select('*').order('name', { ascending: true });
     if (error) { console.error(error); return; }
     this.clients = data as Client[];
-    this.initClientsFilter();
-  }
-
-  private initClientsFilter() {
     this.filteredClients = [...this.clients];
   }
 
@@ -205,17 +204,28 @@ export class QuotationComponent implements OnInit {
 
   async getSomeMaterials(): Promise<void> {
     // carga inicial para autocompletar (puedes paginar/limitar)
-    const { data, error } = await this.supabase.from('materials').select('id, code, name, category, color, caliber').limit(50);
+    const { data, error } = await this.supabase.from('materials').select('id_material, code, type, category, color, caliber').limit(50);
     if (error) { console.error(error); return; }
     this.materialsCache = data as Material[];
   }
+
+  async getUserName(): Promise<string | null> {
+    const { data, error } = await this.supabase
+      .from('users')
+      .select('user_name')
+      .eq('id', this.userId)
+      .maybeSingle();
+
+    return error || !data ? null : data.user_name;
+  }
+
 
   async searchMaterials(term: string): Promise<Material[]> {
     if (!term || term.trim().length < 2) return [];
     const { data, error } = await this.supabase
       .from('materials')
-      .select('id, code, name, category, color, caliber')
-      .ilike('name', `%${term}%`)
+      .select('id_material, code, type, category, color, caliber')
+      .ilike('type', `%${term}%`)
       .limit(10);
     if (error) { console.error(error); return []; }
     return data as Material[];
@@ -223,37 +233,38 @@ export class QuotationComponent implements OnInit {
 
   // ====== FILTROS / PAGINACIÓN ======
   updateFiltered(): void {
-    const list = this.quotations.filter(q => {
-      const byText =
-        !this.searchText ||
-        q.title.toLowerCase().includes(this.searchText.toLowerCase()) ||
-        (q.consecutive || '').toLowerCase().includes(this.searchText.toLowerCase()) ||
-        (q.client?.name || '').toLowerCase().includes(this.searchText.toLowerCase());
+    const text = (this.searchText || '').toLowerCase().trim();
 
-      const byClient =
-        !this.clientSearch ||
-        (q.client?.name || '').toLowerCase().includes(this.clientSearch.toLowerCase()) ||
-        (q.client?.company_name || '').toLowerCase().includes(this.clientSearch.toLowerCase());
+    this.filteredQuotations = this.quotations.filter(q => {
+      // búsqueda por título, cliente o consecutivo
+      const clientName  = (q.client?.company_name || q.client?.name || q.customer_label || '').toLowerCase();
+      const title       = (q.title || '').toLowerCase();
+      const consecutive = (q.consecutive != null ? String(q.consecutive) : '').toLowerCase();
 
+      const matchesSearch =
+        !text ||
+        clientName.includes(text) ||
+        title.includes(text) ||
+        consecutive.includes(text);
+
+      // aquí dejas tal cual tus filtros por fecha, estado, etc.
       const createdAt = q.created_at ? new Date(q.created_at) : new Date(q.issue_date);
-      const byStart = this.startDate ? createdAt >= new Date(this.startDate) : true;
-      const byEnd = this.endDate ? createdAt <= new Date(this.endDate + 'T23:59:59') : true;
+      const matchesStartDate = this.startDate ? createdAt >= new Date(this.startDate) : true;
+      const matchesEndDate   = this.endDate   ? createdAt <= new Date(this.endDate + 'T23:59:59') : true;
 
-      const statusOk =
+      const matchesStatus =
         (this.showDrafts    && q.status === 'draft')     ||
         (this.showSent      && q.status === 'sent')      ||
         (this.showApproved  && q.status === 'approved')  ||
-        (this.showConverted && q.status === 'converted') ||
-        // si todos están apagados, no mostrar nada:
-        (this.showDrafts || this.showSent || this.showApproved || this.showConverted ? false : true);
+        (this.showConverted && q.status === 'converted');
 
-      return byText && byClient && byStart && byEnd && statusOk;
+      return matchesSearch && matchesStartDate && matchesEndDate && matchesStatus;
     });
 
-    this.filteredQuotations = list;
     this.currentPage = 1;
     this.updatePaginated();
   }
+
 
   updatePaginated(): void {
     this.totalPages = Math.max(1, Math.ceil(this.filteredQuotations.length / this.itemsPerPage));
@@ -268,6 +279,10 @@ export class QuotationComponent implements OnInit {
     this.clientSearch = '';
     this.startDate = '';
     this.endDate = '';
+    this.showDrafts    = true;
+    this.showSent      = true;
+    this.showApproved  = true;
+    this.showConverted = true;
     this.updateFiltered();
   }
 
@@ -303,8 +318,11 @@ export class QuotationComponent implements OnInit {
     }
 
     try {
-      // 1) Guardar encabezado
-      let upsertPayload: any = {
+      // nombre del usuario (opcional)
+      const userName = (await this.getUserName()) ?? 'Sistema';
+
+      // 1) Encabezado
+      const upsertPayload: any = {
         title: q.title.trim(),
         id_client: q.walk_in ? null : q.id_client,
         walk_in: !!q.walk_in,
@@ -317,35 +335,61 @@ export class QuotationComponent implements OnInit {
         global_discount_value: q.global_discount_value || 0,
         notes_public: q.notes_public || null,
         notes_private: q.notes_private || null,
+        updated_at: new Date().toISOString(),
       };
 
-      let quotationId = q.id;
-      if (this.isEditing && quotationId) {
-        const { error } = await this.supabase.from('quotations').update(upsertPayload).eq('id', quotationId);
-        if (error) throw error;
-      } else {
-        const { data, error } = await this.supabase.from('quotations').insert([upsertPayload]).select().single();
-        if (error) throw error;
-        quotationId = data.id;
+      if (!this.isEditing) {
+        upsertPayload.created_by = userName;
+        upsertPayload.created_at = new Date().toISOString();
       }
 
-      // 2) Guardar ítems (estrategia simple: borrar e insertar)
-      const items = (q.items || []).map((it, idx) => ({
-        id_quotation: quotationId,
-        line_number: idx + 1,
-        id_material: it.id_material || null,
-        detail: (it.detail || '').trim(),
-        quantity: Number(it.quantity || 1),
-        unit: it.unit || 'und',
-        line_total: Number(it.line_total || 0),
-        note_internal: it.note_internal || null,
-        metadata: it.metadata || null,
-      }));
+      // IMPORTANTE: usar la PK real de quotations
+      let quotationId = q.id_quotation;
 
-      // borrar existentes y reinsertar
+      if (this.isEditing && quotationId) {
+        const { error } = await this.supabase
+          .from('quotations')
+          .update(upsertPayload)
+          .eq('id_quotation', quotationId); // <-- columna real
+        if (error) throw error;
+      } else {
+        const { data, error } = await this.supabase
+          .from('quotations')
+          .insert([upsertPayload])
+          .select('id_quotation') // <-- pedir la columna real
+          .single();
+        if (error) throw error;
+
+        quotationId = data.id_quotation; // <-- tomar la columna real
+        // sincronizar el estado local para futuros guardados
+        this.selectedQuotation.id_quotation = quotationId;
+      }
+
+      // 2) Ítems (borrar e insertar)
+      const items = (q.items || []).map((it, idx) => {
+        const qty = Number(it.quantity ?? 1);
+        const up = Number((it as any).unit_price ?? 0);
+        const total = isFinite(Number((it as any).total_price))
+          ? Number((it as any).total_price)
+          : +(qty * up).toFixed(2);
+
+        return {
+          id_quotation: quotationId,
+          line_number: idx + 1,
+          id_material: it.id_material ?? null,
+          quantity: qty,
+          description: (it as any).description?.toString().trim() || '', // nombre en DB
+          unit_price: up,
+          total_price: total,
+          notes_admin: (it as any).notes_admin ?? null,
+        };
+      });
+
       await this.supabase.from('quotation_items').delete().eq('id_quotation', quotationId);
       if (items.length > 0) {
-        const { error: insertItemsError } = await this.supabase.from('quotation_items').insert(items);
+        const { error: insertItemsError } = await this.supabase
+          .from('quotation_items')
+          .insert(items);
         if (insertItemsError) throw insertItemsError;
       }
 
@@ -359,29 +403,37 @@ export class QuotationComponent implements OnInit {
     }
   }
 
+
   async deleteQuotation(q: Quotation): Promise<void> {
     if (!confirm(`¿Eliminar la cotización ${q.consecutive || q.title}?`)) return;
-    const { error } = await this.supabase.from('quotations').delete().eq('id', q.id);
+
+    // borrar primero los items
+    await this.supabase.from('quotation_items').delete().eq('id_quotation', q.id_quotation);
+
+    // borrar encabezado
+    const { error } = await this.supabase.from('quotations').delete().eq('id_quotation', q.id_quotation);
     if (error) { console.error(error); alert('Error eliminando la cotización.'); return; }
+
     await this.getQuotations();
     this.updateFiltered();
     this.selectedQuotationDetails = null;
   }
 
+
   // ====== ÍTEMS (tabla editable) ======
   addItem(row?: Partial<QuotationItem>): void {
-    if (!this.selectedQuotation) return;
     const items = this.selectedQuotation.items || (this.selectedQuotation.items = []);
     items.push({
       id: '',
-      id_quotation: this.selectedQuotation.id || '',
+      id_quotation: this.selectedQuotation.id_quotation || '',
       line_number: items.length + 1,
       id_material: row?.id_material ?? null,
-      detail: row?.detail ?? '',
+      description: row?.description ?? '',
       quantity: row?.quantity ?? 1,
+      unit_price: row?.unit_price ?? 0,
       unit: row?.unit ?? 'und',
-      line_total: row?.line_total ?? 0,
-      note_internal: row?.note_internal ?? '',
+      total_price: row?.total_price ?? 0,
+      notes_admin: row?.notes_admin ?? null,
       metadata: row?.metadata ?? null,
     });
   }
@@ -404,9 +456,9 @@ export class QuotationComponent implements OnInit {
   selectMaterial(rowIndex: number, m: Material): void {
     if (!this.selectedQuotation?.items) return;
     const g = this.selectedQuotation.items[rowIndex];
-    g.id_material = m.id;
-    g.detail = m.name; // visible al cliente (editable)
-    if (!g.unit || g.unit === 'und') g.unit = 'und'; // puedes mapear por material
+    g.id_material = m.id_material;
+    g.description = m.type; // visible al cliente (editable)
+    if (!g.quantity) g.quantity = 1; // puedes mapear por material
     this.suggestions[rowIndex] = [];
   }
 
@@ -487,9 +539,9 @@ export class QuotationComponent implements OnInit {
 
     for (const it of items) {
       doc.text(String(it.quantity ?? 1), col.qty, cy);
-      const lines = doc.splitTextToSize(it.detail || '-', 130);
+      const lines = doc.splitTextToSize(it.description || '-', 130);
       doc.text(lines, col.detail, cy);
-      doc.text(this.money(it.line_total || 0, q.currency), col.cost, cy, { align: 'right' });
+      doc.text(this.money(it.total_price || 0, q.currency), col.cost, cy, { align: 'right' });
 
       const linesHeight = (lines.length - 1) * 5.5;
       cy = cy + rowH + linesHeight;
@@ -533,7 +585,7 @@ export class QuotationComponent implements OnInit {
   }
 
   calculateQuotationTotals(q: Quotation, items: QuotationItem[]) {
-    const subTotal = +(items.reduce((s, it) => s + Number(it.line_total || 0), 0)).toFixed(2);
+    const subTotal = +(items.reduce((s, it) => s + Number(it.total_price || 0), 0)).toFixed(2);
 
     let globalDiscount = 0;
     if (q.global_discount_type === 'percent') {
@@ -570,15 +622,15 @@ export class QuotationComponent implements OnInit {
       id_client: q.id_client,
       total: totals.grandTotal,                 // ajusta si tu orders calcula diferente
       baseTotal: totals.subTotal,               // opcional si lo usas
-      source_quotation_id: q.id,                // debes haber agregado esta col a orders
+      source_quotation_id: q.id_quotation,                // debes haber agregado esta col a orders
       items_snapshot: items.map(it => ({
         line_number: it.line_number,
         id_material: it.id_material || null,
-        detail: it.detail,
+        description: it.description,
         quantity: it.quantity,
         unit: it.unit,
-        line_total: it.line_total,
-        note_internal: it.note_internal || null,
+        total_price: it.total_price,
+        notes_admin: it.notes_admin ?? null,
         metadata: it.metadata || null,
       })),
       pricing_snapshot: {
@@ -595,7 +647,7 @@ export class QuotationComponent implements OnInit {
     if (error) { console.error(error); alert('Error creando el pedido.'); return; }
 
     // marcar cotización convertida
-    await this.supabase.from('quotations').update({ status: 'converted' }).eq('id', q.id);
+    await this.supabase.from('quotations').update({ status: 'converted' }).eq('id', q.id_quotation);
 
     alert(`Pedido creado (ID: ${order.id_order || '—'}) a partir de la cotización.`);
     await this.getQuotations();
@@ -610,9 +662,9 @@ export class QuotationComponent implements OnInit {
     const map = new Map<string, { total: number; detail: string }>();
     for (const it of withMaterial) {
       const key = it.id_material as string;
-      const prev = map.get(key) || { total: 0, detail: it.detail || '' };
-      prev.total += Number(it.line_total || 0);
-      prev.detail = prev.detail || it.detail || '';
+      const prev = map.get(key) || { total: 0, detail: it.description || '' };
+      prev.total += Number(it.total_price || 0);
+      prev.detail = prev.detail || it.description || '';
       map.set(key, prev);
     }
     const arr = Array.from(map.entries()).sort((a, b) => b[1].total - a[1].total);
