@@ -255,24 +255,24 @@
               <td class="table-column-std relative">
                 <input
                   type="text"
-                  [(ngModel)]="it.detail"
+                  [(ngModel)]="it.description"
                   name="detail{{i}}"
                   class="form-input"
                   placeholder="Material o servicio"
-                  (input)="onDetailInput(i, it.detail)"
+                  (input)="onDetailInput(i, it.description)"
                 />
                 <ul *ngIf="suggestions[i]?.length" class="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto">
                   <li *ngFor="let m of suggestions[i]" class="p-2 hover:bg-gray-100 cursor-pointer" (click)="selectMaterial(i, m)">
-                    {{ m.name }} <small *ngIf="m.code">({{ m.code }})</small>
+                    {{ m.type }} <small *ngIf="m.code">({{ m.code }})</small>
                   </li>
                   <li class="p-2 bg-gray-100 hover:bg-gray-200 cursor-pointer" (click)="clearMaterial(i)">Usar texto escrito</li>
                 </ul>
               </td>
               <td class="table-column-std w-40">
-                <input type="number" min="0" step="0.01" [(ngModel)]="it.line_total" name="cost{{i}}" class="form-input"/>
+                <input type="number" min="0" step="0.01" [(ngModel)]="it.total_price" name="cost{{i}}" class="form-input"/>
               </td>
               <td class="table-column-std">
-                <input type="text" [(ngModel)]="it.note_internal" name="note{{i}}" class="form-input" placeholder="Medidas / notas internas"/>
+                <input type="text" [(ngModel)]="it.notes_admin" name="note{{i}}" class="form-input" placeholder="Medidas / notas internas"/>
               </td>
               <td class="table-column-std w-24">
                 <button type="button" class="btn-delete" (click)="removeItem(i)">Eliminar</button>
@@ -359,8 +359,8 @@
         <tbody>
           <tr *ngFor="let it of (selectedQuotationDetails.items || [])">
             <td class="table-column-std">{{ it.quantity }}</td>
-            <td class="table-column-std">{{ it.detail }}</td>
-            <td class="table-column-std">{{ it.line_total | currency:selectedQuotationDetails.currency:'symbol-narrow' }}</td>
+            <td class="table-column-std">{{ it.description }}</td>
+            <td class="table-column-std">{{ it.total_price | currency:selectedQuotationDetails.currency:'symbol-narrow' }}</td>
           </tr>
         </tbody>
       </table>
