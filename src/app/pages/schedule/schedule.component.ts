@@ -31,7 +31,7 @@ interface Cut {
   category: string | null;
   material_type: string | null;
   color: string | null;
-  order: OrderLite;
+  order: OrderLite | null;
 }
 
 interface CutSchedule {
@@ -189,7 +189,7 @@ export class ScheduleComponent implements OnInit {
         category: c.category ?? null,
         material_type: c.material_type ?? null,
         color: c.color ?? null,
-        order: c.orders,
+        order: toOrderLite(c.order),
       };
 
       return {
@@ -246,7 +246,7 @@ export class ScheduleComponent implements OnInit {
             category: c.category ?? null,
             material_type: c.material_type ?? null,
             color: c.color ?? null,
-            order: toOrderLite(c.orders),
+            order: toOrderLite(c.order),
           } as Cut)
       );
 
@@ -313,7 +313,7 @@ export class ScheduleComponent implements OnInit {
         category: c.category ?? null,
         material_type: c.material_type ?? null,
         color: c.color ?? null,
-        order: toOrderLite(c.orders),
+        order: toOrderLite(c.order),
       })) as Cut[];
   }
 
