@@ -474,7 +474,7 @@ export class InvoiceComponent implements OnInit {
       iva = 0;
       total = subtotal;
     }
-    
+
 
     const classificationKey =
       classification === 'bienes' ? 'bienes' : 'servicios';
@@ -860,7 +860,7 @@ export class InvoiceComponent implements OnInit {
     return Math.abs(n) < 1e-6;
   }
 
-  
+
   private async syncInvoicesStatusOnLoad(invoices: Invoice[]): Promise<void> {
     const updates: Array<Promise<void>> = [];
 
@@ -948,10 +948,11 @@ export class InvoiceComponent implements OnInit {
     const year = invoice_date.getFullYear();
     const month = (invoice_date.getMonth() + 1).toString().padStart(2, '0');
     const day = invoice_date.getDate().toString().padStart(2, '0');
-
+    /*
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.text('La Casa del Acrilico', 10, 10);
+    */
 
     const logoUrl = '/Logo.png';
     const logo = await this.loadImage(logoUrl);
@@ -982,11 +983,12 @@ export class InvoiceComponent implements OnInit {
     let y = 80;
     doc.text(`Nombre: ${invoice.order.client.name}`, 10, y);
     y += 6;
-    doc.text(
+    /*doc.text(
       `Nombre de la empresa: ${invoice.order.client.company_name || 'N/A'}`,
       10,
       y
     );
+    */
     y += 6;
     doc.text(`Dirección: ${invoice.order.client.address}`, 10, y);
     y += 6;
@@ -1024,11 +1026,10 @@ export class InvoiceComponent implements OnInit {
 
     currentY = startY + rowHeight;
     doc.setFont('helvetica', 'normal');
-    doc.text(`${invoice.order.order_quantity}`, headerXPositions[0], currentY);
-    doc.text(`$${unitaryValue.toFixed(2)}`, headerXPositions[1], currentY);
-    doc.text(`$${subtotal.toFixed(2)}`, headerXPositions[2], currentY, {
-      align: 'right',
-    });
+    doc.text(String(invoice.order.order_quantity), headerXPositions[0], currentY);
+    doc.text(unitaryValue.toFixed(2), headerXPositions[1], currentY);
+    doc.text(totalPaid.toFixed(2), headerXPositions[2], currentY, { align: 'right' });
+
 
     // Añadir lista de abonos al PDF
     if (invoice.order.payments && invoice.order.payments.length > 0) {
@@ -1095,17 +1096,17 @@ export class InvoiceComponent implements OnInit {
     const footerStartY = totalPagarY + rowHeight * 3;
     doc.setFontSize(10);
     doc.setFont('helvetica', 'italic');
-    doc.text(
+    /*doc.text(
       'Todos los cheques se extenderán a nombre de La casa del acrilico',
       10,
       footerStartY
     );
+    */
     doc.text(
       'Si tiene cualquier tipo de pregunta acerca de esta factura, póngase en contacto al número 3004947020',
       10,
       footerStartY + 10
     );
-
     doc.setFont('helvetica', 'bold');
     doc.text('GRACIAS POR SU CONFIANZA', 10, footerStartY + 25);
 
@@ -1220,7 +1221,7 @@ export class InvoiceComponent implements OnInit {
 
   let y = 80;
   doc.text(`Nombre: ${invoice.order.client.name}`, 10, y);
- 
+
   y += 6;
   doc.text(`Dirección: ${invoice.order.client.address}`, 10, y);
   y += 6;
@@ -1258,11 +1259,10 @@ export class InvoiceComponent implements OnInit {
 
   currentY = startY + rowHeight;
   doc.setFont('helvetica', 'normal');
-  doc.text(`${invoice.order.order_quantity}`, headerXPositions[0], currentY);
-  doc.text(`$${unitaryValue.toFixed(2)}`, headerXPositions[1], currentY);
-  doc.text(`$${subtotal.toFixed(2)}`, headerXPositions[2], currentY, {
-    align: 'right',
-  });
+  doc.text(String(invoice.order.order_quantity), headerXPositions[0], currentY);
+  doc.text(unitaryValue.toFixed(2), headerXPositions[1], currentY);
+  doc.text(totalPaid.toFixed(2), headerXPositions[2], currentY, { align: 'right' });
+
 
   if (invoice.order.payments && invoice.order.payments.length > 0) {
     doc.setFont('helvetica', 'bold');
@@ -1358,8 +1358,9 @@ async downloadDeliveryNotePDF(): Promise<void> {
   const month = (date.getMonth() + 1).toString().padStart(2, '0');
   const year = date.getFullYear();
 
-  doc.setFontSize(16);
+  /* doc.setFontSize(16);
   doc.text('La Casa del Acrilico', 10, 10);
+  */
   doc.setFontSize(20);
   doc.text('NOTA DE REMISIÓN', 190, 10, { align: 'right' });
 
@@ -1369,7 +1370,8 @@ async downloadDeliveryNotePDF(): Promise<void> {
 
   doc.text('Cliente:', 10, 60);
   doc.text(`Nombre: ${client.name}`, 10, 70);
-  doc.text(`Empresa: ${client.company_name || 'N/A'}`, 10, 78);
+  /* doc.text(`Empresa: ${client.company_name || 'N/A'}`, 10, 78);
+  */
   doc.text(`Dirección: ${client.address}`, 10, 86);
   doc.text(`Teléfono: ${client.cellphone}`, 10, 94);
 

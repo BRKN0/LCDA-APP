@@ -737,7 +737,7 @@ export class OrdersComponent implements OnInit {
         order.name
           .toLowerCase()
           .includes(this.searchByNameQuery.toLowerCase().trim());
-        
+
       const matchesScheduler =
         !this.selectedScheduler || order.scheduler === this.selectedScheduler;
 
@@ -1034,6 +1034,11 @@ export class OrdersComponent implements OnInit {
     }
     const userName = await this.getUserName();
 
+    // Calcular subtotal antes de crear el objeto
+    const total = parseFloat(newOrderForm.total as string) || 0;
+    const extras = newOrderForm.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
+    const subtotal = total - extras;
+
     this.newOrder = {
       order_type: newOrderForm.order_type,
       name: newOrderForm.name,
@@ -1045,7 +1050,7 @@ export class OrdersComponent implements OnInit {
       order_quantity: newOrderForm.order_quantity,
       unitary_value: newOrderForm.unitary_value || 0,
       iva: newOrderForm.iva || 0,
-      subtotal: newOrderForm.subtotal || 0,
+      subtotal: subtotal.toString(),
       total: newOrderForm.total || 0,
       amount: newOrderForm.amount || 0,
       id_client: newOrderForm.id_client,
@@ -1056,7 +1061,7 @@ export class OrdersComponent implements OnInit {
       file_path: newOrderForm.file_path,
       scheduler: userName || '',
       extra_charges: newOrderForm.extra_charges || [],
-      base_total: parseFloat(newOrderForm.unitary_value as string) * parseFloat(newOrderForm.order_quantity as string),
+      base_total: subtotal,
     };
 
     const deliveryDate = newOrderForm.delivery_date
@@ -1391,38 +1396,74 @@ export class OrdersComponent implements OnInit {
     }
   }
 
+  // Función para calcular el subtotal dinámicamente
+  getCalculatedSubtotal(order: Orders): number {
+    if (!order) return 0;
+
+    // Si el subtotal ya está guardado correctamente (no es 0), úsalo
+    const storedSubtotal = parseFloat(order.subtotal as string) || 0;
+    if (storedSubtotal > 0) {
+      return storedSubtotal;
+    }
+
+    // Si el subtotal es 0, calcularlo: Total - Cargos Extras
+    const total = parseFloat(order.total as string) || 0;
+    const extras = order.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
+
+    return total - extras;
+  }
+
   extraChargeDescription: string = '';
   extraChargeAmount: number = 0;
 
-  addExtraCharge() {
-    if (!this.newOrder.extra_charges) this.newOrder.extra_charges = [];
-    if (this.extraChargeDescription && this.extraChargeAmount > 0) {
-      this.newOrder.extra_charges.push({
-        description: this.extraChargeDescription,
-        amount: this.extraChargeAmount,
-      });
-      this.extraChargeDescription = '';
-      this.extraChargeAmount = 0;
-      this.updateOrderTotalWithExtras();
+  addExtraCharge(): void {
+  if (this.extraChargeDescription && this.extraChargeAmount > 0) {
+    if (!this.newOrder.extra_charges) {
+      this.newOrder.extra_charges = [];
     }
-  }
 
-  removeExtraCharge(index: number) {
-    if (this.newOrder.extra_charges) {
-      this.newOrder.extra_charges.splice(index, 1);
-      this.updateOrderTotalWithExtras();
+    // Calcular el subtotal ANTES de agregar el cargo (si aún no existe)
+    if (!this.newOrder.subtotal || this.newOrder.subtotal === '0') {
+      const currentTotal = parseFloat(this.newOrder.total as string) || 0;
+      this.newOrder.subtotal = currentTotal.toString();
+      this.newOrder.base_total = currentTotal;
     }
-  }
 
-  updateOrderTotalWithExtras() {
-    const baseTotal =
-      parseFloat(this.newOrder.base_total as any) ||
-      parseFloat(this.newOrder.subtotal as any) ||
-      0;
-    const extras =
-      this.newOrder.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
-    this.newOrder.total = (baseTotal + extras).toString();
+    this.newOrder.extra_charges.push({
+      description: this.extraChargeDescription,
+      amount: this.extraChargeAmount,
+    });
+
+    this.extraChargeDescription = '';
+    this.extraChargeAmount = 0;
+
+    // Recalcular total con el nuevo cargo
+    this.updateOrderTotalWithExtras();
   }
+}
+
+  removeExtraCharge(index: number): void {
+  this.newOrder.extra_charges?.splice(index, 1);
+  this.updateOrderTotalWithExtras();
+}
+
+
+  updateOrderTotalWithExtras(): void {
+  // El subtotal base es el valor del total actual SIN cargos extras
+  const currentTotal = parseFloat(this.newOrder.total as string) || 0;
+
+  // Calcular suma de cargos extras
+  const extras = this.newOrder.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
+
+  // El subtotal es el total menos los extras (para obtener el valor base)
+  const subtotal = currentTotal - extras;
+
+  // Actualizar campos
+  this.newOrder.subtotal = subtotal.toString();
+  this.newOrder.base_total = subtotal;
+  this.newOrder.total = (subtotal + extras).toString();
+  this.newOrder.amount = subtotal + extras;
+}
 
   async createNotification(addedOrder: Partial<Orders>) {
     this.notificationDesc =
@@ -1556,20 +1597,52 @@ export class OrdersComponent implements OnInit {
   }
 
   public getRemainingDeliveryDays(order: Orders): number {
-    // Si el estado es "finished", retornar un valor especial (por ejemplo, -999)
-    if (order.order_completion_status === 'finished') {
-      return -999; // Valor especial para indicar "Completo"
-    }
-
     if (!order.delivery_date) return 0;
 
+    const now = new Date();
     const deliveryDate = new Date(order.delivery_date);
-    const currentDate = new Date();
-    const diffTime = deliveryDate.getTime() - currentDate.getTime();
-    const remainingDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    deliveryDate.setHours(23, 59, 59, 999);
 
-    return remainingDays;
+    const diffTime = deliveryDate.getTime() - now.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }
+
+  public getRemainingDeliveryHours(order: Orders): number {
+    if (!order.delivery_date) return 0;
+
+    const now = new Date();
+    const deliveryDate = new Date(order.delivery_date);
+    deliveryDate.setHours(23, 59, 59, 999);
+
+    const diffTime = deliveryDate.getTime() - now.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60));
+  }
+
+  public getFormattedDeliveryTime(order: Orders): string {
+    const days = this.getRemainingDeliveryDays(order);
+    const hours = this.getRemainingDeliveryHours(order);
+
+    if (days <= 0 && hours <= 0) return 'Vencido';
+    if (days === 1) return `${hours}h restantes`;
+    return `${days} días`;
+  }
+
+  public isDeliveryOverdue(order: Orders): boolean {
+    const days = this.getRemainingDeliveryDays(order);
+    const hours = this.getRemainingDeliveryHours(order);
+    return days <= 0 && hours <= 0;
+  }
+
+  public isDeliveryLastDay(order: Orders): boolean {
+    const days = this.getRemainingDeliveryDays(order);
+    const hours = this.getRemainingDeliveryHours(order);
+    return days === 1 && hours > 0;
+  }
+
+  public hasMultipleDeliveryDays(order: Orders): boolean {
+    return this.getRemainingDeliveryDays(order) > 1;
+  }
+
   onFileSelected(event: Event) {
     const input = event.target as HTMLInputElement;
     if (input.files?.length) {
