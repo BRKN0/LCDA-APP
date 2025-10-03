@@ -339,7 +339,7 @@
             }}
           </td>
           <td>{{ order.name }}</td>
-          
+
           <td
             [ngClass]="{
               'text-green-600': order.order_completion_status === 'finished',
@@ -365,24 +365,12 @@
                 : "No especificado"
             }}
           </td>
-          <td
-            [ngClass]="{
-              'text-green-600': order.order_completion_status === 'finished',
-              'text-blue-600':
-                order.order_completion_status !== 'finished' &&
-                getRemainingDeliveryDays(order) > 0,
-              'text-red-600':
-                order.order_completion_status !== 'finished' &&
-                getRemainingDeliveryDays(order) <= 0
-            }"
-          >
-            {{
-              order.order_completion_status === "finished"
-                ? "Completo"
-                : getRemainingDeliveryDays(order) > 0
-                ? getRemainingDeliveryDays(order) + " días"
-                : "Vencido"
-            }}
+          <td [ngClass]="{
+            'text-red-500': isDeliveryOverdue(order),
+            'text-yellow-500': isDeliveryLastDay(order),
+            'text-green-500': hasMultipleDeliveryDays(order)
+          }">
+            {{ getFormattedDeliveryTime(order) }}
           </td>
           <td>
             <button class="btn-details" (click)="selectOrder(order)">
