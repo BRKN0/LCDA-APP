@@ -670,28 +670,22 @@
       <!-- Totals Section -->
       <div class="border-t pt-4 mt-4">
         <div class="flex justify-between">
-          <p><strong>Subtotal:</strong></p>
-          <p>{{ selectedOrderDetails[0].subtotal }}</p>
+          <p><strong>Subtotal</strong></p>
+          <p>{{ getCalculatedSubtotal(selectedOrderDetails[0]) }}</p>
         </div>
-        <div class="flex justify-between">
-          <p *ngIf="selectedOrderDetails[0].iva"><strong>IVA:</strong></p>
+        <div class="flex justify-between" *ngIf="selectedOrderDetails[0].iva">
+          <p><strong>IVA</strong></p>
           <p>{{ selectedOrderDetails[0].iva }}</p>
         </div>
-        <div
-          *ngIf="selectedOrderDetails[0]?.extra_charges?.length"
-          class="flex flex-col gap-1 my-2"
-        >
-          <p class="font-semibold text-blue-600 mb-1">Cargos Extras:</p>
-          <div
-            *ngFor="let charge of selectedOrderDetails[0].extra_charges"
-            class="flex justify-between"
-          >
+        <div *ngIf="selectedOrderDetails[0]?.extra_charges?.length" class="flex flex-col gap-1 my-2">
+          <p class="font-semibold text-blue-600 mb-1">Cargos Extras</p>
+          <div *ngFor="let charge of selectedOrderDetails[0].extra_charges" class="flex justify-between">
             <span>{{ charge.description }}</span>
             <span>${{ charge.amount }}</span>
           </div>
         </div>
         <div class="flex justify-between">
-          <p><strong>Total:</strong></p>
+          <p><strong>Total</strong></p>
           <p class="font-bold">{{ selectedOrderDetails[0].total }}</p>
         </div>
       </div>
