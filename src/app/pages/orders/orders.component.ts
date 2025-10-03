@@ -737,7 +737,7 @@ export class OrdersComponent implements OnInit {
         order.name
           .toLowerCase()
           .includes(this.searchByNameQuery.toLowerCase().trim());
-        
+
       const matchesScheduler =
         !this.selectedScheduler || order.scheduler === this.selectedScheduler;
 
@@ -1556,20 +1556,52 @@ export class OrdersComponent implements OnInit {
   }
 
   public getRemainingDeliveryDays(order: Orders): number {
-    // Si el estado es "finished", retornar un valor especial (por ejemplo, -999)
-    if (order.order_completion_status === 'finished') {
-      return -999; // Valor especial para indicar "Completo"
-    }
-
     if (!order.delivery_date) return 0;
 
+    const now = new Date();
     const deliveryDate = new Date(order.delivery_date);
-    const currentDate = new Date();
-    const diffTime = deliveryDate.getTime() - currentDate.getTime();
-    const remainingDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    deliveryDate.setHours(23, 59, 59, 999);
 
-    return remainingDays;
+    const diffTime = deliveryDate.getTime() - now.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }
+
+  public getRemainingDeliveryHours(order: Orders): number {
+    if (!order.delivery_date) return 0;
+
+    const now = new Date();
+    const deliveryDate = new Date(order.delivery_date);
+    deliveryDate.setHours(23, 59, 59, 999);
+
+    const diffTime = deliveryDate.getTime() - now.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60));
+  }
+
+  public getFormattedDeliveryTime(order: Orders): string {
+    const days = this.getRemainingDeliveryDays(order);
+    const hours = this.getRemainingDeliveryHours(order);
+
+    if (days <= 0 && hours <= 0) return 'Vencido';
+    if (days === 1) return `${hours}h restantes`;
+    return `${days} días`;
+  }
+
+  public isDeliveryOverdue(order: Orders): boolean {
+    const days = this.getRemainingDeliveryDays(order);
+    const hours = this.getRemainingDeliveryHours(order);
+    return days <= 0 && hours <= 0;
+  }
+
+  public isDeliveryLastDay(order: Orders): boolean {
+    const days = this.getRemainingDeliveryDays(order);
+    const hours = this.getRemainingDeliveryHours(order);
+    return days === 1 && hours > 0;
+  }
+
+  public hasMultipleDeliveryDays(order: Orders): boolean {
+    return this.getRemainingDeliveryDays(order) > 1;
+  }
+
   onFileSelected(event: Event) {
     const input = event.target as HTMLInputElement;
     if (input.files?.length) {
