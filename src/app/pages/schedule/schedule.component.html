@@ -45,7 +45,7 @@
             <button
               class="btn-add"
               [disabled]="isScheduled(cut.id)"
-              (click)="addToSchedule(cut)"
+              (click)="openTimePicker(cut)"
             >
               {{ isScheduled(cut.id) ? "Programado" : "Añadir" }}
             </button>
@@ -89,7 +89,13 @@
                 {{ cut.order?.created_at | date : "short" }}
               </div>
             </div>
-            <button class="btn-add" (click)="addToSchedule(cut)">Añadir</button>
+            <button
+              class="btn-add"
+              [disabled]="isScheduled(cut.id)"
+              (click)="openTimePicker(cut)"
+            >
+              {{ isScheduled(cut.id) ? "Programado" : "Añadir" }}
+            </button>
           </div>
           <div
             *ngIf="recentCuts.length === 0"
@@ -128,7 +134,13 @@
                 {{ cut.order?.scheduler || "—" }}
               </div>
             </div>
-            <button class="btn-add" (click)="addToSchedule(cut)">Añadir</button>
+            <button
+              class="btn-add"
+              [disabled]="isScheduled(cut.id)"
+              (click)="openTimePicker(cut)"
+            >
+              {{ isScheduled(cut.id) ? "Programado" : "Añadir" }}
+            </button>
           </div>
           <div
             *ngIf="searchResults.length === 0"
@@ -220,7 +232,9 @@
             </div>
             <div>
               <span class="text-gray-500 text-xs">Duración</span>
-              <div class="font-medium">{{ selectedBlock!.actualDuration }} min</div>
+              <div class="font-medium">
+                {{ selectedBlock!.actualDuration }} min
+              </div>
             </div>
             <div>
               <span class="text-gray-500 text-xs">Encargado</span>
@@ -228,7 +242,7 @@
                 {{ selectedBlock!.cut.order?.scheduler || "—" }}
               </div>
             </div>
-                        <div>
+            <div>
               <span class="text-gray-500 text-xs">Codigo de pedido</span>
               <div class="font-medium">
                 {{ selectedBlock!.cut.order?.code }}
@@ -268,6 +282,37 @@
             Selecciona un bloque del horario para ver sus detalles.
           </div>
         </ng-template>
+      </div>
+    </div>
+  </div>
+  <!-- Time Picker Modal -->
+  <div *ngIf="timePickerVisible" class="modal-overlay">
+    <div class="modal-content modal-w400">
+      <h3 class="text-lg font-bold mb-4">Seleccionar hora de inicio</h3>
+      <div class="mb-4">
+        <label class="block text-sm font-semibold mb-1"
+          >Hora (09:00–17:00)</label
+        >
+        <input
+          type="time"
+          class="border rounded px-3 py-2 w-full"
+          [(ngModel)]="timePickerValue"
+          min="09:00"
+          max="17:00"
+          step="60"
+        />
+        <p class="text-xs text-gray-500 mt-1">
+          Duración: {{ pendingCut?.cutting_time || 0 }} min (bloque mínimo
+          {{ MIN_BLOCK_MIN }} min)
+        </p>
+      </div>
+      <div class="flex justify-end gap-2">
+        <button class="btn-delete" (click)="cancelTimePicker()">
+          Cancelar
+        </button>
+        <button class="btn-success" (click)="confirmTimePicker()">
+          Asignar
+        </button>
       </div>
     </div>
   </div>

@@ -70,10 +70,12 @@ export class ScheduleComponent implements OnInit {
   lanesCount = 1;
   loading = false;
   saving = false;
-
+  scheduledAllIds = new Set<string>();
   unscheduledCuts: Cut[] = [];
   scheduled: Block[] = [];
-
+  timePickerVisible = false;
+  timePickerValue = '09:00';
+  pendingCut: Cut | null = null;
   lastDays = 7;
   recentCuts: Cut[] = [];
   orderCodeQuery = '';
@@ -83,9 +85,10 @@ export class ScheduleComponent implements OnInit {
 
   constructor(private supabase: SupabaseService, private zone: NgZone) {}
 
-  ngOnInit() {
-    this.loadForDay();
-    this.loadRecentCuts();
+  async ngOnInit() {
+    await this.loadScheduledAllIds();
+    await this.loadForDay();
+    await this.loadRecentCuts();
   }
 
   fmt(min: number): string {
@@ -103,7 +106,37 @@ export class ScheduleComponent implements OnInit {
   get remainingMinutes(): number {
     return Math.max(0, this.DAY_TOTAL - this.usedMinutes);
   }
+  private timeStrToMinutes(t: string): number {
+    const [hh, mm] = t.split(':').map(Number);
+    return hh * 60 + mm;
+  }
+  private async loadScheduledAllIds() {
+    const { data, error } = await this.supabase
+      .from('cut_schedule')
+      .select('id_cut');
 
+    if (!error) {
+      this.scheduledAllIds = new Set((data || []).map((r: any) => r.id_cut));
+    } else {
+      console.error('loadScheduledAllIds error:', error);
+      this.scheduledAllIds = new Set();
+    }
+  }
+  private canPlaceAt(startMin: number, visualDuration: number): boolean {
+    const endMinVisual = startMin + visualDuration;
+
+    if (startMin < this.DAY_START || endMinVisual > this.DAY_END) return false;
+
+    for (const b of this.scheduled) {
+      const bStart = b.startMin;
+      const bEnd = b.endMinVisual;
+      const noOverlap =
+        endMinVisual + this.GAP_MIN <= bStart ||
+        startMin >= bEnd + this.GAP_MIN;
+      if (!noOverlap) return false;
+    }
+    return true;
+  }
   async loadForDay() {
     this.loading = true;
 
@@ -172,6 +205,7 @@ export class ScheduleComponent implements OnInit {
 
     // Respect persisted positions. Just sort by start; DO NOT normalize here.
     this.scheduled.sort((a, b) => a.startMin - b.startMin);
+    await this.loadScheduledAllIds();
 
     const since = new Date();
     since.setDate(since.getDate() - 60);
@@ -201,10 +235,8 @@ export class ScheduleComponent implements OnInit {
       console.error('unscheduled fetch error', unsErr);
     }
 
-    const scheduledIds = new Set(this.scheduled.map((b) => b.cutId));
-
     this.unscheduledCuts = (unscheduledData ?? [])
-      .filter((c: any) => !scheduledIds.has(c.id))
+      .filter((c: any) => !this.scheduledAllIds.has(c.id))
       .map(
         (c: any) =>
           ({
@@ -269,11 +301,11 @@ export class ScheduleComponent implements OnInit {
     if (schedErr) {
       console.error('scheduled check error:', schedErr);
     }
-    const scheduledIds = new Set((scheduledRows || []).map((r) => r.id_cut));
 
+    await this.loadScheduledAllIds();
     // normalize map orders payload to a flat OrderLite
     this.recentCuts = (data || [])
-      .filter((c: any) => !scheduledIds.has(c.id))
+      .filter((c: any) => !this.scheduledAllIds.has(c.id))
       .map((c: any) => ({
         id: c.id,
         id_order: c.id_order ?? null,
@@ -328,12 +360,14 @@ export class ScheduleComponent implements OnInit {
       console.error('searchByOrderCode cuts error:', cutsErr);
       return;
     }
-
+    await this.loadScheduledAllIds();
     // Attach the order so the template can show scheduler/created_at/etc.
-    this.searchResults = (cutRows || []).map((c: any) => ({
-      ...c,
-      order,
-    })) as Cut[];
+    this.searchResults = (cutRows || [])
+      .filter((c: any) => !this.scheduledAllIds.has(c.id)) // <— filtra global
+      .map((c: any) => ({
+        ...c,
+        order, // adjunta el order para mostrar code/scheduler
+      })) as Cut[];
   }
 
   private findNextStart(duration: number): number | null {
@@ -421,12 +455,44 @@ export class ScheduleComponent implements OnInit {
   removeFromSchedule(block: Block) {
     this.scheduled = this.scheduled.filter((b) => b.cutId !== block.cutId);
     this.normalizeOverlaps();
-    // optionally return to unscheduled:
     this.unscheduledCuts.unshift(block.cut);
     if (this.selectedBlock?.cutId === block.cutId) this.selectedBlock = null;
   }
 
-  autoPack() {
+  private tryPlaceCut(cut: Cut): boolean {
+    if (!cut?.id) return false;
+    if (this.isScheduled(cut.id)) return false;
+
+    const actual = Math.max(0, Math.round(cut.cutting_time || 0));
+    if (!actual) return false;
+
+    const visual = Math.max(actual, this.MIN_BLOCK_MIN);
+    const start = this.findNextStart(visual);
+    if (start === null) return false;
+
+    // build block
+    const block: Block = {
+      cutId: cut.id,
+      actualDuration: actual,
+      visualDuration: visual,
+      startMin: start,
+      endMin: start + actual,
+      endMinVisual: start + visual,
+      cut,
+    };
+
+    this.scheduled.push(block);
+    this.scheduled.sort((a, b) => a.startMin - b.startMin);
+
+    // remove from side lists
+    this.unscheduledCuts = this.unscheduledCuts.filter((u) => u.id !== cut.id);
+    this.recentCuts = this.recentCuts.filter((u) => u.id !== cut.id);
+    this.searchResults = this.searchResults.filter((u) => u.id !== cut.id);
+
+    return true;
+  }
+
+  private buildPoolDistinct(): Cut[] {
     const pool = [
       ...this.unscheduledCuts,
       ...this.recentCuts.filter(
@@ -438,11 +504,34 @@ export class ScheduleComponent implements OnInit {
     ];
     const distinct = new Map<UUID, Cut>();
     pool.forEach((c) => distinct.set(c.id, c));
+    return Array.from(distinct.values());
+  }
 
-    const sorted = Array.from(distinct.values()).sort(
+  autoPack() {
+    // source list, largest first
+    const candidates = this.buildPoolDistinct().sort(
       (a, b) => (b.cutting_time || 0) - (a.cutting_time || 0)
     );
-    for (const cut of sorted) this.addToSchedule(cut);
+
+    // threshold of "too big to try" after a failure
+    let denyGeq = Number.POSITIVE_INFINITY;
+
+    for (const cut of candidates) {
+      const size = Math.max(0, Math.round(cut.cutting_time || 0));
+
+      // skip if already placed by previous loop
+      if (this.isScheduled(cut.id)) continue;
+
+      // if we previously failed with a cut of size X, skip any >= X
+      if (size >= denyGeq) continue;
+
+      // try to place; if fails, update threshold so we only try smaller ones
+      const placed = this.tryPlaceCut(cut);
+      if (!placed) {
+        denyGeq = size; // ignore any next cuts with cutting_time >= this size
+        continue; // pray to God
+      }
+    }
   }
 
   clearDay() {
@@ -558,5 +647,65 @@ export class ScheduleComponent implements OnInit {
 
       lastEndVisual = b.endMinVisual;
     }
+  }
+  openTimePicker(cut: Cut) {
+    this.pendingCut = cut;
+    const visual = Math.max(
+      Math.round(cut.cutting_time || 0),
+      this.MIN_BLOCK_MIN
+    );
+    const firstSlot = this.findNextStart(visual) ?? this.DAY_START;
+    const hh = String(Math.floor(firstSlot / 60)).padStart(2, '0');
+    const mm = String(firstSlot % 60).padStart(2, '0');
+    this.timePickerValue = `${hh}:${mm}`;
+
+    this.timePickerVisible = true;
+  }
+
+  cancelTimePicker() {
+    this.pendingCut = null;
+    this.timePickerVisible = false;
+  }
+
+  confirmTimePicker() {
+    if (!this.pendingCut) return;
+    const cut = this.pendingCut;
+
+    if (!cut.order && cut.id_order) {
+    }
+
+    const actual = Math.max(0, Math.round(cut.cutting_time || 0));
+    if (!actual) {
+      this.cancelTimePicker();
+      return;
+    }
+
+    const visual = Math.max(actual, this.MIN_BLOCK_MIN);
+    const start = this.timeStrToMinutes(this.timePickerValue);
+
+    if (!this.canPlaceAt(start, visual)) {
+      alert(
+        'Ese horario no está disponible (solapa con otro bloque o fuera de 9–5).'
+      );
+      return;
+    }
+
+    const block: Block = {
+      cutId: cut.id,
+      actualDuration: actual,
+      visualDuration: visual,
+      startMin: start,
+      endMin: start + actual,
+      endMinVisual: start + visual,
+      cut,
+    };
+    this.scheduled.push(block);
+    this.scheduled.sort((a, b) => a.startMin - b.startMin);
+
+    this.unscheduledCuts = this.unscheduledCuts.filter((u) => u.id !== cut.id);
+    this.recentCuts = this.recentCuts.filter((u) => u.id !== cut.id);
+    this.searchResults = this.searchResults.filter((u) => u.id !== cut.id);
+
+    this.cancelTimePicker();
   }
 }
