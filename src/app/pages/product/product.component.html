@@ -262,6 +262,12 @@ barra de navegacion debatible a cambio
       </svg>
       <span>Añadir</span>
     </button>
+    <button
+      class="btn-clear "
+      (click)="clearFilters()"
+    >
+      Limpiar
+  </button>
   </div>
 
   <!-- Input de búsqueda -->
@@ -367,31 +373,31 @@ barra de navegacion debatible a cambio
       <button
         (click)="currentPage = 1; updatePaginatedProducts()"
         [disabled]="currentPage === 1"
-        class="px-2 py-1 border rounded-full disabled:opacity-50 w-8 h-8"
+        class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
       >
-        &#8656;
+        ⇐
       </button>
       <button
         (click)="currentPage = currentPage - 1; updatePaginatedProducts()"
         [disabled]="currentPage === 1"
-        class="px-2 py-1 border rounded-full disabled:opacity-50 w-7 h-7"
+        class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-7 h-7"
       >
-        &#8592;
+        ←
       </button>
       <span class="mx-4 text-gray-700">Página {{ currentPage }} de {{ totalPages }}</span>
       <button
         (click)="currentPage = currentPage + 1; updatePaginatedProducts()"
         [disabled]="currentPage === totalPages"
-        class="px-2 py-1 border rounded-full disabled:opacity-50 w-7 h-7"
+        class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-7 h-7"
       >
-        &#8594;
+        →
       </button>
       <button
         (click)="currentPage = totalPages; updatePaginatedProducts()"
         [disabled]="currentPage === totalPages"
-        class="px-2 py-1 border rounded-full disabled:opacity-50 w-8 h-8"
+        class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
       >
-        &#8658;
+        ⇒
       </button>
     </div>
 
@@ -452,6 +458,29 @@ barra de navegacion debatible a cambio
             class="form-input block w-full border border-gray-300 rounded-md"
           />
         </div>
+        <div class="mb-2 flex items-center gap-2">
+          <input
+            type="checkbox"
+            [(ngModel)]="autoPrice"
+            name="autoPrice"
+            (change)="onAutoPriceToggle()"
+            class="form-checkbox"
+            id="autoPrice"
+          />
+          <label for="autoPrice" class="modal-input-item">Calcular precio automáticamente (por utilidad)</label>
+        </div>
+        <div class="mb-4">
+          <label class="block modal-input-item">% Utilidad</label>
+          <input
+            type="number"
+            [(ngModel)]="selectedProduct.utility_margin"
+            name="utility_margin"
+            step="0.01"
+            class="form-input block w-full border border-gray-300 rounded-md"
+            [disabled]="!autoPrice"
+            (input)="onMarginChange()"
+            />
+        </div>
         <div class="mb-4">
           <label class="block modal-input-item">Costo</label>
           <input
@@ -460,6 +489,7 @@ barra de navegacion debatible a cambio
             name="cost"
             step="0.01"
             class="form-input block w-full border border-gray-300 rounded-md"
+            (input)="onCostChange()"
           />
         </div>
         <div class="mb-4">
@@ -470,17 +500,15 @@ barra de navegacion debatible a cambio
             name="price"
             step="0.01"
             class="form-input block w-full border border-gray-300 rounded-md"
+            [disabled]="autoPrice"
+            (input)="onPriceChange()"
           />
-        </div>
-        <div class="mb-4">
-          <label class="block modal-input-item">% Utilidad</label>
-          <input
-            type="number"
-            [(ngModel)]="selectedProduct.utility_margin"
-            name="utility_margin"
-            step="0.01"
-            class="form-input block w-full border border-gray-300 rounded-md"
-          />
+          <small class="text-gray-500" *ngIf="autoPrice">
+            Precio = Costo × (1 + Utilidad/100). Redondeado a {{ roundingStep }}.
+          </small>
+          <small class="text-gray-500" *ngIf="!autoPrice">
+            Utilidad(%) = (Precio/Costo − 1) × 100.
+          </small>
         </div>
 
         <div class="flex justify-end space-x-4">

@@ -9,6 +9,11 @@ import { SupabaseService } from '../../services/supabase.service';
 // ====== MODELOS ======
 type QuotationStatus = 'draft' | 'sent' | 'approved' | 'rejected' | 'expired' | 'converted';
 type DiscountType = 'none' | 'percent' | 'value';
+type DominantMaterial = {
+    label: string;        // "Varios materiales" | descripción del material
+    percent: number;      // 0..1
+    materialId?: string;  // id_material si aplica
+  };
 
 interface Client {
   id_client: string;
@@ -89,6 +94,7 @@ export class QuotationComponent implements OnInit {
   showApproved = true;
   showConverted = true;
   showClientDropdown = false;
+  showAddClientModal = false;
   filteredClients: Client[] = [];
   userId: string | null = null;
 
@@ -106,6 +112,65 @@ export class QuotationComponent implements OnInit {
   clients: Client[] = [];
   materialsCache: Material[] = [];
   suggestions: Record<number, Material[]> = {}; // autocompletar por fila
+
+  newClient = {
+    name: '',
+    email: '',
+    document_type: '',
+    document_number: '',
+    company_name: '',
+    cellphone: '',
+    address: '',
+    status: '',
+  };
+
+  openAddClientModal(): void {
+    this.showAddClientModal = true;
+  }
+
+  closeAddClientModal(): void {
+    this.showAddClientModal = false;
+    this.newClient = {
+      name: '',
+      email: '',
+      document_type: '',
+      document_number: '',
+      company_name: '',
+      cellphone: '',
+      address: '',
+      status: '',
+    };
+  }
+
+  async saveNewClient(): Promise<string | null> {
+    if (!this.newClient.name?.trim()) {
+      alert('Por favor, escriba un nombre para el cliente.');
+      return null;
+    }
+
+    const { data, error } = await this.supabase
+      .from('clients')
+      .insert([this.newClient])
+      .select('id_client, name')
+      .single();
+
+    if (error || !data) {
+      console.error('Error añadiendo el cliente:', error);
+      alert('Error al añadir el cliente.');
+      return null;
+    }
+
+    alert('Cliente añadido correctamente.');
+    // refrescar lista de clientes si la usas en selects
+    await this.getClients?.();
+
+    // cierra modal y limpia
+    this.closeAddClientModal();
+
+    // devuelve PK del nuevo cliente
+    return data.id_client;
+  }
+
 
   // IVA fijo (si usas variables globales, cámbialo aquí)
   readonly IVA_RATE = 0.19;
@@ -604,76 +669,291 @@ export class QuotationComponent implements OnInit {
   // ====== CONVERSIÓN A PEDIDO ======
   async convertQuotationToOrder(q: Quotation): Promise<void> {
     if (!q) return;
-    // cliente requerido al convertir
+
+    // Cliente requerido
     if (!q.id_client) {
       alert('Para convertir a pedido, selecciona/crea un cliente.');
       return;
     }
 
-    const items = q.items || [];
-    const totals = this.calculateQuotationTotals(q, items);
+    try {
+      const items = q.items || [];
+      const totals = this.calculateQuotationTotals(q, items); // usa tu función actual
 
-    // material principal o "Varios materiales"
-    const materialName = this.resolveMainMaterial(items);
+      // ===== Nombre del cliente (join o lookup) =====
+      // (Conservado tal cual me pediste)
+      let clientName: string | null =
+        (q as any).client_name || (q as any).client?.name || null;
+      if (!clientName) {
+        const { data: c } = await this.supabase
+          .from('clients')
+          .select('name')
+          .eq('id_client', q.id_client)
+          .maybeSingle();
+        clientName = c?.name || 'Cliente sin nombre';
+      }
 
-    const payloadOrder: any = {
-      description: q.title,                     // TÍTULO → descripción del pedido
-      material: materialName,                   // heurística
-      id_client: q.id_client,
-      total: totals.grandTotal,                 // ajusta si tu orders calcula diferente
-      baseTotal: totals.subTotal,               // opcional si lo usas
-      source_quotation_id: q.id_quotation,                // debes haber agregado esta col a orders
-      items_snapshot: items.map(it => ({
-        line_number: it.line_number,
-        id_material: it.id_material || null,
-        description: it.description,
-        quantity: it.quantity,
-        unit: it.unit,
-        total_price: it.total_price,
-        notes_admin: it.notes_admin ?? null,
-        metadata: it.metadata || null,
-      })),
-      pricing_snapshot: {
-        sub_total: totals.subTotal,
-        global_discount: totals.globalDiscount,
-        iva_total: totals.ivaTotal,
-        grand_total: totals.grandTotal,
-        currency: q.currency,
-        include_iva: q.include_iva,
-      },
-    };
+      // ===== Scheduler (quién convirtió) — opcional =====
+      const schedulerName = (await this.getUserName?.()) || 'Desconocido';
 
-    const { data: order, error } = await this.supabase.from('orders').insert([payloadOrder]).select().single();
-    if (error) { console.error(error); alert('Error creando el pedido.'); return; }
+      // ===== Dominante (objeto) para texto =====
+      const dominant = this.resolveMainMaterial(items); // { label, percent, materialId }
 
-    // marcar cotización convertida
-    await this.supabase.from('quotations').update({ status: 'converted' }).eq('id', q.id_quotation);
+      // ===== Descripción limpia (sin IVA) =====
+      const formatCOP = (n: number) =>
+        n.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 });
 
-    alert(`Pedido creado (ID: ${order.id_order || '—'}) a partir de la cotización.`);
-    await this.getQuotations();
-    this.updateFiltered();
-  }
+      const lines = items.map((it, idx) => {
+        const qty = Number(it.quantity ?? 0);
+        const desc = (it.description || '').trim();
+        const price = formatCOP(Number(it.total_price || 0));
+        return `   ${idx + 1}. ${qty} × ${desc} → ${price}`;
+      });
 
-  private resolveMainMaterial(items: QuotationItem[]): string {
-    const withMaterial = items.filter(i => i.id_material);
-    if (withMaterial.length === 0) return 'Varios materiales';
+      const discountLine =
+        totals.globalDiscount > 0
+          ? `Descuento aplicado: ${formatCOP(totals.globalDiscount)}\n`
+          : '';
 
-    // Agrupar por id_material y sumar valor de línea
+      const description =
+        [
+          `Pedido generado desde la cotización #${q.consecutive || q.id_quotation || '—'}`,
+          `Título: ${q.title?.trim() || 'Sin título'}`,
+          '',
+          'Detalle de ítems:',
+          ...lines,
+          '',
+          discountLine.trim(),
+          `Subtotal: ${formatCOP(totals.subTotal)}`,
+          `Total: ${formatCOP(totals.subTotal)}`, 
+        ]
+          .filter(Boolean)
+          .join('\n');
+
+      // ===== Derivados obligatorios =====
+      const orderQuantity = items.reduce((s, it) => s + Number(it.quantity || 0), 0);
+      const safeQuantity = orderQuantity > 0 ? orderQuantity : 1;
+      const unitaryValue = Number((totals.subTotal / safeQuantity).toFixed(2)); // total sin IVA
+
+      // ===== extra_charges como ARRAY con snapshot (amount: 0) =====
+      const snapshotCharge = {
+        kind: 'snapshot',
+        label: 'Snapshot de cotización',
+        amount: 0,
+        payload: {
+          items_snapshot: items.map(it => ({
+            line_number: it.line_number ?? null,
+            id_material: it.id_material ?? null,
+            description: it.description ?? null,
+            quantity: it.quantity ?? null,
+            unit: it.unit ?? null,
+            total_price: it.total_price ?? null,
+            notes_admin: it.notes_admin ?? null,
+            metadata: it.metadata ?? null,
+          })),
+          pricing_snapshot: {
+            sub_total: totals.subTotal,
+            global_discount: totals.globalDiscount,
+            iva_total: totals.ivaTotal,
+            grand_total: totals.grandTotal,
+            currency: q.currency,
+            include_iva: q.include_iva,
+            source_quotation_id: q.id_quotation,
+          },
+          dominant_material: {
+            label: dominant.label,
+            percent: dominant.percent ?? 0,
+            material_id: dominant.materialId ?? null,
+          },
+        },
+      };
+      const extra_charges: any[] = [snapshotCharge];
+
+      // ===== Payload Order (sin IVA en cifras) =====
+      const payloadOrder: any = {
+        id_client: q.id_client,
+        name: clientName,                 // nombre del pedido = cliente
+        description,                      // resumen legible
+        subtotal: totals.subTotal,        // sin IVA
+        base_total: totals.subTotal,      // sin IVA
+        iva: 0,                           // SIN IVA en pedidos
+        total: totals.subTotal,           // sin IVA
+        include_iva: false,               // IVA se define en factura
+
+        order_type: 'sales',
+        order_payment_status: 'overdue',
+        order_completion_status: 'standby',
+        order_confirmed_status: 'notConfirmed',
+        order_delivery_status: 'toBeDelivered',
+        is_authorized: false,
+
+        order_quantity: safeQuantity,
+        unitary_value: unitaryValue,
+        amount: 0,
+
+        scheduler: schedulerName,
+
+        notes: `Convertido desde la cotización #${q.consecutive || q.id_quotation}`,
+        created_at: new Date().toISOString().slice(0, 10), // DATE YYYY-MM-DD
+        extra_charges,                                     // ARRAY
+      };
+
+      // ===== Insertar pedido =====
+      const { data, error } = await this.supabase
+        .from('orders')
+        .insert([payloadOrder])
+        .select('*')
+        .throwOnError();
+
+      if (!data?.length) {
+        console.error('[convertQuotationToOrder] Insert sin filas devueltas:', { data });
+        alert('No se pudo confirmar la creación del pedido.');
+        return;
+      }
+
+      const order = data[0];
+
+      // ===== Crear factura automática (Opción 4: tipo local) =====
+      type InvoiceInsertLocal = {
+        created_at: string;
+        invoice_status: string;
+        id_order: string;
+        due_date: string;
+        include_iva: boolean;
+        payment_term: number;
+        classification?: string;
+      };
+
+      // Evitar duplicados por id_order
+      const { data: existingInv, error: existErr } = await this.supabase
+        .from('invoices')
+        .select('id_invoice')
+        .eq('id_order', order.id_order)
+        .limit(1);
+
+      if (existErr) {
+        console.warn('[convertQuotationToOrder] No se pudo verificar factura existente:', existErr);
+      }
+
+      if (!existErr && (!existingInv || existingInv.length === 0)) {
+        const paymentTermDays = Number((q as any)?.payment_term ?? 0);
+        const createdAtISO = new Date().toISOString();
+        const dueDateISO = (() => {
+          const d = new Date();
+          d.setDate(d.getDate() + paymentTermDays);
+          return d.toISOString();
+        })();
+
+        const newInvoice: InvoiceInsertLocal = {
+          created_at: createdAtISO,
+          invoice_status: 'overdue',
+          id_order: order.id_order,
+          due_date: dueDateISO,
+          include_iva: false,          // IVA solo en facturación
+          payment_term: paymentTermDays,
+          classification: 'sales',     // opcional, consistente
+        };
+
+        const { error: invErr } = await this.supabase
+          .from('invoices')
+          .insert([newInvoice]);
+
+        if (invErr) {
+          console.error('[convertQuotationToOrder] Error creando factura:', invErr);
+          // no bloqueamos el flujo
+        }
+      }
+
+      // ===== Marcar cotización convertida =====
+      await this.supabase
+        .from('quotations')
+        .update({ status: 'converted' })
+        .eq('id_quotation', q.id_quotation)
+        .throwOnError();
+
+      alert(`Pedido creado (ID: ${order.id_order || '—'}) y factura generada desde la cotización #${q.consecutive || '—'}.`);
+      await this.getQuotations();
+      this.updateFiltered();
+
+    } catch (err) {
+      console.error('[convertQuotationToOrder] Error:', err);
+      alert('Error creando el pedido/factura. Revisa la consola.');
+    }
+    }
+
+
+
+  private resolveMainMaterial(items: QuotationItem[]): DominantMaterial {
+    const withMaterial = items.filter(i => i?.id_material);
+    if (withMaterial.length === 0) return { label: 'Varios materiales', percent: 0 };
+
     const map = new Map<string, { total: number; detail: string }>();
     for (const it of withMaterial) {
-      const key = it.id_material as string;
+      const key = String(it.id_material);
       const prev = map.get(key) || { total: 0, detail: it.description || '' };
-      prev.total += Number(it.total_price || 0);
-      prev.detail = prev.detail || it.description || '';
-      map.set(key, prev);
+      map.set(key, { total: prev.total + Number(it.total_price || 0), detail: prev.detail || it.description || '' });
     }
-    const arr = Array.from(map.entries()).sort((a, b) => b[1].total - a[1].total);
-    if (arr.length === 1) return arr[0][1].detail || 'Material';
-    // dominante >= 60%
-    const totalMaterials = arr.reduce((s, [, v]) => s + v.total, 0);
-    const [name, v] = arr[0];
-    return v.total / (totalMaterials || 1) >= 0.6 ? (arr[0][1].detail || 'Material') : 'Varios materiales';
+
+    const ranked = [...map.entries()].sort((a, b) => b[1].total - a[1].total);
+    const total = ranked.reduce((s, [, v]) => s + v.total, 0) || 1;
+    const [matId, top] = ranked[0];
+    const percent = top.total / total;
+
+    if (ranked.length === 1 || percent >= 0.6) {
+      return { label: top.detail || 'Material', percent, materialId: matId };
+    }
+    return { label: 'Varios materiales', percent };
   }
+
+  private formatMoney(n: number, currency = 'COP'): string {
+    // ajusta si usas otra moneda
+    return new Intl.NumberFormat('es-CO', { style: 'currency', currency }).format(n || 0);
+  }
+
+  private buildOrderDescription(q: Quotation, items: QuotationItem[], totals: any): string {
+    const title = q.title?.trim() || 'Sin título';
+    const quotationNum = q.consecutive || q.id_quotation || '—';
+
+    // Crear lista detallada de ítems
+    const lines = items.map((it, idx) => {
+      const qty = it.quantity ?? 0;
+      const desc = it.description || '';
+      const price = Number(it.total_price || 0).toLocaleString('es-CO', {
+        style: 'currency',
+        currency: 'COP',
+        minimumFractionDigits: 0,
+      });
+      return `   ${idx + 1}. ${qty} × ${desc} → ${price}`;
+    });
+
+    const sub = totals.subTotal.toLocaleString('es-CO', { style: 'currency', currency: 'COP' });
+    const tot = totals.grandTotal.toLocaleString('es-CO', { style: 'currency', currency: 'COP' });
+
+    const materialLabel = this.resolveMainMaterial(items);
+    const discountText =
+      totals.globalDiscount > 0
+        ? `Descuento aplicado: ${totals.globalDiscount.toLocaleString('es-CO', {
+            style: 'currency',
+            currency: 'COP',
+          })}`
+        : null;
+
+    const descLines = [
+      `Pedido generado desde la cotización #${quotationNum}`,
+      `Título: ${title}`,
+      '',
+      'Detalle de ítems:',
+      ...lines,
+      '',
+      discountText ? discountText : '',
+      `Subtotal: ${sub}`,
+      `Total: ${tot}`,
+    ].filter(Boolean);
+
+    return descLines.join('\n');
+  }
+
+
 
   // ====== HELPERS ======
   formatNumber(n: number): string { return (n ?? 0).toFixed(2); }
