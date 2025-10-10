@@ -190,6 +190,12 @@ export class OrdersComponent implements OnInit {
   showStockWarningModal = false;
   stockWarningMessage = '';
   selectedScheduler: string = '';
+  saleMode: 'none' | 'material' | 'product' = 'none';
+  saleMaterialQuantity: number = 1;
+  saleMaterialUnitPrice: number = 0;
+  allProducts: any[] = [];
+  selectedProductId: string = '';
+
 
   newClient = {
     name: '',
@@ -221,6 +227,7 @@ export class OrdersComponent implements OnInit {
           this.getOrders();
           this.getClients();
           this.getMaterials();
+          this.getProducts();
         });
       } else {
         console.error('Usuario no autenticado.');
@@ -301,6 +308,19 @@ export class OrdersComponent implements OnInit {
     this.allMaterials = data || [];
   }
 
+  async getProducts(): Promise<void> {
+    const { data, error } = await this.supabase
+      .from('products')
+      .select('id, name, stock, price, code, category');
+
+    if (error) {
+      console.error('Error al cargar productos:', error);
+      return;
+    }
+    this.allProducts = data || [];
+  }
+
+
   openAddClientModal(): void {
     this.showAddClientModal = true;
   }
@@ -339,6 +359,358 @@ export class OrdersComponent implements OnInit {
     this.closeAddClientModal();
     await this.getClients();
   }
+
+  isSale(): boolean {
+    const t = this.newOrder?.order_type;
+    return t === 'sales';
+  }
+
+  // ======= Construye la fila para la tabla `sales` (venta-material) =======
+  private buildSaleRowMaterial(orderId: string, m: any) {
+    return {
+      id_order: orderId,
+      item_type: 'material',
+      product_id: null,
+      material_id: m.id_material,
+      quantity: Number(this.saleMaterialQuantity) || 0,
+      unit_price: Number(this.saleMaterialUnitPrice) || 0,
+      // snapshots útiles
+      material_type: m?.type || '',
+      caliber: m?.caliber || '',
+      color: m?.color || '',
+      category: m?.category || '',
+    };
+  }
+
+  // ======= Crea/actualiza la línea de VENTA → MATERIAL y ajusta stock =======
+  private async upsertSaleMaterialLine(orderId: string): Promise<boolean> {
+    const selectedMaterial = this.getSelectedMaterial ? this.getSelectedMaterial() : null;
+
+    // Si no hay selección de material, no hacemos nada (permitir pedido sin detalle)
+    if (!selectedMaterial || !selectedMaterial.id_material) {
+      return true;
+    }
+
+    const newQty = Number(this.saleMaterialQuantity) || 0;
+    if (newQty <= 0) {
+      alert('La cantidad debe ser mayor a cero.');
+      return false;
+    }
+
+    // 1) ¿Ya existe línea de venta-material para este pedido?
+    const { data: existing, error: selErr } = await this.supabase
+      .from('sales')
+      .select('id_sale, material_id, quantity')
+      .eq('id_order', orderId)
+      .eq('item_type', 'material')
+      .maybeSingle();
+
+    if (selErr && selErr.code !== 'PGRST116') {
+      console.error('Error consultando sale(material):', selErr);
+      return false;
+    }
+
+    // helpers locales para stock de materiales
+    const readMaterialQty = async (materialId: string): Promise<number | null> => {
+      const { data, error } = await this.supabase
+        .from('materials')
+        .select('material_quantity')
+        .eq('id_material', materialId)
+        .single();
+      if (error || !data) return null;
+      return parseFloat(data.material_quantity);
+    };
+
+    const updateMaterialQty = async (materialId: string, newQtyValue: number) => {
+      const { error } = await this.supabase
+        .from('materials')
+        .update({ material_quantity: String(newQtyValue) })
+        .eq('id_material', materialId);
+      if (error) {
+        console.error('Error actualizando stock de material:', error);
+        throw error;
+      }
+    };
+
+    if (existing) {
+      // 2) EDITAR: puede cambiar el material o solo la cantidad
+      const oldMaterialId = existing.material_id as string;
+      const oldQty = Number(existing.quantity) || 0;
+
+      if (oldMaterialId !== selectedMaterial.id_material) {
+        const oldCurrent = await readMaterialQty(oldMaterialId);
+        if (oldCurrent === null) {
+          alert('No se pudo leer stock del material anterior.');
+          return false;
+        }
+        await updateMaterialQty(oldMaterialId, oldCurrent + oldQty);
+
+        const newCurrent = await readMaterialQty(selectedMaterial.id_material);
+        if (newCurrent === null) {
+          alert('No se pudo leer stock del nuevo material.');
+          return false;
+        }
+        if (newCurrent < newQty) {
+          this.stockWarningMessage = `No hay suficiente stock. Disponible: ${newCurrent}`;
+          const proceed = await this.confirmStockOverride();
+          if (!proceed) return false;
+        }
+        await updateMaterialQty(selectedMaterial.id_material, Math.max(newCurrent - newQty, 0));
+
+        const row = this.buildSaleRowMaterial(orderId, selectedMaterial);
+        const { error: updErr } = await this.supabase
+          .from('sales')
+          .update(row)
+          .eq('id_sale', existing.id_sale);
+        if (updErr) {
+          console.error('Error actualizando sale(material):', updErr);
+          return false;
+        }
+        return true;
+
+      } else {
+        const diff = newQty - oldQty;
+        if (diff !== 0) {
+          const current = await readMaterialQty(selectedMaterial.id_material);
+          if (current === null) {
+            alert('No se pudo leer stock del material.');
+            return false;
+          }
+          if (diff > 0 && current < diff) {
+            this.stockWarningMessage = `No hay suficiente stock. Disponible: ${current}`;
+            const proceed = await this.confirmStockOverride();
+            if (!proceed) return false;
+          }
+          await updateMaterialQty(
+            selectedMaterial.id_material,
+            diff > 0 ? Math.max(current - diff, 0) : current + Math.abs(diff)
+          );
+        }
+
+        const row = this.buildSaleRowMaterial(orderId, selectedMaterial);
+        const { error: updErr } = await this.supabase
+          .from('sales')
+          .update(row)
+          .eq('id_sale', existing.id_sale);
+        if (updErr) {
+          console.error('Error actualizando sale(material):', updErr);
+          return false;
+        }
+        return true;
+      }
+
+    } else {
+      // 3) CREAR: validar stock y crear línea
+      const current = await readMaterialQty(selectedMaterial.id_material);
+      if (current === null) {
+        alert('No se pudo leer stock del material.');
+        return false;
+      }
+      if (current < newQty) {
+        this.stockWarningMessage = `No hay suficiente stock. Disponible: ${current}`;
+        const proceed = await this.confirmStockOverride();
+        if (!proceed) return false;
+      }
+      await updateMaterialQty(selectedMaterial.id_material, Math.max(current - newQty, 0));
+
+      const row = this.buildSaleRowMaterial(orderId, selectedMaterial);
+      const { error: insErr } = await this.supabase.from('sales').insert([row]);
+      if (insErr) {
+        console.error('Error insertando sale(material):', insErr);
+        return false;
+      }
+      return true;
+    }
+  }
+
+
+  private isSaleActive(): boolean {
+    return this.newOrder?.order_type === 'sales' && (this.saleMode === 'material' || this.saleMode === 'product');
+  }
+
+
+  recalcSalesTotal(): void {
+    if (!this.isSaleActive()) return;
+    const q = Number(this.saleMaterialQuantity) || 0;
+    const u = Number(this.saleMaterialUnitPrice) || 0;
+    this.newOrder.base_total = q * u;
+    this.updateOrderTotalWithExtras();
+  }
+
+ 
+  //Producto
+  onProductChange(): void {
+    const p = this.allProducts.find(x => x.id === this.selectedProductId);
+    if (p) {
+      this.saleMaterialUnitPrice = Number(p.price) || 0; // autollenar
+      if (!this.saleMaterialQuantity || this.saleMaterialQuantity <= 0) {
+        this.saleMaterialQuantity = 1;
+      }
+    }
+    this.recalcSalesTotal(); // actualiza base_total + total (extras)
+  }
+
+  private buildSaleRowProduct(orderId: string, p: any) {
+    return {
+      id_order: orderId,
+      item_type: 'product',
+      product_id: p.id,
+      material_id: null,
+      quantity: Number(this.saleMaterialQuantity) || 0,
+      unit_price: Number(this.saleMaterialUnitPrice) || 0,
+    };
+  }
+
+  private async upsertSaleProductLine(orderId: string): Promise<boolean> {
+  const p = this.allProducts.find(x => x.id === this.selectedProductId);
+    if (!p || !p.id) {
+      // Si no hay producto, no hacer nada (permite pedidos sin producto)
+      return true; 
+    }
+
+    const newQty = Number(this.saleMaterialQuantity) || 0;
+    if (newQty <= 0) {
+      alert('La cantidad debe ser mayor a cero.');
+      return false;
+    }
+
+    // 1) Buscar si ya hay línea de producto para este pedido
+    const { data: existing, error: selErr } = await this.supabase
+      .from('sales')
+      .select('id_sale, product_id, quantity')
+      .eq('id_order', orderId)
+      .eq('item_type', 'product')
+      .maybeSingle();
+
+    if (selErr && selErr.code !== 'PGRST116') {
+      console.error('Error consultando sale(product):', selErr);
+      return false;
+    }
+
+    const readProductStock = async (productId: string): Promise<number | null> => {
+      const { data, error } = await this.supabase
+        .from('products')
+        .select('stock')
+        .eq('id', productId)
+        .single();
+      if (error || !data) return null;
+      return Number(data.stock) || 0;
+    };
+
+    const updateProductStock = async (productId: string, newStock: number) => {
+      const { error } = await this.supabase
+        .from('products')
+        .update({ stock: newStock })
+        .eq('id', productId);
+      if (error) {
+        console.error('Error actualizando stock de producto:', error);
+        throw error;
+      }
+    };
+
+    if (existing) {
+      // 2) EDITAR: puede cambiar el producto o solo la cantidad
+      const oldProductId = existing.product_id as string;
+      const oldQty = Number(existing.quantity) || 0;
+
+      if (oldProductId !== p.id) {
+        const oldCurrent = await readProductStock(oldProductId);
+        if (oldCurrent === null) {
+          alert('No se pudo leer stock del producto anterior.');
+          return false;
+        }
+        await updateProductStock(oldProductId, oldCurrent + oldQty);
+
+        const newCurrent = await readProductStock(p.id);
+        if (newCurrent === null) {
+          alert('No se pudo leer stock del nuevo producto.');
+          return false;
+        }
+        if (newCurrent < newQty) {
+          this.stockWarningMessage = `No hay suficiente stock. Disponible: ${newCurrent}`;
+          const proceed = await this.confirmStockOverride();
+          if (!proceed) return false;
+        }
+        await updateProductStock(p.id, Math.max(newCurrent - newQty, 0));
+
+        const row = this.buildSaleRowProduct(orderId, p);
+        const { error: updErr } = await this.supabase
+          .from('sales')
+          .update(row)
+          .eq('id_sale', existing.id_sale);
+        if (updErr) {
+          console.error('Error actualizando sale(product):', updErr);
+          return false;
+        }
+        return true;
+
+      } else {
+        const diff = newQty - oldQty;
+        if (diff !== 0) {
+          const current = await readProductStock(p.id);
+          if (current === null) {
+            alert('No se pudo leer stock del producto.');
+            return false;
+          }
+          if (diff > 0 && current < diff) {
+            this.stockWarningMessage = `No hay suficiente stock. Disponible: ${current}`;
+            const proceed = await this.confirmStockOverride();
+            if (!proceed) return false;
+          }
+          await updateProductStock(
+            p.id,
+            diff > 0 ? Math.max(current - diff, 0) : current + Math.abs(diff)
+          );
+        }
+
+        const row = this.buildSaleRowProduct(orderId, p);
+        const { error: updErr } = await this.supabase
+          .from('sales')
+          .update(row)
+          .eq('id_sale', existing.id_sale);
+        if (updErr) {
+          console.error('Error actualizando sale(product):', updErr);
+          return false;
+        }
+        return true;
+      }
+
+    } else {
+      // 3) CREAR: validar stock y crear línea
+      const current = await readProductStock(p.id);
+      if (current === null) {
+        alert('No se pudo leer stock del producto.');
+        return false;
+      }
+      if (current < newQty) {
+        this.stockWarningMessage = `No hay suficiente stock. Disponible: ${current}`;
+        const proceed = await this.confirmStockOverride();
+        if (!proceed) return false;
+      }
+
+      await updateProductStock(p.id, Math.max(current - newQty, 0));
+
+      const row = this.buildSaleRowProduct(orderId, p);
+      const { error: insErr } = await this.supabase.from('sales').insert([row]);
+      if (insErr) {
+        console.error('Error insertando sale(product):', insErr);
+        return false;
+      }
+      return true;
+    }
+  }
+
+  getProductNameById(productId: string | null | undefined): string {
+    if (!productId) return '';
+    const product = this.allProducts?.find(p => p.id === productId);
+    return product ? product.name : '';
+  }
+
+
+  asNumber(v: any): number {
+    return typeof v === 'number' ? v : Number(v || 0);
+  }
+
 
   showNotification(message: string) {
     this.notificationMessage = message;
@@ -590,7 +962,19 @@ export class OrdersComponent implements OnInit {
             this.showNotification('Error al eliminar registros de cuts.');
             return;
           }
+        } else if (order.order_type === 'sales') {
+          const { error: deleteSalesError } = await this.supabase
+            .from('sales')
+            .delete()
+            .eq('id_order', order.id_order);
+
+          if (deleteSalesError) {
+            console.error('Error al eliminar registros de sales:', deleteSalesError);
+            this.showNotification('Error al eliminar registros de sales.');
+            return;
+          }
         }
+
 
         const { error: deleteNotificationsError } = await this.supabase
           .from('notifications')
@@ -792,6 +1176,21 @@ export class OrdersComponent implements OnInit {
       } else {
         this.selectedOrderTypeDetail = data;
       }
+    } else if (
+        order.order_type === 'venta' ||
+        order.order_type === 'sale'  ||
+        order.order_type === 'sales'
+      ) {
+      const { data, error } = await this.supabase
+        .from('sales')
+        .select('*') 
+        .eq('id_order', order.id_order);
+
+      if (error) {
+        console.log(error);
+      } else {
+        this.selectedOrderTypeDetail = data || [];
+      }
     }
 
     this.selectedOrderDetails = [
@@ -930,6 +1329,13 @@ export class OrdersComponent implements OnInit {
         file_path: '',
         scheduler: '',
       };
+      this.saleMode = 'none';
+      this.saleMaterialQuantity = 1;
+      this.saleMaterialUnitPrice = 0;
+      this.selectedCategory = '';
+      this.selectedType = '';
+      this.selectedCaliber = '';
+      this.selectedColor = '';
     }
     this.showModal = !this.showModal;
     if (!this.showModal) {
@@ -943,22 +1349,26 @@ export class OrdersComponent implements OnInit {
 
     this.newOrder = { ...order };
 
-    if (
-      !this.newOrder.base_total ||
-      isNaN(Number(this.newOrder.base_total))
-    ) {
-      // Si tienes subtotal, úsalo como base
+    // Normaliza fecha (tu col es timestamp/date)
+    this.newOrder.delivery_date = order.delivery_date
+      ? order.delivery_date.slice(0, 10)
+      : '';
+
+    // === BASE TOTAL: calcula sin romper si extra_charges no es array ===
+    const extrasArray = Array.isArray(this.newOrder.extra_charges)
+      ? this.newOrder.extra_charges
+      : [];
+
+    if (!this.newOrder.base_total || isNaN(Number(this.newOrder.base_total))) {
       if (this.newOrder.subtotal && !isNaN(Number(this.newOrder.subtotal))) {
         this.newOrder.base_total = Number(this.newOrder.subtotal);
       } else {
-        // Si no, calcula base_total como total menos suma de cargos extras
-        const extras =
-          this.newOrder.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
-        this.newOrder.base_total =
-          Number(this.newOrder.total) - extras;
+        const extrasSum = extrasArray.reduce((sum: number, c: any) => sum + Number(c?.amount || 0), 0);
+        this.newOrder.base_total = Number(this.newOrder.total || 0) - extrasSum;
       }
     }
 
+    // ================== PRINT ==================
     if (order.order_type === 'print') {
       const { data, error } = await this.supabase
         .from('prints')
@@ -966,13 +1376,14 @@ export class OrdersComponent implements OnInit {
         .eq('id_order', order.id_order)
         .maybeSingle();
 
-      if (!error && data) {
-        this.newPrint = { ...data };
-      }
-      this.selectedCategory = this.newPrint.category || '';
-      this.selectedType = this.newPrint.material_type || '';
-      this.selectedCaliber = this.newPrint.caliber || '';
-      this.selectedColor = this.newPrint.color || '';
+      if (!error && data) this.newPrint = { ...data };
+
+      this.selectedCategory = this.newPrint?.category ?? '';
+      this.selectedType     = this.newPrint?.material_type ?? '';
+      this.selectedCaliber  = this.newPrint?.caliber ?? '';
+      this.selectedColor    = this.newPrint?.color ?? '';
+
+    // ================== LASER ==================
     } else if (order.order_type === 'laser') {
       const { data, error } = await this.supabase
         .from('cuts')
@@ -980,15 +1391,83 @@ export class OrdersComponent implements OnInit {
         .eq('id_order', order.id_order)
         .maybeSingle();
 
-      if (!error && data) {
-        this.newCut = { ...data };
+      if (!error && data) this.newCut = { ...data };
+
+      this.selectedCategory = this.newCut?.category ?? '';
+      this.selectedType     = this.newCut?.material_type ?? '';
+      this.selectedCaliber  = this.newCut?.caliber ?? '';
+      this.selectedColor    = this.newCut?.color ?? '';
+
+    // ================== SALES ==================
+    } else if (this.newOrder.order_type === 'sales') {
+      // Busca 1 línea (material o producto). Si no hay, es "cotización convertida".
+      const { data: rows, error } = await this.supabase
+        .from('sales')
+        .select('item_type, product_id, material_id, quantity, unit_price, material_type, caliber, color, category')
+        .eq('id_order', order.id_order)
+        .limit(1);
+
+      if (error) console.warn('editOrder> sales lookup error:', error);
+
+      const row = Array.isArray(rows) ? rows[0] : null;
+
+      if (!row) {
+        this.saleMode = 'none';
+        this.selectedProductId = '';
+        this.saleMaterialQuantity  = 1;
+        this.saleMaterialUnitPrice = 0;
+
+        this.selectedCategory = '';
+        this.selectedType     = '';
+        this.selectedCaliber  = '';
+        this.selectedColor    = '';
+
+        this.newOrder.base_total = Number(this.newOrder.base_total || 0);
+        this.updateOrderTotalWithExtras();
+        return;
       }
-      this.selectedCategory = this.newCut.category || '';
-      this.selectedType = this.newCut.material_type || '';
-      this.selectedCaliber = this.newCut.caliber || '';
-      this.selectedColor = this.newCut.color || '';
+
+      // Sí hay línea en `sales`
+      this.saleMaterialQuantity  = Number(row.quantity)   || 1;
+      this.saleMaterialUnitPrice = Number(row.unit_price) || 0;
+
+      if (row.item_type === 'product') {
+        // ----- PRODUCTO -----
+        this.saleMode = 'product';
+        this.selectedProductId = row.product_id || '';
+
+        // limpia selects de material
+        this.selectedCategory = '';
+        this.selectedType     = '';
+        this.selectedCaliber  = '';
+        this.selectedColor    = '';
+
+      } else if (row.item_type === 'material') {
+        // ----- MATERIAL -----
+        this.saleMode = 'material';
+        this.selectedProductId = '';
+
+        // usa snapshots si existen
+        this.selectedCategory = row.category       || '';
+        this.selectedType     = row.material_type  || '';
+        this.selectedCaliber  = row.caliber        || '';
+        this.selectedColor    = row.color          || '';
+
+      } else {
+        // Valor inesperado → trata como none
+        this.saleMode = 'none';
+      }
+
+      // Recalcula solo si hay material/producto
+      if (this.saleMode === 'material' || this.saleMode === 'product') {
+        this.recalcSalesTotal(); // setea base_total y suma extras
+        this.newOrder.order_quantity = String(this.saleMaterialQuantity);
+      } else {
+        this.updateOrderTotalWithExtras();
+      }
     }
   }
+
 
   async getUserName(): Promise<string | null> {
     const { data, error } = await this.supabase
@@ -1032,7 +1511,6 @@ export class OrdersComponent implements OnInit {
         return;
       }
     }
-    const userName = await this.getUserName();
 
     this.newOrder = {
       order_type: newOrderForm.order_type,
@@ -1054,7 +1532,6 @@ export class OrdersComponent implements OnInit {
       order_delivery_status: newOrderForm.order_delivery_status,
       notes: newOrderForm.notes,
       file_path: newOrderForm.file_path,
-      scheduler: userName || '',
       extra_charges: newOrderForm.extra_charges || [],
       base_total: parseFloat(newOrderForm.unitary_value as string) * parseFloat(newOrderForm.order_quantity as string),
     };
@@ -1076,6 +1553,11 @@ export class OrdersComponent implements OnInit {
       }
 
       this.newOrder.id_order = newOrderForm.id_order;
+
+      if (this.newOrder.order_type === 'sales') {
+        this.recalcSalesTotal();
+      }
+
       if (this.selectedFile) {
         const file = this.selectedFile;
         const filePath = `order-files/${newOrderForm.id_order}/${Date.now()}_${
@@ -1207,6 +1689,17 @@ export class OrdersComponent implements OnInit {
             return;
           }
         }
+      } else if (this.newOrder.order_type === 'sales') {
+        this.recalcSalesTotal();
+        if (this.saleMode === 'material') {
+          const ok = await this.upsertSaleMaterialLine(this.newOrder.id_order!);
+          if (!ok) return;
+        } else if (this.saleMode === 'product') {
+          const ok = await this.upsertSaleProductLine(this.newOrder.id_order!);
+          if (!ok) return;
+        } else {
+          // saleMode === 'none' -> no hacer nada con stock/tabla sales
+        }
       }
       // ????
       const { data: existingInvoice, error: invoiceError } = await this.supabase
@@ -1238,6 +1731,14 @@ export class OrdersComponent implements OnInit {
       await this.getOrders();
       this.toggleAddOrderForm();
     } else {
+
+      const userName = await this.getUserName();
+      this.newOrder.scheduler = userName || '';
+
+      if (this.newOrder.order_type === 'sales') {
+        this.recalcSalesTotal();
+      }
+
       const { data, error } = await this.supabase
         .from('orders')
         .insert([this.newOrder])
@@ -1332,6 +1833,16 @@ export class OrdersComponent implements OnInit {
           return;
         }
         this.createNotification(insertedOrder);
+      }else if (this.newOrder.order_type === 'sales') {
+        if (this.saleMode === 'material') {
+          const ok = await this.upsertSaleMaterialLine(this.newOrder.id_order!);
+          if (!ok) return;
+        } else if( this.saleMode === 'product') {
+          const ok = await this.upsertSaleProductLine(this.newOrder.id_order!);
+          if (!ok) return;
+        } else {
+          // saleMode === 'none' -> no hacer nada con stock/tabla sales
+        }
       }
 
       const newInvoice: Partial<Invoice> = {
@@ -1633,6 +2144,7 @@ export class OrdersComponent implements OnInit {
     this.showCuts = true;
     this.showSales = true;
     this.searchQuery = '';
+    this.selectedScheduler = '';
     this.updateFilteredOrders();
   }
 }
