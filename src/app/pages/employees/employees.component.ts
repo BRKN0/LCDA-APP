@@ -31,7 +31,7 @@ interface Employee_liquidations {
   code: string;
   id_employee: string;
   liquidation_date: Date;
-  total_amount: number;
+  //total_amount: number;
   notes: string;
   created_at: string;
 }

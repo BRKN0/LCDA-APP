@@ -67,12 +67,7 @@
       </svg>
       <span>Añadir</span>
     </button>
-    <button
-      class="btn-clear "
-      (click)="clearFilters()"
-    >
-      Limpiar
-  </button>
+    <button class="btn-clear" (click)="clearFilters()">Limpiar</button>
   </div>
 </div>
 
@@ -323,7 +318,7 @@
         </select>
       </div>
       <div class="mb-4" *ngIf="selectedInvoice">
-        <label class="block modal-input-item">Incluir IVA (19%)</label>
+        <label class="block modal-input-item">{{ ivaLabel() }}</label>
         <input
           type="checkbox"
           [(ngModel)]="selectedInvoice.include_iva"
@@ -615,7 +610,7 @@
           <div class="flex justify-between">
             <p><strong>Subtotal base:</strong></p>
             <p>
-              {{  valores.subtotal | currency : "COP" }}
+              {{ valores.subtotal | currency : "COP" }}
             </p>
           </div>
 
@@ -623,14 +618,18 @@
             class="flex justify-between"
             *ngIf="selectedInvoiceDetails[0].include_iva"
           >
-            <p><strong>IVA (19%):</strong></p>
+            <p>
+              <strong>{{ ivaLabel() }}:</strong>
+            </p>
             <p>{{ valores.iva | currency : "COP" }}</p>
           </div>
         </div>
 
         <!-- RETEFUENTE -->
         <div class="flex justify-between">
-          <p><strong>Retefuente:</strong></p>
+          <p>
+            <strong>{{ retefuenteLabel(selectedInvoiceDetails[0]) }}:</strong>
+          </p>
           <p>
             {{
               valores.retefuente > 0
@@ -642,7 +641,9 @@
 
         <!-- RETEICA -->
         <div class="flex justify-between">
-          <p><strong>ReteICA:</strong></p>
+          <p>
+            <strong>{{ reteicaLabel(selectedInvoiceDetails[0]) }}:</strong>
+          </p>
           <p>
             {{
               valores.reteica > 0
@@ -654,18 +655,7 @@
         <div
           class="flex justify-between"
           *ngIf="selectedInvoiceDetails[0].include_iva"
-        >
-          <p>
-            <strong>IVA efectivo:</strong>
-          </p>
-
-          <p>
-            {{
-              valores.iva - valores.retefuente - valores.reteica
-                | currency : "COP"
-            }}
-          </p>
-        </div>
+        ></div>
         <!-- Totales -->
         <div class="border-t pt-4 space-y-2">
           <div class="flex justify-between">
@@ -751,7 +741,7 @@
               <option value="Nequi">Nequi</option>
               <option value="Bancolombia">Bancolombia</option>
               <option value="Davivienda">Davivienda</option>
-              <option value="Other">Otro</option>
+              <option value="Otro">Otro</option>
             </select>
           </div>
           <div class="flex justify-end mt-4">
@@ -780,7 +770,7 @@
               class="btn-success justify-between py-2 px-4 mr-2 mt-2 rounded"
               (click)="generatePdf()"
             >
-              Descargar Recibo de venta 
+              Descargar Recibo de venta
             </button>
             <button
               type="button"
@@ -825,7 +815,7 @@
             <option value="Nequi">Nequi</option>
             <option value="Bancolombia">Bancolombia</option>
             <option value="Davivienda">Davivienda</option>
-            <option value="other">Otro</option>
+            <option value="Otro">Otro</option>
           </select>
         </div>
         <div class="flex justify-end">

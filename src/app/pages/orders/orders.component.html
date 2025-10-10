@@ -339,7 +339,7 @@
             }}
           </td>
           <td>{{ order.name }}</td>
-          
+
           <td
             [ngClass]="{
               'text-green-600': order.order_completion_status === 'finished',
@@ -365,24 +365,12 @@
                 : "No especificado"
             }}
           </td>
-          <td
-            [ngClass]="{
-              'text-green-600': order.order_completion_status === 'finished',
-              'text-blue-600':
-                order.order_completion_status !== 'finished' &&
-                getRemainingDeliveryDays(order) > 0,
-              'text-red-600':
-                order.order_completion_status !== 'finished' &&
-                getRemainingDeliveryDays(order) <= 0
-            }"
-          >
-            {{
-              order.order_completion_status === "finished"
-                ? "Completo"
-                : getRemainingDeliveryDays(order) > 0
-                ? getRemainingDeliveryDays(order) + " días"
-                : "Vencido"
-            }}
+          <td [ngClass]="{
+            'text-red-500': isDeliveryOverdue(order),
+            'text-yellow-500': isDeliveryLastDay(order),
+            'text-green-500': hasMultipleDeliveryDays(order)
+          }">
+            {{ getFormattedDeliveryTime(order) }}
           </td>
           <td>
             <button class="btn-details" (click)="selectOrder(order)">
@@ -568,14 +556,6 @@
             }}
           </p>
         </div>
-        <div *ngIf="selectedOrderDetails[0]?.extra_charges?.length" class="my-4">
-          <p class="font-semibold text-blue-600">Cargos Extras</p>
-          <ul>
-            <li *ngFor="let charge of selectedOrderDetails[0].extra_charges">
-              {{ charge.description }}: ${{ charge.amount }}
-            </li>
-          </ul>
-        </div>
         <div class="text-right">
           <p>
             <strong>De:</strong>
@@ -744,35 +724,27 @@
       </div>
 
       <!-- Totals Section -->
-      <ng-container *ngIf="userRole === 'admin'">
-        <div class="border-t pt-4 mt-4">
-          <div class="flex justify-between">
-            <p><strong>Subtotal:</strong></p>
-            <p>{{ selectedOrderDetails[0].subtotal }}</p>
-          </div>
-          <div class="flex justify-between">
-            <p *ngIf="selectedOrderDetails[0].iva"><strong>IVA:</strong></p>
-            <p>{{ selectedOrderDetails[0].iva }}</p>
-          </div>
-          <div
-            *ngIf="selectedOrderDetails[0]?.extra_charges?.length"
-            class="flex flex-col gap-1 my-2"
-          >
-            <p class="font-semibold text-blue-600 mb-1">Cargos Extras:</p>
-            <div
-              *ngFor="let charge of selectedOrderDetails[0].extra_charges"
-              class="flex justify-between"
-            >
-              <span>{{ charge.description }}</span>
-              <span>${{ charge.amount }}</span>
-            </div>
-          </div>
-          <div class="flex justify-between">
-            <p><strong>Total:</strong></p>
-            <p class="font-bold">{{ selectedOrderDetails[0].total }}</p>
+      <div class="border-t pt-4 mt-4">
+        <div class="flex justify-between">
+          <p><strong>Subtotal</strong></p>
+          <p>{{ getCalculatedSubtotal(selectedOrderDetails[0]) }}</p>
+        </div>
+        <div class="flex justify-between" *ngIf="selectedOrderDetails[0].iva">
+          <p><strong>IVA</strong></p>
+          <p>{{ selectedOrderDetails[0].iva }}</p>
+        </div>
+        <div *ngIf="selectedOrderDetails[0]?.extra_charges?.length" class="flex flex-col gap-1 my-2">
+          <p class="font-semibold text-blue-600 mb-1">Cargos Extras</p>
+          <div *ngFor="let charge of selectedOrderDetails[0].extra_charges" class="flex justify-between">
+            <span>{{ charge.description }}</span>
+            <span>${{ charge.amount }}</span>
           </div>
         </div>
-      </ng-container>
+        <div class="flex justify-between">
+          <p><strong>Total</strong></p>
+          <p class="font-bold">{{ selectedOrderDetails[0].total }}</p>
+        </div>
+      </div>
       <div *ngIf="selectedOrderDetails[0]?.file_path" class="mt-4">
         <p class="font-semibold">Archivo adjunto:</p>
         <button
