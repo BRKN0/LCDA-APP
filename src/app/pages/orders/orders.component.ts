@@ -1967,7 +1967,7 @@ export class OrdersComponent implements OnInit {
   const extras = this.newOrder.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
 
   // El subtotal es el total menos los extras (para obtener el valor base)
-  const subtotal = currentTotal - extras;
+  const subtotal = currentTotal; 
 
   // Actualizar campos
   this.newOrder.subtotal = subtotal.toString();
