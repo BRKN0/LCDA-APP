@@ -46,6 +46,8 @@ export class ProductComponent implements OnInit, OnDestroy {
   minPrice: number | null = null;
   maxPrice: number | null = null;
   filterStockAvailable: boolean = false;
+  autoPrice = true;
+  roundingStep = 50;
 
   currentPage = 1;
   itemsPerPage = 10;
@@ -79,15 +81,23 @@ export class ProductComponent implements OnInit, OnDestroy {
 
   async getProducts(): Promise<void> {
     this.loading = true;
-    const { data, error } = await this.supabase.from('products').select('*');
-    if (error) {
-      console.error('Error al obtener productos:', error);
+    try {
+      const { data, error } = await this.supabase
+        .from('products')
+        .select('*')
+        .order('code', { ascending: false });
+
+      if (error) {
+        console.error('Error al obtener productos:', error);
+        this.Products = [];
+        return;
+      }
+
+      this.Products = (data as Product[]) ?? [];
+      this.searchProduct?.();
+    } finally {
       this.loading = false;
-      return;
     }
-    this.Products = data as Product[];
-    this.searchProduct();
-    this.loading = false;
   }
 
   async getCategories(): Promise<void> {
@@ -131,23 +141,30 @@ export class ProductComponent implements OnInit, OnDestroy {
   addNewProduct(): void {
     this.selectedProduct = {
       created_at: new Date().toISOString(),
-      code: 0,
       name: '',
       description: '',
       category: '',
-      stock: 0,
+      stock: 1,
       cost: 0,
       price: 0,
-      utility_margin: 0,
+      utility_margin: 30,
     };
+    this.autoPrice = true;
     this.isEditing = false;
     this.showModal = true;
+    this.onAutoPriceToggle();
   }
 
   editProduct(product: Product): void {
     this.selectedProduct = { ...product };
+    const expected = this.calculatePrice(product.cost ?? 0, product.utility_margin ?? 0);
+    this.autoPrice = Math.abs(expected - (product.price ?? 0)) <= 1;
+    if (this.autoPrice) {
+      this.selectedProduct.price = expected;
+    }
     this.isEditing = true;
     this.showModal = true;
+    this.onAutoPriceToggle();
   }
 
   saveProduct(): void {
@@ -156,8 +173,19 @@ export class ProductComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (this.autoPrice) {
+      this.selectedProduct.price = this.calculatePrice(
+        this.selectedProduct.cost ?? 0,
+        this.selectedProduct.utility_margin ?? 0
+      );
+    } else {
+      this.selectedProduct.utility_margin = this.calculateMarginPct(
+        this.selectedProduct.cost ?? 0,
+        this.selectedProduct.price ?? 0
+      );
+    }
+
     const productToSave = {
-      code: this.selectedProduct.code ?? 0,
       name: this.selectedProduct.name,
       description: this.selectedProduct.description,
       category: this.selectedProduct.category,
@@ -185,6 +213,7 @@ export class ProductComponent implements OnInit, OnDestroy {
       this.supabase
         .from('products')
         .insert([productToSave])
+        .select()
         .then(({ error }) => {
           if (error) {
             console.error('Error añadiendo producto:', error);
@@ -214,10 +243,99 @@ export class ProductComponent implements OnInit, OnDestroy {
     }
   }
 
+  private calculatePrice(cost: number, marginPct: number): number {
+    const c = Number(cost) || 0;
+    const m = Number(marginPct) || 0;
+    const raw = c * (1 + m / 100);
+    return this.roundToStep(raw, this.roundingStep);
+  }
+
+  private calculateMarginPct(cost: number, price: number): number {
+    const c = Number(cost) || 0;
+    const p = Number(price) || 0;
+    if (c <= 0) return 0; // evita división por cero; define tu regla aquí
+    const margin = ((p / c) - 1) * 100;
+    return this.roundDecimals(margin, 2);
+  }
+
+  private roundToStep(value: number, step: number): number {
+    const s = step > 0 ? step : 1;
+    return Math.round(value / s) * s;
+  }
+
+  private roundDecimals(value: number, decimals: number = 2): number {
+    const factor = Math.pow(10, decimals);
+    return Math.round((value + Number.EPSILON) * factor) / factor;
+  }
+
+  onAutoPriceToggle(): void {
+    if (!this.selectedProduct) return;
+    if (this.autoPrice) {
+      // Pasas a modo margen: recalcula PRECIO basado en COSTO + MARGEN
+      this.selectedProduct.price = this.calculatePrice(
+        this.selectedProduct.cost ?? 0,
+        this.selectedProduct.utility_margin ?? 0
+      );
+    } else {
+      // Pasas a modo precio manual: recalcula MARGEN basado en COSTO + PRECIO
+      this.selectedProduct.utility_margin = this.calculateMarginPct(
+        this.selectedProduct.cost ?? 0,
+        this.selectedProduct.price ?? 0
+      );
+    }
+  }
+
+  // Cuando cambia COSTO o MARGEN o PRECIO, recalcula el otro según el modo
+  onCostChange(): void {
+    if (!this.selectedProduct) return;
+    if (this.autoPrice) {
+      this.selectedProduct.price = this.calculatePrice(
+        this.selectedProduct.cost ?? 0,
+        this.selectedProduct.utility_margin ?? 0
+      );
+    } else {
+      this.selectedProduct.utility_margin = this.calculateMarginPct(
+        this.selectedProduct.cost ?? 0,
+        this.selectedProduct.price ?? 0
+      );
+    }
+  }
+
+  onMarginChange(): void {
+    if (!this.selectedProduct) return;
+    if (this.autoPrice) {
+      this.selectedProduct.price = this.calculatePrice(
+        this.selectedProduct.cost ?? 0,
+        this.selectedProduct.utility_margin ?? 0
+      );
+    }
+    // si estás en precio manual, ignoras cambios de margen (está deshabilitado en UI)
+  }
+
+  onPriceChange(): void {
+    if (!this.selectedProduct) return;
+    if (!this.autoPrice) {
+      this.selectedProduct.utility_margin = this.calculateMarginPct(
+        this.selectedProduct.cost ?? 0,
+        this.selectedProduct.price ?? 0
+      );
+    }
+    // si estás en modo margen, el precio está deshabilitado en UI
+  }
+
   closeModal(): void {
     this.showModal = false;
     this.isEditing = false;
     this.selectedProduct = {};
+  }
+
+  clearFilters(): void {
+    this.searchQuery = '';
+    this.minPrice = null;
+    this.maxPrice = null;
+    this.filterStockAvailable = false;
+    this.selectedCategory = '';
+    this.searchProduct();
   }
 
   updatePaginatedProducts(): void {

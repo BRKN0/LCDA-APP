@@ -408,7 +408,6 @@
           <tr class="bg-gray-100">
             <th class="modal-table-column">#</th>
             <th class="modal-table-column">Detalles</th>
-            <th class="modal-table-column">Total</th>
             <th class="modal-table-column">Fecha de Liquidacion</th>
           </tr>
         </thead>
@@ -416,7 +415,6 @@
           <tr *ngFor="let liquidations of paginatedLiquidations">
             <td class="modal-table-column">{{ liquidations.code }}</td>
             <td class="modal-table-column">{{ liquidations.notes }}</td>
-            <td class="modal-table-column">{{ liquidations.total_amount }}</td>
             <td class="modal-table-column">
               {{ liquidations.liquidation_date }}
             </td>
@@ -487,7 +485,6 @@
             <th class="modal-table-column">#</th>
             <th class="modal-table-column">Tipo</th>
             <th class="modal-table-column">Periodo</th>
-            <th class="modal-table-column">Total</th>
             <th class="modal-table-column">Estado de Pago</th>
             <th class="modal-table-column">Fecha de pago</th>
           </tr>
@@ -496,8 +493,7 @@
           <tr *ngFor="let benefits of paginatedBenefits">
             <td class="modal-table-column">{{ benefits.code }}</td>
             <td class="modal-table-column">{{ benefits.benefit_type }}</td>
-            <td class="modal-table-column">{{ benefits.period }}</td>
-            <td class="modal-table-column">{{ benefits.amount }}</td>
+            <td class="modal-table-column">{{ benefits.period }}</td>           
             <td class="modal-table-column">{{ benefits.status }}</td>
             <td class="modal-table-column">{{ benefits.payment_date }}</td>
           </tr>
