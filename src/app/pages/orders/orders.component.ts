@@ -234,7 +234,7 @@ export class OrdersComponent implements OnInit {
     this.loading = true;
     let query = this.supabase.from('orders').select('*, payments(*)');
 
-    if (this.userRole !== 'admin') {
+    if (this.userRole !== 'admin' && this.userRole !== 'scheduler') {
       switch (this.userRole) {
         case 'prints_employee':
           this.order_role_filter = 'print';

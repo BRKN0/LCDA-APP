@@ -8,7 +8,7 @@
 
 <!-- Filters -->
 <div
-  *ngIf="userRole == 'admin'"
+  *ngIf="userRole == 'admin' || userRole == 'scheduler'"
   class="flex justify-between items-center mb-4 mt-4 ml-2"
 >
   <div class="flex space-x-2">
@@ -185,7 +185,7 @@
 <div *ngIf="!loading" class="mt-4">
   <table class="table-std">
     <thead>
-      <ng-container *ngIf="userRole === 'admin'; else notAdminHeader">
+      <ng-container *ngIf="userRole === 'admin' || userRole === 'scheduler'; else notAdminHeader">
         <tr>
           <th class="table-column-std">Código</th>
           <th class="table-column-std">Tipo</th>
@@ -217,7 +217,7 @@
     </thead>
 
     <tbody>
-      <ng-container *ngIf="userRole === 'admin'; else notAdminBody">
+      <ng-container *ngIf="userRole === 'admin' || userRole === 'scheduler'; else notAdminBody">
         <tr *ngFor="let order of paginatedOrders">
           <td>{{ order.code }}</td>
           <td>
