@@ -523,7 +523,7 @@
                 : "No especificado"
             }}
           </p>
-          <p>
+          <p *ngIf="userRole === 'admin'">
             <strong>Estado de pago:</strong>
             {{
               selectedOrderDetails[0].order_payment_status === "overdue"
@@ -575,14 +575,16 @@
             <p class="text-red-600">
               <strong>Notas:</strong> {{ selectedOrderDetails[0].notes }}
             </p>
-            <p>
-              <strong>Cantidad:</strong>
-              {{ selectedOrderDetails[0].order_quantity }}
-            </p>
-            <p>
-              <strong>Valor Unitario:</strong>
-              {{ selectedOrderDetails[0].unitary_value }}
-            </p>
+            <div *ngIf="selectedOrderDetails[0]?.order_type !== 'sales'">
+              <p>
+                <strong>Cantidad:</strong>
+                {{ selectedOrderDetails[0].order_quantity }}
+              </p>
+              <p *ngIf="userRole === 'admin'">
+                <strong>Valor Unitario:</strong>
+                {{ selectedOrderDetails[0].unitary_value }}
+              </p>
+            </div>
             <p *ngIf="selectedOrderDetails[0].iva">
               <strong>IVA:</strong> {{ selectedOrderDetails[0].iva }}
             </p>
@@ -667,28 +669,84 @@
           </li>
         </ul>
       </div>
+      <!-- Specific details for sales -->
+      <div
+        *ngIf="
+          selectedOrderDetails &&
+          selectedOrderDetails[0]?.order_type &&
+          (selectedOrderDetails[0].order_type === 'sales')
+        "
+        class="my-6"
+      >
+        <h4 class="font-semibold text-green-700">Detalles de venta</h4>
+
+        <ng-container *ngIf="selectedOrderTypeDetail?.length; else noSales">
+          <ul class="list-none">
+            <li *ngFor="let s of selectedOrderTypeDetail" class="mb-4 pb-4 border-b">
+              <p><strong>Tipo de ítem:</strong> 
+                {{ 
+                  s.item_type === 'material' ? 'Material' : 
+                  s.item_type === 'product' ? 'Producto' :
+                  'Desconocido'
+                }}
+              </p>
+
+              <!-- Si es MATERIAL -->
+              <ng-container *ngIf="s.item_type === 'material'; else productTpl">
+                <p *ngIf="s.category"><strong>Categoría:</strong> {{ s.category }}</p>
+                <p *ngIf="s.material_type"><strong>Tipo de material:</strong> {{ s.material_type }}</p>
+                <p *ngIf="s.caliber"><strong>Calibre:</strong> {{ s.caliber }}</p>
+                <p *ngIf="s.color"><strong>Color:</strong> {{ s.color }}</p>
+                <!-- Si no tienes snapshots, al menos muestra el ID -->
+                <p *ngIf="!s.category && !s.material_type && !s.caliber && !s.color">
+                  <strong>Material ID:</strong> {{ s.material_id }}
+                </p>
+              </ng-container>
+
+              <!-- Si es PRODUCTO -->
+              <ng-template #productTpl>
+                <p>
+                  <strong>Producto:</strong>
+                  {{ s.product_name_snapshot || getProductNameById(s.product_id) }}
+                </p>
+              </ng-template>
+
+              <!-- Económicos -->
+              <p><strong>Cantidad:</strong> {{ s.quantity }}</p>
+              <p><strong>Precio unitario:</strong> {{ s.unit_price | number:'1.0-2' }}</p>
+            </li>
+          </ul>
+        </ng-container>
+
+        <ng-template #noSales>
+          <p class="text-gray-500">Este pedido no tiene líneas de venta registradas.</p>
+        </ng-template>
+      </div>
+
       <!-- Totals Section -->
-      <div class="border-t pt-4 mt-4">
-        <div class="flex justify-between">
-          <p><strong>Subtotal</strong></p>
-          <p>{{ getCalculatedSubtotal(selectedOrderDetails[0]) }}</p>
-        </div>
-        <div class="flex justify-between" *ngIf="selectedOrderDetails[0].iva">
-          <p><strong>IVA</strong></p>
-          <p>{{ selectedOrderDetails[0].iva }}</p>
-        </div>
-        <div *ngIf="selectedOrderDetails[0]?.extra_charges?.length" class="flex flex-col gap-1 my-2">
-          <p class="font-semibold text-blue-600 mb-1">Cargos Extras</p>
-          <div *ngFor="let charge of selectedOrderDetails[0].extra_charges" class="flex justify-between">
-            <span>{{ charge.description }}</span>
-            <span>${{ charge.amount }}</span>
+      <ng-container *ngIf="userRole === 'admin'">
+        <div class="border-t pt-4 mt-4">
+          <div class="flex justify-between">
+            <p><strong>Subtotal</strong></p>
+            <p>{{ getCalculatedSubtotal(selectedOrderDetails[0]) }}</p>
+          </div>
+          <div class="flex justify-between" *ngIf="selectedOrderDetails[0].iva">
+            <p><strong>IVA</strong></p>
+            <p>{{ selectedOrderDetails[0].iva }}</p>
+          </div>
+          <div *ngIf="selectedOrderDetails[0]?.extra_charges?.length" class="flex flex-col gap-1 my-2">
+            <p class="font-semibold text-blue-600 mb-1">Cargos Extras</p>
+            <div *ngFor="let charge of selectedOrderDetails[0].extra_charges" class="flex justify-between">
+              <span>{{ charge.description }}</span>
+              <span>${{ charge.amount }}</span>
+            </div>
+          </div>
+          <div class="flex justify-between">
+            <p><strong>Total</strong></p>
+            <p class="font-bold">{{ selectedOrderDetails[0].total }}</p>
           </div>
         </div>
-        <div class="flex justify-between">
-          <p><strong>Total</strong></p>
-          <p class="font-bold">{{ selectedOrderDetails[0].total }}</p>
-        </div>
-      </div>
+      </ng-container>
       <div *ngIf="selectedOrderDetails[0]?.file_path" class="mt-4">
         <p class="font-semibold">Archivo adjunto:</p>
         <button
@@ -735,131 +793,133 @@
 
     <form (ngSubmit)="addOrder(newOrder)">
       <!-- Campos comunes -->
-      <div class="mb-4">
-        <label class="block modal-input-item">Tipo de Pedido</label>
-        <select
-          [(ngModel)]="newOrder.order_type"
-          name="order_type"
-          class="form-select mt-1 block w-full"
-          required
-        >
-          <option value="print">Impresiones</option>
-          <option value="laser">Cortes</option>
-          <option value="sales">Ventas</option>
-        </select>
-      </div>
-      <div class="mb-4">
-        <label class="block modal-input-item"
-          >Cliente<span class="text-red-500">*</span></label
-        >
-        <select
-          [(ngModel)]="newOrder.id_client"
-          name="id_client"
-          class="form-select mt-1 block w-full"
-          required
-        >
-          <option value="" disabled selected>Seleccione un cliente</option>
-          <option *ngFor="let client of clients" [value]="client.id_client">
-            {{ client.name }}
-          </option>
-        </select>
-        <button
-          *ngIf="!isEditing"
-          type="button"
-          class="btn-primary mt-2"
-          (click)="openAddClientModal()"
-        >
-          Añadir nuevo cliente
-        </button>
-      </div>
-      <div class="mb-4">
-        <label class="block modal-input-item">Tipo de Cliente</label>
-        <select
-          [(ngModel)]="newOrder.client_type"
-          name="clie_type"
-          class="form-select mt-1 block w-full"
-          required
-        >
-          <option value="intermediary">Intermediario</option>
-          <option value="finall">Final</option>
-        </select>
-      </div>
-      <div class="mb-4">
-        <label class="block modal-input-item">Descripción</label>
-        <textarea
-          [(ngModel)]="newOrder.description"
-          name="description"
-          class="form-textarea mt-1 block w-full"
-        ></textarea>
-      </div>
-      <div class="mb-4">
-        <label class="block modal-input-item">Cantidad</label>
-        <input
-          type="number"
-          [(ngModel)]="newOrder.order_quantity"
-          name="order_quantity"
-          class="form-input mt-1 block w-full"
-        />
-      </div>
-      <div class="mb-4">
-        <label class="block modal-input-item">Notas</label>
-        <input
-          [(ngModel)]="newOrder.notes"
-          name="notes"
-          class="form-input mt-1 block w-full"
-          required
-        />
-      </div>
-      <div class="mb-4">
-        <label class="block modal-input-item"
-          >Fecha de Entrega<span class="text-red-500">*</span></label
-        >
-        <input
-          type="date"
-          [(ngModel)]="newOrder.delivery_date"
-          name="delivery_date"
-          class="form-input mt-1 block w-full"
-          required
-        />
-      </div>
-      <div class="mb-4">
-        <label class="block modal-input-item">Total</label>
-        <input
-          type="number"
-          [(ngModel)]="newOrder.total"
-          name="total"
-          class="form-input mt-1 block w-full"
-          required
-        />
-      </div>
-      <div class="mb-4 border-t pt-4">
-        <h4 class="font-semibold text-blue-600">Cargos Extras</h4>
-        <div class="flex gap-2 mb-2">
-          <input
-            type="text"
-            [(ngModel)]="extraChargeDescription"
-            placeholder="Descripción"
-            class="form-input w-1/2"
-            name="extraChargeDescription"
-          />
-          <input
-            type="number"
-            [(ngModel)]="extraChargeAmount"
-            placeholder="Valor"
-            class="form-input w-1/4"
-            name="extraChargeAmount"
-          />
-          <button type="button" class="btn-primary" (click)="addExtraCharge()">
-            Añadir
+      <ng-container *ngIf="userRole === 'admin' || !isEditing">
+        <div class="mb-4">
+          <label class="block modal-input-item">Tipo de Pedido</label>
+          <select
+            [(ngModel)]="newOrder.order_type"
+            name="order_type"
+            class="form-select mt-1 block w-full"
+            required
+          >
+            <option value="print">Impresiones</option>
+            <option value="laser">Cortes</option>
+            <option value="sales">Ventas</option>
+          </select>
+        </div>
+        <div class="mb-4">
+          <label class="block modal-input-item"
+            >Cliente<span class="text-red-500">*</span></label
+          >
+          <select
+            [(ngModel)]="newOrder.id_client"
+            name="id_client"
+            class="form-select mt-1 block w-full"
+            required
+          >
+            <option value="" disabled selected>Seleccione un cliente</option>
+            <option *ngFor="let client of clients" [value]="client.id_client">
+              {{ client.name }}
+            </option>
+          </select>
+          <button
+            *ngIf="!isEditing"
+            type="button"
+            class="btn-primary mt-2"
+            (click)="openAddClientModal()"
+          >
+            Añadir nuevo cliente
           </button>
         </div>
-        <ul>
-          <li *ngFor="let charge of newOrder.extra_charges; let i = index" class="flex items-center gap-2">
-            <span>{{ charge.description }}: ${{ charge.amount }}</span>
-            <button type="button" class="btn-danger btn-xs" (click)="removeExtraCharge(i)">Eliminar</button>
-          </li>
-        </ul>
-      </div>
+        <div class="mb-4">
+          <label class="block modal-input-item">Tipo de Cliente</label>
+          <select
+            [(ngModel)]="newOrder.client_type"
+            name="clie_type"
+            class="form-select mt-1 block w-full"
+            required
+          >
+            <option value="intermediary">Intermediario</option>
+            <option value="finall">Final</option>
+          </select>
+        </div>
+        <div class="mb-4">
+          <label class="block modal-input-item">Descripción</label>
+          <textarea
+            [(ngModel)]="newOrder.description"
+            name="description"
+            class="form-textarea mt-1 block w-full"
+          ></textarea>
+        </div>
+        <div *ngIf="!isSale()" class="mb-4">
+          <label class="block modal-input-item">Cantidad</label>
+          <input
+            type="number"
+            [(ngModel)]="newOrder.order_quantity"
+            name="order_quantity"
+            class="form-input mt-1 block w-full"
+          />
+        </div>
+        <div class="mb-4">
+          <label class="block modal-input-item">Notas</label>
+          <input
+            [(ngModel)]="newOrder.notes"
+            name="notes"
+            class="form-input mt-1 block w-full"
+            required
+          />
+        </div>
+        <div class="mb-4">
+          <label class="block modal-input-item"
+            >Fecha de Entrega<span class="text-red-500">*</span></label
+          >
+          <input
+            type="date"
+            [(ngModel)]="newOrder.delivery_date"
+            name="delivery_date"
+            class="form-input mt-1 block w-full"
+            required
+          />
+        </div>
+        <div *ngIf="!isSale()" class="mb-4">
+          <label class="block modal-input-item">Total</label>
+          <input
+            type="number"
+            [(ngModel)]="newOrder.total"
+            name="total"
+            class="form-input mt-1 block w-full"
+            required
+          />
+        </div>
+        <div class="mb-4 border-t pt-4">
+          <h4 class="font-semibold text-blue-600">Cargos Extras</h4>
+          <div class="flex gap-2 mb-2">
+            <input
+              type="text"
+              [(ngModel)]="extraChargeDescription"
+              placeholder="Descripción"
+              class="form-input w-1/2"
+              name="extraChargeDescription"
+            />
+            <input
+              type="number"
+              [(ngModel)]="extraChargeAmount"
+              placeholder="Valor"
+              class="form-input w-1/4"
+              name="extraChargeAmount"
+            />
+            <button type="button" class="btn-primary" (click)="addExtraCharge()">
+              Añadir
+            </button>
+          </div>
+          <ul>
+            <li *ngFor="let charge of newOrder.extra_charges; let i = index" class="flex items-center gap-2">
+              <span>{{ charge.description }}: ${{ charge.amount }}</span>
+              <button type="button" class="btn-danger btn-xs" (click)="removeExtraCharge(i)">Eliminar</button>
+            </li>
+          </ul>
+        </div>
+      </ng-container>
 
 
       <!-- Campos específicos para Impresiones -->
@@ -1080,6 +1140,159 @@
           class="form-input mt-1 block w-full"
         />
       </div>
+      <div
+        *ngIf="newOrder.order_type === 'sales'"
+        class="mb-4 border-t pt-4"
+      >
+        <h4 class="font-semibold text-green-700">Datos de Venta</h4>
+
+        <!-- ¿Qué vas a vender? -->
+        <label class="block mt-2 modal-input-item">¿Qué vas a vender?</label>
+        <select
+          [(ngModel)]="saleMode"
+          name="saleMode"
+          class="form-select mt-1 block w-full"
+        >
+          <option value="none">-- Seleccionar --</option>
+          <option value="material">Material</option>
+          <option value="product">Producto</option>
+        </select>
+
+        <!-- ======= VENTA: MATERIAL ======= -->
+        <div *ngIf="saleMode === 'material'">
+          <!-- Encadenado: CATEGORÍA -->
+          <label class="block mt-2 modal-input-item">Categoría</label>
+          <select
+            [(ngModel)]="selectedCategory"
+            name="sale_category"
+            class="form-select mt-1 block w-full"
+            (change)="selectedType = ''; selectedCaliber = ''; selectedColor = ''"
+          >
+            <option value="">-- Seleccionar --</option>
+            <option *ngFor="let c of getUniqueCategories()" [value]="c">
+              {{ c }}
+            </option>
+          </select>
+
+          <!-- Encadenado: TIPO -->
+          <label class="block mt-2 modal-input-item">Tipo</label>
+          <select
+            [(ngModel)]="selectedType"
+            name="sale_type"
+            class="form-select mt-1 block w-full"
+            (change)="selectedCaliber = ''; selectedColor = ''"
+          >
+            <option value="">-- Seleccionar --</option>
+            <option *ngFor="let t of getFilteredTypes()" [value]="t">
+              {{ t }}
+            </option>
+          </select>
+
+          <!-- Encadenado: CALIBRE -->
+          <label class="block mt-2 modal-input-item">Calibre</label>
+          <select
+            [(ngModel)]="selectedCaliber"
+            name="sale_caliber"
+            class="form-select mt-1 block w-full"
+            (change)="selectedColor = ''"
+          >
+            <option value="">-- Seleccionar --</option>
+            <option *ngFor="let cal of getFilteredCalibers()" [value]="cal">
+              {{ cal }}
+            </option>
+          </select>
+
+          <!-- Encadenado: COLOR -->
+          <label class="block mt-2 modal-input-item">Color</label>
+          <select
+            [(ngModel)]="selectedColor"
+            name="sale_color"
+            class="form-select mt-1 block w-full"
+          >
+            <option value="">-- Seleccionar --</option>
+            <option *ngFor="let col of getFilteredColors()" [value]="col">
+              {{ col }}
+            </option>
+          </select>
+
+          <!-- Info de stock del material seleccionado -->
+          <div class="text-sm text-gray-600 mt-2" *ngIf="getSelectedMaterial() as sm">
+            Stock disponible: <strong>{{ sm.material_quantity }}</strong>
+          </div>
+
+          <!-- Datos económicos de la línea de venta -->
+          <label class="block mt-2 modal-input-item">Cantidad a vender</label>
+          <input
+            [(ngModel)]="saleMaterialQuantity"
+            (ngModelChange)="recalcSalesTotal()"
+            type="number"
+            min="1"
+            name="sale_material_qty"
+            class="form-input mt-1 block w-full"
+          />
+
+          <label class="block mt-2 modal-input-item">Precio unitario</label>
+          <input
+            [(ngModel)]="saleMaterialUnitPrice"
+            (ngModelChange)="recalcSalesTotal()"
+            type="number"
+            min="0"
+            name="sale_material_unit_price"
+            class="form-input mt-1 block w-full"
+            placeholder="Ej: 12000"
+          />
+        </div>
+        <!-- === VENTA DE PRODUCTO === -->
+        <div *ngIf="newOrder.order_type === 'sales' && saleMode === 'product'" class="mb-4 border-t pt-4">
+          <h4 class="font-semibold text-emerald-600">Datos de Venta: Producto</h4>
+
+          <!-- Producto -->
+          <label class="block mt-2 modal-input-item">Producto</label>
+          <select
+            [(ngModel)]="selectedProductId"
+            name="selectedProductId"
+            class="form-select mt-1 block w-full"
+            (change)="onProductChange()"
+          >
+            <option value="">-- Seleccionar --</option>
+            <option *ngFor="let p of allProducts" [value]="p.id">
+              {{ p.name }} — Stock: {{ p.stock }} — ${{ p.price }}
+            </option>
+          </select>
+
+          <!-- Cantidad -->
+          <label class="block mt-2 modal-input-item">Cantidad a vender</label>
+          <input
+            [(ngModel)]="saleMaterialQuantity"
+            (ngModelChange)="recalcSalesTotal()"
+            type="number"
+            min="1"
+            step="1"
+            name="saleProductQty"
+            class="form-input mt-1 block w-full"
+          />
+
+          <!-- P. Unitario -->
+          <label class="block mt-2 modal-input-item">Precio unitario</label>
+          <input
+            [(ngModel)]="saleMaterialUnitPrice"
+            (ngModelChange)="recalcSalesTotal()"
+            type="number"
+            min="0"
+            step="0.01"
+            inputmode="decimal"
+            name="saleProductUnitPrice"
+            class="form-input mt-1 block w-full"
+            placeholder="Autollenado al elegir producto (editable)"
+          />
+
+          <!-- Vista previa del total base -->
+          <p class="mt-2">
+            <strong>Subtotal (venta):</strong>
+            {{ asNumber(newOrder.base_total) | number:'1.0-0' }}
+          </p>
+        </div>
+      </div>
       <!-- Archivo adjunto -->
       <div class="mb-4">
         <label class="block modal-input-item">Archivo adjunto</label>
@@ -1227,7 +1440,6 @@
         <option [ngValue]="null">Seleccione una opción</option>
         <option value="prints">Impresiones</option>
         <option value="cuts">Cortes</option>
-        <option value="sales">Ventas</option>
       </select>
     </div>
 
@@ -1263,6 +1475,16 @@
           type="number"
           [(ngModel)]="measurement"
           name="measurement"
+          class="form-input mt-1 block w-full"
+          (change)="calculatePrice()"
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Valor del material</label>
+        <input
+          type="number"
+          [(ngModel)]="materialValue"
+          name="materialValue"
           class="form-input mt-1 block w-full"
           (change)="calculatePrice()"
         />

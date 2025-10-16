@@ -163,6 +163,14 @@
           <label class="block text-gray-700">Etiqueta de cliente</label>
           <input [(ngModel)]="selectedQuotation.customer_label" name="customer_label" class="form-input" placeholder="Cliente Mostrador"/>
         </div>
+        <button
+          *ngIf="selectedQuotation?.walk_in"
+          type="button"
+          class="btn-primary mt-2"
+          (click)="openAddClientModal()"
+        >
+          Añadir nuevo cliente
+        </button>
       </div>
 
       <div class="mb-4" *ngIf="!selectedQuotation?.walk_in">
@@ -304,6 +312,113 @@
       <div class="flex justify-end mt-4">
         <button type="button" class="btn-danger" (click)="closeModal()">Cancelar</button>
         <button type="submit" class="btn-success px-4 py-2 rounded-md">{{ isEditing ? 'Actualizar Cotización' : 'Guardar Cotización' }}</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal para añadir cliente -->
+<div *ngIf="showAddClientModal" class="modal-overlay">
+  <div class="modal-content w-1/2">
+    <h2 class="text-xl font-bold mb-4">Añadir Nuevo Cliente</h2>
+    <form (ngSubmit)="saveNewClient()">
+      <div class="mb-4">
+        <label class="block text-gray-700">Nombre</label>
+        <input
+          [(ngModel)]="newClient.name"
+          name="name"
+          class="form-input"
+          required
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Correo Electrónico</label>
+        <input
+          type="email"
+          [(ngModel)]="newClient.email"
+          name="email"
+          class="form-input"
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Tipo de Documento</label>
+        <select
+          [(ngModel)]="newClient.document_type"
+          name="document_type"
+          class="form-select"
+        >
+          <option value="NIT">NIT</option>
+          <option value="civil registry">Registro civil</option>
+          <option value="identity card">Tarjeta de identidad</option>
+          <option value="citizenship card">Cédula de ciudadanía</option>
+          <option value="alien card">Tarjeta de extranjería</option>
+          <option value="foreigner's identity card">
+            Cédula de extranjería
+          </option>
+          <option value="passport">Pasaporte</option>
+          <option value="foreign identification document">
+            Documento de identificación extranjero
+          </option>
+          <option value="NIT from another country">NIT de otro país</option>
+          <option value="NUIP">NUIP</option>
+        </select>
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Identificación/Documento</label>
+        <input
+          [(ngModel)]="newClient.document_number"
+          name="document_number"
+          class="form-input"
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Empresa</label>
+        <input
+          [(ngModel)]="newClient.company_name"
+          name="company_name"
+          class="form-input"
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Teléfono</label>
+        <input
+          type="number"
+          [(ngModel)]="newClient.cellphone"
+          name="cellphone"
+          class="form-input"
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Dirección</label>
+        <input
+          type="text"
+          [(ngModel)]="newClient.address"
+          name="address"
+          class="form-input"
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Estado</label>
+        <select
+          [(ngModel)]="newClient.status"
+          name="status"
+          class="form-select mt-1 block w-full"
+        >
+          <option value="upToDate">Al Día</option>
+          <option value="overdue">En Mora</option>
+        </select>
+      </div>
+      <div class="flex justify-end">
+        <button
+          type="button"
+          class="btn-danger"
+          (click)="closeAddClientModal()"
+        >
+          Cancelar
+        </button>
+        <button type="submit" class="btn-success px-4 py-2 rounded-md">
+          Guardar Cliente
+        </button>
       </div>
     </form>
   </div>
