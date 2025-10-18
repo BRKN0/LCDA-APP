@@ -44,10 +44,11 @@
 
   <div class="flex space-x-2">
     <!-- Botón Añadir Factura, pegado a la derecha -->
-    <button
+    <!--<button
       class="btn-add inline-flex items-center space-x-2"
       (click)="addNewInvoice()"
     >
+    
       <svg
         class="w-5 h-5 inline-block align-middle mt-[3px]"
         viewBox="0 0 24 24"
@@ -67,6 +68,7 @@
       </svg>
       <span>Añadir</span>
     </button>
+    -->
     <button class="btn-clear" (click)="clearFilters()">Limpiar</button>
   </div>
 </div>
@@ -139,9 +141,8 @@
         </td>
         <td class="table-column-std">
           {{
-            invoice.order.client.company_name === "N/A"
-              ? invoice.order.client.name
-              : invoice.order.client.company_name || invoice.order.client.name
+            invoice.order.client.name 
+              
           }}
         </td>
         <td class="table-column-std">
