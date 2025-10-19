@@ -68,7 +68,12 @@ jobs:
 
       - name: Install Ansible and Azure deps
         run: |
-          pip install "ansible>=9.0.0" azure-identity azure-mgmt-resource azure-mgmt-web
+          python -m pip install --upgrade pip
+          pip install "ansible>=9.0.0"
+          pip install azure-identity azure-mgmt-resource azure-mgmt-web msrestazure requests
+
+      - name: Install Ansible Azure collection
+        run: |
           ansible-galaxy collection install azure.azcollection
 
       - name: Run Ansible post-config (App Settings + warmup)
