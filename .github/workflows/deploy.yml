@@ -2,7 +2,7 @@ name: Deploy LCDA to Azure App Service
 
 on:
   push:
-    branches: [ "infraestructura_lcda" ]
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
