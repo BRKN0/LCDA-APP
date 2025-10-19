@@ -29,10 +29,15 @@ jobs:
       - name: Build Angular production
         run: npx ng build --configuration production
 
+      - name: Inspect dist
+        run: |
+          echo "Dist root:"; ls -la dist || true
+          echo "Dist browser:"; ls -la dist/*/browser || true
+
       - name: Prepare wwwroot
         run: |
           mkdir -p artifacts/wwwroot
-          cp -r dist/*/browser/* artifacts/wwwroot/ || cp -r dist/browser/* artifacts/wwwroot/
+          cp -r dist/*/browser/* artifacts/wwwroot/ 2>/dev/null || cp -r dist/browser/* artifacts/wwwroot/
           cp public/env.js artifacts/wwwroot/
 
       - name: Inject runtime env
