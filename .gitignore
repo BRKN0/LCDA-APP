@@ -40,3 +40,28 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# Terraform
+.terraform/
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+*.tfvars
+*.tfvars.json
+
+# Build / artifacts
+artifacts/
+dist/
+site.zip
+*.zip
+
+# Node / Angular
+node_modules/
+.angular/
