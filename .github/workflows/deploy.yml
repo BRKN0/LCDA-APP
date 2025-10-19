@@ -10,7 +10,6 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      id-token: write
       contents: read
 
     steps:
@@ -53,9 +52,7 @@ jobs:
       - name: Azure Login using OIDC
         uses: azure/login@v2
         with:
-          client-id:      ${{ fromJSON(secrets.AZURE_CREDENTIALS).clientId }}
-          tenant-id:      ${{ fromJSON(secrets.AZURE_CREDENTIALS).tenantId }}
-          subscription-id: ${{ fromJSON(secrets.AZURE_CREDENTIALS).subscriptionId }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
