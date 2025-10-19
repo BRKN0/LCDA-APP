@@ -3,6 +3,12 @@
   collections:
     - azure.azcollection
   tasks:
+    - name: Login to Azure
+      azure.azcollection.azure_rm_profile:
+        client_id: "{{ azure_client_id }}"
+        secret: "{{ azure_client_secret }}"
+        subscription_id: "{{ azure_subscription_id }}"
+        tenant: "{{ azure_tenant }}"
 
     - name: Set App Settings
       azure.azcollection.azure_rm_webapp:

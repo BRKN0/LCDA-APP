@@ -60,38 +60,3 @@ jobs:
           app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
           resource-group: ${{ secrets.AZURE_RESOURCE_GROUP }}
           package: artifacts/site.zip
-
-      - name: Setup Python
-        id: setup-py
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install Ansible and Azure deps
-        run: |
-          python -c "import sys; print('PYTHON:', sys.executable)"
-          python -m pip install --upgrade pip
-          pip install "ansible[azure]>=9.0.0"
-          pip install azure-identity azure-mgmt-resource azure-mgmt-web azure-core azure-common msrest msrestazure requests
-
-      - name: Install Ansible Azure collection
-        run: |
-          ansible-galaxy collection install azure.azcollection
-
-      - name: Detect python path
-        id: detect
-        run: echo "py=$(python -c 'import sys; print(sys.executable)')" >> $GITHUB_OUTPUT
-
-      - name: Run Ansible post-config (App Settings + warmup)
-        env:
-          AZURE_SUBSCRIPTION_ID: ${{ fromJSON(secrets.AZURE_CREDENTIALS).subscriptionId }}
-          AZURE_CLIENT_ID:       ${{ fromJSON(secrets.AZURE_CREDENTIALS).clientId }}
-          AZURE_CLIENT_SECRET:   ${{ fromJSON(secrets.AZURE_CREDENTIALS).clientSecret }}
-          AZURE_TENANT:          ${{ fromJSON(secrets.AZURE_CREDENTIALS).tenantId }}
-          SUPABASE_URL:          ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY:          ${{ secrets.SUPABASE_KEY }}
-          ANSIBLE_PYTHON_INTERPRETER: ${{ steps.detect.outputs.py }}
-        run: |
-          ansible --version
-          python -c "import sys; print('Using:', sys.executable)"
-          ansible-playbook -i infra/ansible/inventory.ini infra/ansible/playbook.yml
