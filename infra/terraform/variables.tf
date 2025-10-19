@@ -21,7 +21,7 @@ variable "app_service_sku" {
 
 variable "node_version" { 
     type = string 
-    default = "20-lts" 
+    default = "20-LTS" 
 }
 
 variable "supabase_url" { 
