@@ -1,0 +1,60 @@
+name: Deploy LCDA to Azure App Service
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20-lts'
+          cache: 'npm'
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build Angular production
+        run: npx ng build --configuration production
+
+      - name: Prepare wwwroot
+        run: |
+          mkdir -p artifacts/wwwroot
+          cp -r dist/*/browser/* artifacts/wwwroot/ || cp -r dist/browser/* artifacts/wwwroot/
+          cp public/env.js artifacts/wwwroot/
+
+      - name: Inject runtime env
+        run: |
+          sed -i "s|%SUPABASE_URL%|${{ secrets.SUPABASE_URL }}|g" artifacts/wwwroot/env.js
+          sed -i "s|%SUPABASE_KEY%|${{ secrets.SUPABASE_KEY }}|g" artifacts/wwwroot/env.js
+
+      - name: Zip artifact
+        run: |
+          cd artifacts/wwwroot
+          zip -r ../site.zip .
+
+      - name: Azure Login using OIDC
+        uses: azure/login@v2
+        with:
+          client-id:      ${{ fromJSON(secrets.AZURE_CREDENTIALS).clientId }}
+          tenant-id:      ${{ fromJSON(secrets.AZURE_CREDENTIALS).tenantId }}
+          subscription-id: ${{ fromJSON(secrets.AZURE_CREDENTIALS).subscriptionId }}
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
+          resource-group: ${{ secrets.AZURE_RESOURCE_GROUP }}
+          package: artifacts/site.zip

@@ -1,0 +1,11 @@
+azure_subscription_id: "bcf2ea64-98ce-4e19-bb82-2b5959a6a8e0"
+azure_client_id: "ae0341f5-df74-4bec-aeee-56d28f90e4ea"
+azure_client_secret: "31af3484-4ace-4e54-8246-13add131409a"
+azure_tenant: "48bd220d-14ac-47fe-9733-666e07ccfb77"
+
+resource_group: "rglcdatfstate"
+webapp_name:   "walcda"
+
+app_settings:
+  SUPABASE_URL: "{{ lookup('env','SUPABASE_URL') | default('', true) }}"
+  SUPABASE_KEY: "{{ lookup('env','SUPABASE_KEY') | default('', true) }}"
