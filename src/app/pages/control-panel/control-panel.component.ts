@@ -124,7 +124,6 @@ export class ControlPanelComponent implements OnInit {
       email: this.userEmail,
       id_role: data[0].id,
     };
-    console.log(userToUpdate);
     this.updateRole(userToUpdate);
   }
   async updateRole(userToUpdate: {

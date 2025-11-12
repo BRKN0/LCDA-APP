@@ -119,10 +119,8 @@ export class MainBannerComponent implements OnInit {
 
           if (data != undefined) {
             this.userAdmin = true;
-            console.log('this user is an admin');
           } else {
             this.userAdmin = false;
-            console.log('this user is not an admin', this.userEmail);
           }
           this.roleService.fetchAndSetUserRole(this.userId);
           this.roleService.role$.subscribe((role) => {
