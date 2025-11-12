@@ -1918,18 +1918,22 @@ export class OrdersComponent implements OnInit {
   getCalculatedSubtotal(order: Orders): number {
     if (!order) return 0;
 
+    if (typeof order.base_total === 'number' && !isNaN(order.base_total)) {
+      return order.base_total;
+    }
+
     // Si el subtotal ya está guardado correctamente (no es 0), úsalo
     const storedSubtotal = parseFloat(order.subtotal as string) || 0;
-    if (storedSubtotal > 0) {
+    if (!isNaN(storedSubtotal) && storedSubtotal > 0) {
       return storedSubtotal;
     }
 
     // Si el subtotal es 0, calcularlo: Total - Cargos Extras
     const total = parseFloat(order.total as string) || 0;
-    const extras =
-      order.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
+    const extras = order.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
+    const base = total - extras;
 
-    return total - extras;
+    return base;
   }
 
   extraChargeDescription: string = '';
@@ -1942,10 +1946,10 @@ export class OrdersComponent implements OnInit {
       }
 
       // Calcular el subtotal ANTES de agregar el cargo (si aún no existe)
-      if (!this.newOrder.subtotal || this.newOrder.subtotal === '0') {
+      if (!this.newOrder.base_total == null) {
         const currentTotal = parseFloat(this.newOrder.total as string) || 0;
-        this.newOrder.subtotal = currentTotal.toString();
         this.newOrder.base_total = currentTotal;
+        this.newOrder.subtotal = currentTotal.toString();
       }
 
       this.newOrder.extra_charges.push({
@@ -1966,22 +1970,25 @@ export class OrdersComponent implements OnInit {
     this.updateOrderTotalWithExtras();
   }
 
+
   updateOrderTotalWithExtras(): void {
-    // El subtotal base es el valor del total actual SIN cargos extras
-    const currentTotal = parseFloat(this.newOrder.total as string) || 0;
+    let base =
+      (typeof this.newOrder.base_total === 'number' && !isNaN(this.newOrder.base_total))
+        ? this.newOrder.base_total
+        : parseFloat(this.newOrder.subtotal as string) || 0;
 
-    // Calcular suma de cargos extras
-    const extras =
-      this.newOrder.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
+    // Si aún no hay base (pedido viejo sin campos): derivar una sola vez
+    const extras = this.newOrder.extra_charges?.reduce((sum, c) => sum + (c.amount || 0), 0) || 0;
+    if (!base) {
+      const maybeTotal = parseFloat(this.newOrder.total as string) || 0;
+      base = maybeTotal - extras;
+      this.newOrder.base_total = base; // normaliza para futuras veces
+    }
 
-    // El subtotal es el total menos los extras (para obtener el valor base)
-    const subtotal = currentTotal;
-
-    // Actualizar campos
-    this.newOrder.subtotal = subtotal.toString();
-    this.newOrder.base_total = subtotal;
-    this.newOrder.total = (subtotal + extras).toString();
-    this.newOrder.amount = subtotal + extras;
+    // 2) Recalcular siempre desde la base
+    this.newOrder.subtotal = base.toString();
+    this.newOrder.total    = (base + extras).toString();
+    this.newOrder.amount   = base + extras;
   }
 
   async createNotification(addedOrder: Partial<Orders>) {
