@@ -19,7 +19,7 @@ export class CarouselComponent implements OnInit, OnDestroy {
 
   slides = [
     { src: '/consultorio.jpg', alt: '1' },
-    { src: '/nooolapolicia.jpg', alt: '2' },
+    { src: '/policia.jpg', alt: '2' },
     { src: '/plazacentral.jpg', alt: '3' },
     { src: '/Habbab.jpg', alt: '4' },
     { src: '/multic.jpg', alt: '5' },
@@ -33,7 +33,7 @@ export class CarouselComponent implements OnInit, OnDestroy {
     { src: '/cubiculos.jpg', alt: '13' },
     { src: '/Ditica.jpg', alt: '14' },
     { src: '/etilico.jpg', alt: '15' },
-    { src: '/extrella.jpg', alt: '16' },
+    { src: '/estrella.jpg', alt: '16' },
     { src: '/hospedaje.jpg', alt: '17' },
     { src: '/lancha.jpg', alt: '18' },
     { src: '/marco.jpg', alt: '19' },
@@ -61,14 +61,14 @@ export class CarouselComponent implements OnInit, OnDestroy {
     '/cubiculos.jpg',
     '/Ditica.jpg',
     '/etilico.jpg',
-    '/extrella.jpg',
+    '/estrella.jpg',
     '/hospedaje.jpg',
     '/lancha.jpg',
     '/marco.jpg',
     '/ministerio.jpg',
     '/multic.jpg',
     '/nails.jpg',
-    '/nooolapolicia.jpg',
+    '/policia.jpg',
     '/plaza2.jpg',
     '/puertita.jpg'
   
