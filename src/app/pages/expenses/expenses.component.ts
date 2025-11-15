@@ -90,13 +90,13 @@ export class ExpensesComponent implements OnInit {
 
   if (!this.selectedExpense.payment_date) {
     alert('Por favor, seleccione una fecha.');
-    this.isSaving = false; // <- RESET
+    this.isSaving = false;
     return;
   }
 
   if (!this.selectedExpense.category) {
     alert('Por favor, seleccione una categoría.');
-    this.isSaving = false; // <- RESET
+    this.isSaving = false;
     return;
   }
 
@@ -121,7 +121,7 @@ export class ExpensesComponent implements OnInit {
     : this.supabase.from('expenses').insert([expenseToSave]);
 
   operation.then(({ error }) => {
-    this.isSaving = false; // <- RESET SIEMPRE
+    this.isSaving = false;
     if (error) {
       console.error('Error al guardar:', error);
       alert(`Error: ${error.message}`);
