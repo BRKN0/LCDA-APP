@@ -960,6 +960,17 @@ export class InvoiceComponent implements OnInit {
     return remainingDays > 0 ? `${remainingDays} días` : 'Pendiente';
   }
 
+  public getRemainingDeliveryDays(dueDate: string | null): number {
+    if (!dueDate) return 0;
+
+    const now = new Date();
+    const delivery = new Date(dueDate);
+    delivery.setHours(23, 59, 59, 999);
+
+    const diffTime = delivery.getTime() - now.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  }
+
   formatNumber(value: number): string {
     return value.toFixed(2);
   }

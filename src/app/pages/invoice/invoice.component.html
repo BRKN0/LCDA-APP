@@ -48,7 +48,7 @@
       class="btn-add inline-flex items-center space-x-2"
       (click)="addNewInvoice()"
     >
-    
+
       <svg
         class="w-5 h-5 inline-block align-middle mt-[3px]"
         viewBox="0 0 24 24"
@@ -141,8 +141,8 @@
         </td>
         <td class="table-column-std">
           {{
-            invoice.order.client.name 
-              
+            invoice.order.client.name
+
           }}
         </td>
         <td class="table-column-std">
@@ -166,7 +166,11 @@
           }}
         </td>
         <td class="table-column-std">
-          {{ getRemainingPaymentTerm(invoice) }}
+          {{
+            getRemainingDeliveryDays(invoice.due_date) > 0
+              ? getRemainingDeliveryDays(invoice.due_date) + ' días'
+              : 'Vencido'
+          }}
         </td>
         <td class="table-column-std">
           <button class="btn-details" (click)="selectInvoice(invoice)">
@@ -177,9 +181,10 @@
             Editar
           </button>
           <!-- Botón Eliminar -->
-          <button class="btn-delete" (click)="deleteInvoice(invoice)">
+          <!-- <button class="btn-delete" (click)="deleteInvoice(invoice)">
             Eliminar
           </button>
+          -->
         </td>
       </tr>
     </tbody>
