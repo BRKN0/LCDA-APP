@@ -96,6 +96,14 @@ export class EmployeesComponent implements OnInit {
   paginatedBenefits: Employee_benefits[] = [];
   paginatedEmployees: Employee[] = []; // Lista paginada
   modalExpanded = false;
+  showAddLiquidation = false;
+  showAddBenefit = false;
+  liquidationForm: Partial<Employee_liquidations> = {};
+  benefitForm: Partial<Employee_benefits> = {};
+  isEditingLiquidation = false;
+  isEditingBenefit = false;
+  editingLiquId: string | null = null;
+  editingBenefitId: string | null = null;
 
   constructor(
     private readonly supabase: SupabaseService,
@@ -238,10 +246,6 @@ export class EmployeesComponent implements OnInit {
 
   toggleLiquidations(employee: Employee | null) {
     if (employee) {
-      if (!Array.isArray(employee.employee_liquidations)) {
-        console.error('liquidations is not an array');
-        return;
-      }
       this.selectedEmployeeDetails = employee;
       this.showLiquidations = true;
       this.currentLiquidationPage = 1;
@@ -250,6 +254,7 @@ export class EmployeesComponent implements OnInit {
       this.showLiquidations = false;
     }
   }
+
   toggleBenefits(employee: Employee | null) {
     if (employee) {
       if (!Array.isArray(employee.employee_benefits)) {
@@ -270,43 +275,21 @@ export class EmployeesComponent implements OnInit {
   }
 
   updatePaginatedLiquidations(): void {
-    if (this.selectedEmployeeDetails?.employee_liquidations?.length) {
-      const startIndex = Number(
-        (this.currentLiquidationPage - 1) * this.itemsPerLiquidationPage
-      );
-      const endIndex = startIndex + Number(this.itemsPerLiquidationPage);
-      this.paginatedLiquidations =
-        this.selectedEmployeeDetails?.employee_liquidations.slice(
-          startIndex,
-          endIndex
-        ) || [];
-      this.totalLiquidationPages = Math.ceil(
-        (this.selectedEmployeeDetails?.employee_liquidations.length || 0) /
-          this.itemsPerLiquidationPage
-      );
-    } else {
-      this.totalPages = 0;
-    }
+    const all = this.selectedEmployeeDetails?.employee_liquidations || [];
+    const startIndex = (this.currentLiquidationPage - 1) * this.itemsPerLiquidationPage;
+    const endIndex = startIndex + this.itemsPerLiquidationPage;
+    this.paginatedLiquidations = all.slice(startIndex, endIndex);
+    this.totalLiquidationPages = Math.ceil(all.length / this.itemsPerLiquidationPage);
   }
+
   updatePaginatedBenefits(): void {
-    if (this.selectedEmployeeDetails?.employee_benefits?.length) {
-      const startIndex = Number(
-        (this.currentBenefitPage - 1) * this.itemsPerBenefitPage
-      );
-      const endIndex = startIndex + Number(this.itemsPerBenefitPage);
-      this.paginatedBenefits =
-        this.selectedEmployeeDetails?.employee_benefits.slice(
-          startIndex,
-          endIndex
-        ) || [];
-      this.totalBenefitPages = Math.ceil(
-        (this.selectedEmployeeDetails?.employee_benefits.length || 0) /
-          this.itemsPerLiquidationPage
-      );
-    } else {
-      this.totalPages = 0;
-    }
+    const all = this.selectedEmployeeDetails?.employee_benefits || [];
+    const startIndex = (this.currentBenefitPage - 1) * this.itemsPerBenefitPage;
+    const endIndex = startIndex + this.itemsPerBenefitPage;
+    this.paginatedBenefits = all.slice(startIndex, endIndex);
+    this.totalBenefitPages = Math.ceil(all.length / this.itemsPerBenefitPage);
   }
+
   addNewEmployee(): void {
     this.selectedEmployee = {
       id_employee: '',
@@ -447,6 +430,142 @@ export class EmployeesComponent implements OnInit {
       endIndex
     );
   }
+  openAddLiquidationForm() {
+    this.liquidationForm = {};
+    this.isEditingLiquidation = false;
+    this.editingLiquId = null;
+    this.showAddLiquidation = true;
+  }
+
+  openAddBenefitForm() {
+    this.benefitForm = {};
+    this.isEditingBenefit = false;
+    this.editingBenefitId = null;
+    this.showAddBenefit = true;
+  }
+
+  editLiquidation(l: Employee_liquidations) {
+    this.liquidationForm = { ...l };
+    this.isEditingLiquidation = true;
+    this.editingLiquId = l.id;
+    this.showAddLiquidation = true;
+  }
+
+  editBenefit(b: Employee_benefits) {
+    this.benefitForm = { ...b };
+    this.isEditingBenefit = true;
+    this.editingBenefitId = b.id;
+    this.showAddBenefit = true;
+  }
+
+  async deleteLiquidation(l: Employee_liquidations) {
+    if (!confirm('¿Eliminar esta liquidación?')) return;
+
+    await this.supabase.from('employee_liquidations').delete().eq('id', l.id);
+
+    // Elimina localmente
+    const index = this.selectedEmployeeDetails?.employee_liquidations?.findIndex(liq => liq.id === l.id);
+    if (index !== undefined && index !== -1) {
+      this.selectedEmployeeDetails?.employee_liquidations?.splice(index, 1);
+    }
+
+    this.updatePaginatedLiquidations();
+  }
+
+  async deleteBenefit(b: Employee_benefits) {
+    if (!confirm('¿Eliminar esta prestación?')) return;
+
+    await this.supabase.from('employee_benefits').delete().eq('id', b.id);
+
+    const index = this.selectedEmployeeDetails?.employee_benefits?.findIndex(ben => ben.id === b.id);
+    if (index !== undefined && index !== -1) {
+      this.selectedEmployeeDetails?.employee_benefits?.splice(index, 1);
+    }
+
+    this.updatePaginatedBenefits();
+  }
+
+  async saveLiquidation() {
+  if (!this.selectedEmployeeDetails?.id_employee) return;
+
+  const payload = {
+    ...this.liquidationForm,
+    id_employee: this.selectedEmployeeDetails.id_employee,
+  };
+
+  let saved: any;
+
+  if (this.isEditingLiquidation && this.editingLiquId) {
+    const { data } = await this.supabase
+      .from('employee_liquidations')
+      .update(payload)
+      .eq('id', this.editingLiquId)
+      .select()
+      .single();
+    saved = data;
+  } else {
+    const { data } = await this.supabase
+      .from('employee_liquidations')
+      .insert([payload])
+      .select()
+      .single();
+    saved = data;
+  }
+
+  // Actualiza localmente
+  if (!this.isEditingLiquidation) {
+    this.selectedEmployeeDetails.employee_liquidations?.push(saved);
+  } else {
+    const index = this.selectedEmployeeDetails.employee_liquidations?.findIndex(l => l.id === this.editingLiquId);
+    if (index !== undefined && index !== -1) {
+      this.selectedEmployeeDetails.employee_liquidations![index] = saved;
+    }
+  }
+
+  this.showAddLiquidation = false;
+  this.updatePaginatedLiquidations();
+}
+
+async saveBenefit() {
+  if (!this.selectedEmployeeDetails?.id_employee) return;
+
+  const payload = {
+    ...this.benefitForm,
+    id_employee: this.selectedEmployeeDetails.id_employee,
+  };
+
+  let saved: any;
+
+  if (this.isEditingBenefit && this.editingBenefitId) {
+    const { data } = await this.supabase
+      .from('employee_benefits')
+      .update(payload)
+      .eq('id', this.editingBenefitId)
+      .select()
+      .single();
+    saved = data;
+  } else {
+    const { data } = await this.supabase
+      .from('employee_benefits')
+      .insert([payload])
+      .select()
+      .single();
+    saved = data;
+  }
+
+  if (!this.isEditingBenefit) {
+    this.selectedEmployeeDetails.employee_benefits?.push(saved);
+  } else {
+    const index = this.selectedEmployeeDetails.employee_benefits?.findIndex(b => b.id === this.editingBenefitId);
+    if (index !== undefined && index !== -1) {
+      this.selectedEmployeeDetails.employee_benefits![index] = saved;
+    }
+  }
+
+  this.showAddBenefit = false;
+  this.updatePaginatedBenefits();
+}
+
   clearFilters(): void {
     // Limpiar búsqueda
     this.searchQuery = '';
