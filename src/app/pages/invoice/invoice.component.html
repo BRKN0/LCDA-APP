@@ -166,7 +166,11 @@
           }}
         </td>
         <td class="table-column-std">
-          {{ getRemainingPaymentTerm(invoice) }}
+          {{
+            getRemainingDeliveryDays(invoice.due_date) > 0
+              ? getRemainingDeliveryDays(invoice.due_date) + ' días'
+              : 'Vencido'
+          }}
         </td>
         <td class="table-column-std">
           <button class="btn-details" (click)="selectInvoice(invoice)">
