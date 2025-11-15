@@ -1050,39 +1050,41 @@ export class InvoiceComponent implements OnInit {
     y += 6;
     doc.setFont('helvetica', 'normal');
     const descriptionLines = this.wrapText(doc, invoice.order.description, y);
-    let currentY = y;
     descriptionLines.forEach((line) => {
-      doc.text(line, 10, currentY);
-      currentY += 10;
+      doc.text(line, 10, y);
+      y += 8;
     });
 
-    const startY = currentY + 10;
+    y +=10;
+
     const rowHeight = 7;
-    const headerXPositions = [10, 40, 120, 170];
-    const summaryStartY = startY + rowHeight * 2;
+    const headerXPositions = [10, 50, 120, 170];
 
     doc.setFont('helvetica', 'bold');
-    doc.text('CANTIDAD', headerXPositions[0], startY);
-    doc.text('VALOR UNITARIO', headerXPositions[1], startY);
-    doc.text('ABONO', headerXPositions[2], startY, { align: 'right' });
+    doc.text('CANTIDAD', headerXPositions[0], y);
+    doc.text('VALOR UNITARIO', headerXPositions[1], y);
+    doc.text('ABONO', headerXPositions[2], y, { align: 'right' });
 
-    currentY = startY + rowHeight;
+    y += rowHeight;
+
     doc.setFont('helvetica', 'normal');
     doc.text(
       String(invoice.order.order_quantity),
       headerXPositions[0],
-      currentY
+      y
     );
-    doc.text(unitaryValue.toFixed(2), headerXPositions[1], currentY);
-    doc.text(totalPaid.toFixed(2), headerXPositions[2], currentY, {
+    doc.text(unitaryValue.toFixed(2), headerXPositions[1], y);
+    doc.text(totalPaid.toFixed(2), headerXPositions[2], y, {
       align: 'right',
     });
+
+    y += rowHeight + 5;
 
     // Añadir lista de abonos al PDF
     if (invoice.order.payments && invoice.order.payments.length > 0) {
       doc.setFont('helvetica', 'bold');
-      doc.text('Abonos Realizados:', 10, summaryStartY);
-      currentY = summaryStartY + rowHeight;
+      doc.text('Abonos Realizados:', 10, y);
+      y += rowHeight;
       doc.setFont('helvetica', 'normal');
       invoice.order.payments.forEach((payment) => {
         doc.text(
@@ -1092,55 +1094,50 @@ export class InvoiceComponent implements OnInit {
               : ''
           }`,
           10,
-          currentY
+          y
         );
-        currentY += rowHeight;
+        y += rowHeight;
       });
     }
 
-    const summaryX = headerXPositions[0];
-    const valueX = headerXPositions[1];
+    const summaryX = 10;
+    const valueX = 60;
+    
     doc.setFont('helvetica', 'bold');
-
-    doc.text('Subtotal:', summaryX, currentY);
-    doc.text(`$${subtotal.toFixed(2)}`, valueX, currentY, { align: 'left' });
-    currentY += rowHeight;
+    doc.text('Subtotal:', summaryX, y);
+    doc.text(`$${subtotal.toFixed(2)}`, valueX, y);
+    y += rowHeight;
 
     if (invoice.include_iva) {
-      doc.text(this.ivaLabel() + ':', summaryX, currentY);
-      doc.text(`$${iva.toFixed(2)}`, valueX, currentY, { align: 'left' });
-      currentY += rowHeight;
+      doc.text(this.ivaLabel() + ':', summaryX, y);
+      doc.text(`$${iva.toFixed(2)}`, valueX, y);
+      y += rowHeight;
     }
 
     if (retefuente > 0) {
-      doc.text(this.retefuenteLabel(invoice) + ':', summaryX, currentY);
-      doc.text(`$${retefuente.toFixed(2)}`, valueX, currentY, {
-        align: 'left',
-      });
-      currentY += rowHeight;
+      doc.text(this.retefuenteLabel(invoice) + ':', summaryX, y);
+      doc.text(`$${retefuente.toFixed(2)}`, valueX, y);
+      y += rowHeight;
     }
 
     if (reteica > 0) {
-      doc.text(this.reteicaLabel(invoice) + ':', summaryX, currentY);
-      doc.text(`$${reteica.toFixed(2)}`, valueX, currentY, { align: 'left' });
-      currentY += rowHeight;
+      doc.text(this.reteicaLabel(invoice) + ':', summaryX, y);
+      doc.text(`$${reteica.toFixed(2)}`, valueX, y);
+      y += rowHeight;
     }
 
     doc.setFontSize(14);
-    doc.text('Total:', summaryX, currentY);
-    doc.text(`$${total.toFixed(2)}`, valueX, currentY, { align: 'left' });
-    currentY += rowHeight;
+    doc.text('Total:', summaryX, y);
+    doc.text(`$${total.toFixed(2)}`, valueX, y);
 
-    const spacing = 15;
-    const totalPagarY = currentY + rowHeight;
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Total a Pagar:', summaryX, totalPagarY);
-    doc.text(`$${remainingBalance.toFixed(2)}`, valueX + spacing, totalPagarY, {
-      align: 'left',
-    });
+    y += rowHeight + 10;
 
-    const footerStartY = totalPagarY + rowHeight * 3;
+    doc.text('Total a Pagar:', summaryX, y);
+    doc.text(`$${remainingBalance.toFixed(2)}`, valueX, y);
+
+    y += 20;
+
+    const footerStartY = y + rowHeight * 3;
     doc.setFontSize(10);
     doc.setFont('helvetica', 'italic');
     /*doc.text(
