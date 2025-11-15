@@ -85,80 +85,53 @@ export class ExpensesComponent implements OnInit {
 
   // Método para guardar el egreso y actualizar los checkboxes
   saveExpense(): void {
-    if (this.isSaving) return; // Evitar múltiples clics
-    this.isSaving = true;
+  if (this.isSaving) return;
+  this.isSaving = true;
 
-    if (!this.selectedExpense.payment_date) {
-      alert('Por favor, seleccione una fecha.');
-      return;
-    }
+  if (!this.selectedExpense.payment_date) {
+    alert('Por favor, seleccione una fecha.');
+    this.isSaving = false;
+    return;
+  }
 
-    if (!this.selectedExpense.category) {
-      alert('Por favor, seleccione una categoria.');
-      return;
-    }
+  if (!this.selectedExpense.category) {
+    alert('Por favor, seleccione una categoría.');
+    this.isSaving = false;
+    return;
+  }
 
-    // Asegurarse de que selectedExpense no sea null
-    if (!this.selectedExpense) {
-      this.selectedExpense = {
-        id_expenses: '',
-        payment_date: '',
-        category: '',
-        type: '',
-        description: '',
-        cost: 0,
-        code: 0,
-        created_at: new Date(),
-      };
-    }
+  const finalCategory = this.showOtherCategoryInput
+    ? this.otherCategory
+    : this.selectedExpense.category;
 
-    // Determinar la categoría final
-    const finalCategory = this.showOtherCategoryInput
-      ? this.otherCategory
-      : this.selectedExpense.category;
+  const expenseToSave: Partial<ExpensesItem> = {
+    payment_date: this.selectedExpense.payment_date,
+    category: finalCategory,
+    type: this.selectedExpense.type,
+    description: this.selectedExpense.description,
+    cost: this.selectedExpense.cost,
+    code: this.selectedExpense.code,
+  };
 
-    const expenseToSave: Partial<ExpensesItem> = {
-      payment_date: this.selectedExpense.payment_date || '',
-      category: finalCategory || '', // Usar la categoría final
-      type: this.selectedExpense.type || '',
-      description: this.selectedExpense.description || '',
-      cost: this.selectedExpense.cost || 0,
-      code: this.selectedExpense.code || 0,
-    };
-
-    if (this.selectedExpense.id_expenses) {
-      // Actualizar egreso existente
-      this.supabase
+  const operation = this.isEditing
+    ? this.supabase
         .from('expenses')
         .update(expenseToSave)
         .eq('id_expenses', this.selectedExpense.id_expenses)
-        .then(({ error }) => {
-          if (error) {
-            console.error('Error al actualizar:', error);
-            alert(`Error al actualizar: ${error.message}`);
-          } else {
-            alert('Egreso actualizado correctamente');
-            this.getExpenses();
-          }
-          this.closeModal();
-        });
+    : this.supabase.from('expenses').insert([expenseToSave]);
+
+  operation.then(({ error }) => {
+    this.isSaving = false;
+    if (error) {
+      console.error('Error al guardar:', error);
+      alert(`Error: ${error.message}`);
     } else {
-      // Añadir nuevo egreso
-      this.supabase
-        .from('expenses')
-        .insert([expenseToSave])
-        .then(({ error }) => {
-          if (error) {
-            console.error('Error al añadir:', error);
-            alert(`Error al añadir: ${error.message}`);
-          } else {
-            alert('Egreso añadido correctamente');
-            this.getExpenses();
-          }
-          this.closeModal();
-        });
+      alert(this.isEditing ? 'Egreso actualizado' : 'Egreso añadido');
+      this.getExpenses();
+      this.closeModal();
     }
-  }
+  });
+}
 
   // Métodos existentes ajustados
   getExpenses(): void {
@@ -318,16 +291,16 @@ export class ExpensesComponent implements OnInit {
       code: 0,
       created_at: new Date(),
     };
-    this.showOtherCategoryInput = false; // Ocultar el campo "Otros" al añadir un nuevo egreso
-    this.otherCategory = ''; // Limpiar el campo "Otros"
+    this.showOtherCategoryInput = false;
+    this.otherCategory = '';
     this.isEditing = false;
     this.showModal = true;
   }
 
   editExpense(expense: ExpensesItem): void {
-    this.selectedExpense = { ...expense };
-    this.showOtherCategoryInput = expense.category === 'Otros'; // Mostrar el campo "Otros" si es necesario
-    this.otherCategory = expense.category === 'Otros' ? expense.category : ''; // Prellenar el campo "Otros" si es necesario
+    this.selectedExpense = { ...expense }; // copia limpia
+    this.showOtherCategoryInput = expense.category === 'Otros';
+    this.otherCategory = expense.category === 'Otros' ? expense.category : '';
     this.isEditing = true;
     this.showModal = true;
   }
@@ -335,8 +308,19 @@ export class ExpensesComponent implements OnInit {
   closeModal(): void {
     this.showModal = false;
     this.isEditing = false;
-    this.showOtherCategoryInput = false; // Ocultar el campo "Otros" al cerrar el modal
-    this.otherCategory = ''; // Limpiar el campo "Otros"
+    this.showOtherCategoryInput = false;
+    this.otherCategory = '';
+
+    this.selectedExpense = {
+      id_expenses: '',
+      payment_date: '',
+      category: '',
+      type: '',
+      description: '',
+      cost: 0,
+      code: 0,
+      created_at: new Date(),
+    };
   }
 
   deleteExpense(expense: ExpensesItem): void {

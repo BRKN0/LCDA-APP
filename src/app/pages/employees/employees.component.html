@@ -406,19 +406,20 @@
       <table class="w-full border-collapse">
         <thead>
           <tr class="bg-gray-100">
-            <th class="modal-table-column">#</th>
             <th class="modal-table-column">Detalles</th>
             <th class="modal-table-column">Fecha de Liquidacion</th>
+            <th class="modal-table-column">Acciones</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let liquidations of paginatedLiquidations">
-            <td class="modal-table-column">{{ liquidations.code }}</td>
-            <td class="modal-table-column">{{ liquidations.notes }}</td>
-            <td class="modal-table-column">
-              {{ liquidations.liquidation_date }}
-            </td>
-          </tr>
+          <tr *ngFor="let l of paginatedLiquidations">
+          <td class="modal-table-column">{{ l.notes }}</td>
+          <td class="modal-table-column">{{ l.liquidation_date }}</td>
+          <td class="modal-table-column">
+            <button class="btn-edit" (click)="editLiquidation(l)">Editar</button>
+            <button class="btn-danger" (click)="deleteLiquidation(l)">Eliminar</button>
+          </td>
+        </tr>
         </tbody>
       </table>
       <div class="flex justify-between items-center mb-4">
@@ -463,7 +464,44 @@
           </select>
         </div>
       </div>
-      <div class="flex justify-end mt-4">
+      <!-- Formulario de agregar/editar liquidación -->
+      <div *ngIf="showAddLiquidation" class="mt-4 border rounded-lg p-4 bg-white shadow">
+        <h4 class="text-md font-semibold mb-3 text-gray-700">
+          {{ isEditingLiquidation ? 'Editar Liquidación' : 'Agregar Liquidación' }}
+        </h4>
+        <form (ngSubmit)="saveLiquidation()">
+          <div class="mb-2">
+            <label>Fecha</label>
+            <input
+              type="date"
+              [(ngModel)]="liquidationForm.liquidation_date"
+              name="liquDate"
+              class="form-input mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+              required
+            />
+          </div>
+          <div class="mb-2">
+            <label>Notas</label>
+            <input
+              type="text"
+              [(ngModel)]="liquidationForm.notes"
+              name="liquNotes"
+              class="form-input mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+              placeholder="Ej: Fin de contrato"
+            />
+          </div>
+          <div class="flex justify-end gap-2 mt-4">
+            <button type="submit" class="btn-success">
+              Guardar
+            </button>
+            <button type="button" class="btn-danger" (click)="showAddLiquidation = false">
+              Cancelar
+            </button>
+          </div>
+        </form>
+      </div>
+      <div class="flex justify-end gap-2 mt-4">
+        <button class="btn-success" (click)="openAddLiquidationForm()">Agregar</button>
         <button
           class="btn-danger"
           (click)="toggleLiquidations(null)"
@@ -482,21 +520,24 @@
       <table class="modal-table">
         <thead>
           <tr>
-            <th class="modal-table-column">#</th>
             <th class="modal-table-column">Tipo</th>
             <th class="modal-table-column">Periodo</th>
             <th class="modal-table-column">Estado de Pago</th>
             <th class="modal-table-column">Fecha de pago</th>
+            <th class="modal-table-column">Acciones</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let benefits of paginatedBenefits">
-            <td class="modal-table-column">{{ benefits.code }}</td>
-            <td class="modal-table-column">{{ benefits.benefit_type }}</td>
-            <td class="modal-table-column">{{ benefits.period }}</td>           
-            <td class="modal-table-column">{{ benefits.status }}</td>
-            <td class="modal-table-column">{{ benefits.payment_date }}</td>
-          </tr>
+          <tr *ngFor="let b of paginatedBenefits">
+          <td class="modal-table-column">{{ b.benefit_type }}</td>
+          <td class="modal-table-column">{{ b.period }}</td>
+          <td class="modal-table-column">{{ b.status }}</td>
+          <td class="modal-table-column">{{ b.payment_date }}</td>
+          <td class="modal-table-column">
+            <button class="btn-edit" (click)="editBenefit(b)">Editar</button>
+            <button class="btn-danger" (click)="deleteBenefit(b)">Eliminar</button>
+          </td>
+        </tr>
         </tbody>
       </table>
       <div class="flex justify-between items-center mb-4">
@@ -541,7 +582,77 @@
           </select>
         </div>
       </div>
-      <div class="flex justify-end mt-4">
+      <!-- Formulario de agregar/editar prestación -->
+      <div *ngIf="showAddBenefit" class="mt-4 border rounded-lg p-4 bg-white shadow">
+        <h4 class="font-semibold mb-2">
+          {{ isEditingBenefit ? 'Editar Prestación' : 'Agregar Prestación' }}
+        </h4>
+        <form (ngSubmit)="saveBenefit()">
+          <div class="mb-2">
+            <label>Tipo</label>
+             <input
+                type="text"
+                [(ngModel)]="benefitForm.benefit_type"
+                name="benefitType"
+                class="form-input mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                placeholder="Ej: Prima"
+                required
+              />
+          </div>
+          <div class="mb-2">
+            <label>Periodo</label>
+            <input
+              type="text"
+              [(ngModel)]="benefitForm.period"
+              name="benefitPeriod"
+              class="form-input mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+              placeholder="Ej: 2025-06"
+              required
+            />
+          </div>
+          <div class="mb-2">
+            <label>Valor</label>
+            <input
+              type="number"
+              [(ngModel)]="benefitForm.amount"
+              name="benefitAmount"
+              class="form-input mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+              placeholder="0"
+              required
+            />
+          </div>
+          <div class="mb-2">
+            <label>Estado</label>
+             <input
+              type="text"
+              [(ngModel)]="benefitForm.status"
+              name="benefitStatus"
+              class="form-input mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+              placeholder="Ej: Pagado"
+              required
+            />
+          </div>
+          <div class="mb-2">
+            <label>Fecha de Pago</label>
+            <input
+              type="date"
+              [(ngModel)]="benefitForm.payment_date"
+              name="benefitDate"
+              class="form-input mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+            />
+          </div>
+          <div class="flex justify-end gap-2 mt-4">
+            <button type="submit" class="btn-success">
+              Guardar
+            </button>
+            <button type="button" class="btn-danger" (click)="showAddBenefit = false">
+                Cancelar
+              </button>
+          </div>
+        </form>
+      </div>
+      <div class="flex justify-end gap-2 mt-4">
+        <button class="btn-success" (click)="openAddBenefitForm()">Agregar</button>
         <button
           class="btn-danger"
           (click)="toggleBenefits(null)"

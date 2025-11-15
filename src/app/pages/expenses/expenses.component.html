@@ -79,7 +79,6 @@
   <table class="table-std">
     <thead>
       <tr>
-        <th class="table-column-std">Código</th>
         <th class="table-column-std">Fecha</th>
         <th class="table-column-std">Categoría</th>
         <th class="table-column-std">Tipo</th>
@@ -90,7 +89,6 @@
     </thead>
     <tbody>
       <tr *ngFor="let expense of paginatedExpenses">
-        <td>{{ expense.code }}</td>
         <td>{{ expense.payment_date | date : "dd-MM-yyyy" }}</td>
         <td>{{ expense.category }}</td>
         <td>{{ expense.type }}</td>
@@ -169,7 +167,7 @@
     </h2>
 
     <!-- Formulario -->
-    <form (ngSubmit)="saveExpense()">
+    <form (ngSubmit)="saveExpense()" novalidate>
       <div class="modal-input-item">
         <label for="payment_date"
           >Fecha<span class="text-red-500">*</span></label
@@ -244,18 +242,6 @@
           name="cost"
           class="form-input"
           step="0.01"
-          required
-        />
-      </div>
-
-      <div class="modal-input-item">
-        <label for="code">Código</label>
-        <input
-          type="number"
-          id="code"
-          [(ngModel)]="selectedExpense.code"
-          name="code"
-          class="form-input"
           required
         />
       </div>
