@@ -27,8 +27,6 @@ interface Notifications {
   styleUrls: ['./notifications.component.scss'],
 })
 export class NotificationsComponent implements OnInit {
-  toCollect: Notifications[] = [];
-  toPay: Notifications[] = [];
   lowStock: Notifications[] = [];
   reminders: Notifications[] = [];
   cutsOrders: Notifications[] = [];
@@ -139,20 +137,13 @@ export class NotificationsComponent implements OnInit {
 
     this.notifications = data as Notifications[];
     this.lowStock = [];
-    this.toPay = [];
-    this.toCollect = [];
+
     this.reminders = [];
 
     for (let i = 0; i < this.notifications.length; i++) {
       switch (this.notifications[i].type) {
         case 'lowStock':
           this.lowStock.push(this.notifications[i]);
-          break;
-        case 'toPay':
-          this.toPay.push(this.notifications[i]);
-          break;
-        case 'toCollect':
-          this.toCollect.push(this.notifications[i]);
           break;
         case 'reminder':
           this.reminders.push(this.notifications[i]);

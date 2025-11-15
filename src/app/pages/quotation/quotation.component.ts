@@ -6,7 +6,7 @@ import { jsPDF } from 'jspdf';
 import { MainBannerComponent } from '../main-banner/main-banner.component';
 import { SupabaseService } from '../../services/supabase.service';
 
-// ====== MODELOS ======
+// models
 type QuotationStatus = 'draft' | 'sent' | 'approved' | 'rejected' | 'expired' | 'converted';
 type DiscountType = 'none' | 'percent' | 'value';
 type DominantMaterial = {
@@ -81,7 +81,7 @@ interface QuotationItem {
   styleUrls: ['./quotation.component.scss'],
 })
 export class QuotationComponent implements OnInit {
-  // ====== ESTADO UI ======
+  // ui state
   loading = true;
   quotations: Quotation[] = [];
   filteredQuotations: Quotation[] = [];
@@ -197,8 +197,6 @@ export class QuotationComponent implements OnInit {
     };
   }
 
-
-  // ====== CICLO DE VIDA ======
   async ngOnInit(): Promise<void> {
     this.supabase.authChanges((_, session) => {
       if (session) {
@@ -212,7 +210,6 @@ export class QuotationComponent implements OnInit {
     });
   }
 
-  // ====== CARGA DE DATOS ======
   async getQuotations(): Promise<void> {
     const { data, error } = await this.supabase
       .from('quotations')
@@ -296,7 +293,6 @@ export class QuotationComponent implements OnInit {
     return data as Material[];
   }
 
-  // ====== FILTROS / PAGINACIÓN ======
   updateFiltered(): void {
     const text = (this.searchText || '').toLowerCase().trim();
 
@@ -351,7 +347,6 @@ export class QuotationComponent implements OnInit {
     this.updateFiltered();
   }
 
-  // ====== CRUD COTIZACIÓN ======
   addNewQuotation(): void {
     this.selectedQuotation = this.newEmptyQuotation();
     this.isEditing = false;
@@ -484,8 +479,6 @@ export class QuotationComponent implements OnInit {
     this.selectedQuotationDetails = null;
   }
 
-
-  // ====== ÍTEMS (tabla editable) ======
   addItem(row?: Partial<QuotationItem>): void {
     const items = this.selectedQuotation.items || (this.selectedQuotation.items = []);
     items.push({
@@ -533,7 +526,6 @@ export class QuotationComponent implements OnInit {
     this.suggestions[rowIndex] = [];
   }
 
-  // ====== DETALLE / PDF ======
   selectQuotation(q: Quotation): void {
     this.selectedQuotationDetails = q;
   }
@@ -666,11 +658,10 @@ export class QuotationComponent implements OnInit {
     return { subTotal, globalDiscount, ivaTotal, grandTotal };
   }
 
-  // ====== CONVERSIÓN A PEDIDO ======
   async convertQuotationToOrder(q: Quotation): Promise<void> {
     if (!q) return;
 
-    // Cliente requerido
+    // Required client
     if (!q.id_client) {
       alert('Para convertir a pedido, selecciona/crea un cliente.');
       return;
@@ -678,10 +669,9 @@ export class QuotationComponent implements OnInit {
 
     try {
       const items = q.items || [];
-      const totals = this.calculateQuotationTotals(q, items); // usa tu función actual
+      const totals = this.calculateQuotationTotals(q, items);
 
-      // ===== Nombre del cliente (join o lookup) =====
-      // (Conservado tal cual me pediste)
+      // client_name join/lookup
       let clientName: string | null =
         (q as any).client_name || (q as any).client?.name || null;
       if (!clientName) {
@@ -693,13 +683,12 @@ export class QuotationComponent implements OnInit {
         clientName = c?.name || 'Cliente sin nombre';
       }
 
-      // ===== Scheduler (quién convirtió) — opcional =====
+      // scheduler
       const schedulerName = (await this.getUserName?.()) || 'Desconocido';
 
-      // ===== Dominante (objeto) para texto =====
+      // dominant (for text)
       const dominant = this.resolveMainMaterial(items); // { label, percent, materialId }
 
-      // ===== Descripción limpia (sin IVA) =====
       const formatCOP = (n: number) =>
         n.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 });
 
@@ -730,12 +719,11 @@ export class QuotationComponent implements OnInit {
           .filter(Boolean)
           .join('\n');
 
-      // ===== Derivados obligatorios =====
       const orderQuantity = items.reduce((s, it) => s + Number(it.quantity || 0), 0);
       const safeQuantity = orderQuantity > 0 ? orderQuantity : 1;
-      const unitaryValue = Number((totals.subTotal / safeQuantity).toFixed(2)); // total sin IVA
+      const unitaryValue = Number((totals.subTotal / safeQuantity).toFixed(2));
 
-      // ===== extra_charges como ARRAY con snapshot (amount: 0) =====
+      // extra_charges as array with snapshot (amount: 0)
       const snapshotCharge = {
         kind: 'snapshot',
         label: 'Snapshot de cotización',
@@ -769,7 +757,7 @@ export class QuotationComponent implements OnInit {
       };
       const extra_charges: any[] = [snapshotCharge];
 
-      // ===== Payload Order (sin IVA en cifras) =====
+      // Payload Order
       const payloadOrder: any = {
         id_client: q.id_client,
         name: clientName,                 // nombre del pedido = cliente
@@ -798,7 +786,7 @@ export class QuotationComponent implements OnInit {
         extra_charges,                                     // ARRAY
       };
 
-      // ===== Insertar pedido =====
+      // insert order
       const { data, error } = await this.supabase
         .from('orders')
         .insert([payloadOrder])
@@ -813,7 +801,8 @@ export class QuotationComponent implements OnInit {
 
       const order = data[0];
 
-      // ===== Crear factura automática (Opción 4: tipo local) =====
+      // create invoice automatically 
+      // is this needed anymore?? this is handled by supabase now
       type InvoiceInsertLocal = {
         created_at: string;
         invoice_status: string;
@@ -824,7 +813,7 @@ export class QuotationComponent implements OnInit {
         classification?: string;
       };
 
-      // Evitar duplicados por id_order
+      // prevent dupes for id_order
       const { data: existingInv, error: existErr } = await this.supabase
         .from('invoices')
         .select('id_invoice')
@@ -864,7 +853,7 @@ export class QuotationComponent implements OnInit {
         }
       }
 
-      // ===== Marcar cotización convertida =====
+      // mark converted quotation
       await this.supabase
         .from('quotations')
         .update({ status: 'converted' })
@@ -906,15 +895,12 @@ export class QuotationComponent implements OnInit {
   }
 
   private formatMoney(n: number, currency = 'COP'): string {
-    // ajusta si usas otra moneda
     return new Intl.NumberFormat('es-CO', { style: 'currency', currency }).format(n || 0);
   }
 
   private buildOrderDescription(q: Quotation, items: QuotationItem[], totals: any): string {
     const title = q.title?.trim() || 'Sin título';
     const quotationNum = q.consecutive || q.id_quotation || '—';
-
-    // Crear lista detallada de ítems
     const lines = items.map((it, idx) => {
       const qty = it.quantity ?? 0;
       const desc = it.description || '';
@@ -955,7 +941,7 @@ export class QuotationComponent implements OnInit {
 
 
 
-  // ====== HELPERS ======
+  // helpers
   formatNumber(n: number): string { return (n ?? 0).toFixed(2); }
   money(v: number, currency = 'COP'): string { return `$${(v ?? 0).toFixed(2)}`; }
 

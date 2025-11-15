@@ -222,8 +222,11 @@ export class OrdersComponent implements OnInit {
           this.roleService.fetchAndSetUserRole(this.userId);
           this.roleService.role$.subscribe((role) => {
             this.userRole = role;
+            if (role) {
+              this.getOrders();
+            }
           });
-          this.getOrders();
+
           this.getClients();
           this.getMaterials();
           this.getProducts();
@@ -235,7 +238,6 @@ export class OrdersComponent implements OnInit {
       }
     });
   }
-
   async getOrders(): Promise<void> {
     this.loading = true;
     let query = this.supabase.from('orders').select('*, payments(*)');
@@ -363,7 +365,7 @@ export class OrdersComponent implements OnInit {
     return t === 'sales';
   }
 
-  // ======= Construye la fila para la tabla `sales` (venta-material) =======
+  // Builds the row for `sales` (sales-material)
   private buildSaleRowMaterial(orderId: string, m: any) {
     return {
       id_order: orderId,
@@ -380,7 +382,7 @@ export class OrdersComponent implements OnInit {
     };
   }
 
-  // ======= Crea/actualiza la línea de VENTA → MATERIAL y ajusta stock =======
+  // Creates/updates the line from sale to material and adjusts stock
   private async upsertSaleMaterialLine(orderId: string): Promise<boolean> {
     const selectedMaterial = this.getSelectedMaterial
       ? this.getSelectedMaterial()
@@ -1367,7 +1369,7 @@ export class OrdersComponent implements OnInit {
       ? order.delivery_date.slice(0, 10)
       : '';
 
-    // === BASE TOTAL: calcula sin romper si extra_charges no es array ===
+    // base_total calculates without breaking if extra_charges is not an array
     const extrasArray = Array.isArray(this.newOrder.extra_charges)
       ? this.newOrder.extra_charges
       : [];
@@ -1384,7 +1386,7 @@ export class OrdersComponent implements OnInit {
       }
     }
 
-    // ================== PRINT ==================
+    // prints
     if (order.order_type === 'print') {
       const { data, error } = await this.supabase
         .from('prints')
@@ -1399,7 +1401,7 @@ export class OrdersComponent implements OnInit {
       this.selectedCaliber = this.newPrint?.caliber ?? '';
       this.selectedColor = this.newPrint?.color ?? '';
 
-      // ================== LASER ==================
+      // laser
     } else if (order.order_type === 'laser') {
       const { data, error } = await this.supabase
         .from('cuts')
@@ -1414,7 +1416,7 @@ export class OrdersComponent implements OnInit {
       this.selectedCaliber = this.newCut?.caliber ?? '';
       this.selectedColor = this.newCut?.color ?? '';
 
-      // ================== SALES ==================
+      // salesa
     } else if (this.newOrder.order_type === 'sales') {
       // Busca 1 línea (material o producto). Si no hay, es "cotización convertida".
       const { data: rows, error } = await this.supabase
@@ -1714,7 +1716,7 @@ export class OrdersComponent implements OnInit {
           // saleMode === 'none' -> no hacer nada con stock/tabla sales
         }
       }
-      // ????
+      // ???? Whoever did this please explain
       const { data: existingInvoice, error: invoiceError } = await this.supabase
         .from('invoices')
         .select('*')
@@ -1766,7 +1768,7 @@ export class OrdersComponent implements OnInit {
       this.newOrder.code = insertedOrder.code;
 
       await this.handleFileUploadForOrder(this.newOrder.id_order!);
-      
+
       if (this.newOrder.order_type === 'print') {
         const selectedMaterial = this.getSelectedMaterial();
 
@@ -1930,7 +1932,8 @@ export class OrdersComponent implements OnInit {
 
     // Si el subtotal es 0, calcularlo: Total - Cargos Extras
     const total = parseFloat(order.total as string) || 0;
-    const extras = order.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
+    const extras =
+      order.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
     const base = total - extras;
 
     return base;
@@ -1970,15 +1973,19 @@ export class OrdersComponent implements OnInit {
     this.updateOrderTotalWithExtras();
   }
 
-
   updateOrderTotalWithExtras(): void {
     let base =
-      (typeof this.newOrder.base_total === 'number' && !isNaN(this.newOrder.base_total))
+      typeof this.newOrder.base_total === 'number' &&
+      !isNaN(this.newOrder.base_total)
         ? this.newOrder.base_total
         : parseFloat(this.newOrder.subtotal as string) || 0;
 
     // Si aún no hay base (pedido viejo sin campos): derivar una sola vez
-    const extras = this.newOrder.extra_charges?.reduce((sum, c) => sum + (c.amount || 0), 0) || 0;
+    const extras =
+      this.newOrder.extra_charges?.reduce(
+        (sum, c) => sum + (c.amount || 0),
+        0
+      ) || 0;
     if (!base) {
       const maybeTotal = parseFloat(this.newOrder.total as string) || 0;
       base = maybeTotal - extras;
@@ -1987,8 +1994,8 @@ export class OrdersComponent implements OnInit {
 
     // 2) Recalcular siempre desde la base
     this.newOrder.subtotal = base.toString();
-    this.newOrder.total    = (base + extras).toString();
-    this.newOrder.amount   = base + extras;
+    this.newOrder.total = (base + extras).toString();
+    this.newOrder.amount = base + extras;
   }
 
   async createNotification(addedOrder: Partial<Orders>) {

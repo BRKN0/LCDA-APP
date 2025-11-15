@@ -14,7 +14,7 @@ type OrderLite = {
 };
 function toOrderLite(raw: any): OrderLite | null {
   if (!raw) return null;
-  // hack to force shit to work
+  // probably not optimal
   const o = Array.isArray(raw) ? raw[0] : raw;
   if (!o) return null;
   return {
@@ -529,7 +529,7 @@ export class ScheduleComponent implements OnInit {
       const placed = this.tryPlaceCut(cut);
       if (!placed) {
         denyGeq = size; // ignore any next cuts with cutting_time >= this size
-        continue; // pray to God
+        continue;
       }
     }
   }

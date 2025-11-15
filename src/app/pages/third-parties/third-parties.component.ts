@@ -179,7 +179,7 @@ export class ThirdPartiesComponent implements OnInit {
   }
   initForm(party?: ThirdParty) {
     this.partyForm = this.fb.group({
-      id: [party?.id ?? null], // 👈 asegúrate de incluir esto
+      id: [party?.id ?? null],
       company_name: [party?.company_name || '', Validators.required],
       nit: [party?.nit || ''],
       email: [party?.email || ''],

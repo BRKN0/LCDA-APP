@@ -29,7 +29,6 @@ export class MainBannerComponent implements OnInit {
   constructor(
     private readonly supabase: SupabaseService,
     private readonly roleService: RoleService,
-    //private readonly route: ActivatedRoute,
     public readonly router: Router,
     private readonly zone: NgZone
   ) {
@@ -39,49 +38,49 @@ export class MainBannerComponent implements OnInit {
   }
 
   goToNotifications() {
-    this.router.navigate(['/notifications']); // Redirect to root route
+    this.router.navigate(['/notifications']);
   }
    goToThirdParties() {
-    this.router.navigate(['/third-parties']); // Redirect to root route
+    this.router.navigate(['/third-parties'])
   }
   goToHome() {
-    this.router.navigate(['/home']); // Redirect to root route
+    this.router.navigate(['/home']);
   }
   goToLogin() {
-    this.router.navigate(['/login']); // Redirect to login route
+    this.router.navigate(['/login']);
   }
   goToInventory() {
-    this.router.navigate(['/inventory/materials']); // Redirect to inventory route
+    this.router.navigate(['/inventory/materials']);
   }
   goToProducts() {
-    this.router.navigate(['/inventory/product']); // Redirect to product route
+    this.router.navigate(['/inventory/product']);
   }
   goToAcrylics() {
-    this.router.navigate(['/pricing/acrylics']); // Redirect to acrylics route
+    this.router.navigate(['/pricing/acrylics']); 
   }
   goToMdf() {
-    this.router.navigate(['/pricing/mdf']); // Redirect to mdf route
+    this.router.navigate(['/pricing/mdf']);
   }
   goTopolystyrene() {
-    this.router.navigate(['/pricing/polystyrene']); // Redirect to polystyrene route
+    this.router.navigate(['/pricing/polystyrene']);
   }
   goToVinylCuts() {
-    this.router.navigate(['/pricing/vinyl-cuts']); // Redirect to vinyl-cuts route
+    this.router.navigate(['/pricing/vinyl-cuts']);
   }
   goToClients() {
-    this.router.navigate(['/clients']); // Redirect to clients route
+    this.router.navigate(['/clients']);
   }
   goToOrders() {
-    this.router.navigate(['/orders']); // Redirect to orders route
+    this.router.navigate(['/orders']);
   }
   goToInvoices() {
-    this.router.navigate(['/invoice']); // Redirect to invoice route
+    this.router.navigate(['/invoice']);
   }
   goToExpenses() {
-    this.router.navigate(['/expenses']); // Redirect to expenses route
+    this.router.navigate(['/expenses']);
   }
   goToEmployees() {
-    this.router.navigate(['/employees']); // redirect to employees route
+    this.router.navigate(['/employees']);
   }
   goToProviders() {
     this.router.navigate(['/providers']);
@@ -93,7 +92,7 @@ export class MainBannerComponent implements OnInit {
     this.router.navigate(['/schedule']);
   }
   goToQuotation() {
-    this.router.navigate(['/quotation']); // redirect to quotation route
+    this.router.navigate(['/quotation']);
   }
   signOut() {
     this.supabase.signOut().then(() =>
@@ -158,7 +157,7 @@ export class MainBannerComponent implements OnInit {
     return;
   }
   toggleFinanceDropdown(event: MouseEvent): void {
-    event.stopPropagation(); // Prevents the document click listener from firing
+    event.stopPropagation();
     this.financeDropdownOpen = !this.financeDropdownOpen;
     this.priceDropdownOpen = false;
     this.inventoryDropdownOpen = false;
@@ -172,7 +171,7 @@ export class MainBannerComponent implements OnInit {
     this.quotationDropdownOpen = false;
   }
   togglePriceDropdown(event: MouseEvent): void {
-    event.stopPropagation(); // Prevents the document click listener from firing
+    event.stopPropagation();
     this.priceDropdownOpen = !this.priceDropdownOpen;
     this.quotationDropdownOpen = false;
     this.financeDropdownOpen = false;
@@ -180,7 +179,7 @@ export class MainBannerComponent implements OnInit {
   }
 
   toggleInventoryDropdown(event: MouseEvent): void {
-    event.stopPropagation(); // Prevents the document click listener from firing
+    event.stopPropagation();
     this.inventoryDropdownOpen = !this.inventoryDropdownOpen;
     this.quotationDropdownOpen = false;
     this.financeDropdownOpen = false;

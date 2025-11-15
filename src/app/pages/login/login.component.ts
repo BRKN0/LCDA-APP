@@ -26,14 +26,16 @@ export class LoginComponent implements OnInit {
     private readonly supabase: SupabaseService,
     private readonly router: Router
   ) {
-    this.form = this.fb.group({
-      email: ['', [Validators.required, Validators.email]],
-      password: ['', Validators.required],
-      confirmPassword: [''],
-    },
-    {
-     validator: this.passwordMatchValidator, 
-    });
+    this.form = this.fb.group(
+      {
+        email: ['', [Validators.required, Validators.email]],
+        password: ['', Validators.required],
+        confirmPassword: [''],
+      },
+      {
+        validator: this.passwordMatchValidator,
+      }
+    );
   }
 
   ngOnInit(): void {
@@ -48,14 +50,19 @@ export class LoginComponent implements OnInit {
       },
     });
   }
-
+  goHome() {
+    this.router.navigate(['/home'], {
+      queryParams: {},
+      replaceUrl: true,
+    });
+  }
   toggleMode() {
     this.isRegisterMode = !this.isRegisterMode;
     this.message = '';
     this.form.reset();
   }
 
-  passwordMatchValidator(group: FormGroup){
+  passwordMatchValidator(group: FormGroup) {
     const password = group.get('password')?.value;
     const confirmPassword = group.get('confirmPassword')?.value;
     if (this.isRegisterMode && password !== confirmPassword) {
@@ -103,26 +110,27 @@ export class LoginComponent implements OnInit {
       return;
     }
 
-    const { data, error } = await this.supabase.signUpWithPassword(email, password);
+    const { data, error } = await this.supabase.signUpWithPassword(
+      email,
+      password
+    );
     if (error) {
       window.alert('Hubo un error al registrarse, intente nuevamente');
       console.log(JSON.stringify(error, undefined, 2));
       return;
     }
 
-    await this.supabase
-      .from('users')
-      .insert([
-        {
-          id: data.user.id,   // mismo id del auth
-          email,
-          user_name,
-        }
-      ]);
+    await this.supabase.from('users').insert([
+      {
+        id: data.user.id, // mismo id del auth
+        email,
+        user_name,
+      },
+    ]);
 
     this.message =
       'Su usuario ha sido creado con éxito, revise la bandeja de entrada de su correo y abra el enlace de confirmación de correo electrónico para activar su cuenta';
-  
+
     this.toggleMode();
   }
 }

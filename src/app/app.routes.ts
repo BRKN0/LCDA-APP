@@ -18,9 +18,10 @@ import { EmployeesComponent } from './pages/employees/employees.component';
 import { ProvidersComponent } from './pages/providers/providers.component';
 import { ControlPanelComponent } from './pages/control-panel/control-panel.component';
 import { ThirdPartiesComponent } from './pages/third-parties/third-parties.component';
-import { CarouselComponent } from './pages/carousel/carousel.component';
 import { ScheduleComponent } from './pages/schedule/schedule.component';
 import { QuotationComponent } from './pages/quotation/quotation.component';
+import { roleGuard } from './guards/role.guard';
+
 export const routes: Routes = [
   {
     path: '',
@@ -32,7 +33,12 @@ export const routes: Routes = [
     loadComponent: () => LoginComponent,
   },
   {
+    path: 'home',
+    loadComponent: () => HomeComponent,
+  },
+  {
     path: 'pricing',
+    canMatch: [roleGuard],
     children: [
       { path: 'mdf', component: MDFComponent },
       { path: 'acrylics', component: AcrylicsComponent },
@@ -42,62 +48,89 @@ export const routes: Routes = [
   },
   {
     path: 'inventory',
+    data: { roles: ['admin'] },
     children: [
-      { path: 'materials', component: InventoryComponent },
+      { path: 'materials', component: InventoryComponent, canMatch: [roleGuard] },
       { path: 'product', component: ProductComponent },
     ],
   },
   {
-    path: 'home',
-    loadComponent: () => HomeComponent,
-  },
-  {
     path: 'clients',
     loadComponent: () => ClientsComponent,
-  },
-  {
-    path: 'orders',
-    loadComponent: () => OrdersComponent,
+    canMatch: [roleGuard],
+    data: { roles: ['admin', 'scheduler'] },
   },
   {
     path: 'third-parties',
     loadComponent: () => ThirdPartiesComponent,
-  },
-  { path: 'invoice', loadComponent: () => InvoiceComponent },
-  {
-    path: 'expenses',
-    loadComponent: () => ExpensesComponent,
+    canMatch: [roleGuard],
+    data: { roles: ['admin', 'scheduler'] },
   },
   {
-    path: 'banking',
-    loadComponent: () => BankingComponent,
-  },
-  {
-    path: 'notifications',
-    loadComponent: () => NotificationsComponent,
-  },
-  {
-    path: 'banks',
-    loadComponent: () => BanksComponent,
-  },
-  {
-    path: 'employees',
-    loadComponent: () => EmployeesComponent,
-  },
-  {
-    path: 'providers',
-    loadComponent: () => ProvidersComponent,
-  },
-  {
-    path: 'control-panel',
-    loadComponent: () => ControlPanelComponent,
+    path: 'orders',
+    loadComponent: () => OrdersComponent,
+    canMatch: [roleGuard],
+    data: { roles: ['admin', 'scheduler', 'prints_employee', 'cuts_employee'] },
   },
   {
     path: 'schedule',
     loadComponent: () => ScheduleComponent,
+    canMatch: [roleGuard],
+    data: { roles: ['admin', 'scheduler'] },
   },
   {
     path: 'quotation',
     loadComponent: () => QuotationComponent,
+    canMatch: [roleGuard],
+    data: { roles: ['admin', 'scheduler', 'prints_employee', 'cuts_employee'] },
+  },
+  {
+    path: 'invoice',
+    loadComponent: () => InvoiceComponent,
+    canMatch: [roleGuard],
+    data: { roles: ['admin'] },
+  },
+  {
+    path: 'expenses',
+    loadComponent: () => ExpensesComponent,
+    canMatch: [roleGuard],
+    data: { roles: ['admin'] },
+  },
+  {
+    path: 'banking',
+    loadComponent: () => BankingComponent,
+    canMatch: [roleGuard],
+    data: { roles: ['admin'] },
+  },
+  {
+    path: 'banks',
+    loadComponent: () => BanksComponent,
+    canMatch: [roleGuard],
+    data: { roles: ['admin'] },
+  },
+
+  {
+    path: 'employees',
+    loadComponent: () => EmployeesComponent,
+    canMatch: [roleGuard],
+    data: { roles: ['admin'] },
+  },
+  {
+    path: 'providers',
+    loadComponent: () => ProvidersComponent,
+    canMatch: [roleGuard],
+    data: { roles: ['admin'] },
+  },
+  {
+    path: 'control-panel',
+    loadComponent: () => ControlPanelComponent,
+    canMatch: [roleGuard],
+    data: { roles: ['admin'] },
+  },
+  {
+    path: 'notifications',
+    loadComponent: () => NotificationsComponent,
+    canMatch: [roleGuard],
+    data: { roles: ['admin', 'prints_employee', 'cuts_employee'] },
   },
 ];
