@@ -193,6 +193,7 @@
           <th class="table-column-std">Atención</th>
           <th class="table-column-std">Estado de pago</th>
           <th class="table-column-std">Estado de trabajo</th>
+          <th class="table-column-std">Estado Stock</th>
           <th class="table-column-std">Fecha</th>
           <th class="table-column-std">Fecha de Entrega</th>
           <th class="table-column-std">Días Restantes</th>
@@ -266,6 +267,33 @@
               <option value="inProgress">En progreso</option>
             </select>
           </td>
+          <td
+            [ngClass]="{
+              'text-green-600': order.stock_status === 'fulfilled',
+              'text-orange-600': order.stock_status === 'partially_fulfilled',
+              'text-red-600': order.stock_status === 'pending_stock'
+            }"
+          >
+            <span *ngIf="!order.stock_status || order.stock_status === 'fulfilled'">
+              Completo
+            </span>
+            <span *ngIf="order.stock_status === 'partially_fulfilled'">
+              Parcial
+              <span class="text-xs block">({{ order.pending_quantity || 0 }} pend.)</span>
+            </span>
+            <span *ngIf="order.stock_status === 'pending_stock'">
+              Pendiente
+              <span class="text-xs block">({{ order.pending_quantity || 0 }} pend.)</span>
+            </span>
+            <button
+              *ngIf="order.stock_status === 'pending_stock' || order.stock_status === 'partially_fulfilled'"
+              class="btn-success mt-2 text-xs px-2 py-1"
+              (click)="completeStockForOrder(order)"
+            >
+              Completar Stock
+            </button>
+          </td>
+
           <td>{{ order.created_at | date : "dd-MM-yyyy" }}</td>
           <td>
             {{
@@ -683,9 +711,9 @@
         <ng-container *ngIf="selectedOrderTypeDetail?.length; else noSales">
           <ul class="list-none">
             <li *ngFor="let s of selectedOrderTypeDetail" class="mb-4 pb-4 border-b">
-              <p><strong>Tipo de ítem:</strong> 
-                {{ 
-                  s.item_type === 'material' ? 'Material' : 
+              <p><strong>Tipo de ítem:</strong>
+                {{
+                  s.item_type === 'material' ? 'Material' :
                   s.item_type === 'product' ? 'Producto' :
                   'Desconocido'
                 }}
