@@ -1681,40 +1681,65 @@ export class OrdersComponent implements OnInit {
       }
 
       if (this.newOrder.order_type === 'print') {
-        const selectedMaterial = this.getSelectedMaterial();
+      // Obtenemos el print existente primero
+      const { data: existingPrint, error: printSearchError } = await this.supabase
+        .from('prints')
+        .select('id, quantity, fulfilled_quantity, pending_quantity')
+        .eq('id_order', this.newOrder.id_order)
+        .maybeSingle();
 
-        let deductedQty = 0;
-        let pendingQty = 0;
+      if (printSearchError) {
+        console.error('Error obteniendo print anterior:', printSearchError);
+        return;
+      }
 
-        if (selectedMaterial) {
-          const quantityToUse = parseInt(this.newPrint.quantity || '0');
-          const currentStock = parseFloat(selectedMaterial.material_quantity);
+      const selectedMaterial = this.getSelectedMaterial();
 
-          // Calcular deducción
-          if (currentStock >= quantityToUse) {
-            deductedQty = quantityToUse;
-          } else {
-            deductedQty = currentStock;
-            pendingQty = quantityToUse - currentStock;
+      // Verificamos si la cantidad cambió
+      const oldQuantity = existingPrint ? parseInt(existingPrint.quantity || '0') : 0;
+      const newQuantity = parseInt(this.newPrint.quantity || '0');
+      const quantityChanged = oldQuantity !== newQuantity;
 
-            alert(
-              `⚠️ ADVERTENCIA DE STOCK\n\n` +
-              `Solicitado: ${quantityToUse}\n` +
-              `Disponible: ${currentStock}\n` +
-              `Pendiente: ${pendingQty}\n\n` +
-              `El pedido se actualizó pero hay ${pendingQty} unidades pendientes por falta de stock.`
-            );
-          }
+      let deductedQty = existingPrint ? Number(existingPrint.fulfilled_quantity || 0) : 0;
+      let pendingQty = existingPrint ? Number(existingPrint.pending_quantity || 0) : 0;
 
-          const newStock = Math.max(currentStock - deductedQty, 0);
+      // SOLO recalculamos el stock si la cantidad cambió
+      if (quantityChanged && selectedMaterial) {
+        const currentStock = parseFloat(selectedMaterial.material_quantity);
 
-          await this.supabase
-            .from('materials')
-            .update({ material_quantity: newStock.toString() })
-            .eq('id_material', selectedMaterial.id_material);
+        // Devolver el stock que se había descontado antes
+        const stockToReturn = deductedQty;
+        const stockAfterReturn = currentStock + stockToReturn;
+
+        // Descontar la NUEVA cantidad solicitada
+        const quantityToUse = newQuantity;
+
+        if (stockAfterReturn >= quantityToUse) {
+          deductedQty = quantityToUse;
+          pendingQty = 0;
+        } else {
+          deductedQty = stockAfterReturn;
+          pendingQty = quantityToUse - stockAfterReturn;
+
+          alert(
+            `⚠️ ADVERTENCIA DE STOCK\n\n` +
+            `Solicitado: ${quantityToUse}\n` +
+            `Disponible: ${stockAfterReturn}\n` +
+            `Pendiente: ${pendingQty}\n\n` +
+            `El pedido se actualizó pero hay ${pendingQty} unidades pendientes por falta de stock.`
+          );
         }
 
-        const printData = {
+        const finalStock = Math.max(stockAfterReturn - deductedQty, 0);
+
+        await this.supabase
+          .from('materials')
+          .update({ material_quantity: finalStock.toString() })
+          .eq('id_material', selectedMaterial.id_material);
+      }
+
+      const printData = {
+
           ...this.newPrint,
           id_order: this.newOrder.id_order,
           material_type: selectedMaterial?.type || '',
@@ -1724,13 +1749,6 @@ export class OrdersComponent implements OnInit {
           fulfilled_quantity: deductedQty,
           pending_quantity: pendingQty,
         };
-
-        const { data: existingPrint, error: printSearchError } =
-          await this.supabase
-            .from('prints')
-            .select('id')
-            .eq('id_order', this.newOrder.id_order)
-            .maybeSingle();
 
         if (existingPrint) {
           const { error: printUpdateError } = await this.supabase
@@ -1764,44 +1782,66 @@ export class OrdersComponent implements OnInit {
           })
           .eq('id_order', this.newOrder.id_order);
 
-      } else if (this.newOrder.order_type === 'laser') {
-        const selectedMaterial = this.getSelectedMaterial();
+          } else if (this.newOrder.order_type === 'laser') {
+          // Obtenemos el cut existente primero
+          const { data: existingCut, error: cutSearchError } = await this.supabase
+            .from('cuts')
+            .select('id, quantity, fulfilled_quantity, pending_quantity')
+            .eq('id_order', this.newOrder.id_order)
+            .maybeSingle();
 
-        let deductedQty = 0;
-        let pendingQty = 0;
-
-        if (selectedMaterial) {
-          const quantityToUse = parseInt(this.newCut.quantity || '0');
-          const currentStock = parseFloat(selectedMaterial.material_quantity);
-
-          // Ya no bloqueamos, descontamos lo disponible
-          if (currentStock >= quantityToUse) {
-            // Hay suficiente stock
-            deductedQty = quantityToUse;
-          } else {
-            // No hay suficiente stock - descontar solo lo disponible
-            deductedQty = currentStock;
-            pendingQty = quantityToUse - currentStock;
-
-            alert(
-              `⚠️ ADVERTENCIA DE STOCK\n\n` +
-              `Solicitado: ${quantityToUse}\n` +
-              `Disponible: ${currentStock}\n` +
-              `Pendiente: ${pendingQty}\n\n` +
-              `El pedido se actualizó pero hay ${pendingQty} unidades pendientes por falta de stock.`
-            );
+          if (cutSearchError) {
+            console.error('Error obteniendo cut anterior:', cutSearchError);
+            return;
           }
 
-          // Actualizar stock (nunca negativo)
-          const newStock = Math.max(currentStock - deductedQty, 0);
+          const selectedMaterial = this.getSelectedMaterial();
 
-          await this.supabase
-            .from('materials')
-            .update({ material_quantity: newStock.toString() })
-            .eq('id_material', selectedMaterial.id_material);
-        }
+          // Verificamos si la cantidad cambió
+          const oldQuantity = existingCut ? parseInt(existingCut.quantity || '0') : 0;
+          const newQuantity = parseInt(this.newCut.quantity || '0');
+          const quantityChanged = oldQuantity !== newQuantity;
 
-        const cutData = {
+          let deductedQty = existingCut ? Number(existingCut.fulfilled_quantity || 0) : 0;
+          let pendingQty = existingCut ? Number(existingCut.pending_quantity || 0) : 0;
+
+          // SOLO recalculamos el stock si la cantidad cambió
+          if (quantityChanged && selectedMaterial) {
+            const currentStock = parseFloat(selectedMaterial.material_quantity);
+
+            // Devolver el stock que se había descontado antes
+            const stockToReturn = deductedQty;
+            const stockAfterReturn = currentStock + stockToReturn;
+
+            // Descontar la NUEVA cantidad solicitada
+            const quantityToUse = newQuantity;
+
+            if (stockAfterReturn >= quantityToUse) {
+              deductedQty = quantityToUse;
+              pendingQty = 0;
+            } else {
+              deductedQty = stockAfterReturn;
+              pendingQty = quantityToUse - stockAfterReturn;
+
+              alert(
+                `⚠️ ADVERTENCIA DE STOCK\n\n` +
+                `Solicitado: ${quantityToUse}\n` +
+                `Disponible: ${stockAfterReturn}\n` +
+                `Pendiente: ${pendingQty}\n\n` +
+                `El pedido se actualizó pero hay ${pendingQty} unidades pendientes por falta de stock.`
+              );
+            }
+
+            const finalStock = Math.max(stockAfterReturn - deductedQty, 0);
+
+            await this.supabase
+              .from('materials')
+              .update({ material_quantity: finalStock.toString() })
+              .eq('id_material', selectedMaterial.id_material);
+          }
+
+          const cutData = {
+
           ...this.newCut,
           id_order: this.newOrder.id_order,
           material_type: selectedMaterial?.type || '',
@@ -1811,12 +1851,6 @@ export class OrdersComponent implements OnInit {
           fulfilled_quantity: deductedQty,
           pending_quantity: pendingQty,
         };
-
-        const { data: existingCut, error: cutSearchError } = await this.supabase
-          .from('cuts')
-          .select('id')
-          .eq('id_order', this.newOrder.id_order)
-          .maybeSingle();
 
         if (existingCut) {
           const { error: cutUpdateError } = await this.supabase
@@ -2033,44 +2067,65 @@ export class OrdersComponent implements OnInit {
 
         this.createNotification(insertedOrder);
       } else if (this.newOrder.order_type === 'laser') {
-        const selectedMaterial = this.getSelectedMaterial();
+      // Obtenemos el cut existente primero
+      const { data: existingCut, error: cutSearchError } = await this.supabase
+        .from('cuts')
+        .select('id, quantity, fulfilled_quantity, pending_quantity')
+        .eq('id_order', this.newOrder.id_order)
+        .maybeSingle();
 
-        let deductedQty = 0;
-        let pendingQty = 0;
+      if (cutSearchError) {
+        console.error('Error obteniendo cut anterior:', cutSearchError);
+        return;
+      }
 
-        if (selectedMaterial) {
-          const quantityToUse = parseInt(this.newCut.quantity || '0');
-          const currentStock = parseFloat(selectedMaterial.material_quantity);
+      const selectedMaterial = this.getSelectedMaterial();
 
-          //  Ya no bloqueamos, descontamos lo disponible
-          if (currentStock >= quantityToUse) {
-            // Hay suficiente stock
-            deductedQty = quantityToUse;
-          } else {
-            // No hay suficiente stock - descontar solo lo disponible
-            deductedQty = currentStock;
-            pendingQty = quantityToUse - currentStock;
+      // Verificamos si la cantidad cambió
+      const oldQuantity = existingCut ? parseInt(existingCut.quantity || '0') : 0;
+      const newQuantity = parseInt(this.newCut.quantity || '0');
+      const quantityChanged = oldQuantity !== newQuantity;
 
-            alert(
-              `⚠️ ADVERTENCIA DE STOCK\n\n` +
-              `Solicitado: ${quantityToUse}\n` +
-              `Disponible: ${currentStock}\n` +
-              `Pendiente: ${pendingQty}\n\n` +
-              `El pedido se creó pero hay ${pendingQty} unidades pendientes por falta de stock.`
-            );
-          }
+      let deductedQty = existingCut ? Number(existingCut.fulfilled_quantity || 0) : 0;
+      let pendingQty = existingCut ? Number(existingCut.pending_quantity || 0) : 0;
 
-          // Actualizar stock (nunca negativo)
-          const newStock = Math.max(currentStock - deductedQty, 0);
+      // SOLO recalculamos el stock si la cantidad cambió
+      if (quantityChanged && selectedMaterial) {
+        const currentStock = parseFloat(selectedMaterial.material_quantity);
 
-          await this.supabase
-            .from('materials')
-            .update({ material_quantity: newStock.toString() })
-            .eq('id_material', selectedMaterial.id_material);
+        // Devolver el stock que se había descontado antes
+        const stockToReturn = deductedQty;
+        const stockAfterReturn = currentStock + stockToReturn;
+
+        // Descontar la NUEVA cantidad solicitada
+        const quantityToUse = newQuantity;
+
+        if (stockAfterReturn >= quantityToUse) {
+          deductedQty = quantityToUse;
+          pendingQty = 0;
+        } else {
+          deductedQty = stockAfterReturn;
+          pendingQty = quantityToUse - stockAfterReturn;
+
+          alert(
+            `⚠️ ADVERTENCIA DE STOCK\n\n` +
+            `Solicitado: ${quantityToUse}\n` +
+            `Disponible: ${stockAfterReturn}\n` +
+            `Pendiente: ${pendingQty}\n\n` +
+            `El pedido se actualizó pero hay ${pendingQty} unidades pendientes por falta de stock.`
+          );
         }
 
-        // Agregar fulfilled_quantity y pending_quantity
-        const cutData = {
+        const finalStock = Math.max(stockAfterReturn - deductedQty, 0);
+
+        await this.supabase
+          .from('materials')
+          .update({ material_quantity: finalStock.toString() })
+          .eq('id_material', selectedMaterial.id_material);
+      }
+
+      const cutData = {
+
           ...this.newCut,
           id_order: this.newOrder.id_order,
           material_type: selectedMaterial?.type || '',
@@ -2590,6 +2645,8 @@ export class OrdersComponent implements OnInit {
       return;
     }
 
+    await this.getMaterials();
+
     // Determinar qué tabla usar según el tipo de pedido
     let detailTable: 'prints' | 'cuts' | 'sales' = 'prints';
 
@@ -2642,57 +2699,24 @@ export class OrdersComponent implements OnInit {
 
       const currentStock = parseFloat(material.material_quantity);
 
-      // 3. Verificar si hay suficiente stock
+      // Si no hay suficiente stock, solo mostrar error y SALIR
       if (currentStock < pendingQty) {
-        const confirmPartial = confirm(
-          `Stock insuficiente.\n\n` +
-          `Disponible: ${currentStock}\n` +
-          `Necesario: ${pendingQty}\n\n` +
-          `¿Desea completar parcialmente con ${currentStock} unidades?`
+        alert(
+          `❌ STOCK INSUFICIENTE\n\n` +
+          `Se necesitan: ${pendingQty} unidades\n` +
+          `Disponible actualmente: ${currentStock} unidades\n` +
+          `Faltan: ${pendingQty - currentStock} unidades\n\n` +
+          `Por favor, agregue más material al inventario antes de completar este pedido.`
         );
-
-        if (!confirmPartial) {
-          return;
-        }
-
-        // Completar parcialmente
-        const newStock = 0; // Se agota el stock disponible
-        const newFulfilledQty = fulfilledQty + currentStock;
-        const newPendingQty = pendingQty - currentStock;
-
-        // Actualizar material
-        await this.supabase
-          .from('materials')
-          .update({ material_quantity: newStock.toString() })
-          .eq('id_material', material.id_material);
-
-        // Actualizar detalle (prints/cuts)
-        await this.supabase
-          .from(detailTable)
-          .update({
-            fulfilled_quantity: newFulfilledQty,
-            pending_quantity: newPendingQty
-          })
-          .eq('id_order', order.id_order);
-
-        // Actualizar orden (sigue parcialmente completado)
-        await this.supabase
-          .from('orders')
-          .update({
-            stock_status: 'partially_fulfilled',
-            pending_quantity: newPendingQty
-          })
-          .eq('id_order', order.id_order);
-
-        alert(`Se completaron ${currentStock} unidades. Aún faltan ${newPendingQty}.`);
-        await this.getOrders();
         return;
       }
 
       // 4. Hay suficiente stock - completar totalmente
       const confirmComplete = confirm(
         `¿Completar el pedido?\n\n` +
-        `Se descontarán ${pendingQty} unidades del inventario.`
+        `Se descontarán ${pendingQty} unidades del inventario.\n` +
+        `Stock actual: ${currentStock}\n` +
+        `Stock después: ${currentStock - pendingQty}`
       );
 
       if (!confirmComplete) {
@@ -2727,12 +2751,14 @@ export class OrdersComponent implements OnInit {
 
       alert('✅ Pedido completado correctamente.');
       await this.getOrders();
+      await this.getMaterials(); // Refrescar materiales
 
     } catch (error) {
       console.error('Error completando stock:', error);
       alert('Ocurrió un error al completar el stock.');
     }
   }
+
 
   clearFilters(): void {
     this.startDate = '';
