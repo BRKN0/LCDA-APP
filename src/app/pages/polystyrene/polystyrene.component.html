@@ -68,12 +68,55 @@
     <span>Calculadora</span>
   </button>
   <button
-    class="btn-clear inline-flex items-center space-x-2 "
+    class="btn-clear inline-flex items-center space-x-2"
     (click)="clearFilters()"
   >
     Limpiar filtros
   </button>
 </div>
+
+<!-- NUEVO: Checkboxes para filtrar por tipo -->
+<div *ngIf="!loading" class="flex justify-start items-center mb-4 ml-2">
+  <div class="flex space-x-4">
+    <label class="inline-flex items-center">
+      <input
+        type="checkbox"
+        [(ngModel)]="showOriginal"
+        (change)="updateFilteredPolystyrenes()"
+        class="form-checkbox"
+      />
+      <span class="ml-2">Original</span>
+    </label>
+    <label class="inline-flex items-center">
+      <input
+        type="checkbox"
+        [(ngModel)]="showEco"
+        (change)="updateFilteredPolystyrenes()"
+        class="form-checkbox"
+      />
+      <span class="ml-2">Eco</span>
+    </label>
+    <label class="inline-flex items-center">
+      <input
+        type="checkbox"
+        [(ngModel)]="showClear"
+        (change)="updateFilteredPolystyrenes()"
+        class="form-checkbox"
+      />
+      <span class="ml-2">Transparente</span>
+    </label>
+    <label class="inline-flex items-center">
+      <input
+        type="checkbox"
+        [(ngModel)]="showColor"
+        (change)="updateFilteredPolystyrenes()"
+        class="form-checkbox"
+      />
+      <span class="ml-2">Color</span>
+    </label>
+  </div>
+</div>
+
 <div class="flex items-center justify-center py-4 space-x-4 top-5">
   <div class="relative w-full max-w-md">
     <input
@@ -85,6 +128,7 @@
     />
   </div>
 </div>
+
 <div class="flex justify-start items-center mb-4 mt-4 ml-2">
   <div class="flex space-x-2">
     <label for="format" class="font-semibold">Formato:</label>
@@ -106,50 +150,34 @@
       </option>
       <option value="">Personalizado</option>
     </select>
-
-    <select
-      [(ngModel)]="searchType"
-      (change)="updateFilteredPolystyrenes()"
-      class="border p-2 rounded h-10"
-    >
-      <option value="">-- Todos los tipos --</option>
-      <option *ngFor="let type of availableTypes" [value]="type">
-        {{
-          type === 'original' ? 'Original' :
-          type === 'eco' ? 'Eco' :
-          type === 'clear' ? 'Transparente' :
-          type === 'color' ? 'Color' :
-          type
-       }}
-      </option>
-    </select>
   </div>
 
   <div class="flex items-center space-x-4 ml-auto">
-      <div>
-        <label class="block font-semibold">Ancho (cm)</label>
-        <input
-          type="number"
-          [(ngModel)]="customWidth"
-          (input)="updatePaginatedPolystyrenes()"
-          class="border border-gray-300 rounded-md p-2 w-28"
-          placeholder="Ej. 50"
-          [disabled]="selectedFormat.trim() !== ''"
-        />
-      </div>
-      <div>
-        <label class="block font-semibold">Alto (cm)</label>
-        <input
-          type="number"
-          [(ngModel)]="customHeight"
-          (input)="updatePaginatedPolystyrenes()"
-          class="border border-gray-300 rounded-md p-2 w-28"
-          placeholder="Ej. 100"
-          [disabled]="selectedFormat.trim() !== ''"
-        />
-      </div>
+    <div>
+      <label class="block font-semibold">Ancho (cm)</label>
+      <input
+        type="number"
+        [(ngModel)]="customWidth"
+        (input)="updatePaginatedPolystyrenes()"
+        class="border border-gray-300 rounded-md p-2 w-28"
+        placeholder="Ej. 50"
+        [disabled]="selectedFormat.trim() !== ''"
+      />
     </div>
+    <div>
+      <label class="block font-semibold">Alto (cm)</label>
+      <input
+        type="number"
+        [(ngModel)]="customHeight"
+        (input)="updatePaginatedPolystyrenes()"
+        class="border border-gray-300 rounded-md p-2 w-28"
+        placeholder="Ej. 100"
+        [disabled]="selectedFormat.trim() !== ''"
+      />
+    </div>
+  </div>
 </div>
+
 <!-- Tabla -->
 <div *ngIf="!loading">
   <div *ngIf="paginatedPolystyrenes.length > 0">
@@ -372,160 +400,161 @@
 </div>
 
 <div *ngIf="showCalculatorModal" class="modal-overlay">
-    <div class="modal-content modal-h600">
-      <h3 class="text-lg font-bold mb-4">Calculadora de Poliestireno</h3>
-      <form (ngSubmit)="calculatePolystyreneValues()">
-        <!-- Cliente -->
-        <div class="mb-4">
-          <label class="block modal-input-item">Cliente (opcional)</label>
-          <div class="relative">
-            <input
-              type="text"
-              placeholder="Buscar cliente por nombre..."
-              [(ngModel)]="clientSearchQuery"
-              (ngModelChange)="searchClients()"
-              name="clientSearch"
-              class="form-input mt-1 block w-full"
-              (focus)="showClientDropdown = true"
-              (blur)="hideClientDropdown()"
-            />
+  <div class="modal-content modal-h600">
+    <h3 class="text-lg font-bold mb-4">Calculadora de Poliestireno</h3>
+    <form (ngSubmit)="calculatePolystyreneValues()">
+      <!-- Cliente -->
+      <div class="mb-4">
+        <label class="block modal-input-item">Cliente (opcional)</label>
+        <div class="relative">
+          <input
+            type="text"
+            placeholder="Buscar cliente por nombre..."
+            [(ngModel)]="clientSearchQuery"
+            (ngModelChange)="searchClients()"
+            name="clientSearch"
+            class="form-input mt-1 block w-full"
+            (focus)="showClientDropdown = true"
+            (blur)="hideClientDropdown()"
+          />
+          <div
+            *ngIf="showClientDropdown && filteredClients.length > 0"
+            class="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto"
+          >
             <div
-              *ngIf="showClientDropdown && filteredClients.length > 0"
-              class="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto"
+              *ngFor="let client of filteredClients"
+              class="p-2 hover:bg-gray-200 cursor-pointer"
+              (click)="selectClient(client)"
             >
-              <div
-                *ngFor="let client of filteredClients"
-                class="p-2 hover:bg-gray-200 cursor-pointer"
-                (click)="selectClient(client)"
-              >
-                {{ client.name }} ({{ client.company_name || 'Sin empresa' }})
-              </div>
+              {{ client.name }} ({{ client.company_name || 'Sin empresa' }})
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- Formulario de medidas -->
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block modal-input-item">Ancho (cm)</label>
-            <input type="number" [(ngModel)]="calculatorForm.width" name="width" required class="form-input w-full" />
-          </div>
-          <div>
-            <label class="block modal-input-item">Alto (cm)</label>
-            <input type="number" [(ngModel)]="calculatorForm.height" name="height" required class="form-input w-full" />
-          </div>
-          <div>
-            <label class="block modal-input-item">Calibre</label>
-            <input type="text" [(ngModel)]="calculatorForm.caliber" name="caliber" required class="form-input w-full" />
-          </div>
-          <div>
-            <label class="block modal-input-item">Tipo</label>
-            <input type="text" [(ngModel)]="calculatorForm.type" name="type" required class="form-input w-full" />
-          </div>
-          <div>
-            <label class="block modal-input-item">Formato</label>
-            <select [(ngModel)]="calculatorForm.format" name="format" class="form-select w-full">
-              <option *ngFor="let key of (formatFactors | keyvalue)" [value]="key.key">{{ key.key }}</option>
-              <option value="">Personalizado</option>
-            </select>
-          </div>
-          <div>
-            <label class="block modal-input-item">Precio lámina entera</label>
-            <input type="number" [(ngModel)]="calculatorForm.whole" name="whole" required class="form-input w-full" />
-          </div>
-          <div>
-            <label class="block modal-input-item">Utilidad (%)</label>
-            <input type="number" [(ngModel)]="calculatorForm.margin" name="margin" required class="form-input w-full" />
-          </div>
-          <div>
-            <label class="block modal-input-item">Descuento (%)</label>
-            <input type="number" [(ngModel)]="calculatorForm.discount" name="discount" required class="form-input w-full" />
-          </div>
+      <!-- Formulario de medidas -->
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block modal-input-item">Ancho (cm)</label>
+          <input type="number" [(ngModel)]="calculatorForm.width" name="width" required class="form-input w-full" />
         </div>
+        <div>
+          <label class="block modal-input-item">Alto (cm)</label>
+          <input type="number" [(ngModel)]="calculatorForm.height" name="height" required class="form-input w-full" />
+        </div>
+        <div>
+          <label class="block modal-input-item">Calibre</label>
+          <input type="text" [(ngModel)]="calculatorForm.caliber" name="caliber" required class="form-input w-full" />
+        </div>
+        <div>
+          <label class="block modal-input-item">Tipo</label>
+          <input type="text" [(ngModel)]="calculatorForm.type" name="type" required class="form-input w-full" />
+        </div>
+        <div>
+          <label class="block modal-input-item">Formato</label>
+          <select [(ngModel)]="calculatorForm.format" name="format" class="form-select w-full">
+            <option *ngFor="let key of (formatFactors | keyvalue)" [value]="key.key">{{ key.key }}</option>
+            <option value="">Personalizado</option>
+          </select>
+        </div>
+        <div>
+          <label class="block modal-input-item">Precio lámina entera</label>
+          <input type="number" [(ngModel)]="calculatorForm.whole" name="whole" required class="form-input w-full" />
+        </div>
+        <div>
+          <label class="block modal-input-item">Utilidad (%)</label>
+          <input type="number" [(ngModel)]="calculatorForm.margin" name="margin" required class="form-input w-full" />
+        </div>
+        <div>
+          <label class="block modal-input-item">Descuento (%)</label>
+          <input type="number" [(ngModel)]="calculatorForm.discount" name="discount" required class="form-input w-full" />
+        </div>
+      </div>
 
-        <div class="mt-4">
-          <label class="inline-flex items-center">
-            <input type="checkbox" [(ngModel)]="calculatorForm.includeIva" name="includeIva" class="form-checkbox" />
-            <span class="ml-2">Incluir IVA (19%)</span>
-          </label>
-        </div>
+      <div class="mt-4">
+        <label class="inline-flex items-center">
+          <input type="checkbox" [(ngModel)]="calculatorForm.includeIva" name="includeIva" class="form-checkbox" />
+          <span class="ml-2">Incluir IVA (19%)</span>
+        </label>
+      </div>
 
-        <div class="mb-4" *ngIf="selectedClient">
-          <button
-            type="button"
-            class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
-            (click)="openClientDefaultsModal()"
-          >
-            Modificar Utilidad/Descuento Predeterminados
-          </button>
-        </div>
+      <div class="mb-4" *ngIf="selectedClient">
+        <button
+          type="button"
+          class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+          (click)="openClientDefaultsModal()"
+        >
+          Modificar Utilidad/Descuento Predeterminados
+        </button>
+      </div>
 
-        <!-- Resultados -->
-        <div *ngIf="calculationResult" class="mt-6 space-y-1 text-sm">
-          <h4 class="font-semibold text-base">Resultados:</h4>
-          <p><strong>Área:</strong> {{ calculationResult.area.toFixed(4) }} m²</p>
-          <p><strong>Costo con utilidad:</strong> ${{ calculationResult.basePriceWithProfit.toLocaleString() }}</p>
-          <p><strong>Margen aplicado:</strong> {{ (calculationResult.appliedMargin * 100).toFixed(0) }}%</p>
-          <p><strong>Precio con margen:</strong> ${{ calculationResult.priceWithMargin.toLocaleString() }}</p>
-          <p><strong>Descuento:</strong> ${{ calculationResult.discount.toLocaleString() }}</p>
-          <p><strong>Precio sin IVA:</strong> ${{ calculationResult.finalPriceWithoutIva.toLocaleString() }}</p>
-          <p *ngIf="calculatorForm.includeIva"><strong>IVA:</strong> ${{ calculationResult.iva.toLocaleString() }}</p>
-          <p *ngIf="calculatorForm.includeIva"><strong>Precio con IVA:</strong> ${{ calculationResult.finalPriceWithIva.toLocaleString() }}</p>
-        </div>
+      <!-- Resultados -->
+      <div *ngIf="calculationResult" class="mt-6 space-y-1 text-sm">
+        <h4 class="font-semibold text-base">Resultados:</h4>
+        <p *ngIf="calculationResult.noCabe" class="text-red-600 font-bold">NO CABE</p>
+        <p *ngIf="!calculationResult.noCabe"><strong>Área:</strong> {{ calculationResult.area.toFixed(4) }} m²</p>
+        <p *ngIf="!calculationResult.noCabe"><strong>Costo con utilidad:</strong> ${{ calculationResult.basePriceWithProfit.toLocaleString() }}</p>
+        <p *ngIf="!calculationResult.noCabe"><strong>Margen aplicado:</strong> {{ (calculationResult.appliedMargin * 100).toFixed(0) }}%</p>
+        <p *ngIf="!calculationResult.noCabe"><strong>Precio con margen:</strong> ${{ calculationResult.priceWithMargin.toLocaleString() }}</p>
+        <p *ngIf="!calculationResult.noCabe"><strong>Descuento:</strong> ${{ calculationResult.discount.toLocaleString() }}</p>
+        <p *ngIf="!calculationResult.noCabe"><strong>Precio sin IVA:</strong> ${{ calculationResult.finalPriceWithoutIva.toLocaleString() }}</p>
+        <p *ngIf="calculatorForm.includeIva && !calculationResult.noCabe"><strong>IVA:</strong> ${{ calculationResult.iva.toLocaleString() }}</p>
+        <p *ngIf="calculatorForm.includeIva && !calculationResult.noCabe"><strong>Precio con IVA:</strong> ${{ calculationResult.finalPriceWithIva.toLocaleString() }}</p>
+      </div>
 
-        <!-- Acciones -->
-        <div class="flex justify-end space-x-2 mt-4">
-          <button type="button" class="btn-danger" (click)="closeCalculatorModal()">Cerrar</button>
-          <button type="submit" class="btn-success">Calcular</button>
-        </div>
-      </form>
-    </div>
+      <!-- Acciones -->
+      <div class="flex justify-end space-x-2 mt-4">
+        <button type="button" class="btn-danger" (click)="closeCalculatorModal()">Cerrar</button>
+        <button type="submit" class="btn-success">Calcular</button>
+      </div>
+    </form>
   </div>
+</div>
 
-  <div *ngIf="showClientDefaultsModal" class="modal-overlay">
-    <div class="modal-content">
-      <h3 class="text-lg font-bold mb-4">
-        Modificar Valores Predeterminados de {{ selectedClient?.name }}
-      </h3>
-      <form (ngSubmit)="saveClientDefaults()">
-        <div class="mb-4">
-          <label class="block modal-input-item"
-            >Utilidad Predeterminada (%)</label
-          >
-          <input
-            type="number"
-            step="0.1"
-            [(ngModel)]="selectedClient!.default_margin"
-            name="defaultMargin"
-            class="form-input mt-1 block w-full border border-gray-300 rounded-md"
-            placeholder="Ej. 30"
-            required
-          />
-        </div>
-        <div class="mb-4">
-          <label class="block modal-input-item"
-            >Descuento Predeterminado (%)</label
-          >
-          <input
-            type="number"
-            step="0.1"
-            [(ngModel)]="selectedClient!.default_discount"
-            name="defaultDiscount"
-            class="form-input mt-1 block w-full border border-gray-300 rounded-md"
-            placeholder="Ej. 0"
-            required
-          />
-        </div>
-        <div class="flex justify-end">
-          <button
-            type="button"
-            class="btn-danger"
-            (click)="closeClientDefaultsModal()"
-          >
-            Cancelar
-          </button>
-          <button type="submit" class="btn-success">Guardar Cambios</button>
-        </div>
-      </form>
-    </div>
+<div *ngIf="showClientDefaultsModal" class="modal-overlay">
+  <div class="modal-content">
+    <h3 class="text-lg font-bold mb-4">
+      Modificar Valores Predeterminados de {{ selectedClient?.name }}
+    </h3>
+    <form (ngSubmit)="saveClientDefaults()">
+      <div class="mb-4">
+        <label class="block modal-input-item"
+          >Utilidad Predeterminada (%)</label
+        >
+        <input
+          type="number"
+          step="0.1"
+          [(ngModel)]="selectedClient!.default_margin"
+          name="defaultMargin"
+          class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+          placeholder="Ej. 30"
+          required
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block modal-input-item"
+          >Descuento Predeterminado (%)</label
+        >
+        <input
+          type="number"
+          step="0.1"
+          [(ngModel)]="selectedClient!.default_discount"
+          name="defaultDiscount"
+          class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+          placeholder="Ej. 0"
+          required
+        />
+      </div>
+      <div class="flex justify-end">
+        <button
+          type="button"
+          class="btn-danger"
+          (click)="closeClientDefaultsModal()"
+        >
+          Cancelar
+        </button>
+        <button type="submit" class="btn-success">Guardar Cambios</button>
+      </div>
+    </form>
   </div>
+</div>

@@ -5,6 +5,7 @@
 <div *ngIf="loading" class="p-4 text-center text-gray-600">
   <p>Cargando inventario...</p>
 </div>
+
 <div class="flex justify-end items-center mb-4 mt-4 ml-2">
   <!-- Botón para añadir acrílico -->
   <button
@@ -70,7 +71,63 @@
     </svg>
     <span>Calculadora</span>
   </button>
+  <!-- Botón para limpiar filtros -->
+  <button class="btn-clear" (click)="clearFilters()">
+    Limpiar Filtros
+  </button>
 </div>
+
+<!-- NUEVO: Checkboxes para filtrar por tipo/color -->
+<div *ngIf="!loading" class="flex justify-start items-center mb-4 ml-2">
+  <div class="flex space-x-4">
+    <label class="inline-flex items-center">
+      <input
+        type="checkbox"
+        [(ngModel)]="showCristalOpal"
+        (change)="updatePaginatedAcrylicItems()"
+        class="form-checkbox"
+      />
+      <span class="ml-2">Cristal y Opal</span>
+    </label>
+    <label class="inline-flex items-center">
+      <input
+        type="checkbox"
+        [(ngModel)]="showColorRojo"
+        (change)="updatePaginatedAcrylicItems()"
+        class="form-checkbox"
+      />
+      <span class="ml-2">Color Rojo</span>
+    </label>
+    <label class="inline-flex items-center">
+      <input
+        type="checkbox"
+        [(ngModel)]="showHumo"
+        (change)="updatePaginatedAcrylicItems()"
+        class="form-checkbox"
+      />
+      <span class="ml-2">Humo</span>
+    </label>
+    <label class="inline-flex items-center">
+      <input
+        type="checkbox"
+        [(ngModel)]="showEspejo"
+        (change)="updatePaginatedAcrylicItems()"
+        class="form-checkbox"
+      />
+      <span class="ml-2">Espejo</span>
+    </label>
+    <label class="inline-flex items-center">
+      <input
+        type="checkbox"
+        [(ngModel)]="showMetalizados"
+        (change)="updatePaginatedAcrylicItems()"
+        class="form-checkbox"
+      />
+      <span class="ml-2">Metalizados</span>
+    </label>
+  </div>
+</div>
+
 <div class="flex items-center justify-center py-4 space-x-4 top-5">
   <div class="relative w-full max-w-md">
     <!-- Barra de búsqueda -->
@@ -112,7 +169,7 @@
   </div>
   <div class="flex items-end">
     <button
-      class="btn-clear "
+      class="btn-clear"
       (click)="clearGlobalValues()"
     >
       Limpiar
