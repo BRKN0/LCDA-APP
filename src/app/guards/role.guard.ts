@@ -1,11 +1,20 @@
 import { inject } from '@angular/core';
-import { Router, Route, UrlSegment, CanMatchFn } from '@angular/router';
+import {
+  Router,
+  Route,
+  UrlSegment,
+  CanMatchFn,
+  UrlTree,
+} from '@angular/router';
 import { RoleService } from '../services/role.service';
 import { SupabaseService } from '../services/supabase.service';
-import { of, from } from 'rxjs';
-import { switchMap, filter, take, map } from 'rxjs/operators';
-
-export const roleGuard: CanMatchFn = (route: Route, segments: UrlSegment[]) => {
+import { of, from, Observable } from 'rxjs';
+import { switchMap, filter, take, map, catchError } from 'rxjs/operators';
+import type { Session } from '@supabase/supabase-js';
+export const roleGuard: CanMatchFn = (
+  route: Route,
+  _segments: UrlSegment[]
+): boolean | UrlTree | Observable<boolean | UrlTree> => {
   const router = inject(Router);
   const supabase = inject(SupabaseService);
   const roleService = inject(RoleService);
@@ -21,14 +30,15 @@ export const roleGuard: CanMatchFn = (route: Route, segments: UrlSegment[]) => {
   }
 
   // Otherwise wait for authChanges$
-  return supabase.authChanges$().pipe(
-    switchMap(session => {
+  return supabase.getSessionOnce$().pipe(
+    switchMap((session: Session | null) => {
       if (!session?.user) {
-        router.navigate(['/login']);
-        return of(false);
+        // return UrlTree instead of navigate()
+        return of(router.createUrlTree(['/login']));
       }
       return validateUser(session.user.id);
-    })
+    }),
+    catchError(() => of(router.createUrlTree(['/login'])))
   );
 
   // Helpers
@@ -45,7 +55,7 @@ export const roleGuard: CanMatchFn = (route: Route, segments: UrlSegment[]) => {
       switchMap(() => roleService.role$),
       filter((r): r is string => !!r),
       take(1),
-      switchMap(role => checkAbsoluteAdmin(userId, role))
+      switchMap((role) => checkAbsoluteAdmin(userId, role))
     );
   }
 
@@ -63,8 +73,7 @@ export const roleGuard: CanMatchFn = (route: Route, segments: UrlSegment[]) => {
 
         // If route requires absolute admin:
         if (requireAbsoluteAdmin && !isAbsoluteAdmin) {
-          router.navigate(['/home']);
-          return false;
+          return router.createUrlTree(['/home']);
         }
 
         // Now check usual allowed roles
@@ -80,8 +89,7 @@ export const roleGuard: CanMatchFn = (route: Route, segments: UrlSegment[]) => {
           return true;
         }
 
-        router.navigate(['/home']);
-        return false;
+        return router.createUrlTree(['/home']);
       })
     );
   }

@@ -23,6 +23,17 @@ interface VariableMap {
   retefuente_servicios_no_declara: number;
   reteica_bienes: number;
   reteica_servicios: number;
+  finalLaminationValue: number;
+  finalPrintValue: number;
+  finalStampingValue: number;
+  finalAssembleValue: number;
+  intermediaryLaminationValue: number;
+  intermediaryPrintValue: number;
+  intermediaryStampingValue: number;
+  intermediaryAssembleValue: number;
+  finalPerMinute: number;
+  baseCutTimeValue: number;
+  intermediaryPerMinute: number;
 }
 @Component({
   selector: 'app-control-panel',
@@ -44,6 +55,17 @@ export class ControlPanelComponent implements OnInit {
     retefuente_servicios_no_declara: 0,
     reteica_bienes: 0,
     reteica_servicios: 0,
+    finalLaminationValue: 0,
+    finalPrintValue: 0,
+    finalStampingValue: 0,
+    finalAssembleValue: 0,
+    intermediaryAssembleValue: 0,
+    intermediaryLaminationValue: 0,
+    intermediaryPrintValue: 0,
+    intermediaryStampingValue: 0,
+    baseCutTimeValue: 0,
+    finalPerMinute: 0,
+    intermediaryPerMinute: 0,
   };
   variablesMap: Record<string, number> = {};
   originalMap: Record<string, number> = {};

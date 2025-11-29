@@ -323,6 +323,7 @@
           </svg>
         </div>
         <div
+        *ngIf="userRole"
           class="p-1 btn-signout absolute top-2 right-2 shadow-md cursor-pointer flex items-center"
           (click)="signOut()"
         >

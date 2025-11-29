@@ -24,19 +24,6 @@ import { roleGuard } from './guards/role.guard';
 
 export const routes: Routes = [
   {
-    path: '',
-    loadComponent: () => LoginComponent,
-    pathMatch: 'full',
-  },
-  {
-    path: 'login',
-    loadComponent: () => LoginComponent,
-  },
-  {
-    path: 'home',
-    loadComponent: () => HomeComponent,
-  },
-  {
     path: 'pricing',
     canMatch: [roleGuard],
     children: [
@@ -50,7 +37,11 @@ export const routes: Routes = [
     path: 'inventory',
     data: { roles: ['admin'] },
     children: [
-      { path: 'materials', component: InventoryComponent, canMatch: [roleGuard] },
+      {
+        path: 'materials',
+        component: InventoryComponent,
+        canMatch: [roleGuard],
+      },
       { path: 'product', component: ProductComponent },
     ],
   },
@@ -132,5 +123,18 @@ export const routes: Routes = [
     loadComponent: () => NotificationsComponent,
     canMatch: [roleGuard],
     data: { roles: ['admin', 'prints_employee', 'cuts_employee'] },
+  },
+  {
+    path: 'login',
+    loadComponent: () => LoginComponent,
+  },
+  {
+    path: 'home',
+    loadComponent: () => HomeComponent,
+  },
+  {
+    path: '',
+    redirectTo: 'home',
+    pathMatch: 'full',
   },
 ];

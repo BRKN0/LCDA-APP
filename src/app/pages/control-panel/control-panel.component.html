@@ -74,7 +74,90 @@
       />
     </div>
   </div>
-
+  <!-- Prints -->
+  <h3 class="text-lg font-bold mt-6">Impresiones</h3>
+  <div class="grid grid-cols-2 gap-4">
+    <div>
+      <h2 class="text-lg font-bold mt-6">Cliente Intermediario</h2>
+      <label>Valor de Ensamblado</label>
+      <input
+        [(ngModel)]="variables.intermediaryAssembleValue"
+        type="number"
+        class="form-input"
+      />
+      <label>Valor de Laminado</label>
+      <input
+        [(ngModel)]="variables.intermediaryLaminationValue"
+        type="number"
+        class="form-input"
+      />
+      <label>Valor de Troquelado</label>
+      <input
+        [(ngModel)]="variables.intermediaryStampingValue"
+        type="number"
+        class="form-input"
+      />
+      <label>Valor de Impresion</label>
+      <input
+        [(ngModel)]="variables.intermediaryPrintValue"
+        type="number"
+        class="form-input"
+      />
+    </div>
+    <div>
+      <h2 class="text-lg font-bold mt-6">Cliente Final</h2>
+      <label>Valor de Ensamblado</label>
+      <input
+        [(ngModel)]="variables.finalAssembleValue"
+        type="number"
+        class="form-input"
+      />
+      <label>Valor de Laminado</label>
+      <input
+        [(ngModel)]="variables.finalLaminationValue"
+        type="number"
+        class="form-input"
+      />
+      <label>Valor de Troquelado</label>
+      <input
+        [(ngModel)]="variables.finalStampingValue"
+        type="number"
+        class="form-input"
+      />
+      <label>Valor de Impresion</label>
+      <input
+        [(ngModel)]="variables.finalPrintValue"
+        type="number"
+        class="form-input"
+      />
+    </div>
+  </div>
+  <!-- Cuts -->
+  <h3 class="text-lg font-bold mt-6">Cortes</h3>
+  <label>Valor de corte por minuto (<=10)</label>
+  <input
+    [(ngModel)]="variables.baseCutTimeValue"
+    type="number"
+    class="form-input"
+  />
+  <div class="grid grid-cols-2 gap-4">
+    <div>
+      <h2 class="text-lg font-bold mt-6">Cliente Intermediario</h2>
+      <input
+        [(ngModel)]="variables.intermediaryPerMinute"
+        type="number"
+        class="form-input"
+      />
+    </div>
+    <div>
+      <h2 class="text-lg font-bold mt-6">Cliente Final</h2>
+      <input
+        [(ngModel)]="variables.finalPerMinute"
+        type="number"
+        class="form-input"
+      />
+    </div>
+  </div>
   <div class="mb-4 mt-4 flex justify-start">
     <label for="role-select" class="mr-2 inline-flex font-semibold"
       >Cambiar Rol:</label
@@ -134,4 +217,3 @@
   </svg>
   {{ toastMessage }}
 </div>
-

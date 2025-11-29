@@ -24,11 +24,12 @@ export class AppComponent implements OnInit {
   }
   // Check if the user is logged in and redirect to login otherwise don't
   async ngOnInit(): Promise<void> {
-    if (!this.isLoggedIn$) {
+/*    if (!this.isLoggedIn$) {
       this.router.navigate(['/login'], {
         queryParams: {},
         replaceUrl: true,
       });
     }
+*/
   }
 }

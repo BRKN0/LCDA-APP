@@ -113,6 +113,35 @@ interface Invoice {
   due_date: string; // Nueva columna para almacenar la fecha de vencimiento
 }
 
+interface Variables {
+  id: string;
+  name: string;
+  category: string;
+  value: number;
+  label: string;
+}
+interface VariableMap {
+  iva: number;
+  utility_margin: number;
+  retefuente_bienes_declara: number;
+  retefuente_bienes_no_declara: number;
+  retefuente_servicios_declara: number;
+  retefuente_servicios_no_declara: number;
+  reteica_bienes: number;
+  reteica_servicios: number;
+  finalLaminationValue: number;
+  finalPrintValue: number;
+  finalStampingValue: number;
+  finalAssembleValue: number;
+  intermediaryLaminationValue: number;
+  intermediaryPrintValue: number;
+  intermediaryStampingValue: number;
+  intermediaryAssembleValue: number;
+  finalPerMinute: number;
+  baseCutTimeValue: number;
+  intermediaryPerMinute: number;
+}
+
 @Component({
   selector: 'app-orders',
   standalone: true,
@@ -121,6 +150,29 @@ interface Invoice {
   styleUrls: ['./orders.component.scss'],
 })
 export class OrdersComponent implements OnInit {
+  variables: VariableMap = {
+    iva: 0,
+    utility_margin: 0,
+    retefuente_bienes_declara: 0,
+    retefuente_bienes_no_declara: 0,
+    retefuente_servicios_declara: 0,
+    retefuente_servicios_no_declara: 0,
+    reteica_bienes: 0,
+    reteica_servicios: 0,
+    finalLaminationValue: 0,
+    finalPrintValue: 0,
+    finalStampingValue: 0,
+    finalAssembleValue: 0,
+    intermediaryAssembleValue: 0,
+    intermediaryLaminationValue: 0,
+    intermediaryPrintValue: 0,
+    intermediaryStampingValue: 0,
+    baseCutTimeValue: 0,
+    finalPerMinute: 0,
+    intermediaryPerMinute: 0,
+  };
+  variablesMap: Record<string, number> = {};
+  originalMap: Record<string, number> = {};
   clients: Client[] = [];
   notificationToInsert: Partial<Notifications> = {};
   orderToInsert: Partial<Orders> = {};
@@ -228,10 +280,10 @@ export class OrdersComponent implements OnInit {
               this.getOrders();
             }
           });
-
           this.getClients();
           this.getMaterials();
           this.getProducts();
+          this.getVariables();
         });
       } else {
         console.error('Usuario no autenticado.');
@@ -239,6 +291,18 @@ export class OrdersComponent implements OnInit {
         this.filteredOrdersList = [];
       }
     });
+  }
+  async getVariables() {
+    this.loading = true;
+    const { data } = await this.supabase.from('variables').select('name,value');
+    if (data) {
+      for (const v of data) {
+        if (v.name in this.variables) {
+          this.variables[v.name as keyof VariableMap] = parseFloat(v.value);
+        }
+      }
+    }
+    this.loading = false;
   }
   async getOrders(): Promise<void> {
     this.loading = true;
@@ -434,7 +498,7 @@ export class OrdersComponent implements OnInit {
 
   addSaleItem(): void {
     if (this.saleMode === 'none') {
-      alert("Seleccione si va a vender material o producto.");
+      alert('Seleccione si va a vender material o producto.');
       return;
     }
 
@@ -447,7 +511,7 @@ export class OrdersComponent implements OnInit {
     if (this.saleMode === 'material') {
       const m = this.getSelectedMaterial();
       if (!m) {
-        alert("Seleccione un material completo.");
+        alert('Seleccione un material completo.');
         return;
       }
 
@@ -455,7 +519,7 @@ export class OrdersComponent implements OnInit {
       const price = Number(this.saleMaterialUnitPrice);
 
       if (qty <= 0 || price <= 0) {
-        alert("Cantidad y precio deben ser mayores a cero.");
+        alert('Cantidad y precio deben ser mayores a cero.');
         return;
       }
 
@@ -470,9 +534,9 @@ export class OrdersComponent implements OnInit {
 
     // === PRODUCTO ===
     if (this.saleMode === 'product') {
-      const p = this.allProducts.find(x => x.id === this.selectedProductId);
+      const p = this.allProducts.find((x) => x.id === this.selectedProductId);
       if (!p) {
-        alert("Seleccione un producto.");
+        alert('Seleccione un producto.');
         return;
       }
 
@@ -480,7 +544,7 @@ export class OrdersComponent implements OnInit {
       const price = Number(this.saleMaterialUnitPrice);
 
       if (qty <= 0 || price <= 0) {
-        alert("Cantidad y precio deben ser mayores a cero.");
+        alert('Cantidad y precio deben ser mayores a cero.');
         return;
       }
 
@@ -518,20 +582,22 @@ export class OrdersComponent implements OnInit {
 
   validateSalesStock(): boolean {
     for (const item of this.salesItems) {
-      const available = parseFloat(item.material?.material_quantity ?? item.product?.stock ?? 0);
+      const available = parseFloat(
+        item.material?.material_quantity ?? item.product?.stock ?? 0
+      );
       if (available < item.quantity) {
         // Mostrar error al usuario
-        this.showStockError(`No hay suficiente stock. Disponible: ${available}`);
+        this.showStockError(
+          `No hay suficiente stock. Disponible: ${available}`
+        );
         return false;
       }
     }
     return true;
   }
 
-
   async saveSaleItemsToSupabase(orderId: string): Promise<boolean> {
     for (const item of this.salesItems) {
-
       // === MATERIAL ===
       if (item.mode === 'material') {
         const m = item.material;
@@ -544,14 +610,16 @@ export class OrdersComponent implements OnInit {
           .single();
 
         if (matErr || !matData) {
-          alert("No se pudo leer stock del material.");
+          alert('No se pudo leer stock del material.');
           return false;
         }
 
         const current = Number(matData.material_quantity);
 
         if (current < item.quantity) {
-          await this.showStockError(`No hay suficiente stock. Disponible: ${current}`);
+          await this.showStockError(
+            `No hay suficiente stock. Disponible: ${current}`
+          );
           return false;
         }
 
@@ -563,7 +631,7 @@ export class OrdersComponent implements OnInit {
           .eq('id_material', m.id_material);
 
         if (updateErr) {
-          console.error("Error actualizando stock:", updateErr);
+          console.error('Error actualizando stock:', updateErr);
           return false;
         }
 
@@ -586,7 +654,7 @@ export class OrdersComponent implements OnInit {
           .insert([row]);
 
         if (insErr) {
-          console.error("Error insertando línea de material:", insErr);
+          console.error('Error insertando línea de material:', insErr);
           return false;
         }
       }
@@ -602,14 +670,16 @@ export class OrdersComponent implements OnInit {
           .single();
 
         if (prodErr || !prodData) {
-          alert("No se pudo leer stock del producto.");
+          alert('No se pudo leer stock del producto.');
           return false;
         }
 
         const current = Number(prodData.stock);
 
         if (current < item.quantity) {
-          await this.showStockError(`No hay suficiente stock. Disponible: ${current}`);
+          await this.showStockError(
+            `No hay suficiente stock. Disponible: ${current}`
+          );
           return false;
         }
 
@@ -635,7 +705,7 @@ export class OrdersComponent implements OnInit {
           .insert([row]);
 
         if (insErr) {
-          console.error("Error insertando línea de producto:", insErr);
+          console.error('Error insertando línea de producto:', insErr);
           return false;
         }
       }
@@ -643,7 +713,6 @@ export class OrdersComponent implements OnInit {
 
     return true;
   }
-
 
   showNotification(message: string) {
     this.notificationMessage = message;
@@ -1347,7 +1416,9 @@ export class OrdersComponent implements OnInit {
       // === 1. Traer TODAS las líneas de ventas ===
       const { data: rows, error } = await this.supabase
         .from('sales')
-        .select('item_type, product_id, material_id, quantity, unit_price, line_total, material_type, caliber, color, category')
+        .select(
+          'item_type, product_id, material_id, quantity, unit_price, line_total, material_type, caliber, color, category'
+        )
         .eq('id_order', order.id_order);
 
       if (error) {
@@ -1375,23 +1446,25 @@ export class OrdersComponent implements OnInit {
               category: r.category,
               type: r.material_type,
               caliber: r.caliber,
-              color: r.color
+              color: r.color,
             },
             quantity: Number(r.quantity),
             unit_price: Number(r.unit_price),
-            subtotal: Number(r.line_total)
+            subtotal: Number(r.line_total),
           });
         }
 
         if (r.item_type === 'product') {
-          const prod = this.allProducts.find(p => p.id === r.product_id);
+          const prod = this.allProducts.find((p) => p.id === r.product_id);
 
           this.salesItems.push({
             mode: 'product',
-            product: prod ? prod : { id: r.product_id, name: 'Producto eliminado' },
+            product: prod
+              ? prod
+              : { id: r.product_id, name: 'Producto eliminado' },
             quantity: Number(r.quantity),
             unit_price: Number(r.unit_price),
-            subtotal: Number(r.line_total)
+            subtotal: Number(r.line_total),
           });
         }
       }
@@ -1652,7 +1725,7 @@ export class OrdersComponent implements OnInit {
         }
 
         // 2. Insertar todas las nuevas líneas desde salesItems[]
-        const rowsToInsert = this.salesItems.map(item => {
+        const rowsToInsert = this.salesItems.map((item) => {
           if (item.mode === 'material') {
             return {
               id_order: orderId,
@@ -1665,7 +1738,7 @@ export class OrdersComponent implements OnInit {
               material_type: item.material.type,
               caliber: item.material.caliber,
               color: item.material.color,
-              category: item.material.category
+              category: item.material.category,
             };
           } else {
             return {
@@ -1675,7 +1748,7 @@ export class OrdersComponent implements OnInit {
               material_id: null,
               quantity: item.quantity,
               unit_price: item.unit_price,
-              line_total: item.subtotal
+              line_total: item.subtotal,
             };
           }
         });
@@ -1689,7 +1762,7 @@ export class OrdersComponent implements OnInit {
           return;
         }
       }
-      
+
       const { data: existingInvoice, error: invoiceError } = await this.supabase
         .from('invoices')
         .select('*')
@@ -1830,7 +1903,7 @@ export class OrdersComponent implements OnInit {
         this.createNotification(insertedOrder);
       } else if (this.newOrder.order_type === 'sales') {
         const ok = await this.saveSaleItemsToSupabase(this.newOrder.id_order!);
-        if (!ok) return; 
+        if (!ok) return;
       }
 
       const newInvoice: Partial<Invoice> = {
@@ -2064,15 +2137,15 @@ export class OrdersComponent implements OnInit {
 
   setValoresPorCliente(): void {
     if (this.clientType === 'intermediary') {
-      this.laminationValue = 1.2;
-      this.printValue = 2;
-      this.stampingValue = 1.2;
-      this.assembleValue = 1.2;
+      this.laminationValue = this.variables.intermediaryLaminationValue;
+      this.printValue = this.variables.intermediaryPrintValue;
+      this.stampingValue = this.variables.intermediaryStampingValue;
+      this.assembleValue = this.variables.intermediaryAssembleValue;
     } else if (this.clientType === 'final') {
-      this.laminationValue = 1.5;
-      this.printValue = 5;
-      this.stampingValue = 1.5;
-      this.assembleValue = 1.5;
+      this.laminationValue = this.variables.finalLaminationValue;
+      this.printValue = this.variables.finalPrintValue;
+      this.stampingValue = this.variables.finalStampingValue;
+      this.assembleValue = this.variables.finalAssembleValue;
     }
   }
 
@@ -2091,12 +2164,12 @@ export class OrdersComponent implements OnInit {
     } else if (this.calculationType == 'cuts') {
       let valorTiempo = 0;
       if (this.usageTime <= 10) {
-        valorTiempo = 8000;
+        valorTiempo = this.variables.baseCutTimeValue;
       } else {
         valorTiempo =
           this.clientType === 'intermediary'
-            ? this.usageTime * this.intermediaryPerMinute
-            : this.usageTime * this.finalPerMinute;
+            ? this.usageTime * this.variables.intermediaryPerMinute
+            : this.usageTime * this.variables.finalPerMinute;
       }
 
       this.calculatorResult = this.materialValue + valorTiempo;

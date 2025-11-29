@@ -8,7 +8,7 @@ import {
   SupabaseClient,
   User,
 } from '@supabase/supabase-js';
-import { defer, Observable, startWith } from 'rxjs';
+import { defer, map, Observable, startWith } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { PostgrestFilterBuilder } from '@supabase/postgrest-js';
 import { GenericSchema } from '@supabase/supabase-js/dist/module/lib/types';
@@ -70,6 +70,10 @@ export class SupabaseService {
     );
     // Retrieve the session during initialization
     this.initializeSession();
+    // keep in-memory session updated
+    this.supabase.auth.onAuthStateChange((_event, session) => {
+      this._session = session;
+    });
   }
 
   private async initializeSession(): Promise<void> {
@@ -80,13 +84,14 @@ export class SupabaseService {
   /**
    * Session getter.
    */
-  get session() {
-    this.supabase.auth.getSession().then(({ data }) => {
-      this._session = data.session;
-    });
+  get session(): AuthSession | null {
     return this._session;
   }
-
+  getSessionOnce$(): Observable<Session | null> {
+    return defer(() => this.supabase.auth.getSession()).pipe(
+      map(({ data }) => data.session ?? null)
+    );
+  }
   /**
    * from returns a PostgrestQueryBuilder instance. It is used to make queries to the database.
    * @param table The table name.
