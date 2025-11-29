@@ -258,6 +258,8 @@ export class OrdersComponent implements OnInit {
   extraChargeType: 'fixed' | 'percentage' = 'fixed';
   discount: number = 0;
   discountType: 'fixed' | 'percentage' = 'fixed';
+  hasDiscountApplied: boolean = false;
+  totalBeforeDiscount: number = 0;
 
   newClient = {
     name: '',
@@ -1395,6 +1397,8 @@ export class OrdersComponent implements OnInit {
       this.discount = 0;
       this.discountType = 'fixed';
       this.extraChargeType = 'fixed';
+      this.hasDiscountApplied = false;
+      this.totalBeforeDiscount = 0;
     }
     this.showModal = !this.showModal;
     if (!this.showModal) {
@@ -1537,6 +1541,32 @@ export class OrdersComponent implements OnInit {
       // === 6. Recalcular totales ===
       this.recalcSalesFromItems();
     }
+
+    // Cargar descuento si existe
+    if (this.newOrder.discount && Number(this.newOrder.discount) > 0) {
+      this.hasDiscountApplied = true;
+
+      // Calcular el total SIN descuento sumando el descuento al total actual
+      const base = Number(this.newOrder.base_total) || 0;
+      const extras = this.newOrder.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
+      const currentTotal = Number(this.newOrder.total) || 0; // Total CON descuento
+
+      // Calcular cuánto fue el descuento
+      let discountAmount = 0;
+      if (this.newOrder.discount_type === 'percentage') {
+        // Si es porcentaje, necesitamos calcular el total sin descuento
+        // Formula: totalConDescuento = totalSinDescuento * (1 - porcentaje/100)
+        // Entonces: totalSinDescuento = totalConDescuento / (1 - porcentaje/100)
+        const percentage = Number(this.newOrder.discount) / 100;
+        this.totalBeforeDiscount = Math.round(currentTotal / (1 - percentage));
+      } else {
+        // Si es fijo, simplemente sumar el descuento
+        this.totalBeforeDiscount = currentTotal + Number(this.newOrder.discount);
+      }
+    } else {
+      this.hasDiscountApplied = false;
+      this.totalBeforeDiscount = 0;
+    }
   }
 
   async getUserName(): Promise<string | null> {
@@ -1610,6 +1640,8 @@ export class OrdersComponent implements OnInit {
       file_path: newOrderForm.file_path,
       extra_charges: newOrderForm.extra_charges || [],
       base_total: subtotal,
+      discount: this.discount || 0,
+      discount_type: this.discountType || 'fixed'
     };
 
     const deliveryDate = newOrderForm.delivery_date
@@ -2169,24 +2201,25 @@ export class OrdersComponent implements OnInit {
         this.newOrder.subtotal = currentTotal.toString();
       }
 
-      // ✅ NUEVO: Calcular el monto del cargo según el tipo
+      // Calcular el monto del cargo según el tipo CON REDONDEO
       let chargeAmount = this.extraChargeAmount;
 
       if (this.extraChargeType === 'percentage') {
-        // Si es porcentaje, calcular sobre el subtotal/base
         const base = this.newOrder.base_total || 0;
-        chargeAmount = (base * this.extraChargeAmount) / 100;
+        chargeAmount = Math.round((base * this.extraChargeAmount) / 100); // REDONDEADO
+      } else {
+        chargeAmount = Math.round(this.extraChargeAmount); // REDONDEADO
       }
 
       this.newOrder.extra_charges.push({
         description: this.extraChargeDescription,
         amount: chargeAmount,
-        type: this.extraChargeType // ✅ NUEVO: Guardar el tipo
+        type: this.extraChargeType
       });
 
       this.extraChargeDescription = '';
       this.extraChargeAmount = 0;
-      this.extraChargeType = 'fixed'; // ✅ Resetear al valor por defecto
+      this.extraChargeType = 'fixed';
 
       // Recalcular total con el nuevo cargo
       this.updateOrderTotalWithExtras();
@@ -2204,30 +2237,55 @@ export class OrdersComponent implements OnInit {
       ? this.newOrder.base_total
       : parseFloat(this.newOrder.subtotal as string) || 0;
 
-    // Si aún no hay base (pedido viejo sin campos), derivar una sola vez
+    // Si aún no hay base, calcularla
     if (!base) {
       const maybeTotal = parseFloat(this.newOrder.total as string) || 0;
       const extras = this.newOrder.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
-      const discount = this.calculateDiscountAmount();
-      base = maybeTotal - extras + discount;
-      this.newOrder.base_total = base; // normaliza para futuras veces
+      base = maybeTotal - extras;
+      this.newOrder.base_total = base;
     }
 
     // 1. Sumar extras
     const extras = this.newOrder.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
 
-    // 2. Aplicar descuento
-    const discountAmount = this.calculateDiscountAmount();
+    // 2. Calcular total SIN descuento
+    const totalWithoutDiscount = base + extras;
 
-    // 3. Calcular total final
-    const totalBeforeDiscount = base + extras;
-    const finalTotal = Math.max(totalBeforeDiscount - discountAmount, 0);
-
-    // 4. Actualizar valores
+    // 3. Actualizar valores
     this.newOrder.subtotal = base.toString();
-    this.newOrder.total = finalTotal.toString();
+    this.newOrder.total = totalWithoutDiscount.toString();
+
+    // Si hay descuento aplicado, recalcular
+    if (this.hasDiscountApplied) {
+      this.recalculateTotalWithDiscount();
+    }
   }
 
+  recalculateTotalWithDiscount(): void {
+  if (!this.hasDiscountApplied) {
+    return;
+  }
+
+  // Recalcular el total SIN descuento (base + extras)
+  const base = Number(this.newOrder.base_total) || 0;
+  const extras = this.newOrder.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
+  const totalWithoutDiscount = base + extras;
+
+  // Actualizar totalBeforeDiscount con el nuevo valor
+  this.totalBeforeDiscount = totalWithoutDiscount;
+
+  // Calcular descuento con los valores guardados
+  let discountAmount = 0;
+  if (this.newOrder.discount_type === 'percentage') {
+    discountAmount = Math.round((totalWithoutDiscount * (this.newOrder.discount || 0)) / 100);
+  } else {
+    discountAmount = Math.round(this.newOrder.discount || 0);
+  }
+
+  // Aplicar descuento
+  const finalTotal = Math.max(totalWithoutDiscount - discountAmount, 0);
+  this.newOrder.total = finalTotal.toString();
+}
 
   async createNotification(addedOrder: Partial<Orders>) {
     this.notificationDesc =
@@ -2290,19 +2348,46 @@ export class OrdersComponent implements OnInit {
   }
 
   applyDiscount(): void {
-    if (this.discount > 0) {
+    if (this.discount > 0 && !this.hasDiscountApplied) {
+      // Guardar el total ANTES de aplicar descuento
+      this.totalBeforeDiscount = Number(this.newOrder.total) || 0;
+
+      // Calcular el descuento
+      let discountAmount = 0;
+      if (this.discountType === 'percentage') {
+        discountAmount = Math.round((this.totalBeforeDiscount * this.discount) / 100);
+      } else {
+        discountAmount = Math.round(this.discount);
+      }
+
+      // Aplicar descuento al total
+      const newTotal = Math.max(this.totalBeforeDiscount - discountAmount, 0);
+      this.newOrder.total = newTotal.toString();
+
+      // Guardar datos del descuento aplicado
       this.newOrder.discount = this.discount;
       this.newOrder.discount_type = this.discountType;
-      this.updateOrderTotalWithExtras();
+
+      // Marcar que hay descuento aplicado
+      this.hasDiscountApplied = true;
+    } else if (this.discount === 0) {
+      alert('Por favor, ingrese un valor de descuento válido.');
     }
   }
 
+
   clearDiscount(): void {
+    // Restaurar el total original
+    if (this.totalBeforeDiscount > 0) {
+      this.newOrder.total = this.totalBeforeDiscount.toString();
+    }
+    // Limpiar variables
     this.discount = 0;
     this.discountType = 'fixed';
+    this.totalBeforeDiscount = 0;
+    this.hasDiscountApplied = false;
     this.newOrder.discount = 0;
     this.newOrder.discount_type = 'fixed';
-    this.updateOrderTotalWithExtras();
   }
 
 

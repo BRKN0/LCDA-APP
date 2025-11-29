@@ -981,58 +981,62 @@
       <!-- DESCUENTOS -->
       <div class="mb-4 border-t pt-4">
         <h4 class="font-semibold text-green-600">Descuento</h4>
-        <div class="flex gap-2 mb-2 items-end">
+
+        <!-- Formulario para agregar descuento (solo si no hay uno aplicado) -->
+        <div *ngIf="!hasDiscountApplied" class="flex gap-2 mb-2">
           <!-- Tipo de descuento -->
-          <div class="w-1/4">
-            <label class="block text-sm">Tipo</label>
-            <select
-              [(ngModel)]="discountType"
-              name="discountType"
-              class="form-select w-full"
-              (change)="applyDiscount()"
-            >
-              <option value="fixed">Valor Fijo ($)</option>
-              <option value="percentage">Porcentaje (%)</option>
-            </select>
-          </div>
+          <select
+            [(ngModel)]="discountType"
+            name="discountType"
+            class="form-select w-1/6"
+          >
+            <option value="fixed">Valor Fijo ($)</option>
+            <option value="percentage">Porcentaje (%)</option>
+          </select>
 
           <!-- Valor del descuento -->
-          <div class="w-1/3">
-            <label class="block text-sm">Valor del Descuento</label>
-            <input
-              type="number"
-              [(ngModel)]="discount"
-              [placeholder]="discountType === 'percentage' ? 'Ej. 10 (%)' : 'Ej. 10000 ($)'"
-              class="form-input w-full"
-              name="discount"
-              [max]="discountType === 'percentage' ? 100 : null"
-              min="0"
-              (input)="applyDiscount()"
-            />
-          </div>
+          <input
+            type="number"
+            [(ngModel)]="discount"
+            [placeholder]="discountType === 'percentage' ? 'Ej. 10 (%)' : 'Ej. 10000 ($)'"
+            class="form-input w-1/3"
+            name="discount"
+            [max]="discountType === 'percentage' ? 100 : null"
+            min="0"
+          />
 
-          <!-- Botón para aplicar/quitar -->
+          <!-- Botón para agregar -->
           <button
-            *ngIf="discount > 0"
             type="button"
-            class="btn-danger"
-            (click)="clearDiscount()"
+            class="btn-primary"
+            (click)="applyDiscount()"
           >
-            Quitar Descuento
+            Añadir
           </button>
         </div>
 
-        <!-- Mostrar cálculo del descuento -->
-        <div *ngIf="discount > 0" class="p-2 bg-green-50 rounded mt-2">
-          <p class="text-sm text-green-700">
-            <strong>Descuento aplicado:</strong>
-            <span *ngIf="discountType === 'percentage'">
-              {{ discount }}% = ${{ calculateDiscountAmount() | number:'1.0-0' }}
-            </span>
-            <span *ngIf="discountType === 'fixed'">
-              ${{ discount | number:'1.0-0' }}
-            </span>
-          </p>
+        <!-- Descuento aplicado (con botón eliminar) -->
+        <div *ngIf="hasDiscountApplied" class="p-3 bg-green-50 rounded border border-green-200">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-semibold text-green-800">Descuento aplicado:</p>
+              <p class="text-sm text-green-700">
+                <span *ngIf="newOrder.discount_type === 'percentage'">
+                  {{ newOrder.discount }}% = ${{ (totalBeforeDiscount - (+(newOrder.total ?? 0))) | number:'1.0-0' }}
+                </span>
+                <span *ngIf="newOrder.discount_type === 'fixed'">
+                  Valor fijo: ${{ (newOrder.discount ?? 0) | number:'1.0-0' }}
+                </span>
+              </p>
+            </div>
+            <button
+              type="button"
+              class="btn-danger btn-xs"
+              (click)="clearDiscount()"
+            >
+              Eliminar
+            </button>
+          </div>
         </div>
       </div>
       </ng-container>
