@@ -922,31 +922,119 @@
         <div class="mb-4 border-t pt-4">
           <h4 class="font-semibold text-blue-600">Cargos Extras</h4>
           <div class="flex gap-2 mb-2">
+            <!-- Tipo de cargo -->
+            <select
+              [(ngModel)]="extraChargeType"
+              name="extraChargeType"
+              class="form-select w-1/6"
+            >
+              <option value="fixed">Valor Fijo ($)</option>
+              <option value="percentage">Porcentaje (%)</option>
+            </select>
+
+            <!-- Descripción -->
             <input
               type="text"
               [(ngModel)]="extraChargeDescription"
               placeholder="Descripción"
-              class="form-input w-1/2"
+              class="form-input w-2/5"
               name="extraChargeDescription"
             />
+
+            <!-- Valor -->
             <input
               type="number"
               [(ngModel)]="extraChargeAmount"
-              placeholder="Valor"
+              [placeholder]="extraChargeType === 'percentage' ? 'Ej. 5 (%)' : 'Ej. 5000 ($)'"
               class="form-input w-1/4"
               name="extraChargeAmount"
+              [max]="extraChargeType === 'percentage' ? 100 : null"
+              min="0"
             />
+
             <button type="button" class="btn-primary" (click)="addExtraCharge()">
               Añadir
             </button>
           </div>
+
+          <!-- Lista de cargos agregados -->
           <ul>
-            <li *ngFor="let charge of newOrder.extra_charges; let i = index" class="flex items-center gap-2">
-              <span>{{ charge.description }}: ${{ charge.amount }}</span>
-              <button type="button" class="btn-danger btn-xs" (click)="removeExtraCharge(i)">Eliminar</button>
+            <li
+              *ngFor="let charge of newOrder.extra_charges; let i = index"
+              class="flex items-center gap-2"
+            >
+              <span>
+                {{ charge.description }}:
+                <span *ngIf="charge.type === 'percentage'">{{ charge.amount | number:'1.0-0' }} (calculado)</span>
+                <span *ngIf="charge.type !== 'percentage'">{{ charge.amount }}</span>
+              </span>
+              <button
+                type="button"
+                class="btn-danger btn-xs"
+                (click)="removeExtraCharge(i)"
+              >
+                Eliminar
+              </button>
             </li>
           </ul>
         </div>
+      <!-- DESCUENTOS -->
+      <div class="mb-4 border-t pt-4">
+        <h4 class="font-semibold text-green-600">Descuento</h4>
+        <div class="flex gap-2 mb-2 items-end">
+          <!-- Tipo de descuento -->
+          <div class="w-1/4">
+            <label class="block text-sm">Tipo</label>
+            <select
+              [(ngModel)]="discountType"
+              name="discountType"
+              class="form-select w-full"
+              (change)="applyDiscount()"
+            >
+              <option value="fixed">Valor Fijo ($)</option>
+              <option value="percentage">Porcentaje (%)</option>
+            </select>
+          </div>
+
+          <!-- Valor del descuento -->
+          <div class="w-1/3">
+            <label class="block text-sm">Valor del Descuento</label>
+            <input
+              type="number"
+              [(ngModel)]="discount"
+              [placeholder]="discountType === 'percentage' ? 'Ej. 10 (%)' : 'Ej. 10000 ($)'"
+              class="form-input w-full"
+              name="discount"
+              [max]="discountType === 'percentage' ? 100 : null"
+              min="0"
+              (input)="applyDiscount()"
+            />
+          </div>
+
+          <!-- Botón para aplicar/quitar -->
+          <button
+            *ngIf="discount > 0"
+            type="button"
+            class="btn-danger"
+            (click)="clearDiscount()"
+          >
+            Quitar Descuento
+          </button>
+        </div>
+
+        <!-- Mostrar cálculo del descuento -->
+        <div *ngIf="discount > 0" class="p-2 bg-green-50 rounded mt-2">
+          <p class="text-sm text-green-700">
+            <strong>Descuento aplicado:</strong>
+            <span *ngIf="discountType === 'percentage'">
+              {{ discount }}% = ${{ calculateDiscountAmount() | number:'1.0-0' }}
+            </span>
+            <span *ngIf="discountType === 'fixed'">
+              ${{ discount | number:'1.0-0' }}
+            </span>
+          </p>
+        </div>
+      </div>
       </ng-container>
 
 

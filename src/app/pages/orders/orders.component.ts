@@ -31,10 +31,12 @@ interface Orders {
   payments?: Payment[];
   file_path: string;
   scheduler: string;
-  extra_charges?: { description: string; amount: number }[];
+  extra_charges?: { description: string; amount: number; type?: 'fixed' | 'percentage' }[];
   base_total?: number;
   stock_status?: 'fulfilled' | 'pending_stock' | 'partially_fulfilled';
   pending_quantity?: number; // Cantidad pendiente por falta de stock
+  discount?: number;
+  discount_type?: 'percentage' | 'fixed';
 }
 
 interface Client {
@@ -199,6 +201,11 @@ export class OrdersComponent implements OnInit {
   selectedProductId: string = '';
   salesItems: any[] = [];
   isSaleModeLocked: boolean = false;
+  extraChargeDescription: string = '';
+  extraChargeAmount: number = 0;
+  extraChargeType: 'fixed' | 'percentage' = 'fixed';
+  discount: number = 0;
+  discountType: 'fixed' | 'percentage' = 'fixed';
 
   newClient = {
     name: '',
@@ -1306,6 +1313,8 @@ export class OrdersComponent implements OnInit {
         notes: '',
         file_path: '',
         scheduler: '',
+        discount: 0,
+        discount_type: 'fixed',
       };
       this.salesItems = [];
       this.saleMode = 'none';
@@ -1316,6 +1325,9 @@ export class OrdersComponent implements OnInit {
       this.selectedCaliber = '';
       this.selectedColor = '';
       this.isSaleModeLocked = false;
+      this.discount = 0;
+      this.discountType = 'fixed';
+      this.extraChargeType = 'fixed';
     }
     this.showModal = !this.showModal;
     if (!this.showModal) {
@@ -2073,34 +2085,43 @@ export class OrdersComponent implements OnInit {
     return base;
   }
 
-  extraChargeDescription: string = '';
-  extraChargeAmount: number = 0;
-
   addExtraCharge(): void {
     if (this.extraChargeDescription && this.extraChargeAmount > 0) {
       if (!this.newOrder.extra_charges) {
         this.newOrder.extra_charges = [];
       }
 
-      // Calcular el subtotal ANTES de agregar el cargo (si aún no existe)
-      if (!this.newOrder.base_total == null) {
+      // Calcular el subtotal ANTES de agregar el cargo si aún no existe
+      if (!this.newOrder.base_total) {
         const currentTotal = parseFloat(this.newOrder.total as string) || 0;
         this.newOrder.base_total = currentTotal;
         this.newOrder.subtotal = currentTotal.toString();
       }
 
+      // ✅ NUEVO: Calcular el monto del cargo según el tipo
+      let chargeAmount = this.extraChargeAmount;
+
+      if (this.extraChargeType === 'percentage') {
+        // Si es porcentaje, calcular sobre el subtotal/base
+        const base = this.newOrder.base_total || 0;
+        chargeAmount = (base * this.extraChargeAmount) / 100;
+      }
+
       this.newOrder.extra_charges.push({
         description: this.extraChargeDescription,
-        amount: this.extraChargeAmount,
+        amount: chargeAmount,
+        type: this.extraChargeType // ✅ NUEVO: Guardar el tipo
       });
 
       this.extraChargeDescription = '';
       this.extraChargeAmount = 0;
+      this.extraChargeType = 'fixed'; // ✅ Resetear al valor por defecto
 
       // Recalcular total con el nuevo cargo
       this.updateOrderTotalWithExtras();
     }
   }
+
 
   removeExtraCharge(index: number): void {
     this.newOrder.extra_charges?.splice(index, 1);
@@ -2108,29 +2129,34 @@ export class OrdersComponent implements OnInit {
   }
 
   updateOrderTotalWithExtras(): void {
-    let base =
-      typeof this.newOrder.base_total === 'number' &&
-      !isNaN(this.newOrder.base_total)
-        ? this.newOrder.base_total
-        : parseFloat(this.newOrder.subtotal as string) || 0;
+    let base = typeof this.newOrder.base_total === 'number' && !isNaN(this.newOrder.base_total)
+      ? this.newOrder.base_total
+      : parseFloat(this.newOrder.subtotal as string) || 0;
 
-    // Si aún no hay base (pedido viejo sin campos): derivar una sola vez
-    const extras =
-      this.newOrder.extra_charges?.reduce(
-        (sum, c) => sum + (c.amount || 0),
-        0
-      ) || 0;
+    // Si aún no hay base (pedido viejo sin campos), derivar una sola vez
     if (!base) {
       const maybeTotal = parseFloat(this.newOrder.total as string) || 0;
-      base = maybeTotal - extras;
+      const extras = this.newOrder.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
+      const discount = this.calculateDiscountAmount();
+      base = maybeTotal - extras + discount;
       this.newOrder.base_total = base; // normaliza para futuras veces
     }
 
-    // 2) Recalcular siempre desde la base
+    // 1. Sumar extras
+    const extras = this.newOrder.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
+
+    // 2. Aplicar descuento
+    const discountAmount = this.calculateDiscountAmount();
+
+    // 3. Calcular total final
+    const totalBeforeDiscount = base + extras;
+    const finalTotal = Math.max(totalBeforeDiscount - discountAmount, 0);
+
+    // 4. Actualizar valores
     this.newOrder.subtotal = base.toString();
-    this.newOrder.total = (base + extras).toString();
-    this.newOrder.amount = base + extras;
+    this.newOrder.total = finalTotal.toString();
   }
+
 
   async createNotification(addedOrder: Partial<Orders>) {
     this.notificationDesc =
@@ -2171,6 +2197,43 @@ export class OrdersComponent implements OnInit {
       }
     }
   }
+
+  // ===== MÉTODOS PARA DESCUENTOS =====
+  calculateDiscountAmount(): number {
+    if (!this.discount || this.discount === 0) {
+      return 0;
+    }
+
+    // Calcular base (subtotal + extras)
+    const baseTotal = Number(this.newOrder.base_total || 0);
+    const extras = this.newOrder.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
+    const totalBeforeDiscount = baseTotal + extras;
+
+    if (this.discountType === 'percentage') {
+      // Descuento porcentual
+      return (totalBeforeDiscount * this.discount) / 100;
+    } else {
+      // Descuento fijo
+      return this.discount;
+    }
+  }
+
+  applyDiscount(): void {
+    if (this.discount > 0) {
+      this.newOrder.discount = this.discount;
+      this.newOrder.discount_type = this.discountType;
+      this.updateOrderTotalWithExtras();
+    }
+  }
+
+  clearDiscount(): void {
+    this.discount = 0;
+    this.discountType = 'fixed';
+    this.newOrder.discount = 0;
+    this.newOrder.discount_type = 'fixed';
+    this.updateOrderTotalWithExtras();
+  }
+
 
   private formatDateForInput(date: Date | string): string {
     const dateObj = new Date(date);
