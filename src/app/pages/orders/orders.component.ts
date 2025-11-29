@@ -31,8 +31,12 @@ interface Orders {
   payments?: Payment[];
   file_path: string;
   scheduler: string;
-  extra_charges?: { description: string; amount: number }[];
+  extra_charges?: { description: string; amount: number; type?: 'fixed' | 'percentage' }[];
   base_total?: number;
+  stock_status?: 'fulfilled' | 'pending_stock' | 'partially_fulfilled';
+  pending_quantity?: number; // Cantidad pendiente por falta de stock
+  discount?: number;
+  discount_type?: 'percentage' | 'fixed';
 }
 
 interface Client {
@@ -249,6 +253,11 @@ export class OrdersComponent implements OnInit {
   selectedProductId: string = '';
   salesItems: any[] = [];
   isSaleModeLocked: boolean = false;
+  extraChargeDescription: string = '';
+  extraChargeAmount: number = 0;
+  extraChargeType: 'fixed' | 'percentage' = 'fixed';
+  discount: number = 0;
+  discountType: 'fixed' | 'percentage' = 'fixed';
 
   newClient = {
     name: '',
@@ -597,122 +606,157 @@ export class OrdersComponent implements OnInit {
   }
 
   async saveSaleItemsToSupabase(orderId: string): Promise<boolean> {
-    for (const item of this.salesItems) {
-      // === MATERIAL ===
-      if (item.mode === 'material') {
-        const m = item.material;
+  let hasStockIssues = false;
+  let totalPendingQty = 0;
 
-        // leer stock
-        const { data: matData, error: matErr } = await this.supabase
-          .from('materials')
-          .select('material_quantity')
-          .eq('id_material', m.id_material)
-          .single();
+  for (const item of this.salesItems) {
+    // === MATERIAL ===
+    if (item.mode === 'material') {
+      const m = item.material;
 
-        if (matErr || !matData) {
-          alert('No se pudo leer stock del material.');
-          return false;
-        }
+      const { data: matData, error: matErr } = await this.supabase
+        .from('materials')
+        .select('material_quantity')
+        .eq('id_material', m.id_material)
+        .single();
 
-        const current = Number(matData.material_quantity);
-
-        if (current < item.quantity) {
-          await this.showStockError(
-            `No hay suficiente stock. Disponible: ${current}`
-          );
-          return false;
-        }
-
-        const newQty = Math.max(current - item.quantity, 0);
-
-        const { error: updateErr } = await this.supabase
-          .from('materials')
-          .update({ material_quantity: newQty.toString() })
-          .eq('id_material', m.id_material);
-
-        if (updateErr) {
-          console.error('Error actualizando stock:', updateErr);
-          return false;
-        }
-
-        const row = {
-          id_order: orderId,
-          item_type: 'material',
-          material_id: m.id_material,
-          product_id: null,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          line_total: item.subtotal,
-          material_type: m.type,
-          caliber: m.caliber,
-          color: m.color,
-          category: m.category,
-        };
-
-        const { error: insErr } = await this.supabase
-          .from('sales')
-          .insert([row]);
-
-        if (insErr) {
-          console.error('Error insertando línea de material:', insErr);
-          return false;
-        }
+      if (matErr || !matData) {
+        alert("No se pudo leer stock del material.");
+        return false;
       }
 
-      // === PRODUCTO ===
-      if (item.mode === 'product') {
-        const p = item.product;
+      const currentStock = Number(matData.material_quantity);
+      const requestedQty = item.quantity;
 
-        const { data: prodData, error: prodErr } = await this.supabase
-          .from('products')
-          .select('stock')
-          .eq('id', p.id)
-          .single();
+      // Descontar solo lo que hay disponible
+      let deductedQty = 0;
+      if (currentStock >= requestedQty) {
+        deductedQty = requestedQty;
+      } else {
+        deductedQty = currentStock;
+        hasStockIssues = true;
+        totalPendingQty += (requestedQty - currentStock);
+      }
 
-        if (prodErr || !prodData) {
-          alert('No se pudo leer stock del producto.');
-          return false;
-        }
+      // Actualizar stock (nunca negativo)
+      const newQty = Math.max(currentStock - deductedQty, 0);
 
-        const current = Number(prodData.stock);
+      const { error: updateErr } = await this.supabase
+        .from('materials')
+        .update({ material_quantity: newQty.toString() })
+        .eq('id_material', m.id_material);
 
-        if (current < item.quantity) {
-          await this.showStockError(
-            `No hay suficiente stock. Disponible: ${current}`
-          );
-          return false;
-        }
+      if (updateErr) {
+        console.error("Error actualizando stock:", updateErr);
+        return false;
+      }
 
-        const newStock = Math.max(current - item.quantity, 0);
+      // Insertar en sales
+      const row = {
+        id_order: orderId,
+        item_type: 'material',
+        material_id: m.id_material,
+        product_id: null,
+        quantity: item.quantity, // Cantidad solicitada
+        fulfilled_quantity: deductedQty, // NUEVO: Cantidad realmente descontada
+        pending_quantity: requestedQty - deductedQty, // NUEVO: Cantidad pendiente
+        unit_price: item.unit_price,
+        line_total: item.subtotal,
+        material_type: m.type,
+        caliber: m.caliber,
+        color: m.color,
+        category: m.category,
+      };
 
-        await this.supabase
-          .from('products')
-          .update({ stock: newStock })
-          .eq('id', p.id);
+      const { error: insErr } = await this.supabase
+        .from('sales')
+        .insert([row]);
 
-        const row = {
-          id_order: orderId,
-          item_type: 'product',
-          product_id: p.id,
-          material_id: null,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          line_total: item.subtotal,
-        };
-
-        const { error: insErr } = await this.supabase
-          .from('sales')
-          .insert([row]);
-
-        if (insErr) {
-          console.error('Error insertando línea de producto:', insErr);
-          return false;
-        }
+      if (insErr) {
+        console.error("Error insertando línea de material:", insErr);
+        return false;
       }
     }
 
-    return true;
+    // === PRODUCTO ===
+    if (item.mode === 'product') {
+      const p = item.product;
+
+      const { data: prodData, error: prodErr } = await this.supabase
+        .from('products')
+        .select('stock')
+        .eq('id', p.id)
+        .single();
+
+      if (prodErr || !prodData) {
+        alert("No se pudo leer stock del producto.");
+        return false;
+      }
+
+      const currentStock = Number(prodData.stock);
+      const requestedQty = item.quantity;
+
+      // Descontar solo lo que hay disponible
+      let deductedQty = 0;
+      if (currentStock >= requestedQty) {
+        deductedQty = requestedQty;
+      } else {
+        deductedQty = currentStock;
+        hasStockIssues = true;
+        totalPendingQty += (requestedQty - currentStock);
+      }
+
+      const newStock = Math.max(currentStock - deductedQty, 0);
+
+      await this.supabase
+        .from('products')
+        .update({ stock: newStock })
+        .eq('id', p.id);
+
+      const row = {
+        id_order: orderId,
+        item_type: 'product',
+        product_id: p.id,
+        material_id: null,
+        quantity: item.quantity,
+        fulfilled_quantity: deductedQty, // NUEVO
+        pending_quantity: requestedQty - deductedQty, // NUEVO
+        unit_price: item.unit_price,
+        line_total: item.subtotal,
+      };
+
+      const { error: insErr } = await this.supabase
+        .from('sales')
+        .insert([row]);
+
+      if (insErr) {
+        console.error("Error insertando línea de producto:", insErr);
+        return false;
+      }
+    }
   }
+
+  // Actualizar el estado de stock del pedido
+  const stockStatus = hasStockIssues
+    ? (totalPendingQty === this.salesItems.reduce((sum, i) => sum + i.quantity, 0) ? 'pending_stock' : 'partially_fulfilled')
+    : 'fulfilled';
+
+  await this.supabase
+    .from('orders')
+    .update({
+      stock_status: stockStatus,
+      pending_quantity: totalPendingQty
+    })
+    .eq('id_order', orderId);
+
+  // Mostrar advertencia si hay problemas de stock
+  if (hasStockIssues) {
+    alert(` ADVERTENCIA: El pedido fue creado pero hay ${totalPendingQty} unidades pendientes por falta de stock.`);
+  }
+
+  return true;
+}
+
 
   showNotification(message: string) {
     this.notificationMessage = message;
@@ -1336,6 +1380,8 @@ export class OrdersComponent implements OnInit {
         notes: '',
         file_path: '',
         scheduler: '',
+        discount: 0,
+        discount_type: 'fixed',
       };
       this.salesItems = [];
       this.saleMode = 'none';
@@ -1346,6 +1392,9 @@ export class OrdersComponent implements OnInit {
       this.selectedCaliber = '';
       this.selectedColor = '';
       this.isSaleModeLocked = false;
+      this.discount = 0;
+      this.discountType = 'fixed';
+      this.extraChargeType = 'fixed';
     }
     this.showModal = !this.showModal;
     if (!this.showModal) {
@@ -1602,18 +1651,30 @@ export class OrdersComponent implements OnInit {
       if (this.newOrder.order_type === 'print') {
         const selectedMaterial = this.getSelectedMaterial();
 
+        let deductedQty = 0;
+        let pendingQty = 0;
+
         if (selectedMaterial) {
           const quantityToUse = parseInt(this.newPrint.quantity || '0');
+          const currentStock = parseFloat(selectedMaterial.material_quantity);
 
-          if (parseFloat(selectedMaterial.material_quantity) < quantityToUse) {
-            await this.showStockError(
-              `No hay suficiente stock. Disponible: ${selectedMaterial.material_quantity}`
+          // Calcular deducción
+          if (currentStock >= quantityToUse) {
+            deductedQty = quantityToUse;
+          } else {
+            deductedQty = currentStock;
+            pendingQty = quantityToUse - currentStock;
+
+            alert(
+              `⚠️ ADVERTENCIA DE STOCK\n\n` +
+              `Solicitado: ${quantityToUse}\n` +
+              `Disponible: ${currentStock}\n` +
+              `Pendiente: ${pendingQty}\n\n` +
+              `El pedido se actualizó pero hay ${pendingQty} unidades pendientes por falta de stock.`
             );
-            return; // ← BLOQUEA EL GUARDADO
           }
 
-          const newStock =
-            parseFloat(selectedMaterial.material_quantity) - quantityToUse;
+          const newStock = Math.max(currentStock - deductedQty, 0);
 
           await this.supabase
             .from('materials')
@@ -1628,6 +1689,8 @@ export class OrdersComponent implements OnInit {
           caliber: selectedMaterial?.caliber || '',
           color: selectedMaterial?.color || '',
           category: selectedMaterial?.category || '',
+          fulfilled_quantity: deductedQty,
+          pending_quantity: pendingQty,
         };
 
         const { data: existingPrint, error: printSearchError } =
@@ -1655,21 +1718,50 @@ export class OrdersComponent implements OnInit {
             return;
           }
         }
+
+        // Actualizar stock_status en orders
+        const stockStatus = pendingQty > 0
+          ? (deductedQty === 0 ? 'pending_stock' : 'partially_fulfilled')
+          : 'fulfilled';
+
+        await this.supabase
+          .from('orders')
+          .update({
+            stock_status: stockStatus,
+            pending_quantity: pendingQty
+          })
+          .eq('id_order', this.newOrder.id_order);
+
       } else if (this.newOrder.order_type === 'laser') {
         const selectedMaterial = this.getSelectedMaterial();
 
+        let deductedQty = 0;
+        let pendingQty = 0;
+
         if (selectedMaterial) {
           const quantityToUse = parseInt(this.newCut.quantity || '0');
+          const currentStock = parseFloat(selectedMaterial.material_quantity);
 
-          if (parseFloat(selectedMaterial.material_quantity) < quantityToUse) {
-            await this.showStockError(
-              `No hay suficiente stock. Disponible: ${selectedMaterial.material_quantity}`
+          // Ya no bloqueamos, descontamos lo disponible
+          if (currentStock >= quantityToUse) {
+            // Hay suficiente stock
+            deductedQty = quantityToUse;
+          } else {
+            // No hay suficiente stock - descontar solo lo disponible
+            deductedQty = currentStock;
+            pendingQty = quantityToUse - currentStock;
+
+            alert(
+              `⚠️ ADVERTENCIA DE STOCK\n\n` +
+              `Solicitado: ${quantityToUse}\n` +
+              `Disponible: ${currentStock}\n` +
+              `Pendiente: ${pendingQty}\n\n` +
+              `El pedido se actualizó pero hay ${pendingQty} unidades pendientes por falta de stock.`
             );
-            return; // ← BLOQUEA EL GUARDADO
           }
 
-          const newStock =
-            parseFloat(selectedMaterial.material_quantity) - quantityToUse;
+          // Actualizar stock (nunca negativo)
+          const newStock = Math.max(currentStock - deductedQty, 0);
 
           await this.supabase
             .from('materials')
@@ -1684,6 +1776,8 @@ export class OrdersComponent implements OnInit {
           caliber: selectedMaterial?.caliber || '',
           color: selectedMaterial?.color || '',
           category: selectedMaterial?.category || '',
+          fulfilled_quantity: deductedQty,
+          pending_quantity: pendingQty,
         };
 
         const { data: existingCut, error: cutSearchError } = await this.supabase
@@ -1710,6 +1804,20 @@ export class OrdersComponent implements OnInit {
             return;
           }
         }
+
+        // Actualizar stock_status en orders
+        const stockStatus = pendingQty > 0
+          ? (deductedQty === 0 ? 'pending_stock' : 'partially_fulfilled')
+          : 'fulfilled';
+
+        await this.supabase
+          .from('orders')
+          .update({
+            stock_status: stockStatus,
+            pending_quantity: pendingQty
+          })
+          .eq('id_order', this.newOrder.id_order);
+
       } else if (this.newOrder.order_type === 'sales') {
         const orderId = this.newOrder.id_order!;
 
@@ -1824,18 +1932,33 @@ export class OrdersComponent implements OnInit {
       if (this.newOrder.order_type === 'print') {
         const selectedMaterial = this.getSelectedMaterial();
 
+        let deductedQty = 0;
+        let pendingQty = 0;
+
         if (selectedMaterial) {
           const quantityToUse = parseInt(this.newPrint.quantity || '0');
+          const currentStock = parseFloat(selectedMaterial.material_quantity);
 
-          if (parseFloat(selectedMaterial.material_quantity) < quantityToUse) {
-            await this.showStockError(
-              `No hay suficiente stock. Disponible: ${selectedMaterial.material_quantity}`
+          // Ya no bloqueamos, descontamos lo disponible
+          if (currentStock >= quantityToUse) {
+            // Hay suficiente stock
+            deductedQty = quantityToUse;
+          } else {
+            // No hay suficiente stock - descontar solo lo disponible
+            deductedQty = currentStock;
+            pendingQty = quantityToUse - currentStock;
+
+            alert(
+              `⚠️ ADVERTENCIA DE STOCK\n\n` +
+              `Solicitado: ${quantityToUse}\n` +
+              `Disponible: ${currentStock}\n` +
+              `Pendiente: ${pendingQty}\n\n` +
+              `El pedido se creó pero hay ${pendingQty} unidades pendientes por falta de stock.`
             );
-            return;
           }
 
-          const newStock =
-            parseFloat(selectedMaterial.material_quantity) - quantityToUse;
+          // Actualizar stock (nunca negativo)
+          const newStock = Math.max(currentStock - deductedQty, 0);
 
           await this.supabase
             .from('materials')
@@ -1850,6 +1973,8 @@ export class OrdersComponent implements OnInit {
           caliber: selectedMaterial?.caliber || '',
           color: selectedMaterial?.color || '',
           category: selectedMaterial?.category || '',
+          fulfilled_quantity: deductedQty,
+          pending_quantity: pendingQty,
         };
 
         const { error: printError } = await this.supabase
@@ -1861,22 +1986,50 @@ export class OrdersComponent implements OnInit {
           return;
         }
 
+        // Actualizar stock_status en orders
+        const stockStatus = pendingQty > 0
+          ? (deductedQty === 0 ? 'pending_stock' : 'partially_fulfilled')
+          : 'fulfilled';
+
+        await this.supabase
+          .from('orders')
+          .update({
+            stock_status: stockStatus,
+            pending_quantity: pendingQty
+          })
+          .eq('id_order', this.newOrder.id_order);
+
         this.createNotification(insertedOrder);
       } else if (this.newOrder.order_type === 'laser') {
         const selectedMaterial = this.getSelectedMaterial();
 
+        let deductedQty = 0;
+        let pendingQty = 0;
+
         if (selectedMaterial) {
           const quantityToUse = parseInt(this.newCut.quantity || '0');
+          const currentStock = parseFloat(selectedMaterial.material_quantity);
 
-          if (parseFloat(selectedMaterial.material_quantity) < quantityToUse) {
-            await this.showStockError(
-              `No hay suficiente stock. Disponible: ${selectedMaterial.material_quantity}`
+          //  Ya no bloqueamos, descontamos lo disponible
+          if (currentStock >= quantityToUse) {
+            // Hay suficiente stock
+            deductedQty = quantityToUse;
+          } else {
+            // No hay suficiente stock - descontar solo lo disponible
+            deductedQty = currentStock;
+            pendingQty = quantityToUse - currentStock;
+
+            alert(
+              `⚠️ ADVERTENCIA DE STOCK\n\n` +
+              `Solicitado: ${quantityToUse}\n` +
+              `Disponible: ${currentStock}\n` +
+              `Pendiente: ${pendingQty}\n\n` +
+              `El pedido se creó pero hay ${pendingQty} unidades pendientes por falta de stock.`
             );
-            return; // ← BLOQUEA EL GUARDADO
           }
 
-          const newStock =
-            parseFloat(selectedMaterial.material_quantity) - quantityToUse;
+          // Actualizar stock (nunca negativo)
+          const newStock = Math.max(currentStock - deductedQty, 0);
 
           await this.supabase
             .from('materials')
@@ -1884,6 +2037,7 @@ export class OrdersComponent implements OnInit {
             .eq('id_material', selectedMaterial.id_material);
         }
 
+        // Agregar fulfilled_quantity y pending_quantity
         const cutData = {
           ...this.newCut,
           id_order: this.newOrder.id_order,
@@ -1891,6 +2045,8 @@ export class OrdersComponent implements OnInit {
           caliber: selectedMaterial?.caliber || '',
           color: selectedMaterial?.color || '',
           category: selectedMaterial?.category || '',
+          fulfilled_quantity: deductedQty,
+          pending_quantity: pendingQty,
         };
 
         const { error: cutError } = await this.supabase
@@ -1900,6 +2056,20 @@ export class OrdersComponent implements OnInit {
           console.error('Error al insertar datos de corte:', cutError);
           return;
         }
+
+        // Actualizar stock_status en orders
+        const stockStatus = pendingQty > 0
+          ? (deductedQty === 0 ? 'pending_stock' : 'partially_fulfilled')
+          : 'fulfilled';
+
+        await this.supabase
+          .from('orders')
+          .update({
+            stock_status: stockStatus,
+            pending_quantity: pendingQty
+          })
+          .eq('id_order', this.newOrder.id_order);
+
         this.createNotification(insertedOrder);
       } else if (this.newOrder.order_type === 'sales') {
         const ok = await this.saveSaleItemsToSupabase(this.newOrder.id_order!);
@@ -1986,34 +2156,43 @@ export class OrdersComponent implements OnInit {
     return base;
   }
 
-  extraChargeDescription: string = '';
-  extraChargeAmount: number = 0;
-
   addExtraCharge(): void {
     if (this.extraChargeDescription && this.extraChargeAmount > 0) {
       if (!this.newOrder.extra_charges) {
         this.newOrder.extra_charges = [];
       }
 
-      // Calcular el subtotal ANTES de agregar el cargo (si aún no existe)
-      if (!this.newOrder.base_total == null) {
+      // Calcular el subtotal ANTES de agregar el cargo si aún no existe
+      if (!this.newOrder.base_total) {
         const currentTotal = parseFloat(this.newOrder.total as string) || 0;
         this.newOrder.base_total = currentTotal;
         this.newOrder.subtotal = currentTotal.toString();
       }
 
+      // ✅ NUEVO: Calcular el monto del cargo según el tipo
+      let chargeAmount = this.extraChargeAmount;
+
+      if (this.extraChargeType === 'percentage') {
+        // Si es porcentaje, calcular sobre el subtotal/base
+        const base = this.newOrder.base_total || 0;
+        chargeAmount = (base * this.extraChargeAmount) / 100;
+      }
+
       this.newOrder.extra_charges.push({
         description: this.extraChargeDescription,
-        amount: this.extraChargeAmount,
+        amount: chargeAmount,
+        type: this.extraChargeType // ✅ NUEVO: Guardar el tipo
       });
 
       this.extraChargeDescription = '';
       this.extraChargeAmount = 0;
+      this.extraChargeType = 'fixed'; // ✅ Resetear al valor por defecto
 
       // Recalcular total con el nuevo cargo
       this.updateOrderTotalWithExtras();
     }
   }
+
 
   removeExtraCharge(index: number): void {
     this.newOrder.extra_charges?.splice(index, 1);
@@ -2021,29 +2200,34 @@ export class OrdersComponent implements OnInit {
   }
 
   updateOrderTotalWithExtras(): void {
-    let base =
-      typeof this.newOrder.base_total === 'number' &&
-      !isNaN(this.newOrder.base_total)
-        ? this.newOrder.base_total
-        : parseFloat(this.newOrder.subtotal as string) || 0;
+    let base = typeof this.newOrder.base_total === 'number' && !isNaN(this.newOrder.base_total)
+      ? this.newOrder.base_total
+      : parseFloat(this.newOrder.subtotal as string) || 0;
 
-    // Si aún no hay base (pedido viejo sin campos): derivar una sola vez
-    const extras =
-      this.newOrder.extra_charges?.reduce(
-        (sum, c) => sum + (c.amount || 0),
-        0
-      ) || 0;
+    // Si aún no hay base (pedido viejo sin campos), derivar una sola vez
     if (!base) {
       const maybeTotal = parseFloat(this.newOrder.total as string) || 0;
-      base = maybeTotal - extras;
+      const extras = this.newOrder.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
+      const discount = this.calculateDiscountAmount();
+      base = maybeTotal - extras + discount;
       this.newOrder.base_total = base; // normaliza para futuras veces
     }
 
-    // 2) Recalcular siempre desde la base
+    // 1. Sumar extras
+    const extras = this.newOrder.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
+
+    // 2. Aplicar descuento
+    const discountAmount = this.calculateDiscountAmount();
+
+    // 3. Calcular total final
+    const totalBeforeDiscount = base + extras;
+    const finalTotal = Math.max(totalBeforeDiscount - discountAmount, 0);
+
+    // 4. Actualizar valores
     this.newOrder.subtotal = base.toString();
-    this.newOrder.total = (base + extras).toString();
-    this.newOrder.amount = base + extras;
+    this.newOrder.total = finalTotal.toString();
   }
+
 
   async createNotification(addedOrder: Partial<Orders>) {
     this.notificationDesc =
@@ -2084,6 +2268,43 @@ export class OrdersComponent implements OnInit {
       }
     }
   }
+
+  // ===== MÉTODOS PARA DESCUENTOS =====
+  calculateDiscountAmount(): number {
+    if (!this.discount || this.discount === 0) {
+      return 0;
+    }
+
+    // Calcular base (subtotal + extras)
+    const baseTotal = Number(this.newOrder.base_total || 0);
+    const extras = this.newOrder.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
+    const totalBeforeDiscount = baseTotal + extras;
+
+    if (this.discountType === 'percentage') {
+      // Descuento porcentual
+      return (totalBeforeDiscount * this.discount) / 100;
+    } else {
+      // Descuento fijo
+      return this.discount;
+    }
+  }
+
+  applyDiscount(): void {
+    if (this.discount > 0) {
+      this.newOrder.discount = this.discount;
+      this.newOrder.discount_type = this.discountType;
+      this.updateOrderTotalWithExtras();
+    }
+  }
+
+  clearDiscount(): void {
+    this.discount = 0;
+    this.discountType = 'fixed';
+    this.newOrder.discount = 0;
+    this.newOrder.discount_type = 'fixed';
+    this.updateOrderTotalWithExtras();
+  }
+
 
   private formatDateForInput(date: Date | string): string {
     const dateObj = new Date(date);
@@ -2276,6 +2497,156 @@ export class OrdersComponent implements OnInit {
         resolve();
       };
     });
+  }
+
+  async completeStockForOrder(order: Orders): Promise<void> {
+    if (!order.pending_quantity || order.pending_quantity === 0) {
+      alert('No hay cantidades pendientes para este pedido.');
+      return;
+    }
+
+    // Determinar qué tabla usar según el tipo de pedido
+    let detailTable: 'prints' | 'cuts' | 'sales' = 'prints';
+
+    if (order.order_type === 'print') {
+      detailTable = 'prints';
+    } else if (order.order_type === 'laser') {
+      detailTable = 'cuts';
+    } else if (order.order_type === 'sales') {
+      alert('Para ventas, usa el proceso normal de completar ítems.');
+      return;
+    } else {
+      alert('Tipo de pedido no soportado.');
+      return;
+    }
+
+    try {
+      // 1. Obtener el detalle del pedido
+      const { data: details, error: detailError } = await this.supabase
+        .from(detailTable)
+        .select('*')
+        .eq('id_order', order.id_order)
+        .single();
+
+      if (detailError || !details) {
+        console.error('Error obteniendo detalles:', detailError);
+        alert('No se pudo obtener la información del pedido.');
+        return;
+      }
+
+      const pendingQty = Number(details.pending_quantity || 0);
+      const fulfilledQty = Number(details.fulfilled_quantity || 0);
+
+      if (pendingQty === 0) {
+        alert('No hay cantidades pendientes.');
+        return;
+      }
+
+      // 2. Buscar el material correspondiente
+      const material = this.allMaterials.find(m =>
+        m.category === details.category &&
+        m.type === details.material_type &&
+        m.caliber === details.caliber &&
+        m.color === details.color
+      );
+
+      if (!material) {
+        alert('Material no encontrado en el inventario.');
+        return;
+      }
+
+      const currentStock = parseFloat(material.material_quantity);
+
+      // 3. Verificar si hay suficiente stock
+      if (currentStock < pendingQty) {
+        const confirmPartial = confirm(
+          `Stock insuficiente.\n\n` +
+          `Disponible: ${currentStock}\n` +
+          `Necesario: ${pendingQty}\n\n` +
+          `¿Desea completar parcialmente con ${currentStock} unidades?`
+        );
+
+        if (!confirmPartial) {
+          return;
+        }
+
+        // Completar parcialmente
+        const newStock = 0; // Se agota el stock disponible
+        const newFulfilledQty = fulfilledQty + currentStock;
+        const newPendingQty = pendingQty - currentStock;
+
+        // Actualizar material
+        await this.supabase
+          .from('materials')
+          .update({ material_quantity: newStock.toString() })
+          .eq('id_material', material.id_material);
+
+        // Actualizar detalle (prints/cuts)
+        await this.supabase
+          .from(detailTable)
+          .update({
+            fulfilled_quantity: newFulfilledQty,
+            pending_quantity: newPendingQty
+          })
+          .eq('id_order', order.id_order);
+
+        // Actualizar orden (sigue parcialmente completado)
+        await this.supabase
+          .from('orders')
+          .update({
+            stock_status: 'partially_fulfilled',
+            pending_quantity: newPendingQty
+          })
+          .eq('id_order', order.id_order);
+
+        alert(`Se completaron ${currentStock} unidades. Aún faltan ${newPendingQty}.`);
+        await this.getOrders();
+        return;
+      }
+
+      // 4. Hay suficiente stock - completar totalmente
+      const confirmComplete = confirm(
+        `¿Completar el pedido?\n\n` +
+        `Se descontarán ${pendingQty} unidades del inventario.`
+      );
+
+      if (!confirmComplete) {
+        return;
+      }
+
+      const newStock = currentStock - pendingQty;
+
+      // Actualizar material
+      await this.supabase
+        .from('materials')
+        .update({ material_quantity: newStock.toString() })
+        .eq('id_material', material.id_material);
+
+      // Actualizar detalle (prints/cuts)
+      await this.supabase
+        .from(detailTable)
+        .update({
+          fulfilled_quantity: fulfilledQty + pendingQty,
+          pending_quantity: 0
+        })
+        .eq('id_order', order.id_order);
+
+      // Actualizar orden (completado)
+      await this.supabase
+        .from('orders')
+        .update({
+          stock_status: 'fulfilled',
+          pending_quantity: 0
+        })
+        .eq('id_order', order.id_order);
+
+      alert('✅ Pedido completado correctamente.');
+      await this.getOrders();
+
+    } catch (error) {
+      console.error('Error completando stock:', error);
+      alert('Ocurrió un error al completar el stock.');
+    }
   }
 
   clearFilters(): void {

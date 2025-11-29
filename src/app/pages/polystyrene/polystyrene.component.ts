@@ -33,6 +33,7 @@ interface PolystyreneCalculationResult {
   finalPriceWithoutIva: number;
   iva: number;
   finalPriceWithIva: number;
+  noCabe?: boolean;
 }
 
 @Component({
@@ -48,10 +49,16 @@ export class PolystyreneComponent implements OnInit {
   paginatedPolystyrenes: Polystyrene[] = [];
   selectedPolystyrene!: Polystyrene;
   availableTypes: string[] = [];
-  sortDirection: 'asc' | 'desc' = 'asc'; // Orden ascendente por defecto
-  sortColumn: 'caliber' | 'type' = 'caliber'; // Columna por la que ordenar
+  sortDirection: 'asc' | 'desc' = 'asc';
+  sortColumn: 'caliber' | 'type' = 'caliber';
   customWidth: number | null = null;
   customHeight: number | null = null;
+
+  // NUEVO: Checkboxes para filtrar por tipo
+  showOriginal: boolean = true;
+  showEco: boolean = true;
+  showClear: boolean = true;
+  showColor: boolean = true;
 
   searchType: string = '';
   searchCaliber: string = '';
@@ -114,7 +121,7 @@ export class PolystyreneComponent implements OnInit {
   async loadPolystyrenes(): Promise<void> {
     const { error, data } = await this.supabase
       .from('polystyrene')
-      .select('*')
+      .select('*');
 
     if (error) {
       console.error('Error cargando:', error);
@@ -123,11 +130,9 @@ export class PolystyreneComponent implements OnInit {
 
     this.polystyrenes = data as Polystyrene[];
 
+    // CAMBIO: Ordenar por fecha de creación (más recientes primero)
     this.polystyrenes.sort((a, b) => {
-      const typeCompare = a.type.localeCompare(b.type);
-      if (typeCompare !== 0) return typeCompare;
-
-      return Number(a.caliber) - Number(b.caliber);
+      return new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime();
     });
 
     const typesSet = new Set<string>();
@@ -140,25 +145,21 @@ export class PolystyreneComponent implements OnInit {
     this.loading = false;
   }
 
+  // Método para alternar orden por calibre
   toggleSortDirection(column: 'caliber'): void {
-    if (this.sortColumn === column) {
-      this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
-    } else {
-      this.sortColumn = column;
-      this.sortDirection = 'asc';
-    }
+    this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+    this.applySortByCaliber();
+    this.currentPage = 1;
+    this.updatePaginatedPolystyrenes();
+  }
 
-    this.polystyrenes.sort((a, b) => {
-      const typeCompare = a.type.localeCompare(b.type);
-      if (typeCompare !== 0) return typeCompare;
-
-      // Calibre numérico
-      return this.sortDirection === 'asc'
-        ? Number(a.caliber) - Number(b.caliber)
-        : Number(b.caliber) - Number(a.caliber);
+  // Método  para ordenar por calibre
+  private applySortByCaliber(): void {
+    this.filteredPolystyrenes.sort((a, b) => {
+      const valueA = Number(a.caliber);
+      const valueB = Number(b.caliber);
+      return this.sortDirection === 'asc' ? valueA - valueB : valueB - valueA;
     });
-
-    this.updateFilteredPolystyrenes();
   }
 
   getSortIcon(column: string): string {
@@ -166,12 +167,31 @@ export class PolystyreneComponent implements OnInit {
     return this.sortDirection === 'asc' ? '↑' : '↓';
   }
 
+  // Filtros con checkboxes
   updateFilteredPolystyrenes(): void {
-    this.filteredPolystyrenes = this.polystyrenes.filter((item) => {
-      const matchesType = !this.searchType || item.type?.toLowerCase() === this.searchType;
+    // Filtrar por texto
+    let tempFiltered = this.polystyrenes.filter((item) => {
       const matchesCaliber = item.caliber?.toLowerCase().includes(this.searchCaliber.toLowerCase());
-      return matchesType && matchesCaliber;
+      return matchesCaliber;
     });
+
+    // Filtrar por checkboxes de tipo
+    const allCheckboxesOff = !this.showOriginal && !this.showEco &&
+                              !this.showClear && !this.showColor;
+
+    if (!allCheckboxesOff) {
+      tempFiltered = tempFiltered.filter(item => {
+        const normalizedType = item.type.toLowerCase();
+        return (
+          (this.showOriginal && normalizedType === 'original') ||
+          (this.showEco && normalizedType === 'eco') ||
+          (this.showClear && normalizedType === 'clear') ||
+          (this.showColor && normalizedType === 'color')
+        );
+      });
+    }
+
+    this.filteredPolystyrenes = tempFiltered;
     this.currentPage = 1;
     this.updatePaginatedPolystyrenes();
   }
@@ -214,35 +234,87 @@ export class PolystyreneComponent implements OnInit {
     };
 
     if (!this.selectedPolystyrene.type || !this.selectedPolystyrene.caliber || !this.selectedPolystyrene.whole) {
-      alert ('Por favor, complete todos los campos.');
+      alert('Por favor, complete todos los campos.');
       return;
     }
 
-    if (this.isEditing && this.selectedPolystyrene.id_polystyrene) {
-      const { error } = await this.supabase
-        .from('polystyrene')
-        .update(itemToSave)
-        .eq('id_polystyrene', this.selectedPolystyrene.id_polystyrene);
+    try {
+      if (this.isEditing && this.selectedPolystyrene.id_polystyrene) {
+        // Guardar calibre original
+        const originalCaliber = this.polystyrenes.find(
+          p => p.id_polystyrene === this.selectedPolystyrene.id_polystyrene
+        )?.caliber;
+        const caliberChanged = originalCaliber !== this.selectedPolystyrene.caliber;
 
-      if (error) {
-        console.error('Error actualizando:', error);
-      } else {
+        const { error } = await this.supabase
+          .from('polystyrene')
+          .update(itemToSave)
+          .eq('id_polystyrene', this.selectedPolystyrene.id_polystyrene);
+
+        if (error) {
+          console.error('Error actualizando:', error);
+          alert('Error al actualizar el registro.');
+          return;
+        }
+
         alert('Registro actualizado');
-        this.loadPolystyrenes();
-      }
-    } else {
-      const { error } = await this.supabase
-        .from('polystyrene')
-        .insert([itemToSave]);
 
-      if (error) {
-        console.error('Error añadiendo:', error);
+        // Solo recargar si cambió el calibre
+        if (caliberChanged) {
+          await this.loadPolystyrenes();
+        } else {
+          await this.updateSingleItem(this.selectedPolystyrene.id_polystyrene);
+        }
       } else {
+        const { error } = await this.supabase
+          .from('polystyrene')
+          .insert([itemToSave]);
+
+        if (error) {
+          console.error('Error añadiendo:', error);
+          alert('Error al añadir el registro.');
+          return;
+        }
+
         alert('Registro añadido');
-        this.loadPolystyrenes();
+        await this.loadPolystyrenes();
       }
+
+      this.closeModal();
+    } catch (error) {
+      console.error('Error inesperado:', error);
+      alert('Ocurrió un error inesperado.');
     }
-    this.closeModal();
+  }
+
+  // Método para actualizar un solo item sin reordenar
+  private async updateSingleItem(id: string): Promise<void> {
+    const { data, error } = await this.supabase
+      .from('polystyrene')
+      .select('*')
+      .eq('id_polystyrene', id)
+      .single();
+
+    if (error) {
+      console.error('Error al obtener el item actualizado:', error);
+      return;
+    }
+
+    // Actualizar en los arrays sin cambiar el orden
+    const indexInAll = this.polystyrenes.findIndex(item => item.id_polystyrene === id);
+    if (indexInAll !== -1) {
+      this.polystyrenes[indexInAll] = data;
+    }
+
+    const indexInFiltered = this.filteredPolystyrenes.findIndex(item => item.id_polystyrene === id);
+    if (indexInFiltered !== -1) {
+      this.filteredPolystyrenes[indexInFiltered] = data;
+    }
+
+    const indexInPaginated = this.paginatedPolystyrenes.findIndex(item => item.id_polystyrene === id);
+    if (indexInPaginated !== -1) {
+      this.paginatedPolystyrenes[indexInPaginated] = data;
+    }
   }
 
   async deletePolystyrene(item: Polystyrene): Promise<void> {
@@ -266,7 +338,6 @@ export class PolystyreneComponent implements OnInit {
     this.isEditing = false;
   }
 
-  // Funciones de cálculo reutilizadas
   calculatePriceForTable(item: Polystyrene): PolystyreneCalculationResult & { noCabe?: boolean } {
     const useCustom = !this.selectedFormat || this.selectedFormat.trim() === '';
 
@@ -276,7 +347,6 @@ export class PolystyreneComponent implements OnInit {
     const pedidoArea = (width * height) / 10000;
     const totalSheetArea = 2.0;
 
-    // 1. Validar si cabe
     if (pedidoArea > totalSheetArea) {
       return {
         area: pedidoArea,
@@ -291,7 +361,6 @@ export class PolystyreneComponent implements OnInit {
       };
     }
 
-    // 2. Margen
     let extraMargin = this.formatFactors[this.selectedFormat]?.margin || 0;
 
     if (useCustom) {
@@ -312,7 +381,6 @@ export class PolystyreneComponent implements OnInit {
       extraMargin = marginResult as number;
     }
 
-    // 3. Calcular precios (lógica existente)
     const factor = this.formatFactors[this.selectedFormat]?.factor || 1;
     const adjustedArea = pedidoArea * factor;
 
@@ -320,7 +388,7 @@ export class PolystyreneComponent implements OnInit {
       ? item.whole
       : (item.whole / totalSheetArea) * adjustedArea;
 
-    const utilidad = 0.3; // 30% fijo en la tabla
+    const utilidad = 0.3;
     const priceWithUtility = Math.ceil((baseCost / (1 - utilidad)) / 100) * 100;
 
     const priceWithMargin = Math.ceil((priceWithUtility * (1 + extraMargin)) / 100) * 100;
@@ -407,12 +475,11 @@ export class PolystyreneComponent implements OnInit {
     const discount = this.calculatorForm.discount / 100;
 
     const areaCm2 = width * height;
-    const totalSheetAreaCm2 = 100 * 200; // 20,000 cm²
+    const totalSheetAreaCm2 = 100 * 200;
     const areaM2 = areaCm2 / 10000;
 
     const isCustom = !format || format.trim() === '';
 
-    // Verificar si NO CABE
     if (areaCm2 > totalSheetAreaCm2) {
       this.calculationResult = {
         area: areaM2,
@@ -424,11 +491,10 @@ export class PolystyreneComponent implements OnInit {
         iva: 0,
         finalPriceWithIva: 0,
         noCabe: true
-      } as any;
+      };
       return;
     }
 
-    //Determinar margen aplicado
     let extraMargin = 0;
     if (isCustom) {
       const marginResult = this.calculateAppliedMarginReal(width, height);
@@ -443,7 +509,7 @@ export class PolystyreneComponent implements OnInit {
           iva: 0,
           finalPriceWithIva: 0,
           noCabe: true
-        } as any;
+        };
         return;
       }
       extraMargin = marginResult as number;
@@ -451,12 +517,10 @@ export class PolystyreneComponent implements OnInit {
       extraMargin = this.formatFactors[format]?.margin || 0;
     }
 
-    // Calcular factor de formato
     const factor = this.formatFactors[format]?.factor || 1;
     const adjustedArea = areaM2 * factor;
 
-    // Calcular precios
-    const totalSheetAreaM2 = 2.0; // 100x200 cm en m²
+    const totalSheetAreaM2 = 2.0;
     const baseCost = adjustedArea >= totalSheetAreaM2
       ? cost
       : (cost / totalSheetAreaM2) * adjustedArea;
@@ -471,7 +535,6 @@ export class PolystyreneComponent implements OnInit {
       : 0;
     const finalPrice = priceWithoutIva + ivaValue;
 
-    // Resultado final
     this.calculationResult = {
       area: adjustedArea,
       basePriceWithProfit: priceWithUtility,
@@ -484,16 +547,14 @@ export class PolystyreneComponent implements OnInit {
     };
   }
 
-
   isUsingCustomSize(): boolean {
     return !this.selectedFormat || this.selectedFormat.trim() === '';
   }
 
   calculateAppliedMarginReal(width: number, height: number): number | 'NO_CABE' {
-    const areaTotal = 100 * 200; // Área base de la lámina
+    const areaTotal = 100 * 200;
     const area = width * height;
 
-    // Si el área solicitada es mayor que la lámina → NO CABE
     if (area > areaTotal) return 'NO_CABE';
     if (area <= 0) return 0;
 
@@ -502,13 +563,12 @@ export class PolystyreneComponent implements OnInit {
 
     const isExactFraction = exactFractions.some(f => Math.abs(f - fraction) < 0.001);
 
-    // Parámetros basados en tu hoja
-    const M1 = 0.80; // Margen máximo general
-    const M2 = 0.65; // Delta general
-    const M3 = 0.80; // Margen máximo para fracciones exactas
-    const M4 = 0.30; // Delta fracciones exactas
+    const M1 = 0.80;
+    const M2 = 0.65;
+    const M3 = 0.80;
+    const M4 = 0.30;
 
-    if (fraction === 1) return 0; // Si es una lámina completa → margen 0
+    if (fraction === 1) return 0;
 
     if (isExactFraction) {
       return M3 - M4 * (area / (areaTotal / 2));
@@ -517,18 +577,19 @@ export class PolystyreneComponent implements OnInit {
     }
   }
 
-    clearFilters(): void {
-    // Resetear todos los filtros
+  // Limpiar todos los filtros incluyendo checkboxes
+  clearFilters(): void {
     this.searchCaliber = '';
     this.searchType = '';
     this.selectedFormat = '1 Lámina';
     this.customWidth = null;
     this.customHeight = null;
-
-    // Recargar la lista completa
+    this.showOriginal = true;
+    this.showEco = true;
+    this.showClear = true;
+    this.showColor = true;
     this.updateFilteredPolystyrenes();
   }
-
 
   openClientDefaultsModal(): void {
     this.showClientDefaultsModal = true;
