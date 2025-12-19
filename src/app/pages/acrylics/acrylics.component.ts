@@ -784,7 +784,7 @@ private async updateSingleItem(id: string): Promise<void> {
         const normalizedColor = item.color.trim();
         return (
           (this.showCristalOpal && normalizedColor === 'Cristal y Opal') ||
-          (this.showColorRojo && normalizedColor === 'Color Rojo') ||
+          (this.showColorRojo && normalizedColor === 'Color') ||
           (this.showHumo && normalizedColor === 'Humo') ||
           (this.showEspejo && normalizedColor === 'Espejo') ||
           (this.showMetalizados && normalizedColor === 'Metalizados')
