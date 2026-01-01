@@ -140,10 +140,7 @@
           }}
         </td>
         <td class="table-column-std">
-          {{
-            invoice.order.client.name
-
-          }}
+          {{ invoice.order.client.name }}
         </td>
         <td class="table-column-std">
           {{ invoice.created_at | date : "dd-MM-yyyy" }}
@@ -168,8 +165,8 @@
         <td class="table-column-std">
           {{
             getRemainingDeliveryDays(invoice.due_date) > 0
-              ? getRemainingDeliveryDays(invoice.due_date) + ' días'
-              : 'Vencido'
+              ? getRemainingDeliveryDays(invoice.due_date) + " días"
+              : "Vencido"
           }}
         </td>
         <td class="table-column-std">
@@ -593,14 +590,6 @@
             <p>
               <strong>Descripción:</strong>
               {{ selectedInvoiceDetails[0].order.description }}
-            </p>
-            <p>
-              <strong>Cantidad:</strong>
-              {{ selectedInvoiceDetails[0].order.order_quantity }}
-            </p>
-            <p>
-              <strong>Valor Unitario:</strong>
-              {{ selectedInvoiceDetails[0].order.unitary_value }}
             </p>
           </li>
         </ul>

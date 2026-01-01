@@ -108,12 +108,7 @@
       </svg>
       <span>Calculadora</span>
     </button>
-    <button
-      class="btn-clear "
-      (click)="clearFilters()"
-    >
-      Limpiar
-  </button>
+    <button class="btn-clear" (click)="clearFilters()">Limpiar</button>
   </div>
 </div>
 
@@ -185,7 +180,12 @@
 <div *ngIf="!loading" class="mt-4">
   <table class="table-std">
     <thead>
-      <ng-container *ngIf="userRole === 'admin' || userRole === 'scheduler'; else notAdminHeader">
+      <ng-container
+        *ngIf="
+          userRole === 'admin' || userRole === 'scheduler';
+          else notAdminHeader
+        "
+      >
         <tr>
           <th class="table-column-std">Código</th>
           <th class="table-column-std">Tipo</th>
@@ -218,7 +218,12 @@
     </thead>
 
     <tbody>
-      <ng-container *ngIf="userRole === 'admin' || userRole === 'scheduler'; else notAdminBody">
+      <ng-container
+        *ngIf="
+          userRole === 'admin' || userRole === 'scheduler';
+          else notAdminBody
+        "
+      >
         <tr *ngFor="let order of paginatedOrders">
           <td>{{ order.code }}</td>
           <td>
@@ -274,19 +279,28 @@
               'text-red-600': order.stock_status === 'pending_stock'
             }"
           >
-            <span *ngIf="!order.stock_status || order.stock_status === 'fulfilled'">
+            <span
+              *ngIf="!order.stock_status || order.stock_status === 'fulfilled'"
+            >
               Completo
             </span>
             <span *ngIf="order.stock_status === 'partially_fulfilled'">
               Parcial
-              <span class="text-xs block">({{ order.pending_quantity || 0 }} pend.)</span>
+              <span class="text-xs block"
+                >({{ order.pending_quantity || 0 }} pend.)</span
+              >
             </span>
             <span *ngIf="order.stock_status === 'pending_stock'">
               Pendiente
-              <span class="text-xs block">({{ order.pending_quantity || 0 }} pend.)</span>
+              <span class="text-xs block"
+                >({{ order.pending_quantity || 0 }} pend.)</span
+              >
             </span>
             <button
-              *ngIf="order.stock_status === 'pending_stock' || order.stock_status === 'partially_fulfilled'"
+              *ngIf="
+                order.stock_status === 'pending_stock' ||
+                order.stock_status === 'partially_fulfilled'
+              "
               class="btn-success mt-2 text-xs px-2 py-1"
               (click)="completeStockForOrder(order)"
             >
@@ -393,11 +407,13 @@
                 : "No especificado"
             }}
           </td>
-          <td [ngClass]="{
-            'text-red-500': isDeliveryOverdue(order),
-            'text-yellow-500': isDeliveryLastDay(order),
-            'text-green-500': hasMultipleDeliveryDays(order)
-          }">
+          <td
+            [ngClass]="{
+              'text-red-500': isDeliveryOverdue(order),
+              'text-yellow-500': isDeliveryLastDay(order),
+              'text-green-500': hasMultipleDeliveryDays(order)
+            }"
+          >
             {{ getFormattedDeliveryTime(order) }}
           </td>
           <td>
@@ -546,7 +562,8 @@
                 ? "A tiempo"
                 : selectedOrderDetails[0].order_delivery_status === "late"
                 ? "Tarde"
-                : selectedOrderDetails[0].order_delivery_status === "toBeDelivered"
+                : selectedOrderDetails[0].order_delivery_status ===
+                  "toBeDelivered"
                 ? "En espera"
                 : "No especificado"
             }}
@@ -576,7 +593,7 @@
           <p>
             <strong>Tipo de cliente:</strong>
             {{
-              selectedOrderDetails[0].client_type === "finall"
+              selectedOrderDetails[0].client_type === "final"
                 ? "Final"
                 : selectedOrderDetails[0].client_type === "intermediary"
                 ? "Intermediario"
@@ -603,16 +620,7 @@
             <p class="text-red-600">
               <strong>Notas:</strong> {{ selectedOrderDetails[0].notes }}
             </p>
-            <div *ngIf="selectedOrderDetails[0]?.order_type !== 'sales'">
-              <p>
-                <strong>Cantidad:</strong>
-                {{ selectedOrderDetails[0].order_quantity }}
-              </p>
-              <p *ngIf="userRole === 'admin'">
-                <strong>Valor Unitario:</strong>
-                {{ selectedOrderDetails[0].unitary_value }}
-              </p>
-            </div>
+            <div *ngIf="selectedOrderDetails[0]?.order_type !== 'sales'"></div>
             <p *ngIf="selectedOrderDetails[0].iva">
               <strong>IVA:</strong> {{ selectedOrderDetails[0].iva }}
             </p>
@@ -621,88 +629,108 @@
       </div>
       <!-- Specific details for cuts -->
       <div *ngIf="selectedOrderDetails[0].order_type === 'laser'" class="my-6">
-        <ul class="list-none">
-          <li>
-            <p>
-              <strong>Categoría:</strong>
-              {{ selectedOrderTypeDetail[0].category }}
-            </p>
-            <p>
-              <strong>Tipo de Material:</strong>
-              {{ selectedOrderTypeDetail[0].material_type }}
-            </p>
-            <p>
-              <strong>Calibre:</strong> {{ selectedOrderTypeDetail[0].caliber }}
-            </p>
-            <p>
-              <strong>Color:</strong> {{ selectedOrderTypeDetail[0].color }}
-            </p>
-            <p>
-              <strong>Cantidad Usada:</strong>
-              {{ selectedOrderTypeDetail[0].quantity }}
-            </p>
-            <p>
-              <strong>Dimensiones:</strong>
-              {{ selectedOrderTypeDetail[0].height }} X
-              {{ selectedOrderTypeDetail[0].width }}
-            </p>
-            <p>
-              <strong>Tiempo de corte:</strong>
-              {{ selectedOrderTypeDetail[0].cutting_time }} mins
-            </p>
-          </li>
-        </ul>
+        <h4 class="font-semibold text-purple-700">Detalles de Corte</h4>
+
+        <!-- Tabla de materiales de corte -->
+        <ng-container *ngIf="selectedOrderTypeDetail?.length; else noCuts">
+          <table class="min-w-full text-sm border mt-3">
+            <thead class="bg-gray-200">
+              <tr>
+                <th class="border px-2 py-1">Material</th>
+                <th class="border px-2 py-1">Color</th>
+                <th class="border px-2 py-1">Cantidad</th>
+                <th class="border px-2 py-1">Tiempo (min)</th>
+                <th class="border px-2 py-1">Dimensiones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let c of selectedOrderTypeDetail">
+                <td class="border px-2 py-1">
+                  <strong>{{ c.category }}</strong
+                  ><br />
+                  <span class="text-xs text-gray-600">{{
+                    c.material_type
+                  }}</span>
+                </td>
+                <td class="border px-2 py-1">{{ c.color || "Vacío" }}</td>
+                <td class="border px-2 py-1">{{ c.quantity }}</td>
+                <td class="border px-2 py-1">{{ c.cutting_time }}</td>
+                <td class="border px-2 py-1">
+                  <span *ngIf="c.height && c.width">
+                    {{ c.height }} x {{ c.width }} m
+                  </span>
+                  <span *ngIf="!c.height && !c.width">-</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </ng-container>
+
+        <ng-template #noCuts>
+          <p class="text-gray-500">
+            Este pedido no tiene materiales de corte registrados.
+          </p>
+        </ng-template>
       </div>
 
       <!-- Specific details for prints -->
       <div *ngIf="selectedOrderDetails[0].order_type === 'print'" class="my-6">
-        <ul class="list-none">
-          <li>
-            <p>
-              <strong>Categoría:</strong>
-              {{ selectedOrderTypeDetail[0].category }}
-            </p>
-            <p>
-              <strong>Tipo de Material:</strong>
-              {{ selectedOrderTypeDetail[0].material_type }}
-            </p>
-            <p>
-              <strong>Calibre:</strong> {{ selectedOrderTypeDetail[0].caliber }}
-            </p>
-            <p>
-              <strong>Color:</strong> {{ selectedOrderTypeDetail[0].color }}
-            </p>
-            <p>
-              <strong>P. Laminado:</strong>
-              {{ selectedOrderTypeDetail[0].laminating ? "Si" : "-" }}
-              <strong>P. Impresión:</strong>
-              {{ selectedOrderTypeDetail[0].printing ? "Si" : "-" }}
-              <strong>P. Troquelado:</strong>
-              {{ selectedOrderTypeDetail[0].die_cutting ? "Si" : "-" }}
-              <strong>P. Armado:</strong>
-              {{ selectedOrderTypeDetail[0].assembly ? "Si" : "-" }}
-            </p>
-            <p>
-              <strong>Número de producto:</strong>
-              {{ selectedOrderTypeDetail[0].product_number }}
-            </p>
-            <p>
-              <strong>Cantidad Usada:</strong>
-              {{ selectedOrderTypeDetail[0].quantity }}
-            </p>
-            <p>
-              <strong>Producto Dañado:</strong>
-              {{ selectedOrderTypeDetail[0].damaged_material }}
-            </p>
-          </li>
-        </ul>
+        <h4 class="font-semibold text-green-700">Detalles de Impresión</h4>
+
+        <!-- Tabla de materiales de impresión -->
+        <ng-container *ngIf="selectedOrderTypeDetail?.length; else noPrints">
+          <table class="min-w-full text-sm border mt-3">
+            <thead class="bg-gray-200">
+              <tr>
+                <th class="border px-2 py-1">Material</th>
+                <th class="border px-2 py-1">Color</th>
+                <th class="border px-2 py-1">Cantidad</th>
+                <th class="border px-2 py-1">Procesos</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let p of selectedOrderTypeDetail">
+                <td class="border px-2 py-1">
+                  <strong>{{ p.category }}</strong
+                  ><br />
+                  <span class="text-xs text-gray-600">{{
+                    p.material_type
+                  }}</span>
+                </td>
+                <td class="border px-2 py-1">{{ p.color || "(Vacío)" }}</td>
+                <td class="border px-2 py-1">{{ p.quantity }}</td>
+                <td class="border px-2 py-1">
+                  <span *ngIf="p.laminating"> Lam</span>
+                  <span *ngIf="p.printing"> Impr</span>
+                  <span *ngIf="p.die_cutting"> Troq</span>
+                  <span *ngIf="p.assembly"> Arma</span>
+                  <span
+                    *ngIf="
+                      !p.laminating &&
+                      !p.printing &&
+                      !p.die_cutting &&
+                      !p.assembly
+                    "
+                    >-</span
+                  >
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </ng-container>
+
+        <ng-template #noPrints>
+          <p class="text-gray-500">
+            Este pedido no tiene materiales de impresión registrados.
+          </p>
+        </ng-template>
       </div>
       <!-- Specific details for sales -->
       <div
         *ngIf="
           selectedOrderDetails &&
           selectedOrderDetails[0]?.order_type &&
-          (selectedOrderDetails[0].order_type === 'sales')
+          selectedOrderDetails[0].order_type === 'sales'
         "
         class="my-6"
       >
@@ -710,23 +738,39 @@
 
         <ng-container *ngIf="selectedOrderTypeDetail?.length; else noSales">
           <ul class="list-none">
-            <li *ngFor="let s of selectedOrderTypeDetail" class="mb-4 pb-4 border-b">
-              <p><strong>Tipo de ítem:</strong>
+            <li
+              *ngFor="let s of selectedOrderTypeDetail"
+              class="mb-4 pb-4 border-b"
+            >
+              <p>
+                <strong>Tipo de ítem:</strong>
                 {{
-                  s.item_type === 'material' ? 'Material' :
-                  s.item_type === 'product' ? 'Producto' :
-                  'Desconocido'
+                  s.item_type === "material"
+                    ? "Material"
+                    : s.item_type === "product"
+                    ? "Producto"
+                    : "Desconocido"
                 }}
               </p>
 
               <!-- Si es MATERIAL -->
               <ng-container *ngIf="s.item_type === 'material'; else productTpl">
-                <p *ngIf="s.category"><strong>Categoría:</strong> {{ s.category }}</p>
-                <p *ngIf="s.material_type"><strong>Tipo de material:</strong> {{ s.material_type }}</p>
-                <p *ngIf="s.caliber"><strong>Calibre:</strong> {{ s.caliber }}</p>
+                <p *ngIf="s.category">
+                  <strong>Categoría:</strong> {{ s.category }}
+                </p>
+                <p *ngIf="s.material_type">
+                  <strong>Tipo de material:</strong> {{ s.material_type }}
+                </p>
+                <p *ngIf="s.caliber">
+                  <strong>Calibre:</strong> {{ s.caliber }}
+                </p>
                 <p *ngIf="s.color"><strong>Color:</strong> {{ s.color }}</p>
                 <!-- Si no tienes snapshots, al menos muestra el ID -->
-                <p *ngIf="!s.category && !s.material_type && !s.caliber && !s.color">
+                <p
+                  *ngIf="
+                    !s.category && !s.material_type && !s.caliber && !s.color
+                  "
+                >
                   <strong>Material ID:</strong> {{ s.material_id }}
                 </p>
               </ng-container>
@@ -735,19 +779,26 @@
               <ng-template #productTpl>
                 <p>
                   <strong>Producto:</strong>
-                  {{ s.product_name_snapshot || getProductNameById(s.product_id) }}
+                  {{
+                    s.product_name_snapshot || getProductNameById(s.product_id)
+                  }}
                 </p>
               </ng-template>
 
               <!-- Económicos -->
               <p><strong>Cantidad:</strong> {{ s.quantity }}</p>
-              <p><strong>Precio unitario:</strong> {{ s.unit_price | number:'1.0-2' }}</p>
+              <p>
+                <strong>Precio unitario:</strong>
+                {{ s.unit_price | number : "1.0-2" }}
+              </p>
             </li>
           </ul>
         </ng-container>
 
         <ng-template #noSales>
-          <p class="text-gray-500">Este pedido no tiene líneas de venta registradas.</p>
+          <p class="text-gray-500">
+            Este pedido no tiene líneas de venta registradas.
+          </p>
         </ng-template>
       </div>
 
@@ -762,9 +813,15 @@
             <p><strong>IVA</strong></p>
             <p>{{ selectedOrderDetails[0].iva }}</p>
           </div>
-          <div *ngIf="selectedOrderDetails[0]?.extra_charges?.length" class="flex flex-col gap-1 my-2">
+          <div
+            *ngIf="selectedOrderDetails[0]?.extra_charges?.length"
+            class="flex flex-col gap-1 my-2"
+          >
             <p class="font-semibold text-blue-600 mb-1">Cargos Extras</p>
-            <div *ngFor="let charge of selectedOrderDetails[0].extra_charges" class="flex justify-between">
+            <div
+              *ngFor="let charge of selectedOrderDetails[0].extra_charges"
+              class="flex justify-between"
+            >
               <span>{{ charge.description }}</span>
               <span>${{ charge.amount }}</span>
             </div>
@@ -868,7 +925,7 @@
             required
           >
             <option value="intermediary">Intermediario</option>
-            <option value="finall">Final</option>
+            <option value="final">Final</option>
           </select>
         </div>
         <div class="mb-4">
@@ -878,15 +935,6 @@
             name="description"
             class="form-textarea mt-1 block w-full"
           ></textarea>
-        </div>
-        <div *ngIf="!isSale()" class="mb-4">
-          <label class="block modal-input-item">Cantidad</label>
-          <input
-            type="number"
-            [(ngModel)]="newOrder.order_quantity"
-            name="order_quantity"
-            class="form-input mt-1 block w-full"
-          />
         </div>
         <div class="mb-4">
           <label class="block modal-input-item">Notas</label>
@@ -905,16 +953,6 @@
             type="date"
             [(ngModel)]="newOrder.delivery_date"
             name="delivery_date"
-            class="form-input mt-1 block w-full"
-            required
-          />
-        </div>
-        <div *ngIf="!isSale()" class="mb-4">
-          <label class="block modal-input-item">Total</label>
-          <input
-            type="number"
-            [(ngModel)]="newOrder.total"
-            name="total"
             class="form-input mt-1 block w-full"
             required
           />
@@ -945,14 +983,20 @@
             <input
               type="number"
               [(ngModel)]="extraChargeAmount"
-              [placeholder]="extraChargeType === 'percentage' ? 'Ej. 5 (%)' : 'Ej. 5000 ($)'"
+              [placeholder]="
+                extraChargeType === 'percentage' ? 'Ej. 5 (%)' : 'Ej. 5000 ($)'
+              "
               class="form-input w-1/4"
               name="extraChargeAmount"
               [max]="extraChargeType === 'percentage' ? 100 : null"
               min="0"
             />
 
-            <button type="button" class="btn-primary" (click)="addExtraCharge()">
+            <button
+              type="button"
+              class="btn-primary"
+              (click)="addExtraCharge()"
+            >
               Añadir
             </button>
           </div>
@@ -965,8 +1009,12 @@
             >
               <span>
                 {{ charge.description }}:
-                <span *ngIf="charge.type === 'percentage'">{{ charge.amount | number:'1.0-0' }} (calculado)</span>
-                <span *ngIf="charge.type !== 'percentage'">{{ charge.amount }}</span>
+                <span *ngIf="charge.type === 'percentage'"
+                  >{{ charge.amount | number : "1.0-0" }} (calculado)</span
+                >
+                <span *ngIf="charge.type !== 'percentage'">{{
+                  charge.amount
+                }}</span>
               </span>
               <button
                 type="button"
@@ -978,292 +1026,541 @@
             </li>
           </ul>
         </div>
-      <!-- DESCUENTOS -->
-      <div class="mb-4 border-t pt-4">
-        <h4 class="font-semibold text-green-600">Descuento</h4>
+        <!-- DESCUENTOS -->
+        <div class="mb-4 border-t pt-4">
+          <h4 class="font-semibold text-green-600">Descuento</h4>
 
-        <!-- Formulario para agregar descuento (solo si no hay uno aplicado) -->
-        <div *ngIf="!hasDiscountApplied" class="flex gap-2 mb-2">
-          <!-- Tipo de descuento -->
-          <select
-            [(ngModel)]="discountType"
-            name="discountType"
-            class="form-select w-1/6"
+          <!-- Formulario para agregar descuento (solo si no hay uno aplicado) -->
+          <div *ngIf="!hasDiscountApplied" class="flex gap-2 mb-2">
+            <!-- Tipo de descuento -->
+            <select
+              [(ngModel)]="discountType"
+              name="discountType"
+              class="form-select w-1/6"
+            >
+              <option value="fixed">Valor Fijo ($)</option>
+              <option value="percentage">Porcentaje (%)</option>
+            </select>
+
+            <!-- Valor del descuento -->
+            <input
+              type="number"
+              [(ngModel)]="discount"
+              [placeholder]="
+                discountType === 'percentage' ? 'Ej. 10 (%)' : 'Ej. 10000 ($)'
+              "
+              class="form-input w-1/3"
+              name="discount"
+              [max]="discountType === 'percentage' ? 100 : null"
+              min="0"
+            />
+
+            <!-- Botón para agregar -->
+            <button type="button" class="btn-primary" (click)="applyDiscount()">
+              Añadir
+            </button>
+          </div>
+
+          <!-- Descuento aplicado (con botón eliminar) -->
+          <div
+            *ngIf="hasDiscountApplied"
+            class="p-3 bg-green-50 rounded border border-green-200"
           >
-            <option value="fixed">Valor Fijo ($)</option>
-            <option value="percentage">Porcentaje (%)</option>
-          </select>
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm font-semibold text-green-800">
+                  Descuento aplicado:
+                </p>
+                <p class="text-sm text-green-700">
+                  <span *ngIf="newOrder.discount_type === 'percentage'">
+                    {{ newOrder.discount }}% = ${{
+                      totalBeforeDiscount - +(newOrder.total ?? 0)
+                        | number : "1.0-0"
+                    }}
+                  </span>
+                  <span *ngIf="newOrder.discount_type === 'fixed'">
+                    Valor fijo: ${{ newOrder.discount ?? 0 | number : "1.0-0" }}
+                  </span>
+                </p>
+              </div>
+              <button
+                type="button"
+                class="btn-danger btn-xs"
+                (click)="clearDiscount()"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      </ng-container>
 
-          <!-- Valor del descuento -->
-          <input
-            type="number"
-            [(ngModel)]="discount"
-            [placeholder]="discountType === 'percentage' ? 'Ej. 10 (%)' : 'Ej. 10000 ($)'"
-            class="form-input w-1/3"
-            name="discount"
-            [max]="discountType === 'percentage' ? 100 : null"
-            min="0"
-          />
+      <!-- Sección de Datos Específicos para Prints -->
+      <div *ngIf="newOrder.order_type === 'print'" class="mb-4 border-t pt-4">
+        <h4 class="font-semibold text-blue-600">Datos de Impresión</h4>
 
-          <!-- Botón para agregar -->
-          <button
-            type="button"
-            class="btn-primary"
-            (click)="applyDiscount()"
-          >
-            Añadir
-          </button>
+        <!-- Selección de Material -->
+        <div class="grid grid-cols-2 gap-4 mt-4">
+          <!-- Categoría -->
+          <div>
+            <label class="block modal-input-item">Categoría</label>
+            <select
+              [(ngModel)]="selectedCategory"
+              name="printCategory"
+              class="form-select mt-1 block w-full"
+              (change)="
+                selectedType = '';
+                selectedCaliber = '';
+                selectedColor = '';
+                onPrintMaterialChange()
+              "
+            >
+              <option value="">-- Seleccionar --</option>
+              <option *ngFor="let c of getCategories()" [value]="c">
+                {{ c }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Tipo -->
+          <div>
+            <label class="block modal-input-item">Tipo</label>
+            <select
+              [(ngModel)]="selectedType"
+              name="printType"
+              class="form-select mt-1 block w-full"
+              (change)="
+                selectedCaliber = '';
+                selectedColor = '';
+                onPrintMaterialChange()
+              "
+            >
+              <option value="">-- Seleccionar --</option>
+              <option *ngFor="let t of getTypes()" [value]="t">{{ t }}</option>
+            </select>
+          </div>
+
+          <!-- Calibre -->
+          <div>
+            <label class="block modal-input-item">Calibre</label>
+            <select
+              [(ngModel)]="selectedCaliber"
+              name="printCaliber"
+              class="form-select mt-1 block w-full"
+              (change)="selectedColor = ''; onPrintMaterialChange()"
+            >
+              <option value="">-- Seleccionar --</option>
+              <option *ngFor="let cal of getCalibers()" [value]="cal">
+                {{ cal }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Color -->
+          <div>
+            <label class="block modal-input-item">Color</label>
+            <select
+              [(ngModel)]="selectedColor"
+              name="printColor"
+              class="form-select mt-1 block w-full"
+              (change)="onPrintMaterialChange()"
+            >
+              <option value="">-- Seleccionar --</option>
+              <option *ngFor="let col of getColors()" [value]="col">
+                {{ col }}
+              </option>
+            </select>
+          </div>
         </div>
 
-        <!-- Descuento aplicado (con botón eliminar) -->
-        <div *ngIf="hasDiscountApplied" class="p-3 bg-green-50 rounded border border-green-200">
-          <div class="flex items-center justify-between">
+        <!-- Info de stock del material seleccionado -->
+        <div
+          class="text-sm text-gray-600 mt-2"
+          *ngIf="getSelectedMaterial() as sm"
+        >
+          Stock disponible: <strong>{{ sm.material_quantity }}</strong>
+        </div>
+
+        <!-- Valor Unitario del Material -->
+        <div class="mt-4">
+          <label class="block modal-input-item"
+            >Valor Unitario del Material</label
+          >
+          <input
+            type="number"
+            [(ngModel)]="tempPrintUnitaryValue"
+            name="printUnitaryValue"
+            class="form-input mt-1 block w-full"
+            min="0"
+            placeholder="Ingrese el valor unitario"
+          />
+        </div>
+
+        <!-- Cantidad -->
+        <div class="mt-4">
+          <label class="block modal-input-item">Cantidad</label>
+          <input
+            type="number"
+            [(ngModel)]="tempPrintQuantity"
+            name="printQuantity"
+            class="form-input mt-1 block w-full"
+            min="1"
+            placeholder="Ingrese la cantidad"
+          />
+        </div>
+
+        <div>
+          <label class="block modal-input-item">Ancho de Rollo</label>
+          <input
+            type="number"
+            [(ngModel)]="tempPrintRollWidth"
+            class="w-full border px-2 py-1"
+            placeholder="0"
+          />
+        </div>
+
+        <div>
+          <label class="block modal-input-item">Medida (Measurement)</label>
+          <input
+            type="number"
+            [(ngModel)]="tempPrintMeasurement"
+            class="w-full border px-2 py-1"
+            placeholder="0"
+          />
+        </div>
+
+        <!-- Checkboxes de Procesos -->
+        <div class="mt-4">
+          <label class="block modal-input-item mb-2">Procesos</label>
+          <div class="grid grid-cols-2 gap-4">
+            <label class="flex items-center">
+              <input
+                type="checkbox"
+                [(ngModel)]="tempPrintLaminating"
+                name="printLaminating"
+                class="mr-2"
+              />
+              <span>Laminado</span>
+            </label>
+
+            <label class="flex items-center">
+              <input
+                type="checkbox"
+                [(ngModel)]="tempPrintPrinting"
+                name="printPrinting"
+                class="mr-2"
+              />
+              <span>Impresión</span>
+            </label>
+
+            <label class="flex items-center">
+              <input
+                type="checkbox"
+                [(ngModel)]="tempPrintDieCutting"
+                name="printDieCutting"
+                class="mr-2"
+              />
+              <span>Troquelado</span>
+            </label>
+
+            <label class="flex items-center">
+              <input
+                type="checkbox"
+                [(ngModel)]="tempPrintAssembly"
+                name="printAssembly"
+                class="mr-2"
+              />
+              <span>Armado</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Botón Añadir Material -->
+        <button type="button" class="btn-add mt-4" (click)="addPrintItem()">
+          Añadir Material
+        </button>
+      </div>
+
+      <!-- Tabla de materiales añadidos para prints -->
+      <div
+        *ngIf="printsItems.length > 0 && newOrder.order_type === 'print'"
+        class="mt-6 mb-4"
+      >
+        <h4 class="font-semibold text-gray-700">Materiales del Pedido</h4>
+        <table class="min-w-full text-sm border mt-2">
+          <thead class="bg-gray-200">
+            <tr>
+              <th class="border px-2 py-1">Material</th>
+              <th class="border px-2 py-1">Cantidad</th>
+              <th class="border px-2 py-1">Procesos</th>
+              <th class="border px-2 py-1">Valor</th>
+              <th class="border px-2 py-1">Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of printsItems; let i = index">
+              <td class="border px-2 py-1">
+                {{ item.material.type }}<br />
+                <span class="text-xs text-gray-500">
+                  {{ item.material.caliber || "" }} -
+                  {{ item.material.color || "" }}
+                </span>
+              </td>
+              <td class="border px-2 py-1">{{ item.quantity }}</td>
+              <td class="border px-2 py-1">{{ item.processes }}</td>
+              <td class="border px-2 py-1">
+                ${{ item.processed_unit_value | number : "1.0-0" }}
+              </td>
+              <td class="border px-2 py-1 text-center">
+                <button
+                  type="button"
+                  class="text-red-600 font-bold"
+                  (click)="removePrintItem(i)"
+                >
+                  Eliminar
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <!-- Campos específicos para Cortes -->
+      <!-- removed userRole !='admin' requirement, otherwise admin can't select material-->
+      <div *ngIf="newOrder.order_type === 'laser'" class="mb-4 border-t pt-4">
+        <div
+          class="bg-gradient-to-r from-purple-600 to-purple-700 px-4 py-3 rounded-t-lg -mx-4 mb-4"
+        >
+          <h4 class="text-white text-lg font-semibold m-0">Datos de Corte</h4>
+        </div>
+
+        <div class="px-4">
+          <!-- Selección de Material -->
+          <div class="grid grid-cols-2 gap-4 mt-4">
+            <!-- Categoría -->
             <div>
-              <p class="text-sm font-semibold text-green-800">Descuento aplicado:</p>
-              <p class="text-sm text-green-700">
-                <span *ngIf="newOrder.discount_type === 'percentage'">
-                  {{ newOrder.discount }}% = ${{ (totalBeforeDiscount - (+(newOrder.total ?? 0))) | number:'1.0-0' }}
-                </span>
-                <span *ngIf="newOrder.discount_type === 'fixed'">
-                  Valor fijo: ${{ (newOrder.discount ?? 0) | number:'1.0-0' }}
-                </span>
-              </p>
+              <label class="block modal-input-item">Categoría</label>
+              <select
+                [(ngModel)]="selectedCategory"
+                name="cutCategory"
+                class="form-select mt-1 block w-full"
+                (change)="
+                  selectedType = ''; selectedCaliber = ''; selectedColor = ''
+                "
+              >
+                <option value="">-- Seleccionar --</option>
+                <option *ngFor="let cat of getUniqueCategories()" [value]="cat">
+                  {{ cat }}
+                </option>
+              </select>
             </div>
-            <button
-              type="button"
-              class="btn-danger btn-xs"
-              (click)="clearDiscount()"
+
+            <!-- Tipo -->
+            <div>
+              <label class="block modal-input-item">Tipo</label>
+              <select
+                [(ngModel)]="selectedType"
+                name="cutType"
+                class="form-select mt-1 block w-full"
+                (change)="selectedCaliber = ''; selectedColor = ''"
+              >
+                <option value="">-- Seleccionar --</option>
+                <option *ngFor="let t of getFilteredTypes()" [value]="t">
+                  {{ t }}
+                </option>
+              </select>
+            </div>
+
+            <!-- Calibre -->
+            <div>
+              <label class="block modal-input-item">Calibre</label>
+              <select
+                [(ngModel)]="selectedCaliber"
+                name="cutCaliber"
+                class="form-select mt-1 block w-full"
+                (change)="selectedColor = ''"
+              >
+                <option value="">-- Seleccionar --</option>
+                <option *ngFor="let c of getFilteredCalibers()" [value]="c">
+                  {{ c }}
+                </option>
+              </select>
+            </div>
+
+            <!-- Color -->
+            <div>
+              <label class="block modal-input-item">Color</label>
+              <select
+                [(ngModel)]="selectedColor"
+                name="cutColor"
+                class="form-select mt-1 block w-full"
+              >
+                <option value="">-- Seleccionar --</option>
+                <option *ngFor="let col of getFilteredColors()" [value]="col">
+                  {{ col }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Stock Disponible -->
+          <div
+            *ngIf="getSelectedMaterial() as sm"
+            class="text-sm text-gray-600 mt-3 p-3 bg-blue-50 border border-blue-200 rounded-md"
+          >
+            Stock disponible: <strong>{{ sm.material_quantity }}</strong>
+          </div>
+
+          <div class="mt-4">
+            <label class="block modal-input-item"
+              >Valor Unitario del Material</label
             >
-              Eliminar
+            <input
+              type="number"
+              [(ngModel)]="tempCutUnitaryValue"
+              name="cutUnitaryValue"
+              class="form-input mt-1 block w-full"
+              min="0"
+              placeholder="Ingrese el valor unitario"
+            />
+          </div>
+
+          <!-- Cantidad y Tiempo de Corte -->
+          <div class="grid grid-cols-2 gap-4 mt-4">
+            <div>
+              <label class="block modal-input-item">Cantidad</label>
+              <input
+                type="number"
+                [(ngModel)]="tempCutQuantity"
+                name="cutQty"
+                class="form-input mt-1 block w-full"
+                min="1"
+                placeholder="1"
+              />
+            </div>
+
+            <div>
+              <label class="block modal-input-item"
+                >Tiempo de corte (min)</label
+              >
+              <input
+                type="number"
+                [(ngModel)]="tempCutTime"
+                name="cutTime"
+                class="form-input mt-1 block w-full"
+                min="0"
+                step="0.1"
+                placeholder="0"
+              />
+            </div>
+          </div>
+
+          <!-- Medidas (Alto y Ancho) -->
+          <div class="grid grid-cols-2 gap-4 mt-4">
+            <div>
+              <label class="block modal-input-item">Alto (m)</label>
+              <input
+                type="number"
+                [(ngModel)]="tempCutHeight"
+                name="cutHeight"
+                class="form-input mt-1 block w-full"
+                min="0"
+                step="0.01"
+                placeholder="0"
+              />
+            </div>
+
+            <div>
+              <label class="block modal-input-item">Ancho (m)</label>
+              <input
+                type="number"
+                [(ngModel)]="tempCutWidth"
+                name="cutWidth"
+                class="form-input mt-1 block w-full"
+                min="0"
+                step="0.01"
+                placeholder="0"
+              />
+            </div>
+          </div>
+
+          <!-- Botón Añadir Material -->
+          <div class="flex justify-center mt-6">
+            <button type="button" (click)="addCutItem()" class="btn-add">
+              Añadir Material
             </button>
+          </div>
+
+          <!-- Tabla de Materiales Agregados para CUTS -->
+          <div *ngIf="newOrder.order_type === 'laser'" class="mt-6 mb-4">
+            <h4 class="font-semibold text-gray-700 mb-2">
+              Materiales del Pedido
+            </h4>
+
+            <!-- Mensaje si está cargando -->
+            <div
+              *ngIf="cutsItems.length === 0 && isEditing"
+              class="text-gray-500 text-sm mb-2"
+            >
+              Cargando materiales...
+            </div>
+
+            <!-- Mensaje si no hay items y NO está editando -->
+            <div
+              *ngIf="cutsItems.length === 0 && !isEditing"
+              class="text-gray-500 text-sm mb-2"
+            >
+              No hay materiales agregados. Usa el formulario arriba para
+              agregar.
+            </div>
+
+            <!-- Tabla de materiales -->
+            <table
+              *ngIf="cutsItems.length > 0"
+              class="min-w-full text-sm border mt-2"
+            >
+              <thead class="bg-gray-200">
+                <tr>
+                  <th class="border px-2 py-1">Material</th>
+                  <th class="border px-2 py-1">Cant.</th>
+                  <th class="border px-2 py-1">Tiempo (min)</th>
+                  <th class="border px-2 py-1">Precio Total</th>
+                  <th class="border px-2 py-1">Acción</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let item of cutsItems; let i = index">
+                  <td class="border px-2 py-1">
+                    {{ item.material.category }} - {{ item.material.type }}
+                    <br />
+                    <span class="text-xs text-gray-500">
+                      {{ item.material.caliber
+                      }}<span *ngIf="item.material.color">
+                        - {{ item.material.color }}</span
+                      >
+                    </span>
+                  </td>
+                  <td class="border px-2 py-1">{{ item.quantity }}</td>
+                  <td class="border px-2 py-1">{{ item.cutTime }}</td>
+                  <td class="border px-2 py-1">
+                    {{ item.subtotal | number : "1.0-0" }}
+                  </td>
+                  <td class="border px-2 py-1 text-center">
+                    <button
+                      type="button"
+                      class="text-red-600 font-bold"
+                      (click)="removeCutItem(i)"
+                    >
+                      Eliminar
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
-      </ng-container>
-
-
-      <!-- Campos específicos para Impresiones -->
-      <div
-        *ngIf="newOrder.order_type === 'print'"
-        class="mb-4 border-t pt-4"
-      >
-        <h4 class="font-semibold text-red-600">Datos de Impresión</h4>
-        <!-- Encadenado: CATEGORÍA -->
-        <label class="block mt-2 modal-input-item">Categoría</label>
-        <select
-          [(ngModel)]="selectedCategory"
-          name="category"
-          class="form-select mt-1 block w-full"
-          (change)="selectedType = ''; selectedCaliber = ''; selectedColor = ''"
-        >
-          <option value="">-- Seleccionar --</option>
-          <option *ngFor="let c of getUniqueCategories()" [value]="c">
-            {{ c }}
-          </option>
-        </select>
-
-        <!-- Encadenado: TIPO -->
-        <label class="block mt-2 modal-input-item">Tipo</label>
-        <select
-          [(ngModel)]="selectedType"
-          name="type"
-          class="form-select mt-1 block w-full"
-          (change)="selectedCaliber = ''; selectedColor = ''"
-        >
-          <option value="">-- Seleccionar --</option>
-          <option *ngFor="let t of getFilteredTypes()" [value]="t">
-            {{ t }}
-          </option>
-        </select>
-
-        <!-- Encadenado: CALIBRE -->
-        <label class="block mt-2 modal-input-item">Calibre</label>
-        <select
-          [(ngModel)]="selectedCaliber"
-          name="caliber"
-          class="form-select mt-1 block w-full"
-          (change)="selectedColor = ''"
-        >
-          <option value="">-- Seleccionar --</option>
-          <option *ngFor="let cal of getFilteredCalibers()" [value]="cal">
-            {{ cal }}
-          </option>
-        </select>
-
-        <!-- Encadenado: COLOR -->
-        <label class="block mt-2 modal-input-item">Color</label>
-        <select
-          [(ngModel)]="selectedColor"
-          name="color"
-          class="form-select mt-1 block w-full"
-        >
-          <option value="">-- Seleccionar --</option>
-          <option *ngFor="let col of getFilteredColors()" [value]="col">
-            {{ col }}
-          </option>
-        </select>
-
-        <label class="block mt-2 modal-input-item">Número de producto</label>
-        <input
-          [(ngModel)]="newPrint.quantity"
-          name="product_number"
-          class="form-input mt-1 block w-full"
-        />
-
-        <label class="block modal-input-item">Ancho del rollo (m)</label>
-        <input
-          type="number"
-          [(ngModel)]="rollWidth"
-          name="rollWidth"
-          class="form-input mt-1 block w-full"
-          (change)="calculatePrice()"
-        />
-
-        <label class="block modal-input-item">Medición (m)</label>
-        <input
-          type="number"
-          [(ngModel)]="measurement"
-          name="measurement"
-          class="form-input mt-1 block w-full"
-          (change)="calculatePrice()"
-        />
-
-        <label class="block mt-2 modal-input-item">Material dañado</label>
-        <input
-          [(ngModel)]="newPrint.damaged_material"
-          name="damaged_material"
-          class="form-input mt-1 block w-full"
-        />
-
-        <!-- Checkboxes -->
-        <div class="flex gap-4 mt-2">
-          <label
-            ><input
-              type="checkbox"
-              [(ngModel)]="newPrint.laminating"
-              name="laminating"
-            />
-            Laminado</label
-          >
-          <label
-            ><input
-              type="checkbox"
-              [(ngModel)]="newPrint.die_cutting"
-              name="die_cutting"
-            />
-            Troquelado</label
-          >
-          <label
-            ><input
-              type="checkbox"
-              [(ngModel)]="newPrint.assembly"
-              name="assembly"
-            />
-            Ensamblado</label
-          >
-          <label
-            ><input
-              type="checkbox"
-              [(ngModel)]="newPrint.printing"
-              name="printing"
-            />
-            Impresión</label
-          >
-        </div>
-      </div>
-
-      <!-- Campos específicos para Cortes -->
-      <!-- removed userRole !='admin' requirement, otherwise admin can't select material-->
-      <div
-        *ngIf="newOrder.order_type === 'laser'"
-        class="mb-4 border-t pt-4"
-      >
-        <h4 class="font-semibold text-red-600">Datos de Corte</h4>
-        <!-- Encadenado: CATEGORÍA -->
-        <label class="block mt-2 modal-input-item">Categoría</label>
-        <select
-          [(ngModel)]="selectedCategory"
-          name="category"
-          class="form-select mt-1 block w-full"
-          (change)="selectedType = ''; selectedCaliber = ''; selectedColor = ''"
-        >
-          <option value="">-- Seleccionar --</option>
-          <option *ngFor="let c of getUniqueCategories()" [value]="c">
-            {{ c }}
-          </option>
-        </select>
-
-        <!-- Encadenado: TIPO -->
-        <label class="block mt-2 modal-input-item">Tipo</label>
-        <select
-          [(ngModel)]="selectedType"
-          name="type"
-          class="form-select mt-1 block w-full"
-          (change)="selectedCaliber = ''; selectedColor = ''"
-        >
-          <option value="">-- Seleccionar --</option>
-          <option *ngFor="let t of getFilteredTypes()" [value]="t">
-            {{ t }}
-          </option>
-        </select>
-
-        <!-- Encadenado: CALIBRE -->
-        <label class="block mt-2 modal-input-item">Calibre</label>
-        <select
-          [(ngModel)]="selectedCaliber"
-          name="caliber"
-          class="form-select mt-1 block w-full"
-          (change)="selectedColor = ''"
-        >
-          <option value="">-- Seleccionar --</option>
-          <option *ngFor="let cal of getFilteredCalibers()" [value]="cal">
-            {{ cal }}
-          </option>
-        </select>
-
-        <!-- Encadenado: COLOR -->
-        <label class="block mt-2 modal-input-item">Color</label>
-        <select
-          [(ngModel)]="selectedColor"
-          name="color"
-          class="form-select mt-1 block w-full"
-        >
-          <option value="">-- Seleccionar --</option>
-          <option *ngFor="let col of getFilteredColors()" [value]="col">
-            {{ col }}
-          </option>
-        </select>
-
-        <label class="block mt-2 modal-input-item">Alto</label>
-        <input
-          [(ngModel)]="newCut.height"
-          name="height"
-          class="form-input mt-1 block w-full"
-        />
-
-        <label class="block mt-2 modal-input-item">Ancho</label>
-        <input
-          [(ngModel)]="newCut.width"
-          name="width"
-          class="form-input mt-1 block w-full"
-        />
-        <label class="block mt-2 modal-input-item">Cantidad</label>
-        <input
-          [(ngModel)]="newCut.quantity"
-          name="quantity"
-          class="form-input mt-1 block w-full"
-        />
-        <label class="block mt-2 modal-input-item">Tiempo de corte</label>
-        <input
-          [(ngModel)]="newCut.cutting_time"
-          name="cutting_time"
-          class="form-input mt-1 block w-full"
-        />
-      </div>
-      <div
-        *ngIf="newOrder.order_type === 'sales'"
-        class="mb-4 border-t pt-4"
-      >
+      <!-- Sección de Datos Específicos para Sales -->
+      <div *ngIf="newOrder.order_type === 'sales'" class="mb-4 border-t pt-4">
         <h4 class="font-semibold text-green-700">Datos de Venta</h4>
 
         <!-- ¿Qué vas a vender? -->
@@ -1278,7 +1575,7 @@
           <option value="product">Producto</option>
         </select>
 
-        <!-- ======= VENTA: MATERIAL ======= -->
+        <!-- VENTA: MATERIAL  -->
         <div *ngIf="saleMode === 'material'">
           <!-- Encadenado: CATEGORÍA -->
           <label class="block mt-2 modal-input-item">Categoría</label>
@@ -1286,7 +1583,9 @@
             [(ngModel)]="selectedCategory"
             name="sale_category"
             class="form-select mt-1 block w-full"
-            (change)="selectedType = ''; selectedCaliber = ''; selectedColor = ''"
+            (change)="
+              selectedType = ''; selectedCaliber = ''; selectedColor = ''
+            "
           >
             <option value="">-- Seleccionar --</option>
             <option *ngFor="let c of getUniqueCategories()" [value]="c">
@@ -1336,7 +1635,10 @@
           </select>
 
           <!-- Info de stock del material seleccionado -->
-          <div class="text-sm text-gray-600 mt-2" *ngIf="getSelectedMaterial() as sm">
+          <div
+            class="text-sm text-gray-600 mt-2"
+            *ngIf="getSelectedMaterial() as sm"
+          >
             Stock disponible: <strong>{{ sm.material_quantity }}</strong>
           </div>
 
@@ -1360,9 +1662,14 @@
             placeholder="Ej: 12000"
           />
         </div>
-        <!-- === VENTA DE PRODUCTO === -->
-        <div *ngIf="newOrder.order_type === 'sales' && saleMode === 'product'" class="mb-4 border-t pt-4">
-          <h4 class="font-semibold text-emerald-600">Datos de Venta: Producto</h4>
+        <!-- VENTA DE PRODUCTO  -->
+        <div
+          *ngIf="newOrder.order_type === 'sales' && saleMode === 'product'"
+          class="mb-4 border-t pt-4"
+        >
+          <h4 class="font-semibold text-emerald-600">
+            Datos de Venta: Producto
+          </h4>
 
           <!-- Producto -->
           <label class="block mt-2 modal-input-item">Producto</label>
@@ -1411,50 +1718,55 @@
           Agregar ítem
         </button>
 
-        <!-- === LÍNEAS AGREGADAS === -->
-          <div *ngIf="salesItems.length > 0" class="mt-4">
-            <h4 class="font-semibold text-gray-700 mb-2">Items agregados</h4>
+        <!--  LÍNEAS AGREGADAS  -->
+        <div *ngIf="salesItems.length > 0" class="mt-4">
+          <h4 class="font-semibold text-gray-700 mb-2">Items agregados</h4>
 
-            <table class="min-w-full text-sm border">
-              <thead class="bg-gray-200">
-                <tr>
-                  <th class="border px-2 py-1">Detalle</th>
-                  <th class="border px-2 py-1">Cant</th>
-                  <th class="border px-2 py-1">Unit</th>
-                  <th class="border px-2 py-1">Subtotal</th>
-                  <th class="border px-2 py-1"></th>
-                </tr>
-              </thead>
+          <table class="min-w-full text-sm border">
+            <thead class="bg-gray-200">
+              <tr>
+                <th class="border px-2 py-1">Detalle</th>
+                <th class="border px-2 py-1">Cant</th>
+                <th class="border px-2 py-1">Unit</th>
+                <th class="border px-2 py-1">Subtotal</th>
+                <th class="border px-2 py-1"></th>
+              </tr>
+            </thead>
 
-              <tbody>
-                <tr *ngFor="let item of salesItems; let i = index">
-                  <td class="border px-2 py-1">
-                    <ng-container *ngIf="item.mode === 'material'">
-                      {{ item.material.category }} /
-                      {{ item.material.type }} /
-                      {{ item.material.caliber }} /
-                      {{ item.material.color }}
-                    </ng-container>
-                    <ng-container *ngIf="item.mode === 'product'">
-                      {{ item.product.name }}
-                    </ng-container>
-                  </td>
+            <tbody>
+              <tr *ngFor="let item of salesItems; let i = index">
+                <td class="border px-2 py-1">
+                  <ng-container *ngIf="item.mode === 'material'">
+                    {{ item.material.category }} / {{ item.material.type }} /
+                    {{ item.material.caliber }} /
+                    {{ item.material.color }}
+                  </ng-container>
+                  <ng-container *ngIf="item.mode === 'product'">
+                    {{ item.product.name }}
+                  </ng-container>
+                </td>
 
-                  <td class="border px-2 py-1">{{ item.quantity }}</td>
-                  <td class="border px-2 py-1">{{ item.unit_price | number:'1.0-0' }}</td>
-                  <td class="border px-2 py-1">{{ item.subtotal | number:'1.0-0' }}</td>
+                <td class="border px-2 py-1">{{ item.quantity }}</td>
+                <td class="border px-2 py-1">
+                  {{ item.unit_price | number : "1.0-0" }}
+                </td>
+                <td class="border px-2 py-1">
+                  {{ item.subtotal | number : "1.0-0" }}
+                </td>
 
-                  <td class="border px-2 py-1 text-center">
-                    <button
-                      type="button"
-                      (click)="removeSaleItem(i)"
-                      class="text-red-600 font-bold"
-                    >X</button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+                <td class="border px-2 py-1 text-center">
+                  <button
+                    type="button"
+                    (click)="removeSaleItem(i)"
+                    class="text-red-600 font-bold"
+                  >
+                    X
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
       <!-- Archivo adjunto -->
       <div class="mb-4">
@@ -1748,9 +2060,7 @@
     <p class="mb-6">{{ stockWarningMessage }}</p>
 
     <div class="flex justify-end">
-      <button class="btn-primary" (click)="closeStockModal()">
-        Cerrar
-      </button>
+      <button class="btn-primary" (click)="closeStockModal()">Cerrar</button>
     </div>
   </div>
 </div>
