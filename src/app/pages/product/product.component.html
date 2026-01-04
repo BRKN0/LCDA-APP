@@ -287,12 +287,12 @@ barra de navegacion debatible a cambio
     <div>
       <label class="font-semibold mr-2">Categoría:</label>
       <select
-        [(ngModel)]="selectedCategory"
+        [(ngModel)]="filterCategory"
         (change)="searchProduct()"
         class="border border-gray-300 rounded-md p-1"
       >
         <option value="">-- Todas --</option>
-        <option *ngFor="let c of availableCategories" [value]="c">
+        <option *ngFor="let c of getUniqueCategories()" [value]="c">
           {{ c }}
         </option>
       </select>
@@ -440,14 +440,62 @@ barra de navegacion debatible a cambio
             class="form-input block w-full border border-gray-300 rounded-md"
           ></textarea>
         </div>
-        <div class="mb-4">
-          <label class="block modal-input-item">Categoría</label>
+        <div *ngIf="categoryMode === 'select'" class="mb-4">
+          <label class="block modal-input-item"
+          >Categoría<span class="text-red-500">*</span></label>
+
+          <select
+            [(ngModel)]="selectedCategory"
+            [ngModelOptions]="{ standalone: true }"
+            class="form-select"
+          >
+            <option value="" disabled>Seleccione una categoría</option>
+            <option *ngFor="let c of getUniqueCategories()" [value]="c">
+              {{ c }}
+            </option>
+          </select>
+
+          <button
+            type="button"
+            class="btn-primary mt-2"
+            name="new_category"
+            (click)="categoryMode = 'create'"
+          >
+            Añadir nueva categoría
+          </button>
+        </div>
+        <div *ngIf="categoryMode === 'create'" class="mt-2">
+          <label class="block modal-input-item">Nueva categoría</label>
+
           <input
-            [(ngModel)]="selectedProduct.category"
-            name="category"
-            class="form-input block w-full border border-gray-300 rounded-md"
-            required
+            type="text"
+            [(ngModel)]="newCategory"
+            [ngModelOptions]="{ standalone: true }"
+            class="form-input"
+            placeholder="Ej: Acrílico, vinilo, MDF..."
           />
+
+          <p *ngIf="categoryFeedback" class="text-green-600 text-sm mt-1">
+            {{ categoryFeedback }}
+          </p>
+
+          <div class="flex gap-2 mt-2">
+            <button
+              type="button"
+              class="btn-success"
+              (click)="confirmNewCategory()"
+            >
+              Usar esta categoría
+            </button>
+
+            <button
+              type="button"
+              class="btn-primary mt-2"
+              (click)="backToCategorySelect()"
+            >
+              Seleccionar categoría
+            </button>
+          </div>
         </div>
         <div class="mb-4">
           <label class="block modal-input-item">Stock</label>

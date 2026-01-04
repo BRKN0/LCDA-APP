@@ -227,17 +227,7 @@
             <th class="table-column-std">Ancho</th>
             <th class="table-column-std">Alto</th>
             <th class="table-column-std">Color</th>
-            <th class="table-column-std">
-              <div
-                class="flex items-center cursor-pointer"
-                (click)="toggleSortDirection()"
-              >
-                Calibre
-                <span class="ml-1">
-                  {{ sortDirection === "asc" ? "↑" : "↓" }}
-                </span>
-              </div>
-            </th>
+            <th class="table-column-std">Calibre</th>
             <th class="table-column-std">Costo</th>
             <th class="table-column-std">Utilidad</th>
             <th class="table-column-std">Margen</th>
@@ -341,7 +331,7 @@
           (change)="currentPage = 1; updatePaginatedAcrylicItems()"
           class="border border-gray-300 rounded-md p-1"
         >
-          <option *ngFor="let size of [2, 10, 15, 20]" [ngValue]="size">
+          <option *ngFor="let size of [5, 10, 20, 30]" [ngValue]="size">
             {{ size }}
           </option>
         </select>

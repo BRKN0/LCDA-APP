@@ -46,6 +46,16 @@ export const routes: Routes = [
     ],
   },
   {
+    path: 'bank',
+    canMatch: [roleGuard],
+    children: [
+      { path: 'banks', component: BanksComponent },
+      { path: 'banking', component: BankingComponent },
+      { path: 'providers', component: ProvidersComponent },
+      { path: 'third', component: ThirdPartiesComponent },
+    ],
+  },
+  {
     path: 'clients',
     loadComponent: () => ClientsComponent,
     canMatch: [roleGuard],

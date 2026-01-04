@@ -56,7 +56,6 @@ export class MDFComponent implements OnInit {
   formMdf: Mdf;
   loading = true;
   searchTerm: string = '';
-  sortDirection: 'asc' | 'desc' = 'asc';
   currentPage: number = 1;
   itemsPerPage: number = 10;
   totalPages: number = 1;
@@ -114,7 +113,6 @@ export class MDFComponent implements OnInit {
     }
     this.mdfItems = data || [];
     this.filteredMdfItems = [...this.mdfItems];
-    this.applyCurrentSort();
     this.currentPage = 1;
     this.updatePaginatedMdfItems();
     this.loading = false;
@@ -153,18 +151,18 @@ export class MDFComponent implements OnInit {
     setTimeout(() => { this.showClientDropdown = false; }, 200);
   }
 
-  private applyCurrentSort(): void {
-    this.filteredMdfItems.sort((a, b) => {
-      const valueA = parseFloat(a.thickness.toString());
-      const valueB = parseFloat(b.thickness.toString());
-      return this.sortDirection === 'asc' ? valueA - valueB : valueB - valueA;
-    });
-  }
+  private sortMdf(items: Mdf[]): Mdf[] {
+    return items.sort((a, b) => {
+      // Área total ASC
+      const areaA = a.width * a.height;
+      const areaB = b.width * b.height;
+      if (areaA !== areaB) {
+        return areaA - areaB;
+      }
 
-  toggleSortDirection(): void {
-    this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
-    this.applyCurrentSort();
-    this.updatePaginatedMdfItems();
+      // Espesor ASC
+      return a.thickness - b.thickness;
+    });
   }
 
   openModal(mdf?: Mdf): void {
@@ -421,8 +419,8 @@ export class MDFComponent implements OnInit {
       mdf.freight.toString().includes(term)
     );
 
-    this.filteredMdfItems = [...filtered];
-    this.applyCurrentSort();
+    this.filteredMdfItems = this.sortMdf(filtered);
+    
 
     const itemsPerPageNum = Number(this.itemsPerPage);
     this.totalPages = Math.max(1, Math.ceil(this.filteredMdfItems.length / itemsPerPageNum));

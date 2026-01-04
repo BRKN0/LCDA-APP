@@ -70,26 +70,27 @@
           <ul
             *ngIf="financeDropdownOpen"
             class="absolute dropdown bg-white shadow-lg mt-2 w-40 z-10"
+            [ngClass]="{ active: router.url.startsWith('/bank') }"
             style="left: 0"
           >
             <li
               class="p-2 nav-item cursor-pointer"
-              [ngClass]="{ active: router.url.startsWith('/banks') }"
+              [ngClass]="{ active: router.url.startsWith('/bank/banks') }"
               (click)="goToBanks(); closeDropdowns()"
             >
               Bancos
             </li>
             <li
               class="p-2 nav-item cursor-pointer"
-              [ngClass]="{ active: router.url.startsWith('/banking') }"
+              [ngClass]="{ active: router.url.startsWith('/bank/banking') }"
               (click)="goToBanking(); closeDropdowns()"
             >
               Transacciones
             </li>
             <li
               *ngIf="userRole == 'admin'"
-              class="nav-item cursor-pointer"
-              [ngClass]="{ active: router.url.startsWith('/providers') }"
+              class="p-2 nav-item cursor-pointer"
+              [ngClass]="{ active: router.url.startsWith('/bank/providers') }"
               (click)="goToProviders()"
             >
               <i class="fas fa-users"></i>
@@ -97,8 +98,8 @@
             </li>
             <li
               *ngIf="userRole == 'admin'"
-              class="nav-item cursor-pointer"
-              [ngClass]="{ active: router.url.startsWith('/third') }"
+              class="p-2 nav-item cursor-pointer"
+              [ngClass]="{ active: router.url.startsWith('/bank/third') }"
               (click)="goToThirdParties()"
             >
               <i class="fas fa-users"></i>
@@ -193,16 +194,19 @@
           <ul
             *ngIf="inventoryDropdownOpen"
             class="absolute dropdown bg-white shadow-lg mt-2 w-[122px] z-10"
+            [ngClass]="{ active: router.url.startsWith('/inventory') }"
             style="left: 0"
           >
             <li
               class="p-2 nav-item cursor-pointer"
+              [ngClass]="{ active: router.url.startsWith('/inventory/materials') }"
               (click)="goToInventory(); closeDropdowns()"
             >
               Materiales
             </li>
             <li
               class="p-2 nav-item cursor-pointer"
+              [ngClass]="{ active: router.url.startsWith('/inventory/product') }"
               (click)="goToProducts(); closeDropdowns()"
             >
               Productos

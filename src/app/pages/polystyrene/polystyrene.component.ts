@@ -49,8 +49,6 @@ export class PolystyreneComponent implements OnInit {
   paginatedPolystyrenes: Polystyrene[] = [];
   selectedPolystyrene!: Polystyrene;
   availableTypes: string[] = [];
-  sortDirection: 'asc' | 'desc' = 'asc';
-  sortColumn: 'caliber' | 'type' = 'caliber';
   customWidth: number | null = null;
   customHeight: number | null = null;
 
@@ -130,10 +128,10 @@ export class PolystyreneComponent implements OnInit {
 
     this.polystyrenes = data as Polystyrene[];
 
-    // CAMBIO: Ordenar por fecha de creación (más recientes primero)
-    this.polystyrenes.sort((a, b) => {
-      return new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime();
-    });
+    // Ordenar por jerarquía
+    this.polystyrenes = this.sortPolystyrenesHierarchical(
+      data as Polystyrene[]
+    );
 
     const typesSet = new Set<string>();
     this.polystyrenes.forEach(p => {
@@ -143,28 +141,6 @@ export class PolystyreneComponent implements OnInit {
 
     this.updateFilteredPolystyrenes();
     this.loading = false;
-  }
-
-  // Método para alternar orden por calibre
-  toggleSortDirection(column: 'caliber'): void {
-    this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
-    this.applySortByCaliber();
-    this.currentPage = 1;
-    this.updatePaginatedPolystyrenes();
-  }
-
-  // Método  para ordenar por calibre
-  private applySortByCaliber(): void {
-    this.filteredPolystyrenes.sort((a, b) => {
-      const valueA = Number(a.caliber);
-      const valueB = Number(b.caliber);
-      return this.sortDirection === 'asc' ? valueA - valueB : valueB - valueA;
-    });
-  }
-
-  getSortIcon(column: string): string {
-    if (this.sortColumn !== column) return '';
-    return this.sortDirection === 'asc' ? '↑' : '↓';
   }
 
   // Filtros con checkboxes
@@ -191,9 +167,32 @@ export class PolystyreneComponent implements OnInit {
       });
     }
 
-    this.filteredPolystyrenes = tempFiltered;
+    this.filteredPolystyrenes = this.sortPolystyrenesHierarchical(tempFiltered);
     this.currentPage = 1;
     this.updatePaginatedPolystyrenes();
+  }
+
+  private sortPolystyrenesHierarchical(list: Polystyrene[]): Polystyrene[] {
+    return list.sort((a, b) => {
+      // 1. Width
+      if (a.width !== b.width) {
+        return a.width - b.width;
+      }
+
+      // 2. Height
+      if (a.height !== b.height) {
+        return a.height - b.height;
+      }
+
+      // 3. Type
+      const typeCompare = a.type.localeCompare(b.type);
+      if (typeCompare !== 0) {
+        return typeCompare;
+      }
+
+      // 4. Caliber (ASC, numérico)
+      return Number(a.caliber) - Number(b.caliber);
+    });
   }
 
   updatePaginatedPolystyrenes(): void {

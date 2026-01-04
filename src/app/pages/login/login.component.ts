@@ -20,6 +20,8 @@ export class LoginComponent implements OnInit {
   form: FormGroup;
   message: string = '';
   isRegisterMode: boolean = false;
+  isRecoveryMode: boolean = false;
+  isResetPasswordMode: boolean = false;
 
   constructor(
     private readonly fb: FormBuilder,
@@ -39,6 +41,34 @@ export class LoginComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // Primero verificar el hash ANTES de subscribirse
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const type = hashParams.get('type');
+    const accessToken = hashParams.get('access_token');
+    
+    if (type === 'recovery' && accessToken) {
+      // Flujo de recuperación
+      this.isResetPasswordMode = true;
+      this.isRecoveryMode = false;
+      this.isRegisterMode = false;
+      this.message = 'Por favor, ingresa tu nueva contraseña';
+      
+      // Suscribirse pero sin redirigir
+      this.supabase.authChanges$().subscribe({
+        next: (session) => {
+          // Solo actualizar la sesión interna, no redirigir
+          if (session && !this.isResetPasswordMode) {
+            this.router.navigate(['/home'], {
+              queryParams: {},
+              replaceUrl: true,
+            });
+          }
+        },
+      });
+      return;
+    }
+
+    // Flujo normal
     this.supabase.authChanges$().subscribe({
       next: (session) => {
         if (!session) return;
@@ -58,6 +88,16 @@ export class LoginComponent implements OnInit {
   }
   toggleMode() {
     this.isRegisterMode = !this.isRegisterMode;
+    this.isRecoveryMode = false;
+    this.isResetPasswordMode = false;
+    this.message = '';
+    this.form.reset();
+  }
+
+  toggleRecoveryMode() {
+    this.isRecoveryMode = !this.isRecoveryMode;
+    this.isRegisterMode = false;
+    this.isResetPasswordMode = false;
     this.message = '';
     this.form.reset();
   }
@@ -65,7 +105,7 @@ export class LoginComponent implements OnInit {
   passwordMatchValidator(group: FormGroup) {
     const password = group.get('password')?.value;
     const confirmPassword = group.get('confirmPassword')?.value;
-    if (this.isRegisterMode && password !== confirmPassword) {
+    if ((this.isRegisterMode || this.isResetPasswordMode) && password !== confirmPassword) {
       return { passwordMismatch: true };
     }
     return null;
@@ -132,5 +172,67 @@ export class LoginComponent implements OnInit {
       'Su usuario ha sido creado con éxito, revise la bandeja de entrada de su correo y abra el enlace de confirmación de correo electrónico para activar su cuenta';
 
     this.toggleMode();
+  }
+
+  async sendRecoveryEmail() {
+    this.message = '';
+    const { email } = this.form.value;
+
+    if (!email) {
+      window.alert('El email es requerido');
+      return;
+    }
+
+    const { error } = await this.supabase.resetPasswordForEmail(email);
+
+    if (error) {
+      window.alert('Hubo un error al enviar el correo de recuperación');
+      console.error(error);
+      return;
+    }
+
+    this.message =
+      'Se ha enviado un correo de recuperación a su bandeja de entrada. Por favor revise su correo y siga las instrucciones para restablecer su contraseña.';
+  }
+
+  async updatePassword() {
+    this.message = '';
+    const { password, confirmPassword } = this.form.value;
+
+    if (!password || !confirmPassword) {
+      window.alert('Debes completar ambos campos de contraseña');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      window.alert('Las contraseñas no coinciden');
+      return;
+    }
+
+    if (password.length < 6) {
+      window.alert('La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+
+    const { error } = await this.supabase.updateUser({
+      password: password,
+    });
+
+    if (error) {
+      window.alert('Error al actualizar la contraseña: ' + error.message);
+      console.error(error);
+      return;
+    }
+
+    window.alert('¡Contraseña actualizada exitosamente!');
+
+    // Limpiar el hash de la URL y resetear estados
+    window.history.replaceState({}, document.title, window.location.pathname);
+    this.isResetPasswordMode = false;
+    this.form.reset();
+
+    this.router.navigate(['/home'], {
+      replaceUrl: true,
+    });
   }
 }

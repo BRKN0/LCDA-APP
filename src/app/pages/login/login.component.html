@@ -30,7 +30,7 @@
     </div>
 
     <div class="flex flex-col gap-4" [formGroup]="form">
-      <div class="flex flex-col gap-1">
+      <div *ngIf="!isResetPasswordMode" class="flex flex-col gap-1">
         <div class="font-bold">Correo Electrónico</div>
         <input
           formControlName="email"
@@ -38,7 +38,7 @@
           class="input-field p-2 w-full rounded-md"
         />
       </div>
-      <div class="flex flex-col gap-1">
+      <div *ngIf="!isRecoveryMode && !isResetPasswordMode" class="flex flex-col gap-1">
         <div class="font-bold">Contraseña</div>
         <input
           formControlName="password"
@@ -46,6 +46,13 @@
           type="password"
           class="input-field p-2 w-full rounded-md"
         />
+        <button
+          *ngIf="!isRegisterMode"
+          (click)="toggleRecoveryMode()"
+          class="text-sm text-left underline text-red-700 hover:text-red-900"
+        >
+          ¿Olvidaste tu contraseña?
+        </button>
       </div>
 
       <!-- Solo se muestra en modo registro -->
@@ -73,8 +80,33 @@
         />
       </div>
 
+      <!-- Campos para RESET PASSWORD (cuando vienen del email) -->
+      <div *ngIf="isResetPasswordMode" class="flex flex-col gap-1">
+        <div class="font-bold">Nueva Contraseña</div>
+        <input
+          formControlName="password"
+          type="password"
+          placeholder="Ingresa tu nueva contraseña"
+          class="input-field p-2 w-full rounded-md"
+        />
+
+        <div class="font-bold">Confirmar Nueva Contraseña</div>
+        <input
+          formControlName="confirmPassword"
+          type="password"
+          placeholder="Repite tu nueva contraseña"
+          class="input-field p-2 w-full rounded-md"
+        />
+        <div
+          class="text-red-600 text-sm mt-1"
+          *ngIf="form.hasError('passwordMismatch')"
+        >
+          Las contraseñas no coinciden
+        </div>
+      </div>
+
       <button
-        *ngIf="!isRegisterMode"
+        *ngIf="!isRegisterMode && !isRecoveryMode && !isResetPasswordMode"
         (click)="login()"
         class="btn-login border-2 border-red-600 text-red-600 hover:text-white hover:bg-red-600 font-semibold p-2 w-full rounded-md transition"
       >
@@ -90,6 +122,23 @@
       </button>
 
       <button
+        *ngIf="isRecoveryMode"
+        (click)="sendRecoveryEmail()"
+        class="btn-register border-2 border-red-600 text-red-600 hover:text-white hover:bg-red-600 font-semibold p-2 w-full rounded-md transition"
+      >
+        Enviar correo de recuperación
+      </button>
+
+      <button
+        *ngIf="isResetPasswordMode"
+        (click)="updatePassword()"
+        class="btn-register border-2 border-red-600 text-red-600 hover:text-white hover:bg-red-600 font-semibold p-2 w-full rounded-md transition"
+      >
+        Actualizar Contraseña
+      </button>
+
+      <button
+        *ngIf="!isRecoveryMode && !isResetPasswordMode"
         (click)="toggleMode()"
         class="text-sm text-center underline text-red-700 hover:text-red-900 mt-2"
       >
@@ -99,6 +148,20 @@
             : "¿No tienes cuenta? Regístrate aquí"
         }}
       </button>
+
+      <!-- Volver desde recovery mode -->
+      <button
+        *ngIf="isRecoveryMode"
+        (click)="toggleRecoveryMode()"
+        class="text-sm text-center underline text-red-700 hover:text-red-900 mt-2"
+      >
+        Volver al inicio de sesión
+      </button>
+
+      <!-- Mensaje de éxito/info -->
+      <p *ngIf="message" class="text-sm text-green-700 text-center mt-2">
+        {{ message }}
+      </p>
     </div>
   </div>
 </div>

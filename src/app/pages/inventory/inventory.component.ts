@@ -58,13 +58,18 @@ export class InventoryComponent implements OnInit {
   comparisonResult: any[] = [];
   showModal = false;
 
-  showVinyls = true;
-  showCutVinyls = true;
-  showAcrylic = true;
-  showPolystyrene = true;
-  showDieCut = true;
-  showMDF = true;
+  selectedCategory: string = '';
+  newCategory = '';
 
+  selectedType: string = '';
+  newType = '';
+
+  categoryFeedback = '';
+  categoryMode: 'select' | 'create' = 'select';
+  typeFeedback = '';
+  typeMode: 'select' | 'create' = 'select';
+
+  filterCategory: string = '';
   searchCode: string = '';
   searchType: string = '';
   noResultsFound: boolean = false;
@@ -103,58 +108,88 @@ export class InventoryComponent implements OnInit {
 
     this.inventory = data as InventoryItem[];
     // sorting materials by code
-    let n = this.inventory.length;
-    let swapped: boolean;
-
-    do {
-      swapped = false;
-      for (let i = 0; i < n - 1; i++) {
-        if (this.inventory[i].code < this.inventory[i + 1].code) {
-          [this.inventory[i], this.inventory[i + 1]] = [
-            this.inventory[i + 1],
-            this.inventory[i],
-          ];
-          swapped = true;
-        }
-      }
-      n--;
-    } while (swapped);
+    this.inventory.sort((a, b) => b.code - a.code);
     this.updateFilteredInventory();
     this.loading = false;
   }
 
+  normalizeCategory() {
+    if (!this.selectedItem.category) return;
+    this.selectedItem.category = this.selectedItem.category
+      .trim()
+      .toLowerCase();
+  }
+
+  getUniqueCategories(): string[] {
+    return Array.from(
+      new Set(
+        this.inventory
+          .map(i => i.category)
+          .filter(c => !!c)
+      )
+    ).sort();
+  }
+
+  confirmNewCategory() {
+    if (!this.newCategory) return;
+
+    const normalized = this.newCategory.trim().toUpperCase();
+    
+    this.selectedCategory = normalized;
+    this.selectedItem.category = normalized;
+    this.categoryFeedback = `Categoría "${normalized}" seleccionada`;
+
+    setTimeout(() => {
+      this.categoryFeedback = '';
+    }, 2000);
+  }
+
+  backToCategorySelect() {
+    this.categoryMode = 'select';
+    this.newCategory = '';
+  }
+
+  getUniqueTypes(): string[] {
+    return Array.from(
+      new Set(
+        this.inventory
+          .map(i => i.type)
+          .filter(c => !!c)
+      )
+    ).sort();
+  }
+
+  confirmNewType() {
+    if (!this.newType) return;
+
+    const normalized = this.newType.trim().toUpperCase();
+    
+    this.selectedType = normalized;
+    this.selectedItem.type = normalized;
+    this.typeFeedback = `Tipo "${normalized}" seleccionado`;
+
+    setTimeout(() => {
+      this.typeFeedback = '';
+    }, 2000);
+  }
+
+  backToTypeSelect() {
+    this.typeMode = 'select';
+    this.newType = '';
+  }
+
   updateFilteredInventory(): void {
-    // Verificar si todos los checkboxes están desactivados
-    const allCheckboxesOff =
-      !this.showVinyls &&
-      !this.showCutVinyls &&
-      !this.showAcrylic &&
-      !this.showPolystyrene &&
-      !this.showDieCut &&
-      !this.showMDF;
 
     this.filteredInventory = this.inventory.filter((item) => {
       const matchesCode = item.code.toString().includes(this.searchCode);
       const matchesType = item.type
         ?.toLowerCase()
         .includes(this.searchType.toLowerCase());
-      const normalizedCategory = (item.category || '').trim().toLowerCase();
 
-      // Si todos los checkboxes están desactivados, no filtrar por categoría
-      if (allCheckboxesOff) {
-        return matchesCode && matchesType;
-      }
+      const matchesCategory =
+        !this.filterCategory || item.category === this.filterCategory;
 
-      // Si hay al menos un checkbox activado, filtrar por categoría
-      const categoryMatchesCheckboxes =
-        (this.showVinyls && normalizedCategory === 'vinilo') ||
-        (this.showCutVinyls && normalizedCategory === 'vinilo de corte') ||
-        (this.showAcrylic && normalizedCategory === 'acrilico') ||
-        (this.showPolystyrene && normalizedCategory === 'poliestireno') ||
-        (this.showDieCut && normalizedCategory === 'troquelado') ||
-        (this.showMDF && normalizedCategory === 'mdf');
-
-      return matchesCode && matchesType && categoryMatchesCheckboxes;
+      return matchesCode && matchesType && matchesCategory;
     });
 
     this.noResultsFound = this.filteredInventory.length === 0;
@@ -176,6 +211,9 @@ export class InventoryComponent implements OnInit {
             cost: 0,
             sale_price: 0,
             status: '',
+            standard_size: '',
+            custom_width: 0,
+            custom_height: 0
           }
         : item;
   }
@@ -396,10 +434,19 @@ export class InventoryComponent implements OnInit {
     };
     this.isEditing = false; // Indicar que no estamos editando
     this.showModal = true; // Mostrar el modal
+    this.selectedStandardSize = '';
+    this.categoryMode = 'select';
+    this.typeMode = 'select';
+    this.selectedCategory = '';
+    this.newCategory = '';
+    this.selectedType = '';
+    this.newType = '';
   }
 
   editItem(item: InventoryItem): void {
     this.selectedItem = { ...item };
+    this.selectedCategory = item.category;
+    this.selectedType = item.type;
     this.selectedStandardSize = item.standard_size || ''
     // Si NO hay estándar, fuerza la vista “Personalizada” y carga los números
     if (!this.selectedStandardSize) {
@@ -410,6 +457,9 @@ export class InventoryComponent implements OnInit {
   }
 
   saveItem(): void {
+    this.selectedItem.category = this.selectedCategory;
+    this.selectedItem.type = this.selectedType;
+
     if (!this.selectedItem) return;
 
     if (!this.selectedItem.category) {
@@ -432,8 +482,8 @@ export class InventoryComponent implements OnInit {
     }
 
     const itemToSave = {
-      category: this.selectedItem.category,
-      type: this.selectedItem.type,
+      category: this.selectedCategory,
+      type: this.selectedType,
       caliber: this.selectedItem.caliber,
       material_quantity: this.selectedItem.material_quantity,
       color: this.selectedItem.color,
@@ -444,16 +494,6 @@ export class InventoryComponent implements OnInit {
       custom_width: this.selectedItem.custom_width,
       custom_height: this.selectedItem.custom_height,
     };
-
-    // if user picked a predefined size
-    if (this.selectedStandardSize) {
-      const [w, h] = this.selectedStandardSize.split('x').map(Number);
-      this.selectedItem.custom_width  = w;
-      this.selectedItem.custom_height = h;
-      this.selectedItem.standard_size = this.selectedStandardSize;
-    } else {
-      this.selectedItem.standard_size = 'custom';
-    }
 
     if (this.selectedItem.id_material) {
       // Actualizar
@@ -525,15 +565,10 @@ export class InventoryComponent implements OnInit {
     this.updatePaginatedInventory();
   }
 
-    clearFilters(): void {
+  clearFilters(): void {
     this.searchCode = '';
     this.searchType = '';
-    this.showVinyls = true;
-    this.showCutVinyls = true;
-    this.showAcrylic = true;
-    this.showPolystyrene = true;
-    this.showDieCut = true;
-    this.showMDF = true;
+    this.filterCategory = '';
     this.updateFilteredInventory();
   }
 

@@ -107,9 +107,9 @@
         </thead>
         <tbody>
           <tr *ngFor="let mdf of paginatedMdfItems">
-            <td class="table-column-std">{{ mdf.width }} cm</td>
-            <td class="table-column-std">{{ mdf.height }} cm</td>
-            <td class="table-column-std">{{ mdf.thickness }} mm</td>
+            <td class="table-column-std">{{ mdf.width }}</td>
+            <td class="table-column-std">{{ mdf.height }}</td>
+            <td class="table-column-std">{{ mdf.thickness }}</td>
             <td class="table-column-std">${{ mdf.cost.toLocaleString() }}</td>
             <td class="table-column-std">${{ mdf.freight.toLocaleString() }}</td>
             <td class="table-column-std">${{ calculatePriceWith30Profit(mdf).toLocaleString() }}</td>

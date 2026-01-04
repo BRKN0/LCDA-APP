@@ -188,9 +188,7 @@
             <th>Ancho</th>
             <th>Alto</th>
             <th class="table-column-std">Tipo</th>
-            <th (click)="toggleSortDirection('caliber')" class="cursor-pointer">
-              Calibre <span>{{ getSortIcon("caliber") }}</span>
-            </th>
+            <th>Calibre</th>
             <th>Costo</th>
             <th>30% Util.</th>
             <th>Margen</th>
@@ -303,7 +301,7 @@
           (change)="currentPage = 1; updatePaginatedPolystyrenes()"
           class="border border-gray-300 rounded-md p-1"
         >
-          <option *ngFor="let size of [5, 10, 15, 20]" [value]="size">
+          <option *ngFor="let size of [5, 10, 20, 30]" [value]="size">
             {{ size }}
           </option>
         </select>

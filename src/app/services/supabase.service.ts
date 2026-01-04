@@ -289,6 +289,16 @@ export class SupabaseService {
     }
   }
 
+  async resetPasswordForEmail(email: string) {
+    return await this.supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/login`,
+    });
+  }
+
+  async updateUser(updates: { password: string }) {
+    return await this.supabase.auth.updateUser(updates);
+  }
+
   /**
    * generateSecurePassword generates a secure password.
    * This method is taken from https://stackoverflow.com/questions/1497481/javascript-password-generator

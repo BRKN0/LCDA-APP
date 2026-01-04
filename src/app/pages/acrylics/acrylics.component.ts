@@ -59,7 +59,6 @@ export class AcrylicsComponent implements OnInit {
   selectedFormat: string = 'Sin formato';
   loading = true;
   searchTerm: string = '';
-  sortDirection: 'asc' | 'desc' = 'asc';
   currentPage: number = 1;
   itemsPerPage: number = 10;
   totalPages: number = 1;
@@ -159,10 +158,8 @@ export class AcrylicsComponent implements OnInit {
     }
     this.acrylicItems = data || [];
 
-    // CAMBIO: Ordenar por fecha de creación (más recientes primero)
-    this.acrylicItems.sort((a, b) => {
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-    });
+    // Ordenar por jerarquia
+    this.acrylicItems = this.sortAcrylics(data || []);
 
     this.filteredAcrylicItems = [...this.acrylicItems];
     this.currentPage = 1;
@@ -203,21 +200,6 @@ export class AcrylicsComponent implements OnInit {
     setTimeout(() => {
       this.showClientDropdown = false;
     }, 200);
-  }
-
-  toggleSortDirection(): void {
-    this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
-    this.applySortByGauge();
-    this.currentPage = 1; // Reiniciar a la primera página
-    this.updatePaginatedAcrylicItems();
-  }
-
-  private applySortByGauge(): void {
-    this.filteredAcrylicItems.sort((a, b) => {
-      const valueA = a.gauge;
-      const valueB = b.gauge;
-      return this.sortDirection === 'asc' ? valueA - valueB : valueB - valueA;
-    });
   }
 
   openModal(acrylic?: Acrylic): void {
@@ -764,6 +746,26 @@ private async updateSingleItem(id: string): Promise<void> {
     }
   }
 
+  private sortAcrylics(items: Acrylic[]): Acrylic[] {
+    return items.sort((a, b) => {
+      // Área total ASC
+      const areaA = a.width * a.height;
+      const areaB = b.width * b.height;
+      if (areaA !== areaB) {
+        return areaA - areaB;
+      }
+
+      // Color alfabético A–Z
+      const colorCompare = a.color.localeCompare(b.color, 'es', { sensitivity: 'base' });
+      if (colorCompare !== 0) {
+        return colorCompare;
+      }
+
+      // Calibre ASC
+      return a.gauge - b.gauge;
+    });
+}
+
   updatePaginatedAcrylicItems(): void {
     // Filtrar primero por búsqueda de texto
     let tempFiltered = this.acrylicItems.filter(item => {
@@ -792,11 +794,7 @@ private async updateSingleItem(id: string): Promise<void> {
       });
     }
 
-    this.filteredAcrylicItems = tempFiltered;
-
-    if (this.sortDirection) {
-      this.applySortByGauge();
-    }
+    this.filteredAcrylicItems = this.sortAcrylics(tempFiltered);
 
     // Actualizar paginación
     this.totalPages = Math.ceil(this.filteredAcrylicItems.length / this.itemsPerPage);

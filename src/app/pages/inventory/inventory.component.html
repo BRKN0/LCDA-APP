@@ -8,54 +8,17 @@
 <!-- Filter checkboxes -->
 <div *ngIf="!loading" class="flex justify-between items-center mb-4 mt-4">
   <div class="flex space-x-2 ml-2">
-    <label>
-      <input
-        type="checkbox"
-        [(ngModel)]="showVinyls"
-        (change)="updateFilteredInventory()"
-      />
-      Vinilos
-    </label>
-    <label>
-      <input
-        type="checkbox"
-        [(ngModel)]="showCutVinyls"
-        (change)="updateFilteredInventory()"
-      />
-      Vinilos de corte
-    </label>
-    <label>
-      <input
-        type="checkbox"
-        [(ngModel)]="showAcrylic"
-        (change)="updateFilteredInventory()"
-      />
-      Acrilico
-    </label>
-    <label>
-      <input
-        type="checkbox"
-        [(ngModel)]="showPolystyrene"
-        (change)="updateFilteredInventory()"
-      />
-      Poliestireno
-    </label>
-    <label>
-      <input
-        type="checkbox"
-        [(ngModel)]="showDieCut"
-        (change)="updateFilteredInventory()"
-      />
-      Troquelado
-    </label>
-    <label>
-      <input
-        type="checkbox"
-        [(ngModel)]="showMDF"
-        (change)="updateFilteredInventory()"
-      />
-      MDF
-    </label>
+    <label class="font-semibold mr-2">Categoría:</label>
+    <select
+      [(ngModel)]="filterCategory"
+      (change)="updateFilteredInventory()"
+      class="border border-gray-300 rounded-md p-1"
+    >
+      <option value="">-- Todas --</option>
+      <option *ngFor="let c of getUniqueCategories()" [value]="c">
+        {{ c }}
+      </option>
+    </select>
   </div>
   <!-- Action buttons -->
   <div class="flex space-x-2 mr-4">
@@ -198,17 +161,62 @@
       {{ isEditing ? "Editar Artículo" : "Agregar Artículo" }}
     </h3>
     <form (ngSubmit)="saveItem()">
-      <div class="mb-4">
+      <div *ngIf="categoryMode === 'select'" class="mb-4">
         <label class="block modal-input-item"
-          >Categoría<span class="text-red-500">*</span></label
+        >Categoría<span class="text-red-500">*</span></label>
+
+        <select
+          [(ngModel)]="selectedCategory"
+          [ngModelOptions]="{ standalone: true }"
+          class="form-select"
         >
+          <option value="" disabled>Seleccione una categoría</option>
+          <option *ngFor="let c of getUniqueCategories()" [value]="c">
+            {{ c }}
+          </option>
+        </select>
+
+        <button
+          type="button"
+          class="btn-primary mt-2"
+          name="new_category"
+          (click)="categoryMode = 'create'"
+        >
+          Añadir nueva categoría
+        </button>
+      </div>
+      <div *ngIf="categoryMode === 'create'" class="mt-2">
+        <label class="block modal-input-item">Nueva categoría</label>
+
         <input
           type="text"
-          [(ngModel)]="selectedItem.category"
-          name="category"
-          class="form-input mt-1 block w-full"
-          required
+          [(ngModel)]="newCategory"
+          [ngModelOptions]="{ standalone: true }"
+          class="form-input"
+          placeholder="Ej: Acrílico, vinilo, MDF..."
         />
+
+        <p *ngIf="categoryFeedback" class="text-green-600 text-sm mt-1">
+          {{ categoryFeedback }}
+        </p>
+
+        <div class="flex gap-2 mt-2">
+          <button
+            type="button"
+            class="btn-success"
+            (click)="confirmNewCategory()"
+          >
+            Usar esta categoría
+          </button>
+
+          <button
+            type="button"
+            class="btn-primary mt-2"
+            (click)="backToCategorySelect()"
+          >
+            Seleccionar categoría
+          </button>
+        </div>
       </div>
       <!-- predefined sizes -->
       <div class="mb-4">
@@ -239,7 +247,7 @@
           />
         </div>
         <div class="w-1/2">
-          <label class="block">Alto (cm)</label>
+          <label class="block">Largo (cm)</label>
           <input
             type="number"
             [(ngModel)]="selectedItem.custom_height"
@@ -248,15 +256,60 @@
           />
         </div>
       </div>
-      <div class="mb-4">
+      <div *ngIf="typeMode === 'select'" class="mb-4">
+        <label class="block modal-input-item">Tipo</label>
+
+        <select
+          [(ngModel)]="selectedType"
+          [ngModelOptions]="{ standalone: true }"
+          class="form-select"
+        >
+          <option value="" disabled>Seleccione un tipo</option>
+          <option *ngFor="let t of getUniqueTypes()" [value]="t">
+            {{ t }}
+          </option>
+        </select>
+
+        <button
+          type="button"
+          class="btn-primary mt-2"
+          name="new_type"
+          (click)="typeMode = 'create'"
+        >
+          Añadir nuevo tipo
+        </button>
+      </div>
+      <div *ngIf="typeMode === 'create'" class="mt-2">
         <label class="block modal-input-item">Tipo</label>
         <input
           type="text"
-          [(ngModel)]="selectedItem.type"
-          name="type"
+          [(ngModel)]="newType"
+          [ngModelOptions]="{ standalone: true }"
           class="form-input mt-1 block w-full"
-          required
+          placeholder="Ej: Lámina, Placa, Rollo..."
         />
+
+        <p *ngIf="typeFeedback" class="text-green-600 text-sm mt-1">
+          {{ typeFeedback }}
+        </p>
+
+        <div class="flex gap-2 mt-2">
+          <button
+            type="button"
+            class="btn-success"
+            (click)="confirmNewType()"
+          >
+            Usar este tipo
+          </button>
+
+          <button
+            type="button"
+            class="btn-primary mt-2"
+            (click)="backToTypeSelect()"
+          >
+            Seleccionar tipo
+          </button>
+        </div>  
       </div>
       <div class="mb-4">
         <label class="block modal-input-item">Calibre</label>
@@ -279,7 +332,7 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block modal-input-item">Color</label>
+        <label class="block modal-input-item">Descripción</label>
         <input
           type="text"
           [(ngModel)]="selectedItem.color"
@@ -448,7 +501,7 @@
         (change)="currentPage = 1; updatePaginatedInventory()"
         class="border border-gray-300 rounded-md p-1"
       >
-        <option *ngFor="let size of [2, 10, 15, 20]" [value]="size">
+        <option *ngFor="let size of [5, 10, 20, 30]" [value]="size">
           {{ size }}
         </option>
       </select>

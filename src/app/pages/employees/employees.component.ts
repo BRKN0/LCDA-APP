@@ -380,20 +380,36 @@ export class EmployeesComponent implements OnInit {
   }
 
   /** Eliminar un empleado */
-  deleteEmployee(employee: Employee): void {
-    if (confirm(`¿Eliminar el empleado ${employee.name}?`)) {
-      this.supabase
+  async deleteEmployee(employee: Employee): Promise<void> {
+    if (!confirm(`¿Eliminar el empleado ${employee.name}?`)) return;
+
+    try {
+      // 1. Borrar liquidaciones
+      await this.supabase
+        .from('employee_liquidations')
+        .delete()
+        .eq('id_employee', employee.id_employee);
+
+      // 2. Borrar beneficios
+      await this.supabase
+        .from('employee_benefits')
+        .delete()
+        .eq('id_employee', employee.id_employee);
+
+      // 3. Borrar empleado
+      const { error } = await this.supabase
         .from('employees')
         .delete()
-        .eq('id_employee', employee.id_employee)
-        .then(({ error }) => {
-          if (error) {
-            console.error('Error eliminando empleado:', error);
-          } else {
-            alert('Empleado eliminado');
-            this.getEmployees(); // Recargar la lista filtrada
-          }
-        });
+        .eq('id_employee', employee.id_employee);
+
+      if (error) throw error;
+
+      alert('Empleado eliminado correctamente');
+      this.getEmployees();
+
+    } catch (err) {
+      console.error('Error eliminando empleado:', err);
+      alert('No se pudo eliminar el empleado');
     }
   }
 

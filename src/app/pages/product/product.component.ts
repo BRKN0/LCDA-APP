@@ -42,7 +42,13 @@ export class ProductComponent implements OnInit, OnDestroy {
   searchQuery = '';
   noResultsFound = false;
   availableCategories: string[] = [];
+  filterCategory: string = '';
   selectedCategory: string = '';
+  newCategory = '';
+  categoryFeedback = '';
+  categoryMode: 'select' | 'create' = 'select';
+  typeFeedback = '';
+  typeMode: 'select' | 'create' = 'select';
   minPrice: number | null = null;
   maxPrice: number | null = null;
   filterStockAvailable: boolean = false;
@@ -129,12 +135,51 @@ export class ProductComponent implements OnInit, OnDestroy {
 
       const matchesStock = this.filterStockAvailable ? p.stock > 0 : true;
 
-      return matchesSearch && matchesPrice && matchesStock;
+      const matchsCategory = 
+        !this.filterCategory || p.category === this.filterCategory;
+
+      return matchesSearch && matchesPrice && matchesStock && matchsCategory;
     });
 
     this.noResultsFound = this.filteredProducts.length === 0;
     this.currentPage = 1;
     this.updatePaginatedProducts();
+  }
+
+  normalizeCategory() {
+    if (!this.selectedProduct.category) return;
+    this.selectedProduct.category = this.selectedProduct.category
+      .trim()
+      .toLowerCase();
+  }
+
+  getUniqueCategories(): string[] {
+    return Array.from(
+      new Set(
+        this.Products
+          .map(i => i.category)
+          .filter(c => !!c)
+      )
+    ).sort();
+  }
+
+  confirmNewCategory() {
+    if (!this.newCategory) return;
+
+    const normalized = this.newCategory.trim().toUpperCase();
+    
+    this.selectedCategory = normalized;
+    this.selectedProduct.category = normalized;
+    this.categoryFeedback = `Categoría "${normalized}" seleccionada`;
+
+    setTimeout(() => {
+      this.categoryFeedback = '';
+    }, 2000);
+  }
+
+  backToCategorySelect() {
+    this.categoryMode = 'select';
+    this.newCategory = '';
   }
 
 
@@ -149,6 +194,9 @@ export class ProductComponent implements OnInit, OnDestroy {
       price: 0,
       utility_margin: 30,
     };
+    this.categoryMode = 'select';
+    this.selectedCategory = '';
+    this.newCategory = '';
     this.autoPrice = true;
     this.isEditing = false;
     this.showModal = true;
@@ -157,6 +205,7 @@ export class ProductComponent implements OnInit, OnDestroy {
 
   editProduct(product: Product): void {
     this.selectedProduct = { ...product };
+    this.selectedCategory = product.category;
     const expected = this.calculatePrice(product.cost ?? 0, product.utility_margin ?? 0);
     this.autoPrice = Math.abs(expected - (product.price ?? 0)) <= 1;
     if (this.autoPrice) {
@@ -188,7 +237,7 @@ export class ProductComponent implements OnInit, OnDestroy {
     const productToSave = {
       name: this.selectedProduct.name,
       description: this.selectedProduct.description,
-      category: this.selectedProduct.category,
+      category: this.selectedCategory,
       stock: this.selectedProduct.stock ?? 0,
       cost: this.selectedProduct.cost ?? 0,
       price: this.selectedProduct.price ?? 0,
@@ -334,7 +383,7 @@ export class ProductComponent implements OnInit, OnDestroy {
     this.minPrice = null;
     this.maxPrice = null;
     this.filterStockAvailable = false;
-    this.selectedCategory = '';
+    this.filterCategory = '';
     this.searchProduct();
   }
 

@@ -40,9 +40,6 @@ export class MainBannerComponent implements OnInit {
   goToNotifications() {
     this.router.navigate(['/notifications']);
   }
-   goToThirdParties() {
-    this.router.navigate(['/third-parties'])
-  }
   goToHome() {
     this.router.navigate(['/home']);
   }
@@ -67,6 +64,18 @@ export class MainBannerComponent implements OnInit {
   goToVinylCuts() {
     this.router.navigate(['/pricing/vinyl-cuts']);
   }
+  goToBanks(): void {
+    this.router.navigate(['/bank/banks']);
+  }
+  goToBanking(): void {
+    this.router.navigate(['/bank/banking']);
+  }
+  goToProviders() {
+    this.router.navigate(['/bank/providers']);
+  }
+  goToThirdParties() {
+    this.router.navigate(['/bank/third'])
+  }
   goToClients() {
     this.router.navigate(['/clients']);
   }
@@ -81,9 +90,6 @@ export class MainBannerComponent implements OnInit {
   }
   goToEmployees() {
     this.router.navigate(['/employees']);
-  }
-  goToProviders() {
-    this.router.navigate(['/providers']);
   }
   goToControlPanel() {
     this.router.navigate(['/control-panel']);
@@ -201,12 +207,5 @@ export class MainBannerComponent implements OnInit {
     if (!clickedInside) {
       this.closeDropdowns();
     }
-  }
-  goToBanks(): void {
-    this.router.navigate(['/banks']);
-  }
-
-  goToBanking(): void {
-    this.router.navigate(['/banking']);
   }
 }
