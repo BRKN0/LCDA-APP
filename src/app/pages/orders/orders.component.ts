@@ -20,6 +20,7 @@ interface Orders {
   order_delivery_status: string;
   notes: string;
   created_at: string;
+  created_time?: string;
   delivery_date: string;
   order_quantity: string;
   unitary_value: string | number;
@@ -422,6 +423,13 @@ export class OrdersComponent implements OnInit {
       return;
     }
     this.allProducts = data || [];
+  }
+
+  private getCurrentTimeHHMM(): string {
+    const now = new Date();
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
   }
 
   openAddClientModal(): void {
@@ -1387,6 +1395,7 @@ export class OrdersComponent implements OnInit {
         description: '',
         order_payment_status: 'overdue',
         created_at: new Date().toISOString(),
+        created_time: this.getCurrentTimeHHMM(),
         delivery_date: '',
         order_quantity: '0',
         unitary_value: '',
@@ -2049,6 +2058,9 @@ export class OrdersComponent implements OnInit {
     else {
       const userName = await this.getUserName();
       this.newOrder.scheduler = userName || '';
+
+      // Hora exacta del agendamiento
+      this.newOrder.created_time = this.getCurrentTimeHHMM();
 
       if (this.newOrder.order_type === 'sales') {
         this.recalcSalesFromItems();
