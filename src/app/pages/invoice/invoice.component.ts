@@ -991,19 +991,12 @@ export class InvoiceComponent implements OnInit {
       await this.calculateInvoiceValues(invoice);
     const totalPaid = this.getTotalPayments(invoice.order);
     const remainingBalance = total - totalPaid;
-    const quantity = invoice.order.order_quantity;
-    const unitaryValue = subtotal / quantity;
 
     const doc = new jsPDF();
     const invoice_date = new Date(invoice.created_at);
     const year = invoice_date.getFullYear();
     const month = (invoice_date.getMonth() + 1).toString().padStart(2, '0');
     const day = invoice_date.getDate().toString().padStart(2, '0');
-    /*
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.text('La Casa del Acrilico', 10, 10);
-    */
 
     const logoUrl = '/Logo.png';
     const logo = await this.loadImage(logoUrl);
@@ -1036,13 +1029,6 @@ export class InvoiceComponent implements OnInit {
     let y = 80;
     doc.text(`Nombre: ${invoice.order.client.name}`, 10, y);
     y += 6;
-    /*doc.text(
-      `Nombre de la empresa: ${invoice.order.client.company_name || 'N/A'}`,
-      10,
-      y
-    );
-    */
-    y += 6;
     doc.text(`Dirección: ${invoice.order.client.address}`, 10, y);
     y += 6;
     doc.text(`Ciudad: ${invoice.order.client.city}`, 10, y);
@@ -1066,36 +1052,185 @@ export class InvoiceComponent implements OnInit {
       y += 8;
     });
 
-    y +=10;
+    y += 10;
 
-    const rowHeight = 7;
-    const headerXPositions = [10, 50, 120, 170];
+    // **TABLA DE DETALLES SEGÚN TIPO DE PEDIDO**
+    const orderType = invoice.order.order_type;
 
-    doc.setFont('helvetica', 'bold');
-    doc.text('CANTIDAD', headerXPositions[0], y);
-    doc.text('VALOR UNITARIO', headerXPositions[1], y);
-    doc.text('ABONO', headerXPositions[2], y, { align: 'right' });
+    if (orderType === 'print') {
+      const { data: printsData, error } = await this.supabase
+        .from('prints')
+        .select('*')
+        .eq('id_order', invoice.order.id_order);
 
-    y += rowHeight;
+      if (!error && printsData && printsData.length > 0) {
+        doc.setFont('helvetica', 'bold');
+        doc.text('DETALLE DE PRODUCTOS', 10, y);
+        y += 8;
 
-    doc.setFont('helvetica', 'normal');
-    doc.text(
-      String(invoice.order.order_quantity),
-      headerXPositions[0],
-      y
-    );
-    doc.text(unitaryValue.toFixed(2), headerXPositions[1], y);
-    doc.text(totalPaid.toFixed(2), headerXPositions[2], y, {
-      align: 'right',
-    });
+        const tableHeaders = ['Material', 'Cant.', 'Procesos', 'Precio Total'];
+        const colWidths = [80, 20, 50, 30];
+        const startX = 10;
 
-    y += rowHeight + 5;
+        doc.setFontSize(10);
+        let currentX = startX;
+        tableHeaders.forEach((header, i) => {
+          doc.text(header, currentX, y);
+          currentX += colWidths[i];
+        });
 
-    // Añadir lista de abonos al PDF
+        y += 2;
+        doc.line(startX, y, 190, y);
+        y += 6;
+
+        doc.setFont('helvetica', 'normal');
+        for (const print of printsData) {
+          const category = print.category || '';
+          const materialType = print.material_type || '';
+          const color = print.color || '';
+          const caliber = print.caliber || '';
+
+          let materialParts = [];
+          if (category) materialParts.push(category);
+          if (materialType) materialParts.push(materialType);
+          if (color) materialParts.push(color);
+          if (caliber) materialParts.push(caliber);
+
+          const materialStr = materialParts.join(' - ') || 'N/A';
+
+          doc.text(materialStr, startX, y, { maxWidth: colWidths[0] - 5 });
+
+          doc.text(String(print.quantity || '0'), startX + colWidths[0], y);
+
+          const processes = [];
+          if (print.laminating) processes.push('Lam.');
+          if (print.printing) processes.push('Imp.');
+          if (print.die_cutting) processes.push('Troq.');
+          if (print.assembly) processes.push('Ens.');
+          const processesStr = processes.join(', ') || '-';
+          doc.text(processesStr, startX + colWidths[0] + colWidths[1], y);
+
+          // Calcular precio total del item
+          const unitPrice = Number(print.unit_price) || 0;
+          const qty = Number(print.quantity) || 0;
+          const itemTotal = unitPrice * qty || subtotal / printsData.length;
+          doc.text(
+            `$${itemTotal.toFixed(2)}`,
+            startX + colWidths[0] + colWidths[1] + colWidths[2],
+            y
+          );
+
+          y += 8;
+        }
+
+        y += 2;
+        doc.line(startX, y, 190, y);
+        y += 10;
+      }
+    } else if (orderType === 'laser') {
+      // TABLA PARA CORTES LÁSER
+      const { data: cutsData, error } = await this.supabase
+        .from('cuts')
+        .select('*')
+        .eq('id_order', invoice.order.id_order);
+
+      if (!error && cutsData && cutsData.length > 0) {
+        doc.setFont('helvetica', 'bold');
+        doc.text('DETALLE DE CORTES', 10, y);
+        y += 8;
+
+        // Headers: Material | Cant. | Alto | Ancho | Precio Unit. | Total
+        const tableHeaders = [
+          'Material',
+          'Cant.',
+          'Alto',
+          'Ancho',
+          'Precio Unit.',
+          'Total',
+        ];
+        const colWidths = [50, 15, 15, 15, 35, 35];
+        const startX = 10;
+
+        doc.setFontSize(10);
+        let currentX = startX;
+        tableHeaders.forEach((header, i) => {
+          doc.text(header, currentX, y);
+          currentX += colWidths[i];
+        });
+
+        y += 2;
+        doc.line(startX, y, 190, y);
+        y += 6;
+
+        doc.setFont('helvetica', 'normal');
+
+        let totalCortes = 0; // Acumular el total del pedido
+
+        for (const cut of cutsData) {
+          // Construir el nombre del material
+          const category = cut.category || '';
+          const materialType = cut.material_type || '';
+          const color = cut.color || '';
+          const caliber = cut.caliber || '';
+
+          let materialParts = [];
+          if (category) materialParts.push(category);
+          if (materialType) materialParts.push(materialType);
+          if (caliber) materialParts.push(caliber);
+          if (color) materialParts.push(color);
+
+          const materialStr = materialParts.join(' - ') || 'N/A';
+
+          // Dibujar fila
+          currentX = startX;
+
+          // Material
+          doc.text(materialStr, currentX, y, { maxWidth: colWidths[0] - 5 });
+          currentX += colWidths[0];
+
+          // Cantidad
+          doc.text(String(cut.quantity || 0), currentX, y);
+          currentX += colWidths[1];
+
+          // Alto
+          doc.text(String(cut.height || 0), currentX, y);
+          currentX += colWidths[2];
+
+          // Ancho
+          doc.text(String(cut.width || 0), currentX, y);
+          currentX += colWidths[3];
+
+          // Precio Unitario (unit_price)
+          const unitPrice = Number(cut.unit_price || 0);
+          doc.text(`$${unitPrice.toFixed(2)}`, currentX, y);
+          currentX += colWidths[4];
+
+          // Total de la línea (line_total)
+          const lineTotal = Number(cut.line_total || 0);
+          doc.text(`$${lineTotal.toFixed(2)}`, currentX, y);
+
+          totalCortes += lineTotal;
+
+          y += 8;
+        }
+
+        y += 2;
+        doc.line(startX, y, 190, y);
+        y += 5;
+
+        doc.setFont('helvetica', 'normal');
+      }
+    } else if (orderType === 'sales') {
+      // TODO: Implementar para sales
+    }
+
+    // Resumen financiero
+    let currentY = y;
+
     if (invoice.order.payments && invoice.order.payments.length > 0) {
       doc.setFont('helvetica', 'bold');
-      doc.text('Abonos Realizados:', 10, y);
-      y += rowHeight;
+      doc.text('Abonos Realizados:', 10, currentY);
+      currentY += 7;
       doc.setFont('helvetica', 'normal');
       invoice.order.payments.forEach((payment) => {
         doc.text(
@@ -1105,67 +1240,70 @@ export class InvoiceComponent implements OnInit {
               : ''
           }`,
           10,
-          y
+          currentY
         );
-        y += rowHeight;
+        currentY += 7;
       });
+      currentY += 5;
     }
 
     const summaryX = 10;
     const valueX = 60;
-    
     doc.setFont('helvetica', 'bold');
-    doc.text('Subtotal:', summaryX, y);
-    doc.text(`$${subtotal.toFixed(2)}`, valueX, y);
-    y += rowHeight;
+
+    doc.text('Subtotal:', summaryX, currentY);
+    doc.text(`$${subtotal.toFixed(2)}`, valueX, currentY, { align: 'left' });
+    currentY += 7;
 
     if (invoice.include_iva) {
-      doc.text(this.ivaLabel() + ':', summaryX, y);
-      doc.text(`$${iva.toFixed(2)}`, valueX, y);
-      y += rowHeight;
+      doc.text(this.ivaLabel() + ':', summaryX, currentY);
+      doc.text(`$${iva.toFixed(2)}`, valueX, currentY, { align: 'left' });
+      currentY += 7;
     }
 
     if (retefuente > 0) {
-      doc.text(this.retefuenteLabel(invoice) + ':', summaryX, y);
-      doc.text(`$${retefuente.toFixed(2)}`, valueX, y);
-      y += rowHeight;
+      doc.text(this.retefuenteLabel(invoice) + ':', summaryX, currentY);
+      doc.text(`-$${retefuente.toFixed(2)}`, valueX, currentY, {
+        align: 'left',
+      });
+      currentY += 7;
     }
 
     if (reteica > 0) {
-      doc.text(this.reteicaLabel(invoice) + ':', summaryX, y);
-      doc.text(`$${reteica.toFixed(2)}`, valueX, y);
-      y += rowHeight;
+      doc.text(this.reteicaLabel(invoice) + ':', summaryX, currentY);
+      doc.text(`-$${reteica.toFixed(2)}`, valueX, currentY, { align: 'left' });
+      currentY += 7;
     }
 
     doc.setFontSize(14);
-    doc.text('Total:', summaryX, y);
-    doc.text(`$${total.toFixed(2)}`, valueX, y);
+    doc.text('Total:', summaryX, currentY);
+    doc.text(`$${total.toFixed(2)}`, valueX, currentY, { align: 'left' });
+    currentY += 10;
 
-    y += rowHeight + 10;
+    doc.setFont('helvetica', 'bold');
+    doc.text('Falta por Pagar:', summaryX, currentY);
+    doc.text(`$${remainingBalance.toFixed(2)}`, valueX + 15, currentY, {
+      align: 'left',
+    });
 
-    doc.text('Total a Pagar:', summaryX, y);
-    doc.text(`$${remainingBalance.toFixed(2)}`, valueX, y);
-
-    y += 20;
-
-    const footerStartY = y + rowHeight * 3;
+    const footerStartY = currentY + 20;
     doc.setFontSize(10);
     doc.setFont('helvetica', 'italic');
-    /*doc.text(
-      'Todos los cheques se extenderán a nombre de La casa del acrilico',
+    doc.text(
+      'Todos los cheques se extenderán a nombre de Jhon Fredy',
       10,
       footerStartY
     );
-    */
     doc.text(
-      'Si tiene cualquier tipo de pregunta acerca de esta factura, póngase en contacto al número 3004947020',
+      'Si tiene cualquier tipo de pregunta acerca de esta cotización, póngase en contacto al número 3004947020',
       10,
       footerStartY + 10
     );
+
     doc.setFont('helvetica', 'bold');
     doc.text('GRACIAS POR SU CONFIANZA', 10, footerStartY + 25);
 
-    doc.save(`Recibo de Venta-${invoice.code}.pdf`);
+    doc.save(`Recibo_de_venta_${invoice.code}.pdf`);
   }
 
   private wrapText(doc: jsPDF, text: string, maxWidth: number): string[] {
@@ -1237,8 +1375,6 @@ export class InvoiceComponent implements OnInit {
       await this.calculateInvoiceValues(invoice);
     const totalPaid = this.getTotalPayments(invoice.order);
     const remainingBalance = total - totalPaid;
-    const quantity = invoice.order.order_quantity;
-    const unitaryValue = subtotal / quantity;
 
     const doc = new jsPDF();
     const invoice_date = new Date(invoice.created_at);
@@ -1246,13 +1382,13 @@ export class InvoiceComponent implements OnInit {
     const month = (invoice_date.getMonth() + 1).toString().padStart(2, '0');
     const day = invoice_date.getDate().toString().padStart(2, '0');
 
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Jhon Fredy', 10, 10);
+    const logoUrl = '/Logo.png';
+    const logo = await this.loadImage(logoUrl);
+    doc.addImage(logo, 'JPEG', 90, 5, 30, 20);
 
     doc.setTextColor(200);
     doc.setFontSize(30);
-    doc.text('cuenta de cobro', 205, 10, { align: 'right' });
+    doc.text('Cuenta de Cobro', 190, 10, { align: 'right' });
     doc.setTextColor(0);
 
     doc.setFontSize(12);
@@ -1271,12 +1407,11 @@ export class InvoiceComponent implements OnInit {
     }
 
     doc.setFont('helvetica', 'bold');
-    doc.text('Cuenta de Cobro A:', 10, 70);
+    doc.text('Cliente:', 10, 70);
     doc.setFont('helvetica', 'normal');
 
     let y = 80;
     doc.text(`Nombre: ${invoice.order.client.name}`, 10, y);
-
     y += 6;
     doc.text(`Dirección: ${invoice.order.client.address}`, 10, y);
     y += 6;
@@ -1296,96 +1431,223 @@ export class InvoiceComponent implements OnInit {
     y += 6;
     doc.setFont('helvetica', 'normal');
     const descriptionLines = this.wrapText(doc, invoice.order.description, y);
-    let currentY = y;
     descriptionLines.forEach((line) => {
-      doc.text(line, 10, currentY);
-      currentY += 10;
+      doc.text(line, 10, y);
+      y += 8;
     });
 
-    const startY = currentY + 10;
-    const rowHeight = 7;
-    const headerXPositions = [10, 40, 120, 170];
-    const summaryStartY = startY + rowHeight * 2;
+    y += 10;
 
-    doc.setFont('helvetica', 'bold');
-    doc.text('CANTIDAD', headerXPositions[0], startY);
-    doc.text('VALOR UNITARIO', headerXPositions[1], startY);
-    doc.text('ABONO', headerXPositions[2], startY, { align: 'right' });
+    // **TABLA DE DETALLES SEGÚN TIPO DE PEDIDO**
+    const orderType = invoice.order.order_type;
 
-    currentY = startY + rowHeight;
-    doc.setFont('helvetica', 'normal');
-    doc.text(
-      String(invoice.order.order_quantity),
-      headerXPositions[0],
-      currentY
-    );
-    doc.text(unitaryValue.toFixed(2), headerXPositions[1], currentY);
-    doc.text(totalPaid.toFixed(2), headerXPositions[2], currentY, {
-      align: 'right',
-    });
+    if (orderType === 'print') {
+      const { data: printsData, error } = await this.supabase
+        .from('prints')
+        .select('*')
+        .eq('id_order', invoice.order.id_order);
 
-    if (invoice.order.payments && invoice.order.payments.length > 0) {
-      doc.setFont('helvetica', 'bold');
-      doc.text('Abonos Realizados:', 10, summaryStartY);
-      currentY = summaryStartY + rowHeight;
-      doc.setFont('helvetica', 'normal');
-      invoice.order.payments.forEach((payment) => {
-        doc.text(
-          `$${payment.amount} - ${payment.payment_method} - ${
-            payment.payment_date
-              ? new Date(payment.payment_date).toLocaleDateString('es-CO')
-              : ''
-          }`,
-          10,
-          currentY
-        );
-        currentY += rowHeight;
-      });
+      if (!error && printsData && printsData.length > 0) {
+        doc.setFont('helvetica', 'bold');
+        doc.text('DETALLE DE PRODUCTOS', 10, y);
+        y += 8;
+
+        const tableHeaders = ['Material', 'Cant.', 'Procesos', 'Precio Total'];
+        const colWidths = [80, 20, 50, 30];
+        const startX = 10;
+
+        doc.setFontSize(10);
+        let currentX = startX;
+        tableHeaders.forEach((header, i) => {
+          doc.text(header, currentX, y);
+          currentX += colWidths[i];
+        });
+
+        y += 2;
+        doc.line(startX, y, 190, y);
+        y += 6;
+
+        doc.setFont('helvetica', 'normal');
+        for (const print of printsData) {
+          const category = print.category || '';
+          const materialType = print.material_type || '';
+          const color = print.color || '';
+          const caliber = print.caliber || '';
+
+          let materialParts = [];
+          if (category) materialParts.push(category);
+          if (materialType) materialParts.push(materialType);
+          if (color) materialParts.push(color);
+          if (caliber) materialParts.push(caliber);
+
+          const materialStr = materialParts.join(' - ') || 'N/A';
+
+          doc.text(materialStr, startX, y, { maxWidth: colWidths[0] - 5 });
+
+          doc.text(String(print.quantity || '0'), startX + colWidths[0], y);
+
+          const processes = [];
+          if (print.laminating) processes.push('Lam.');
+          if (print.printing) processes.push('Imp.');
+          if (print.die_cutting) processes.push('Troq.');
+          if (print.assembly) processes.push('Ens.');
+          const processesStr = processes.join(', ') || '-';
+          doc.text(processesStr, startX + colWidths[0] + colWidths[1], y);
+
+          const qty = Number(print.quantity) || 0;
+          const itemTotal = subtotal / printsData.length;
+          doc.text(
+            `$${itemTotal.toFixed(2)}`,
+            startX + colWidths[0] + colWidths[1] + colWidths[2],
+            y
+          );
+
+          y += 8;
+        }
+
+        y += 2;
+        doc.line(startX, y, 190, y);
+        y += 10;
+      }
+    } else if (orderType === 'laser') {
+      // TABLA PARA CORTES LÁSER
+      const { data: cutsData, error } = await this.supabase
+        .from('cuts')
+        .select('*')
+        .eq('id_order', invoice.order.id_order);
+
+      if (!error && cutsData && cutsData.length > 0) {
+        doc.setFont('helvetica', 'bold');
+        doc.text('DETALLE DE CORTES', 10, y);
+        y += 8;
+
+        // Headers: Material | Cant. | Alto | Ancho | Precio Unit. | Total
+        const tableHeaders = [
+          'Material',
+          'Cant.',
+          'Alto',
+          'Ancho',
+          'Precio Unit.',
+          'Total',
+        ];
+        const colWidths = [50, 15, 15, 15, 35, 35];
+        const startX = 10;
+
+        doc.setFontSize(10);
+        let currentX = startX;
+        tableHeaders.forEach((header, i) => {
+          doc.text(header, currentX, y);
+          currentX += colWidths[i];
+        });
+
+        y += 2;
+        doc.line(startX, y, 190, y);
+        y += 6;
+
+        doc.setFont('helvetica', 'normal');
+
+        let totalCortes = 0; // Acumular el total del pedido
+
+        for (const cut of cutsData) {
+          // Construir el nombre del material
+          const category = cut.category || '';
+          const materialType = cut.material_type || '';
+          const color = cut.color || '';
+          const caliber = cut.caliber || '';
+
+          let materialParts = [];
+          if (category) materialParts.push(category);
+          if (materialType) materialParts.push(materialType);
+          if (caliber) materialParts.push(caliber);
+          if (color) materialParts.push(color);
+
+          const materialStr = materialParts.join(' - ') || 'N/A';
+
+          // Dibujar fila
+          currentX = startX;
+
+          // Material
+          doc.text(materialStr, currentX, y, { maxWidth: colWidths[0] - 5 });
+          currentX += colWidths[0];
+
+          // Cantidad
+          doc.text(String(cut.quantity || 0), currentX, y);
+          currentX += colWidths[1];
+
+          // Alto
+          doc.text(String(cut.height || 0), currentX, y);
+          currentX += colWidths[2];
+
+          // Ancho
+          doc.text(String(cut.width || 0), currentX, y);
+          currentX += colWidths[3];
+
+          // Precio Unitario (unit_price)
+          const unitPrice = Number(cut.unit_price || 0);
+          doc.text(`$${unitPrice.toFixed(2)}`, currentX, y);
+          currentX += colWidths[4];
+
+          // Total de la línea (line_total)
+          const lineTotal = Number(cut.line_total || 0);
+          doc.text(`$${lineTotal.toFixed(2)}`, currentX, y);
+
+          totalCortes += lineTotal;
+
+          y += 8;
+        }
+
+        y += 2;
+        doc.line(startX, y, 190, y);
+        y += 5;
+
+        doc.setFont('helvetica', 'normal');
+      }
+    } else if (orderType === 'sales') {
+      // TODO: Implementar para sales
     }
 
-    const summaryX = headerXPositions[0];
-    const valueX = headerXPositions[1];
-    doc.setFont('helvetica', 'bold');
+    // Resumen financiero
+    let currentY = y;
+    const summaryX = 10;
+    const valueX = 60;
 
+    doc.setFont('helvetica', 'bold');
     doc.text('Subtotal:', summaryX, currentY);
     doc.text(`$${subtotal.toFixed(2)}`, valueX, currentY, { align: 'left' });
-    currentY += rowHeight;
+    currentY += 7;
 
     if (invoice.include_iva) {
       doc.text(this.ivaLabel() + ':', summaryX, currentY);
       doc.text(`$${iva.toFixed(2)}`, valueX, currentY, { align: 'left' });
-      currentY += rowHeight;
+      currentY += 7;
     }
 
     if (retefuente > 0) {
       doc.text(this.retefuenteLabel(invoice) + ':', summaryX, currentY);
-      doc.text(`$${retefuente.toFixed(2)}`, valueX, currentY, {
+      doc.text(`-$${retefuente.toFixed(2)}`, valueX, currentY, {
         align: 'left',
       });
-      currentY += rowHeight;
+      currentY += 7;
     }
 
     if (reteica > 0) {
       doc.text(this.reteicaLabel(invoice) + ':', summaryX, currentY);
-      doc.text(`$${reteica.toFixed(2)}`, valueX, currentY, { align: 'left' });
-      currentY += rowHeight;
+      doc.text(`-$${reteica.toFixed(2)}`, valueX, currentY, { align: 'left' });
+      currentY += 7;
     }
 
     doc.setFontSize(14);
     doc.text('Total:', summaryX, currentY);
     doc.text(`$${total.toFixed(2)}`, valueX, currentY, { align: 'left' });
-    currentY += rowHeight;
+    currentY += 10;
 
-    const spacing = 15;
-    const totalPagarY = currentY + rowHeight;
-    doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text('Total a Cotizar:', summaryX, totalPagarY);
-    doc.text(`$${remainingBalance.toFixed(2)}`, valueX + spacing, totalPagarY, {
+    doc.text('Total a Cobrar:', summaryX, currentY);
+    doc.text(`$${remainingBalance.toFixed(2)}`, valueX + 15, currentY, {
       align: 'left',
     });
 
-    const footerStartY = totalPagarY + rowHeight * 3;
+    const footerStartY = currentY + 20;
     doc.setFontSize(10);
     doc.setFont('helvetica', 'italic');
     doc.text(
@@ -1393,16 +1655,11 @@ export class InvoiceComponent implements OnInit {
       10,
       footerStartY
     );
-    doc.text(
-      'Si tiene cualquier tipo de pregunta acerca de esta cotización, póngase en contacto al número 3004947020',
-      10,
-      footerStartY + 10
-    );
 
     doc.setFont('helvetica', 'bold');
-    doc.text('GRACIAS POR SU CONFIANZA', 10, footerStartY + 25);
+    doc.text('GRACIAS POR SU CONFIANZA', 10, footerStartY + 15);
 
-    doc.save(`Cuenta de cobro_${invoice.code}.pdf`);
+    doc.save(`Cuenta_de_cobro_${invoice.code}.pdf`);
   }
 
   async downloadDeliveryNotePDF(): Promise<void> {
@@ -1418,9 +1675,6 @@ export class InvoiceComponent implements OnInit {
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const year = date.getFullYear();
 
-    /* doc.setFontSize(16);
-  doc.text('La Casa del Acrilico', 10, 10);
-  */
     doc.setFontSize(20);
     doc.text('NOTA DE REMISIÓN', 190, 10, { align: 'right' });
 
@@ -1432,26 +1686,110 @@ export class InvoiceComponent implements OnInit {
 
     doc.text('Cliente:', 10, 60);
     doc.text(`Nombre: ${client.name}`, 10, 70);
-    /* doc.text(`Empresa: ${client.company_name || 'N/A'}`, 10, 78);
-     */
-    doc.text(`Dirección: ${client.address}`, 10, 86);
-    doc.text(`Teléfono: ${client.cellphone}`, 10, 94);
+    doc.text(`Dirección: ${client.address}`, 10, 78);
+    doc.text(`Teléfono: ${client.cellphone}`, 10, 86);
 
-    doc.text('Descripción del Pedido:', 10, 110);
+    doc.text('Descripción del Pedido:', 10, 102);
     const descLines = doc.splitTextToSize(
       order.description || 'Sin descripción',
       180
     );
-    doc.text(descLines, 10, 120);
+    doc.text(descLines, 10, 112);
 
-    doc.text(`Cantidad: ${order.order_quantity}`, 10, 140);
+    let y = 130;
 
-    // Nota
-    doc.text('Nota:', 10, 165);
+    // **LISTA PARA PRINTS: Material, Tipo y Procesos**
+    const orderType = order.order_type;
+
+    if (orderType === 'print') {
+      const { data: printsData, error } = await this.supabase
+        .from('prints')
+        .select('*')
+        .eq('id_order', order.id_order);
+
+      if (!error && printsData && printsData.length > 0) {
+        doc.setFont('helvetica', 'bold');
+        doc.text('Materiales:', 10, y);
+        y += 8;
+
+        doc.setFont('helvetica', 'normal');
+        for (const print of printsData) {
+          const category = print.category || 'N/A'; // vinilo
+          const materialType = print.material_type || ''; // verde oscuro
+          const color = print.color || '';
+          const caliber = print.caliber || '';
+
+          let materialParts = [category];
+          if (materialType) materialParts.push(materialType);
+          if (color) materialParts.push(color);
+          if (caliber) materialParts.push(caliber);
+
+          const materialStr = materialParts.join(' - ');
+
+          doc.text(`• ${materialStr}`, 10, y);
+          y += 6;
+
+          // Procesos
+          const processes = [];
+          if (print.laminating) processes.push('Laminado');
+          if (print.printing) processes.push('Impresión');
+          if (print.die_cutting) processes.push('Troquelado');
+          if (print.assembly) processes.push('Ensamblado');
+
+          if (processes.length > 0) {
+            doc.text(`  Procesos: ${processes.join(', ')}`, 10, y);
+            y += 6;
+          }
+
+          y += 2; // Espacio entre items
+        }
+      }
+    } else if (orderType === 'laser') {
+      const { data: cutsData, error } = await this.supabase
+        .from('cuts')
+        .select('*')
+        .eq('id_order', order.id_order);
+
+      if (!error && cutsData && cutsData.length > 0) {
+        doc.setFont('helvetica', 'bold');
+        doc.text('Tipo de pedido: Cortes', 10, y);
+        y += 8;
+
+        doc.text('Materiales:', 10, y);
+        y += 8;
+
+        doc.setFont('helvetica', 'normal');
+
+        for (const cut of cutsData) {
+          const category = cut.category || 'N/A';
+          const materialType = cut.material_type || '';
+          const color = cut.color || '';
+          const caliber = cut.caliber || '';
+
+          let materialParts = [category];
+          if (materialType) materialParts.push(materialType);
+          if (caliber) materialParts.push(caliber);
+          if (color) materialParts.push(color);
+
+          const materialStr = materialParts.join(' - ');
+
+          doc.text(`• ${materialStr}`, 10, y);
+          y += 6;
+        }
+
+        y += 2; // Espacio entre items
+      } else {
+        doc.text('Tipo de pedido: Cortes', 10, y);
+      }
+    } else if (orderType === 'sales') {
+      doc.text(`Tipo de pedido: Ventas`, 10, y);
+    }
+
+    y += 10;
 
     // Firma
-    doc.text('Firma Recibido:', 10, 200);
-    doc.line(10, 210, 80, 210);
+    doc.text('Firma Recibido:', 10, y + 20);
+    doc.line(10, y + 30, 80, y + 30);
 
     doc.save(`Nota_de_Remisión_${invoice.code}.pdf`);
   }
