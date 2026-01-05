@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -9,6 +9,7 @@ import {
 } from '@angular/forms';
 import { SupabaseService } from '../../services/supabase.service';
 import { Router, RouterOutlet } from '@angular/router';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-login',
@@ -16,12 +17,13 @@ import { Router, RouterOutlet } from '@angular/router';
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
 })
-export class LoginComponent implements OnInit {
+export class LoginComponent implements OnInit, OnDestroy {
   form: FormGroup;
   message: string = '';
   isRegisterMode: boolean = false;
   isRecoveryMode: boolean = false;
   isResetPasswordMode: boolean = false;
+  private authSubscription: Subscription | null = null;
 
   constructor(
     private readonly fb: FormBuilder,
@@ -45,18 +47,17 @@ export class LoginComponent implements OnInit {
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const type = hashParams.get('type');
     const accessToken = hashParams.get('access_token');
-    
+
     if (type === 'recovery' && accessToken) {
       // Flujo de recuperación
       this.isResetPasswordMode = true;
       this.isRecoveryMode = false;
       this.isRegisterMode = false;
       this.message = 'Por favor, ingresa tu nueva contraseña';
-      
+
       // Suscribirse pero sin redirigir
-      this.supabase.authChanges$().subscribe({
+      this.authSubscription = this.supabase.authChanges$().subscribe({
         next: (session) => {
-          // Solo actualizar la sesión interna, no redirigir
           if (session && !this.isResetPasswordMode) {
             this.router.navigate(['/home'], {
               queryParams: {},
@@ -69,7 +70,7 @@ export class LoginComponent implements OnInit {
     }
 
     // Flujo normal
-    this.supabase.authChanges$().subscribe({
+    this.authSubscription = this.supabase.authChanges$().subscribe({
       next: (session) => {
         if (!session) return;
 
@@ -79,6 +80,11 @@ export class LoginComponent implements OnInit {
         });
       },
     });
+  }
+  ngOnDestroy(): void {
+    if (this.authSubscription) {
+      this.authSubscription.unsubscribe();
+    }
   }
   goHome() {
     this.router.navigate(['/home'], {
@@ -105,7 +111,10 @@ export class LoginComponent implements OnInit {
   passwordMatchValidator(group: FormGroup) {
     const password = group.get('password')?.value;
     const confirmPassword = group.get('confirmPassword')?.value;
-    if ((this.isRegisterMode || this.isResetPasswordMode) && password !== confirmPassword) {
+    if (
+      (this.isRegisterMode || this.isResetPasswordMode) &&
+      password !== confirmPassword
+    ) {
       return { passwordMismatch: true };
     }
     return null;
