@@ -32,6 +32,7 @@ export class LoginComponent implements OnInit {
       {
         email: ['', [Validators.required, Validators.email]],
         password: ['', Validators.required],
+        user_name: [''],
         confirmPassword: [''],
       },
       {
@@ -140,6 +141,7 @@ export class LoginComponent implements OnInit {
   async signUp() {
     this.message = '';
     const { email, password, user_name } = this.form.value;
+    console.log('Estos son los datos de registro', email, password, user_name);
 
     if (!email || !password || !user_name) {
       window.alert('Todos los campos son requeridos para registrarse');
