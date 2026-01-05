@@ -265,7 +265,8 @@ export class SupabaseService {
    */
   async signUpWithPassword(
     email: string,
-    password: string
+    password: string,
+    user_name: string
   ): Promise<{ data: any | null; error: any | null }> {
     try {
       const response = await fetch(
@@ -279,6 +280,9 @@ export class SupabaseService {
           body: JSON.stringify({
             email,
             password,
+            data: {
+              user_name: user_name
+            },
             options: { emailRedirectTo: window.location.origin },
           }),
         }

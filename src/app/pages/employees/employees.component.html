@@ -9,7 +9,10 @@
 <div *ngIf="!loading">
   <div class="flex justify-end items-center mb-4 mt-4 ml-2">
     <!-- Botón Añadir empleado -->
-    <button class="btn-add inline-flex items-center space-x-2" (click)="addNewEmployee()">
+    <button
+      class="btn-add inline-flex items-center space-x-2"
+      (click)="addNewEmployee()"
+    >
       <svg
         class="w-5 h-5 inline-block align-middle mt-[3px]"
         viewBox="0 0 24 24"
@@ -29,12 +32,7 @@
       </svg>
       <span>Añadir</span>
     </button>
-    <button
-      class="btn-clear "
-      (click)="clearFilters()"
-    >
-      Limpiar
-  </button>
+    <button class="btn-clear" (click)="clearFilters()">Limpiar</button>
   </div>
   <!-- Input de búsqueda -->
   <div class="flex items-center justify-center py-4 space-x-4 top-5">
@@ -205,9 +203,33 @@
           />
         </div>
         <div class="mb-4">
-          <label class="block modal-input-item"
-            >Nombre Completo<span class="text-red-500">*</span></label
+          <label class="block modal-input-item">
+            Usuario de Sistema (Vincular Cuenta)
+            <span class="text-red-500">*</span>
+          </label>
+          <select
+            [ngModel]="selectedEmployee.id_user"
+            (change)="onUserSelect($event)"
+            name="id_user"
+            class="form-input mt-1 block w-full border border-gray-300 rounded-md p-2"
+            required
+            [disabled]="isEditing"
           >
+            <option value="" disabled selected>Seleccione un usuario...</option>
+            <option *ngFor="let user of availableUsers" [value]="user.id">
+              {{ user.email }} ({{ user.user_name }})
+            </option>
+          </select>
+          <p class="text-xs text-gray-500 mt-1">
+            Al seleccionar un usuario, se completará el nombre y correo
+            automáticamente.
+          </p>
+        </div>
+
+        <div class="mb-4">
+          <label class="block modal-input-item">
+            Nombre Completo <span class="text-red-500">*</span>
+          </label>
           <input
             [(ngModel)]="selectedEmployee.name"
             name="name"
@@ -242,16 +264,6 @@
             [(ngModel)]="selectedEmployee.id_number"
             name="id_number"
             class="form-input mt-1 block w-full border border-gray-300 rounded-md"
-          />
-        </div>
-        <div class="mb-4">
-          <label class="block modal-input-item">Correo Electrónico</label>
-          <input
-            type="email"
-            [(ngModel)]="selectedEmployee.email"
-            name="email"
-            class="form-input mt-1 block w-full border border-gray-300 rounded-md"
-            required
           />
         </div>
         <div class="mb-4">
@@ -347,25 +359,22 @@
         <p><strong>Telefono:</strong> {{ selectedEmployeeDetails.phone }}</p>
       </h3>
       <div class="flex space-x-4 mb-4">
-      <button
-        (click)="toggleLiquidations(selectedEmployeeDetails)"
-        class="btn-liquidation"
-      >
-        Liquidaciones
-      </button>
-      <button
-        (click)="toggleBenefits(selectedEmployeeDetails)"
-        class="btn-liquidation"
-      >
-        Prestaciones
-      </button>
-      <button
-        class="btn-details"
-        (click)="toggleDetails()"
-      >
-        {{ showDetails ? "Ocultar Detalles" : "Mostrar Detalles" }}
-      </button>
-    </div>
+        <button
+          (click)="toggleLiquidations(selectedEmployeeDetails)"
+          class="btn-liquidation"
+        >
+          Liquidaciones
+        </button>
+        <button
+          (click)="toggleBenefits(selectedEmployeeDetails)"
+          class="btn-liquidation"
+        >
+          Prestaciones
+        </button>
+        <button class="btn-details" (click)="toggleDetails()">
+          {{ showDetails ? "Ocultar Detalles" : "Mostrar Detalles" }}
+        </button>
+      </div>
 
       <!-- Detalles del Empleado -->
       <div *ngIf="showDetails" class="details">
@@ -413,13 +422,17 @@
         </thead>
         <tbody>
           <tr *ngFor="let l of paginatedLiquidations">
-          <td class="modal-table-column">{{ l.notes }}</td>
-          <td class="modal-table-column">{{ l.liquidation_date }}</td>
-          <td class="modal-table-column">
-            <button class="btn-edit" (click)="editLiquidation(l)">Editar</button>
-            <button class="btn-danger" (click)="deleteLiquidation(l)">Eliminar</button>
-          </td>
-        </tr>
+            <td class="modal-table-column">{{ l.notes }}</td>
+            <td class="modal-table-column">{{ l.liquidation_date }}</td>
+            <td class="modal-table-column">
+              <button class="btn-edit" (click)="editLiquidation(l)">
+                Editar
+              </button>
+              <button class="btn-danger" (click)="deleteLiquidation(l)">
+                Eliminar
+              </button>
+            </td>
+          </tr>
         </tbody>
       </table>
       <div class="flex justify-between items-center mb-4">
@@ -465,9 +478,14 @@
         </div>
       </div>
       <!-- Formulario de agregar/editar liquidación -->
-      <div *ngIf="showAddLiquidation" class="mt-4 border rounded-lg p-4 bg-white shadow">
+      <div
+        *ngIf="showAddLiquidation"
+        class="mt-4 border rounded-lg p-4 bg-white shadow"
+      >
         <h4 class="text-md font-semibold mb-3 text-gray-700">
-          {{ isEditingLiquidation ? 'Editar Liquidación' : 'Agregar Liquidación' }}
+          {{
+            isEditingLiquidation ? "Editar Liquidación" : "Agregar Liquidación"
+          }}
         </h4>
         <form (ngSubmit)="saveLiquidation()">
           <div class="mb-2">
@@ -491,21 +509,22 @@
             />
           </div>
           <div class="flex justify-end gap-2 mt-4">
-            <button type="submit" class="btn-success">
-              Guardar
-            </button>
-            <button type="button" class="btn-danger" (click)="showAddLiquidation = false">
+            <button type="submit" class="btn-success">Guardar</button>
+            <button
+              type="button"
+              class="btn-danger"
+              (click)="showAddLiquidation = false"
+            >
               Cancelar
             </button>
           </div>
         </form>
       </div>
       <div class="flex justify-end gap-2 mt-4">
-        <button class="btn-success" (click)="openAddLiquidationForm()">Agregar</button>
-        <button
-          class="btn-danger"
-          (click)="toggleLiquidations(null)"
-        >
+        <button class="btn-success" (click)="openAddLiquidationForm()">
+          Agregar
+        </button>
+        <button class="btn-danger" (click)="toggleLiquidations(null)">
           Cerrar
         </button>
       </div>
@@ -529,15 +548,17 @@
         </thead>
         <tbody>
           <tr *ngFor="let b of paginatedBenefits">
-          <td class="modal-table-column">{{ b.benefit_type }}</td>
-          <td class="modal-table-column">{{ b.period }}</td>
-          <td class="modal-table-column">{{ b.status }}</td>
-          <td class="modal-table-column">{{ b.payment_date }}</td>
-          <td class="modal-table-column">
-            <button class="btn-edit" (click)="editBenefit(b)">Editar</button>
-            <button class="btn-danger" (click)="deleteBenefit(b)">Eliminar</button>
-          </td>
-        </tr>
+            <td class="modal-table-column">{{ b.benefit_type }}</td>
+            <td class="modal-table-column">{{ b.period }}</td>
+            <td class="modal-table-column">{{ b.status }}</td>
+            <td class="modal-table-column">{{ b.payment_date }}</td>
+            <td class="modal-table-column">
+              <button class="btn-edit" (click)="editBenefit(b)">Editar</button>
+              <button class="btn-danger" (click)="deleteBenefit(b)">
+                Eliminar
+              </button>
+            </td>
+          </tr>
         </tbody>
       </table>
       <div class="flex justify-between items-center mb-4">
@@ -583,21 +604,24 @@
         </div>
       </div>
       <!-- Formulario de agregar/editar prestación -->
-      <div *ngIf="showAddBenefit" class="mt-4 border rounded-lg p-4 bg-white shadow">
+      <div
+        *ngIf="showAddBenefit"
+        class="mt-4 border rounded-lg p-4 bg-white shadow"
+      >
         <h4 class="font-semibold mb-2">
-          {{ isEditingBenefit ? 'Editar Prestación' : 'Agregar Prestación' }}
+          {{ isEditingBenefit ? "Editar Prestación" : "Agregar Prestación" }}
         </h4>
         <form (ngSubmit)="saveBenefit()">
           <div class="mb-2">
             <label>Tipo</label>
-             <input
-                type="text"
-                [(ngModel)]="benefitForm.benefit_type"
-                name="benefitType"
-                class="form-input mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                placeholder="Ej: Prima"
-                required
-              />
+            <input
+              type="text"
+              [(ngModel)]="benefitForm.benefit_type"
+              name="benefitType"
+              class="form-input mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+              placeholder="Ej: Prima"
+              required
+            />
           </div>
           <div class="mb-2">
             <label>Periodo</label>
@@ -623,7 +647,7 @@
           </div>
           <div class="mb-2">
             <label>Estado</label>
-             <input
+            <input
               type="text"
               [(ngModel)]="benefitForm.status"
               name="benefitStatus"
@@ -642,21 +666,22 @@
             />
           </div>
           <div class="flex justify-end gap-2 mt-4">
-            <button type="submit" class="btn-success">
-              Guardar
+            <button type="submit" class="btn-success">Guardar</button>
+            <button
+              type="button"
+              class="btn-danger"
+              (click)="showAddBenefit = false"
+            >
+              Cancelar
             </button>
-            <button type="button" class="btn-danger" (click)="showAddBenefit = false">
-                Cancelar
-              </button>
           </div>
         </form>
       </div>
       <div class="flex justify-end gap-2 mt-4">
-        <button class="btn-success" (click)="openAddBenefitForm()">Agregar</button>
-        <button
-          class="btn-danger"
-          (click)="toggleBenefits(null)"
-        >
+        <button class="btn-success" (click)="openAddBenefitForm()">
+          Agregar
+        </button>
+        <button class="btn-danger" (click)="toggleBenefits(null)">
           Cerrar
         </button>
       </div>

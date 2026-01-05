@@ -150,7 +150,6 @@ export class LoginComponent implements OnInit, OnDestroy {
   async signUp() {
     this.message = '';
     const { email, password, user_name } = this.form.value;
-    console.log('Estos son los datos de registro', email, password, user_name);
 
     if (!email || !password || !user_name) {
       window.alert('Todos los campos son requeridos para registrarse');
@@ -161,23 +160,16 @@ export class LoginComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const { data, error } = await this.supabase.signUpWithPassword(
+    const { error } = await this.supabase.signUpWithPassword(
       email,
-      password
+      password,
+      user_name
     );
     if (error) {
       window.alert('Hubo un error al registrarse, intente nuevamente');
       console.log(JSON.stringify(error, undefined, 2));
       return;
     }
-
-    await this.supabase.from('users').insert([
-      {
-        id: data.user.id, // mismo id del auth
-        email,
-        user_name,
-      },
-    ]);
 
     this.message =
       'Su usuario ha sido creado con éxito, revise la bandeja de entrada de su correo y abra el enlace de confirmación de correo electrónico para activar su cuenta';

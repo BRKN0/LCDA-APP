@@ -5,6 +5,14 @@ import { CommonModule } from '@angular/common';
 import { SupabaseService } from '../../services/supabase.service';
 import { RoleService } from '../../services/role.service';
 import { RouterOutlet } from '@angular/router';
+import { forkJoin } from 'rxjs';
+
+interface User {
+  id: string;
+  email: string;
+  user_name: string;
+  id_role: string;
+}
 
 interface Employee {
   id_employee: string;
@@ -62,9 +70,9 @@ export class EmployeesComponent implements OnInit {
   availableEmployeeRoles = [
     { value: 'cuts_employee', label: 'Empleado de cortes' },
     { value: 'prints_employee', label: 'Empleado de impresiones' },
-    { value: 'counter_employee', label: 'Contador' },
-    { value: 'seller_employee', label: 'Vendedor' },
-    { value: 'scheduled_employee', label: 'Agendador' },
+    //{ value: 'counter_employee', label: 'Contador' },
+    //{ value: 'seller_employee', label: 'Vendedor' },
+    { value: 'scheduler', label: 'Agendador' },
   ];
   userEmail: string | undefined = '';
   showDetailsModal = false;
@@ -104,7 +112,7 @@ export class EmployeesComponent implements OnInit {
   isEditingBenefit = false;
   editingLiquId: string | null = null;
   editingBenefitId: string | null = null;
-
+  availableUsers: User[] = [];
   constructor(
     private readonly supabase: SupabaseService,
     private readonly zone: NgZone,
@@ -121,37 +129,70 @@ export class EmployeesComponent implements OnInit {
             this.userRole = role;
           });
           this.getEmployees();
+          this.getUsers();
         });
       }
     });
   }
+  async getUsers() {
+    const { data, error } = await this.supabase
+      .from('users')
+      .select('id, email, user_name, id_role');
+      
+    if (error) {
+      console.error('Error fetching users:', error);
+    } else {
+      this.availableUsers = data || [];
+    }
+  }
+
+  // Handle selection of a user in the modal
+  onUserSelect(event: any) {
+    const userId = event.target.value;
+    const user = this.availableUsers.find(u => u.id === userId);
+    
+    if (user) {
+      this.selectedEmployee.id_user = user.id;
+      this.selectedEmployee.email = user.email; // Auto-sync email
+      this.selectedEmployee.name = user.user_name; // Auto-sync name
+    }
+  }
   async getEmployees() {
     this.loading = true;
-    const { data, error } = await this.supabase.from('employees').select(`*,
+
+    const { data, error } = await this.supabase.from('employees').select(`
+        *,
         employee_liquidations(*),
-        employee_benefits(*)`);
+        employee_benefits(*),
+        users:id_user (
+          email,
+          roles (
+            name
+          )
+        )
+      `);
 
     if (error) {
       console.log(error);
+      this.loading = false;
       return;
     }
-    this.Employees = [...data].map((employee) => ({
-      ...employee,
-      employee_liquidations: Array.isArray(employee.employee_liquidations)
-        ? employee.employee_liquidations
-        : employee.employee_liquidations
-        ? [employee.employee_liquidations]
-        : [],
-    })) as Employee[];
-    // Making sure that employee type is the same as the related user role in case of desync
-    for (let index = 0; index < this.Employees.length; index++) {
-      if (this.Employees[index].id_user) {
-        this.roleService.fetchAndSetUserRole(this.Employees[index].id_user);
-        this.roleService.role$.subscribe((role) => {
-          this.Employees[index].employee_type = role;
-        });
-      }
-    }
+
+    this.Employees = (data || []).map((employee: any) => {
+      const linkedRole = employee.users?.roles?.name;
+
+      return {
+        ...employee,
+        employee_type: linkedRole || employee.employee_type, 
+        
+        employee_liquidations: Array.isArray(employee.employee_liquidations)
+          ? employee.employee_liquidations
+          : employee.employee_liquidations
+          ? [employee.employee_liquidations]
+          : [],
+      };
+    }) as Employee[];
+
     console.log(this.Employees);
     this.searchEmployee();
     this.loading = false;
@@ -319,63 +360,88 @@ export class EmployeesComponent implements OnInit {
     this.showModal = true;
   }
 
-  saveEmployee(): void {
+  async saveEmployee() {
     if (!this.selectedEmployee) return;
 
-    if (!this.selectedEmployee.name) {
-      alert('Por favor, digite nombre del empleado.');
+    // Validation
+    if (!this.selectedEmployee.name || !this.selectedEmployee.employee_type) {
+      alert('Por favor, complete nombre y tipo de empleado.');
       return;
     }
 
-    if (!this.selectedEmployee.employee_type) {
-      alert('Por favor, digite el tipo de empleado.');
+    if (!this.selectedEmployee.id_user) {
+      alert('Es obligatorio vincular un Usuario del Sistema.');
       return;
     }
 
-    const employeeToSave = {
-      name: this.selectedEmployee.name,
-      id_number: this.selectedEmployee.id_number,
-      code: this.selectedEmployee.code || 0,
-      email: this.selectedEmployee.email,
-      phone: this.selectedEmployee.phone || 0,
-      address: this.selectedEmployee.address,
-      neighborhood: this.selectedEmployee.neighborhood,
-      city: this.selectedEmployee.city,
-      department: this.selectedEmployee.department,
-      postal_code: this.selectedEmployee.postal_code || 0,
-      employee_type: this.selectedEmployee.employee_type,
-      salary: this.selectedEmployee.salary,
-    };
+    this.loading = true; // Add a loading state if you have one available globally
 
-    if (this.isEditing && this.selectedEmployee.id_employee) {
-      // **Actualizar empleado existente**
-      this.supabase
-        .from('employees')
-        .update(employeeToSave)
-        .eq('id_employee', this.selectedEmployee.id_employee)
-        .then(({ error }) => {
-          if (error) {
-            console.error('Error actualizando empleado:', error);
-          } else {
-            alert('Empleado actualizado');
-            this.getEmployees(); // Recargar la lista filtrada
-          }
-          this.closeModal();
-        });
-    } else {
-      // **Crear nuevo empleado**
-      this.supabase
-        .from('employees')
-        .insert([employeeToSave])
-        .then(({ error }) => {
-          if (error) {
-            console.error('Error añadiendo empleado:', error);
-          } else {
-            alert('Empleado añadido');
-            this.getEmployees(); // Recargar la lista filtrada
-          }
-          this.closeModal();
-        });
+    try {
+      // Get the Role ID based on the selected employee_type string
+      const { data: roleData, error: roleError } = await this.supabase
+        .from('roles')
+        .select('id')
+        .eq('name', this.selectedEmployee.employee_type)
+        .single();
+
+      if (roleError || !roleData) {
+        console.log(this.selectedEmployee.employee_type);
+        throw new Error('No se encontró el rol especificado en la base de datos.');
+      }
+
+      // Update the User's Role in public.users
+      const { error: userUpdateError } = await this.supabase
+        .from('users')
+        .update({ id_role: roleData.id })
+        .eq('id', this.selectedEmployee.id_user);
+
+      if (userUpdateError) {
+        throw new Error('Error actualizando el rol del usuario: ' + userUpdateError.message);
+      }
+
+      // Prepare Employee Payload
+      const employeeToSave = {
+        name: this.selectedEmployee.name,
+        id_number: this.selectedEmployee.id_number,
+        code: this.selectedEmployee.code || 0,
+        email: this.selectedEmployee.email,
+        phone: this.selectedEmployee.phone || 0,
+        address: this.selectedEmployee.address,
+        neighborhood: this.selectedEmployee.neighborhood,
+        city: this.selectedEmployee.city,
+        department: this.selectedEmployee.department,
+        postal_code: this.selectedEmployee.postal_code || 0,
+        employee_type: this.selectedEmployee.employee_type,
+        salary: this.selectedEmployee.salary,
+        id_user: this.selectedEmployee.id_user,
+      };
+
+      // Insert or Update Employee
+      let error;
+      if (this.isEditing && this.selectedEmployee.id_employee) {
+        const res = await this.supabase
+          .from('employees')
+          .update(employeeToSave)
+          .eq('id_employee', this.selectedEmployee.id_employee);
+        error = res.error;
+      } else {
+        const res = await this.supabase
+          .from('employees')
+          .insert([employeeToSave]);
+        error = res.error;
+      }
+
+      if (error) throw error;
+
+      alert(this.isEditing ? 'Empleado actualizado' : 'Empleado añadido');
+      this.closeModal();
+      this.getEmployees(); 
+
+    } catch (err: any) {
+      console.error('Error saving:', err);
+      alert(err.message || 'Ocurrió un error al guardar.');
+    } finally {
+      this.loading = false;
     }
   }
 
