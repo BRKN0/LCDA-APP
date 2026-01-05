@@ -38,7 +38,7 @@ export class LoginComponent implements OnInit, OnDestroy {
         confirmPassword: [''],
       },
       {
-        validator: this.passwordMatchValidator,
+        validator: this.passwordMatchValidator.bind(this),
       }
     );
   }
