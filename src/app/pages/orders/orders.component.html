@@ -313,7 +313,7 @@
               {{ order.created_at | date:'dd-MM-yyyy' }}
             </div>
             <small *ngIf="order.created_time">
-              {{ order.created_time }}
+              {{ order.created_time.slice(0, 5) }}
             </small>
           </td>
           <td>
@@ -527,7 +527,7 @@
           <p>
             <strong>Fecha:</strong>
             {{ selectedOrderDetails[0].created_at | date : "dd-MM-yyyy" }}
-            {{ selectedOrderDetails[0].created_time }}
+            {{ selectedOrderDetails[0].created_time?.slice(0, 5) }}
           </p>
           <p>
             <strong>Fecha de Entrega:</strong>
