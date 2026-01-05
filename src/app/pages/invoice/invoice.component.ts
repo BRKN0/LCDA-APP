@@ -1220,10 +1220,80 @@ export class InvoiceComponent implements OnInit {
 
         doc.setFont('helvetica', 'normal');
       }
-    } else if (orderType === 'sales') {
-      // TODO: Implementar para sales
-    }
+    } else if (orderType === 'sales' || orderType === 'sale' || orderType === 'venta') {
+      // TABLA PARA VENTAS (SALES)
+      const { data: salesData, error } = await this.supabase
+        .from('sales')
+        .select('*')
+        .eq('id_order', invoice.order.id_order);
 
+      if (!error && salesData && salesData.length > 0) {
+        doc.setFont('helvetica', 'bold');
+        doc.text('DETALLE DE VENTAS', 10, y);
+        y += 8;
+
+        const tableHeaders = ['Detalle', 'Cant', 'Unit', 'Subtotal'];
+        const colWidths = [100, 20, 30, 30];
+        const startX = 10;
+
+        doc.setFontSize(10);
+        let currentX = startX;
+        tableHeaders.forEach((header, i) => {
+          doc.text(header, currentX, y);
+          currentX += colWidths[i];
+        });
+
+        y += 2;
+        doc.line(startX, y, 190, y);
+        y += 6;
+
+        doc.setFont('helvetica', 'normal');
+
+        for (const sale of salesData) {
+          let detalle = '';
+
+          if (sale.item_type === 'material') {
+            const parts: string[] = [];
+            if (sale.category) parts.push(sale.category);
+            if (sale.material_type) parts.push(sale.material_type);
+            if (sale.caliber) parts.push(sale.caliber);
+            if (sale.color) parts.push(sale.color);
+            detalle = parts.join(' / ') || 'Material';
+          } else if (sale.item_type === 'product') {
+            const { data: productData } = await this.supabase
+              .from('products')
+              .select('name')
+              .eq('id', sale.product_id)
+              .single();
+            detalle = productData?.name || `Producto`;
+          }
+
+          currentX = startX;
+          doc.text(detalle, currentX, y, { maxWidth: colWidths[0] - 5 });
+          currentX += colWidths[0];
+
+          doc.text(String(sale.quantity || 0), currentX, y);
+          currentX += colWidths[1];
+
+          doc.text(`$${Number(sale.unit_price || 0).toFixed(2)}`, currentX, y);
+          currentX += colWidths[2];
+
+          const lineTotal = Number(sale.line_total || 0);
+          doc.text(`$${lineTotal.toFixed(2)}`, currentX, y);
+
+          y += 8;
+        }
+
+        y += 2;
+        doc.line(startX, y, 190, y);
+        y += 5;
+      } else {
+        doc.text('No hay detalles de venta disponibles', 10, y);
+        y += 10;
+      }
+
+      doc.setFont('helvetica', 'normal');
+    }
     // Resumen financiero
     let currentY = y;
 
@@ -1602,8 +1672,79 @@ export class InvoiceComponent implements OnInit {
 
         doc.setFont('helvetica', 'normal');
       }
-    } else if (orderType === 'sales') {
-      // TODO: Implementar para sales
+    } else if (orderType === 'sales' || orderType === 'sale' || orderType === 'venta') {
+      // TABLA PARA VENTAS (SALES)
+      const { data: salesData, error } = await this.supabase
+        .from('sales')
+        .select('*')
+        .eq('id_order', invoice.order.id_order);
+
+      if (!error && salesData && salesData.length > 0) {
+        doc.setFont('helvetica', 'bold');
+        doc.text('DETALLE DE VENTAS', 10, y);
+        y += 8;
+
+        const tableHeaders = ['Detalle', 'Cant', 'Unit', 'Subtotal'];
+        const colWidths = [100, 20, 30, 30];
+        const startX = 10;
+
+        doc.setFontSize(10);
+        let currentX = startX;
+        tableHeaders.forEach((header, i) => {
+          doc.text(header, currentX, y);
+          currentX += colWidths[i];
+        });
+
+        y += 2;
+        doc.line(startX, y, 190, y);
+        y += 6;
+
+        doc.setFont('helvetica', 'normal');
+
+        for (const sale of salesData) {
+          let detalle = '';
+
+          if (sale.item_type === 'material') {
+            const parts: string[] = [];
+            if (sale.category) parts.push(sale.category);
+            if (sale.material_type) parts.push(sale.material_type);
+            if (sale.caliber) parts.push(sale.caliber);
+            if (sale.color) parts.push(sale.color);
+            detalle = parts.join(' / ') || 'Material';
+          } else if (sale.item_type === 'product') {
+            const { data: productData } = await this.supabase
+              .from('products')
+              .select('name')
+              .eq('id', sale.product_id)
+              .single();
+            detalle = productData?.name || `Producto`;
+          }
+
+          currentX = startX;
+          doc.text(detalle, currentX, y, { maxWidth: colWidths[0] - 5 });
+          currentX += colWidths[0];
+
+          doc.text(String(sale.quantity || 0), currentX, y);
+          currentX += colWidths[1];
+
+          doc.text(`$${Number(sale.unit_price || 0).toFixed(2)}`, currentX, y);
+          currentX += colWidths[2];
+
+          const lineTotal = Number(sale.line_total || 0);
+          doc.text(`$${lineTotal.toFixed(2)}`, currentX, y);
+
+          y += 8;
+        }
+
+        y += 2;
+        doc.line(startX, y, 190, y);
+        y += 5;
+      } else {
+        doc.text('No hay detalles de venta disponibles', 10, y);
+        y += 10;
+      }
+
+      doc.setFont('helvetica', 'normal');
     }
 
     // Resumen financiero
@@ -1781,8 +1922,45 @@ export class InvoiceComponent implements OnInit {
       } else {
         doc.text('Tipo de pedido: Cortes', 10, y);
       }
-    } else if (orderType === 'sales') {
-      doc.text(`Tipo de pedido: Ventas`, 10, y);
+    } else if (orderType === 'sales' || orderType === 'sale' || orderType === 'venta') {
+      const { data: salesData, error } = await this.supabase
+        .from('sales')
+        .select('*')
+        .eq('id_order', order.id_order);
+
+      if (!error && salesData && salesData.length > 0) {
+        doc.setFont('helvetica', 'bold');
+        doc.text('Tipo de pedido: Ventas', 10, y);
+        y += 8;
+        doc.text('Materiales/Productos:', 10, y);
+        y += 8;
+        doc.setFont('helvetica', 'normal');
+
+        for (const sale of salesData) {
+          let detalle = '';
+
+          if (sale.item_type === 'material') {
+            const parts: string[] = [];
+            if (sale.category) parts.push(sale.category);
+            if (sale.material_type) parts.push(sale.material_type);
+            if (sale.caliber) parts.push(sale.caliber);
+            if (sale.color) parts.push(sale.color);
+            detalle = parts.join(' / ') || 'Material';
+          } else if (sale.item_type === 'product') {
+            const { data: productData } = await this.supabase
+              .from('products')
+              .select('name')
+              .eq('id', sale.product_id)
+              .single();
+            detalle = productData?.name || `Producto`;
+          }
+
+          doc.text(`• ${detalle} - Cantidad: ${sale.quantity}`, 10, y);
+          y += 6;
+        }
+
+        y += 2;
+      }
     }
 
     y += 10;
