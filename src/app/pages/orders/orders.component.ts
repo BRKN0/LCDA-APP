@@ -32,6 +32,7 @@ interface Orders {
   payments?: Payment[];
   file_path: string;
   scheduler: string;
+  cutting_time?: number;
   extra_charges?: {
     description: string;
     amount: number;
@@ -217,25 +218,25 @@ export class OrdersComponent implements OnInit {
   selectedPayment: Payment | null = null;
   notificationMessage: string | null = null;
   private searchSubject = new Subject<void>();
-  showCalculator: boolean = false;
-  calculationType: 'prints' | 'cuts' | 'sales' | null = null;
-  clientType: 'intermediary' | 'final' | null = null;
-  lamination: boolean = false;
-  pPrint: boolean = false;
-  stamping: boolean = false;
-  assemble: boolean = false;
-  laminationValue: number = 2;
-  printValue: number = 1.2;
-  stampingValue: number = 1.2;
-  assembleValue: number = 1.2;
-  rollWidth: number = 0;
-  measurement: number = 0;
-  productNumber: number = 1;
-  materialValue: number = 0;
-  intermediaryPerMinute: number = 800;
-  finalPerMinute: number = 1000;
-  usageTime: number = 0;
-  calculatorResult: number = 0;
+  //showCalculator: boolean = false;
+  //calculationType: 'prints' | 'cuts' | 'sales' | null = null;
+  //clientType: 'intermediary' | 'final' | null = null;
+  //lamination: boolean = false;
+  //pPrint: boolean = false;
+  //stamping: boolean = false;
+  //assemble: boolean = false;
+  //laminationValue: number = 2;
+  //printValue: number = 1.2;
+  //stampingValue: number = 1.2;
+  //assembleValue: number = 1.2;
+  //rollWidth: number = 0;
+  //measurement: number = 0;
+  //productNumber: number = 1;
+  //materialValue: number = 0;
+  //intermediaryPerMinute: number = 800;
+  //finalPerMinute: number = 1000;
+  //usageTime: number = 0;
+  //calculatorResult: number = 0;
   showAddClientModal = false;
   filteredClients: Client[] = [];
   newOrder: Partial<Orders> = {};
@@ -252,6 +253,7 @@ export class OrdersComponent implements OnInit {
   showStockWarningModal = false;
   stockWarningMessage = '';
   selectedScheduler: string = '';
+  /* Variables para ventas (sales)
   saleMode: 'none' | 'material' | 'product' = 'none';
   saleMaterialQuantity: number = 1;
   saleMaterialUnitPrice: number = 0;
@@ -259,13 +261,17 @@ export class OrdersComponent implements OnInit {
   selectedProductId: string = '';
   salesItems: any[] = [];
   isSaleModeLocked: boolean = false;
+  */
   extraChargeDescription: string = '';
   extraChargeAmount: number = 0;
   extraChargeType: 'fixed' | 'percentage' = 'fixed';
+  /*
   discount: number = 0;
   discountType: 'fixed' | 'percentage' = 'fixed';
   hasDiscountApplied: boolean = false;
   totalBeforeDiscount: number = 0;
+  */
+  /*
   // Array para almacenar múltiples materiales en prints
   printsItems: any[] = [];
   isPrintsModeLocked: boolean = false;
@@ -279,14 +285,17 @@ export class OrdersComponent implements OnInit {
   tempPrintUnitaryValue: number = 0;
   tempPrintRollWidth: number = 0;
   tempPrintMeasurement: number = 0;
+  */
+  /*
   cutsItems: any[] = [];
   isCutsModeLocked: boolean = false;
   tempCutQuantity: number = 1;
   tempCutHeight: number = 0;
   tempCutWidth: number = 0;
-  tempCutTime: number = 0;
   tempCutNotes: string = '';
   tempCutUnitaryValue: number = 0;
+  */
+  tempCutTime: number = 0;
 
   newClient = {
     name: '',
@@ -320,7 +329,7 @@ export class OrdersComponent implements OnInit {
           });
           this.getClients();
           this.getMaterials();
-          this.getProducts();
+          //this.getProducts();
           this.getVariables();
         });
       } else {
@@ -413,6 +422,7 @@ export class OrdersComponent implements OnInit {
     this.allMaterials = data || [];
   }
 
+  /*
   async getProducts(): Promise<void> {
     const { data, error } = await this.supabase
       .from('products')
@@ -423,7 +433,8 @@ export class OrdersComponent implements OnInit {
       return;
     }
     this.allProducts = data || [];
-  }
+  }¨
+  */
 
   private getCurrentTimeHHMM(): string {
     const now = new Date();
@@ -471,12 +482,14 @@ export class OrdersComponent implements OnInit {
     await this.getClients();
   }
 
+  /* Venta (sales)
   isSale(): boolean {
     const t = this.newOrder?.order_type;
     return t === 'sales';
   }
+    */
 
-  // Builds the row for `sales` (sales-material)
+  /* Builds the row for `sales` (sales-material)
   private buildSaleRowMaterial(orderId: string, m: any) {
     return {
       id_order: orderId,
@@ -492,6 +505,7 @@ export class OrdersComponent implements OnInit {
       category: m?.category || '',
     };
   }
+  /*
 
   private isSaleActive(): boolean {
     return (
@@ -500,6 +514,7 @@ export class OrdersComponent implements OnInit {
     );
   }
 
+  /*
   recalcSalesTotal(): void {
     if (!this.isSaleActive()) return;
     const q = Number(this.saleMaterialQuantity) || 0;
@@ -507,8 +522,9 @@ export class OrdersComponent implements OnInit {
     this.newOrder.base_total = q * u;
     this.updateOrderTotalWithExtras();
   }
+  */
 
-  //Producto
+  /* Producto
   onProductChange(): void {
     const p = this.allProducts.find((x) => x.id === this.selectedProductId);
     if (p) {
@@ -519,7 +535,9 @@ export class OrdersComponent implements OnInit {
     }
     this.recalcSalesTotal(); // actualiza base_total + total (extras)
   }
+  */
 
+  /*
   private buildSaleRowProduct(orderId: string, p: any) {
     return {
       id_order: orderId,
@@ -530,17 +548,21 @@ export class OrdersComponent implements OnInit {
       unit_price: Number(this.saleMaterialUnitPrice) || 0,
     };
   }
+  */
 
+  /*
   getProductNameById(productId: string | null | undefined): string {
     if (!productId) return '';
     const product = this.allProducts?.find((p) => p.id === productId);
     return product ? product.name : '';
   }
+  /*
 
   asNumber(v: any): number {
     return typeof v === 'number' ? v : Number(v || 0);
   }
 
+  /*
   addSaleItem(): void {
     if (this.saleMode === 'none') {
       alert('Seleccione si va a vender material o producto.');
@@ -604,7 +626,9 @@ export class OrdersComponent implements OnInit {
 
     this.recalcSalesFromItems();
   }
+  */
 
+  /*
   removeSaleItem(index: number): void {
     this.salesItems.splice(index, 1);
 
@@ -614,7 +638,9 @@ export class OrdersComponent implements OnInit {
 
     this.recalcSalesFromItems();
   }
+  */
 
+  /*
   recalcSalesFromItems(): void {
     let total = 0;
     for (const item of this.salesItems) {
@@ -624,7 +650,9 @@ export class OrdersComponent implements OnInit {
     this.newOrder.base_total = total;
     this.updateOrderTotalWithExtras();
   }
+    */
 
+  /*
   validateSalesStock(): boolean {
     for (const item of this.salesItems) {
       const available = parseFloat(
@@ -640,7 +668,10 @@ export class OrdersComponent implements OnInit {
     }
     return true;
   }
+  */
 
+
+  /*
   async saveSaleItemsToSupabase(orderId: string): Promise<boolean> {
     let hasStockIssues = false;
     let totalPendingQty = 0;
@@ -797,6 +828,7 @@ export class OrdersComponent implements OnInit {
 
     return true;
   }
+  */
 
   showNotification(message: string) {
     this.notificationMessage = message;
@@ -1414,18 +1446,23 @@ export class OrdersComponent implements OnInit {
         discount: 0,
         discount_type: 'fixed',
       };
+      /*
       this.salesItems = [];
       this.saleMode = 'none';
       this.saleMaterialQuantity = 1;
-      this.saleMaterialUnitPrice = 0;
+      this.saleMaterialUnitPrice = 0;¨
+      */
       this.selectedCategory = '';
       this.selectedType = '';
       this.selectedCaliber = '';
       this.selectedColor = '';
+      /*
       this.isSaleModeLocked = false;
       this.discount = 0;
       this.discountType = 'fixed';
-      this.extraChargeType = 'fixed';
+      */
+      /*
+      this.extraChargeType = 'fixed';¨
       this.hasDiscountApplied = false;
       this.totalBeforeDiscount = 0;
       this.printsItems = [];
@@ -1435,8 +1472,11 @@ export class OrdersComponent implements OnInit {
       this.tempCutQuantity = 1;
       this.tempCutHeight = 0;
       this.tempCutWidth = 0;
+      */
       this.tempCutTime = 0;
-      this.tempCutUnitaryValue = 0;
+      /*
+      this.tempCutUnitaryValue = 0;¨
+      */
     }
     this.showModal = !this.showModal;
     if (!this.showModal) {
@@ -1444,6 +1484,7 @@ export class OrdersComponent implements OnInit {
     }
   }
 
+  /*
   async editOrder(order: Orders): Promise<void> {
     this.isEditing = true;
     this.showModal = true;
@@ -1731,6 +1772,58 @@ export class OrdersComponent implements OnInit {
       this.discountType = 'fixed';
     }
   }
+  */
+
+  async editOrder(order: Orders): Promise<void> {
+    this.isEditing = true;
+    this.showModal = true;
+    await this.getMaterials();
+
+    this.newOrder = { ...order };
+
+    // Normalizar fecha (tu col es timestamp/date)
+    this.newOrder.delivery_date = order.delivery_date
+      ? order.delivery_date.slice(0, 10)
+      : '';
+
+     // ✅ CARGAR cutting_time en tempCutTime para pedidos tipo LASER
+      if (order.order_type === 'laser') {
+        this.tempCutTime = Number(order.cutting_time) || 0;
+      } else {
+        this.tempCutTime = 0; // Limpiar para otros tipos
+      }
+
+    // base_total calcula without breaking if extra_charges is not an array
+    const extrasArray = Array.isArray(this.newOrder.extra_charges)
+      ? this.newOrder.extra_charges
+      : [];
+
+    if (!this.newOrder.base_total || isNaN(Number(this.newOrder.base_total))) {
+      if (this.newOrder.subtotal && !isNaN(Number(this.newOrder.subtotal))) {
+        this.newOrder.base_total = Number(this.newOrder.subtotal);
+      } else {
+        const extrasSum = extrasArray.reduce(
+          (sum: number, c: any) => sum + (Number(c?.amount) || 0),
+          0
+        );
+        this.newOrder.base_total = Number(this.newOrder.total || 0) - extrasSum;
+      }
+    }
+
+    // ====================================================================
+    // NOTA IMPORTANTE: Ya no cargamos datos de prints, cuts ni sales
+    // Solo mostramos la información global del pedido
+    // ====================================================================
+
+    // Para CUTS, el campo cutting_time ya está en newOrder desde la tabla orders
+    // No es necesario hacer ninguna carga adicional
+
+    // Limpiar los selectores para evitar confusión
+    this.selectedCategory = '';
+    this.selectedType = '';
+    this.selectedCaliber = '';
+    this.selectedColor = '';
+  }
 
   async getUserName(): Promise<string | null> {
     const { data, error } = await this.supabase
@@ -1742,6 +1835,301 @@ export class OrdersComponent implements OnInit {
     return error || !data ? null : data.user_name;
   }
 
+  async addOrder(newOrderForm: Partial<Orders>): Promise<void> {
+    const selectedClient = this.clients.find(
+      (client) => client.id_client === newOrderForm.id_client
+    );
+    newOrderForm.name = selectedClient ? selectedClient.name : '';
+
+    const { data: clientData, error: clientError } = await this.supabase
+      .from('clients')
+      .select('debt, credit_limit')
+      .eq('id_client', newOrderForm.id_client)
+      .single();
+
+    if (clientError || !clientData) {
+      console.error('Error al obtener detalles del cliente:', clientError);
+      alert('Error al verificar el cliente.');
+      return;
+    }
+
+    const currentDebt = clientData.debt || 0;
+    const creditLimit = clientData.credit_limit || 0;
+    const orderAmount = parseFloat(newOrderForm.total as string) || 0;
+    const newDebt = currentDebt + orderAmount;
+
+    if (creditLimit > 0 && newDebt > creditLimit) {
+      const confirmMessage = `El cliente ha excedido su límite de crédito por lo que su deuda actual aumentará en el caso de que el pedido sea autorizado.
+
+      ¿Desea autorizar este pedido de todas formas?`;
+
+      if (!confirm(confirmMessage)) {
+        return;
+      }
+    }
+
+    // Calcular el total base (valor ingresado manualmente)
+    const baseTotal = parseFloat(newOrderForm.unitary_value as string) || 0;
+
+    // Sumar cargos extras
+    const extras = newOrderForm.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
+
+    // Total final = base + extras
+    const total = baseTotal + extras;
+
+    this.newOrder = {
+      order_type: newOrderForm.order_type,
+      name: newOrderForm.name,
+      client_type: newOrderForm.client_type,
+      description: newOrderForm.description,
+      order_payment_status: newOrderForm.order_payment_status || 'overdue',
+      created_at: new Date().toISOString(),
+      created_time: this.getCurrentTimeHHMM(),
+      delivery_date: newOrderForm.delivery_date,
+      order_quantity: newOrderForm.order_quantity,
+      unitary_value: baseTotal, // Valor total del pedido (ingresado manualmente)
+      iva: newOrderForm.iva || 0,
+      subtotal: baseTotal, // Subtotal = valor base
+      total: total, // Total = base + extras
+      amount: newOrderForm.amount || 0,
+      cutting_time: newOrderForm.cutting_time || 0,
+      id_client: newOrderForm.id_client,
+      order_confirmed_status: newOrderForm.order_confirmed_status,
+      order_completion_status: newOrderForm.order_completion_status,
+      order_delivery_status: newOrderForm.order_delivery_status,
+      notes: newOrderForm.notes,
+      file_path: newOrderForm.file_path,
+      extra_charges: newOrderForm.extra_charges || [],
+      base_total: baseTotal,
+      scheduler: await this.getUserName() || 'Desconocido',
+    };
+
+    // ✅ CORRECCIÓN: Asignar tempCutTime para pedidos tipo LASER
+    if (this.newOrder.order_type === 'laser') {
+      this.newOrder.cutting_time = this.tempCutTime || 0; // ✅ Usar this.tempCutTime
+}
+
+    const deliveryDate = newOrderForm.delivery_date
+      ? new Date(newOrderForm.delivery_date)
+      : new Date();
+    const paymentTerm = 0;
+    const dueDate = new Date(
+      deliveryDate.getTime() + paymentTerm * 24 * 60 * 60 * 1000
+    );
+    const dueDateISOString = dueDate.toISOString();
+
+    if (this.isEditing) {
+      // ========================================
+      // MODO EDICIÓN
+      // ========================================
+      if (!newOrderForm.id_order) {
+        console.error('ID del pedido no definido para actualizar.');
+        alert('Error: No se puede actualizar un pedido sin ID.');
+        return;
+      }
+
+      this.newOrder.id_order = newOrderForm.id_order;
+
+      // ✅ ACTUALIZAR cutting_time desde tempCutTime
+      if (this.newOrder.order_type === 'laser') {
+        this.newOrder.cutting_time = this.tempCutTime || 0;
+      }
+
+      // Subir archivo si existe
+      await this.handleFileUploadForOrder(this.newOrder.id_order!);
+      this.selectedFile = null;
+      this.uploadedFileName = null;
+
+      // Actualizar el pedido en la tabla orders
+      const { error } = await this.supabase
+        .from('orders')
+        .update([this.newOrder])
+        .eq('id_order', this.newOrder.id_order);
+
+      if (error) {
+        console.error('Error al actualizar el pedido:', error);
+        alert('Error al actualizar el pedido.');
+        return;
+      }
+
+      // ✅ NUEVO: Actualizar también en tabla cuts si es tipo laser
+      if (this.newOrder.order_type === 'laser') {
+        // Verificar si ya existe un registro en cuts
+        const { data: existingCut } = await this.supabase
+          .from('cuts')
+          .select('id')
+          .eq('id_order', this.newOrder.id_order)
+          .maybeSingle();
+
+        if (existingCut) {
+          // Si existe, actualizar
+          const { error: updateCutError } = await this.supabase
+            .from('cuts')
+            .update({
+              cutting_time: this.tempCutTime,  // ✅ número
+              unit_price: Number(this.newOrder.unitary_value) || 0,
+            })
+            .eq('id_order', this.newOrder.id_order);
+
+          if (updateCutError) {
+            console.error('Error al actualizar tabla cuts:', updateCutError);
+          } else {
+            console.log('✅ Registro actualizado en tabla cuts');
+          }
+        } else {
+          // Si no existe, insertar
+          const cutRecord = {
+            id_order: this.newOrder.id_order,
+            category: 'Corte Laser',
+            material_type: 'General',
+            color: null,                    // ✅ null
+            caliber: null,                  // ✅ null
+            height: null,                   // ✅ null
+            width: null,                    // ✅ null
+            quantity: 1,                    // ✅ número
+            cutting_time: this.tempCutTime, // ✅ número
+            unit_price: Number(this.newOrder.unitary_value) || 0,
+          };
+
+          const { error: insertCutError } = await this.supabase
+            .from('cuts')
+            .insert([cutRecord]);
+
+          if (insertCutError) {
+            console.error('Error al insertar en tabla cuts:', insertCutError);
+          } else {
+            console.log('✅ Registro insertado en tabla cuts');
+          }
+        }
+      }
+
+      alert('Pedido actualizado correctamente.');
+      this.showModal = false;
+      await this.getOrders();
+
+    } else {
+      // ========================================
+      // MODO CREACIÓN
+      // ========================================
+
+      // Obtener el código más alto
+      const { data: maxCodeData, error: maxCodeError } = await this.supabase
+        .from('orders')
+        .select('code')
+        .order('code', { ascending: false })
+        .limit(1);
+
+      if (maxCodeError) {
+        console.error('Error al obtener el código máximo:', maxCodeError);
+        alert('Error al generar el código del pedido.');
+        return;
+      }
+
+      const maxCode = maxCodeData && maxCodeData.length > 0 ? maxCodeData[0].code : 0;
+      this.newOrder.code = maxCode + 1;
+
+      // Insertar el pedido
+      const { data: insertedOrderData, error: insertError } = await this.supabase
+        .from('orders')
+        .insert([this.newOrder])
+        .select();
+
+      if (insertError || !insertedOrderData || insertedOrderData.length === 0) {
+        console.error('Error al insertar el pedido:', insertError);
+        alert('Error al crear el pedido.');
+        return;
+      }
+
+      const insertedOrder = insertedOrderData[0];
+
+      // ✅ CORRECCIÓN: Si es pedido tipo LASER, insertar registro en tabla cuts
+      if (this.newOrder.order_type === 'laser' && this.tempCutTime > 0) {
+        const cutRecord = {
+          id_order: insertedOrder.id_order,
+          category: 'Corte Laser',
+          material_type: 'General',
+          color: null,                    // ✅ null en lugar de ''
+          caliber: null,                  // ✅ null en lugar de ''
+          height: null,                   // ✅ null en lugar de ''
+          width: null,                    // ✅ null en lugar de ''
+          quantity: 1,                    // ✅ número en lugar de '1'
+          cutting_time: this.tempCutTime, // ✅ número en lugar de string
+          unit_price: Number(this.newOrder.unitary_value) || 0,
+        };
+
+        const { error: cutError } = await this.supabase
+          .from('cuts')
+          .insert([cutRecord]);
+
+        if (cutError) {
+          console.error('Error al insertar en tabla cuts:', cutError);
+        } else {
+          console.log('✅ Registro insertado correctamente en tabla cuts');
+        }
+      }
+
+      // Subir archivo si existe
+      await this.handleFileUploadForOrder(insertedOrder.id_order);
+      this.selectedFile = null;
+      this.uploadedFileName = null;
+
+      // Actualizar la deuda del cliente
+      const newClientDebt = currentDebt + orderAmount;
+      const { error: updateDebtError } = await this.supabase
+        .from('clients')
+        .update({
+          debt: newClientDebt,
+          status: newClientDebt > 0 ? 'overdue' : 'upToDate',
+        })
+        .eq('id_client', newOrderForm.id_client);
+
+      if (updateDebtError) {
+        console.error('Error al actualizar la deuda del cliente:', updateDebtError);
+      }
+
+      // Crear notificación
+      this.notificationToInsert = {
+        type: 'order',
+        description: `Nuevo pedido creado: ${this.newOrder.code}`,
+        id_order: insertedOrder.id_order,
+        due_date: this.newOrder.delivery_date,
+        id_user: this.userId,
+      };
+
+      const { error: notificationError } = await this.supabase
+        .from('notifications')
+        .insert([this.notificationToInsert]);
+
+      if (notificationError) {
+        console.error('Error al crear la notificación:', notificationError);
+      }
+
+      // Crear factura
+      const invoiceData = {
+        id_order: insertedOrder.id_order,
+        code: this.newOrder.code?.toString() || '',
+        payment_term: paymentTerm,
+        include_iva: false,
+        due_date: dueDateISOString,
+        created_at: new Date().toISOString(),
+        invoice_status: 'overdue',
+      };
+
+      const { error: invoiceError } = await this.supabase
+        .from('invoices')
+        .insert([invoiceData]);
+
+      if (invoiceError) {
+        console.error('Error al crear la factura:', invoiceError);
+      }
+
+      alert('Pedido creado correctamente.');
+      this.showModal = false;
+      await this.getOrders();
+    }
+  }
+
+  /*
   async addOrder(newOrderForm: Partial<Orders>): Promise<void> {
     const selectedClient = this.clients.find(
       (client) => client.id_client === newOrderForm.id_client
@@ -2352,6 +2740,7 @@ export class OrdersComponent implements OnInit {
       this.toggleAddOrderForm();
     }
   }
+  */
 
   // Función para calcular el subtotal dinámicamente
   getCalculatedSubtotal(order: Orders): number {
@@ -2396,13 +2785,10 @@ export class OrdersComponent implements OnInit {
               (sum, c) => sum + c.amount,
               0
             ) || 0;
-          const discountAmount = this.hasDiscountApplied
-            ? Number(this.newOrder.discount) || 0
-            : 0;
 
-          // Fórmula: base_total = total + descuento - extras
+          // Fórmula: base_total = total - extras
           this.newOrder.base_total =
-            currentTotal + discountAmount - existingExtras;
+            currentTotal - existingExtras;
         }
       }
 
@@ -2436,6 +2822,16 @@ export class OrdersComponent implements OnInit {
     this.updateOrderTotalWithExtras();
   }
 
+  updateOrderTotalWithExtras(): void {
+    const baseTotal = Number(this.newOrder.unitary_value) || 0;
+    const extras = this.newOrder.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
+
+    this.newOrder.total = baseTotal + extras;
+    this.newOrder.subtotal = baseTotal;
+    this.newOrder.base_total = baseTotal;
+  }
+
+  /*
   updateOrderTotalWithExtras(): void {
     // 1. Obtener base (subtotal de materiales/items)
     let base =
@@ -2491,6 +2887,7 @@ export class OrdersComponent implements OnInit {
       this.totalBeforeDiscount = 0;
     }
   }
+  */
 
   async createNotification(addedOrder: Partial<Orders>) {
     this.notificationDesc =
@@ -2532,7 +2929,7 @@ export class OrdersComponent implements OnInit {
     }
   }
 
-  // MÉTODOS PARA DESCUENTOS
+  /* MÉTODOS PARA DESCUENTOS
   calculateDiscountAmount(): number {
     if (!this.discount || this.discount === 0) {
       return 0;
@@ -2552,7 +2949,9 @@ export class OrdersComponent implements OnInit {
       return this.discount;
     }
   }
+  /*
 
+  /*
   applyDiscount(): void {
     if (this.discount > 0 && !this.hasDiscountApplied) {
       // Marcar que hay descuento aplicado
@@ -2568,7 +2967,9 @@ export class OrdersComponent implements OnInit {
       alert('Por favor, ingrese un valor de descuento válido.');
     }
   }
+  */
 
+  /*
   clearDiscount(): void {
     // Limpiar variables
     this.discount = 0;
@@ -2581,6 +2982,7 @@ export class OrdersComponent implements OnInit {
     // Recalcular sin descuento
     this.updateOrderTotalWithExtras();
   }
+    */
 
   private formatDateForInput(date: Date | string): string {
     const dateObj = new Date(date);
@@ -2607,17 +3009,22 @@ export class OrdersComponent implements OnInit {
     this.paginatedOrders = this.filteredOrdersList.slice(startIndex, endIndex);
   }
 
+  /*
   openCalculator(): void {
     this.showCalculator = true;
     this.calculationType = null;
     this.resetForm();
   }
+  */
 
+  /*
   closeCalculator(): void {
     this.showCalculator = false;
     this.resetForm();
   }
+  */
 
+  /* MÉTODOS CALCULADORA DE PRECIOS
   resetForm(): void {
     this.calculatorResult = 0;
     this.clientType = null;
@@ -2631,7 +3038,9 @@ export class OrdersComponent implements OnInit {
     this.materialValue = 0;
     this.usageTime = 0;
   }
+    */
 
+  /*
   setValoresPorCliente(): void {
     if (this.clientType === 'intermediary') {
       this.laminationValue = this.variables.intermediaryLaminationValue;
@@ -2645,7 +3054,9 @@ export class OrdersComponent implements OnInit {
       this.assembleValue = this.variables.finalAssembleValue;
     }
   }
+  */
 
+  /*
   calculatePrice(): void {
     if (this.calculationType == 'prints') {
       const base = this.rollWidth * this.measurement * this.productNumber;
@@ -2672,6 +3083,7 @@ export class OrdersComponent implements OnInit {
       this.calculatorResult = this.materialValue + valorTiempo;
     }
   }
+  */
 
   public getRemainingDeliveryDays(order: Orders): number {
     if (!order.delivery_date) return 0;
@@ -2759,10 +3171,13 @@ export class OrdersComponent implements OnInit {
     window.URL.revokeObjectURL(blobUrl);
   }
 
+  /*
   closeStockModal() {
     this.showStockWarningModal = false;
   }
+  */
 
+  /*
   async showStockError(message: string): Promise<void> {
     this.stockWarningMessage = message;
     this.showStockWarningModal = true;
@@ -2774,7 +3189,9 @@ export class OrdersComponent implements OnInit {
       };
     });
   }
+  */
 
+  /*
   async completeStockForOrder(order: Orders): Promise<void> {
     if (!order || !order.id_order) {
       alert('Orden no válida.');
@@ -3033,8 +3450,9 @@ export class OrdersComponent implements OnInit {
       return;
     }
   }
+  */
 
-  // Función para añadir un material a prints
+  /* Función para añadir un material a prints
   addPrintItem(): void {
     if (this.newOrder.order_type !== 'print') return;
 
@@ -3083,7 +3501,8 @@ export class OrdersComponent implements OnInit {
     // Recalcular el total del pedido
     this.recalcPrintsFromItems();
   }
-
+  */
+  /*
   calculatePrintValueFromUnit(unitValue: number): number {
     const clientType = this.newOrder.client_type || 'intermediary';
 
@@ -3121,8 +3540,9 @@ export class OrdersComponent implements OnInit {
 
     return totalValue;
   }
+  */
 
-  // Función para obtener string de procesos
+  /* Función para obtener string de procesos
   getProcessesString(): string {
     const processes = [];
     if (this.tempPrintLaminating) processes.push('Laminado');
@@ -3131,8 +3551,9 @@ export class OrdersComponent implements OnInit {
     if (this.tempPrintAssembly) processes.push('Armado');
     return processes.join(', ') || '-';
   }
+  */
 
-  // Resetear campos temporales
+  /* Resetear campos temporales
   resetTempPrintFields(): void {
     this.tempPrintQuantity = 1;
     this.tempPrintLaminating = false;
@@ -3145,8 +3566,9 @@ export class OrdersComponent implements OnInit {
     this.selectedCaliber = '';
     this.selectedColor = '';
   }
+  */
 
-  // Eliminar un item de prints
+  /* Eliminar un item de prints
   removePrintItem(index: number): void {
     // Si es el último item, preguntar si quiere eliminar el pedido completo
     if (this.printsItems.length === 1 && this.isEditing) {
@@ -3185,6 +3607,7 @@ export class OrdersComponent implements OnInit {
     // Recalcular totales
     this.recalcPrintsFromItems();
   }
+  */
 
   async deleteOrderCompletely(orderId: string): Promise<void> {
     try {
@@ -3217,7 +3640,7 @@ export class OrdersComponent implements OnInit {
     }
   }
 
-  // Recalcular total desde los items
+  /* Recalcular total desde los items
   recalcPrintsFromItems(): void {
     let total = 0;
     for (const item of this.printsItems) {
@@ -3227,6 +3650,7 @@ export class OrdersComponent implements OnInit {
     this.newOrder.base_total = total;
     this.updateOrderTotalWithExtras();
   }
+  */
 
   // Funciones para obtener opciones únicas de materiales
   getCategories(): string[] {
@@ -3314,6 +3738,7 @@ export class OrdersComponent implements OnInit {
     );
   }
 
+  /*
   onPrintMaterialChange(): void {
     const material = this.getSelectedMaterial();
     if (material) {
@@ -3323,8 +3748,9 @@ export class OrdersComponent implements OnInit {
       this.tempPrintUnitaryValue = 0;
     }
   }
+  */
 
-  // Añadir un material a cuts
+  /* Añadir un material a cuts
   addCutItem(): void {
     const material = this.getSelectedMaterial();
 
@@ -3383,7 +3809,9 @@ export class OrdersComponent implements OnInit {
     this.recalcCutsFromItems();
   }
 
-  // Calcular SOLO el costo del corte (sin material)
+  */
+
+  /* Calcular SOLO el costo del corte (sin material)
   calculateCutCost(cutTime: number): number {
     const clientType = this.newOrder.client_type;
     let cutCost = 0;
@@ -3412,10 +3840,11 @@ export class OrdersComponent implements OnInit {
 
     return cutCost;
   }
+  */
 
-  /**
+  /*
    * Calcular el valor del cut basado en tiempo de corte
-   */
+
   calculateCutValue(material: any, cutTime: number): number {
     const materialValue = Number(material.unitaryvalue) || 0;
     const cutCost = this.calculateCutCost(cutTime);
@@ -3423,10 +3852,11 @@ export class OrdersComponent implements OnInit {
     // Retornar solo el material + corte (sin multiplicar por cantidad aquí)
     return materialValue + cutCost;
   }
+    */
 
   /**
    * Resetear campos temporales de cuts
-   */
+
   resetTempCutFields(): void {
     this.tempCutQuantity = 1;
     this.tempCutHeight = 0;
@@ -3438,10 +3868,11 @@ export class OrdersComponent implements OnInit {
     this.selectedCaliber = '';
     this.selectedColor = '';
   }
+    */
 
   /**
    * Eliminar un item de corte con validación
-   */
+
   removeCutItem(index: number): void {
     // Si es el último item, confirmar eliminación
     if (this.cutsItems.length === 1) {
@@ -3472,10 +3903,11 @@ export class OrdersComponent implements OnInit {
     this.cutsItems.splice(index, 1);
     this.recalcCutsFromItems();
   }
+    */
 
   /**
    * Recalcular totales del pedido desde cutsItems
-   */
+
   recalcCutsFromItems(): void {
     if (!this.newOrder || this.newOrder.order_type !== 'laser') {
       return;
@@ -3514,6 +3946,7 @@ export class OrdersComponent implements OnInit {
     this.newOrder.subtotal = baseTotal.toString();
     this.newOrder.total = finalTotal.toString();
   }
+    */
 
   clearFilters(): void {
     this.startDate = '';
