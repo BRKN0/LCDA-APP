@@ -56,18 +56,17 @@ interface Client {
   document_number: string;
   cellphone: string;
   nit: string;
-  company_name: string;
   email: string;
   status: string;
   debt: number;
   address: string;
   city: string;
-  province: string;
+  /*province: string;
   postal_code: string;
   tax_regime: number;
   is_declarante: boolean;
   retefuente: boolean;
-  applies_ica_retention: boolean;
+  applies_ica_retention: boolean;*/
 }
 
 interface Payment {
@@ -124,8 +123,8 @@ export class InvoiceComponent implements OnInit {
     subtotal: number;
     iva: number;
     total: number;
-    reteica: number;
-    retefuente: number;
+    /*reteica: number;
+    retefuente: number;*/
   } | null = null;
   variables: VariableMap = {
     iva: 0,
@@ -143,7 +142,6 @@ export class InvoiceComponent implements OnInit {
     email: '',
     document_type: '',
     document_number: '',
-    company_name: '',
     cellphone: '',
     address: '',
     status: '',
@@ -157,7 +155,7 @@ export class InvoiceComponent implements OnInit {
     return `IVA (${this.pct(this.IVA_RATE, 0)})`;
   }
 
-  retefuenteLabel(invoice: Invoice): string {
+  /*retefuenteLabel(invoice: Invoice): string {
     const classKey = this.normalizeClassification(invoice.classification);
     const declara = invoice.order.client.is_declarante
       ? 'declara'
@@ -176,7 +174,7 @@ export class InvoiceComponent implements OnInit {
         ? ('reteica_bienes' as keyof VariableMap)
         : ('reteica_servicios' as keyof VariableMap);
     return `ReteICA (${this.pct(this.variables[key], 2)})`;
-  }
+  }*/
   constructor(
     private readonly supabase: SupabaseService,
     private readonly zone: NgZone,
@@ -268,11 +266,7 @@ export class InvoiceComponent implements OnInit {
       (client) =>
         client.name
           .toLowerCase()
-          .includes(this.clientSearchQuery.toLowerCase()) ||
-        (client.company_name &&
-          client.company_name
-            .toLowerCase()
-            .includes(this.clientSearchQuery.toLowerCase()))
+          .includes(this.clientSearchQuery.toLowerCase())
     );
   }
 
@@ -280,9 +274,7 @@ export class InvoiceComponent implements OnInit {
     if (this.selectedInvoice) {
       this.selectedInvoice.order.id_client = client.id_client;
       this.selectedInvoice.order.client = { ...client };
-      this.clientSearchQuery = `${client.name} (${
-        client.company_name || 'Sin empresa'
-      })`;
+      this.clientSearchQuery = `${client.name}`;
       this.showClientDropdown = false;
       this.updateClientOrders();
     }
@@ -457,11 +449,7 @@ export class InvoiceComponent implements OnInit {
         !this.nameSearchQuery ||
         invoice.order.client.name
           .toLowerCase()
-          .includes(this.nameSearchQuery.toLowerCase()) ||
-        (invoice.order.client.company_name &&
-          invoice.order.client.company_name
-            .toLowerCase()
-            .includes(this.nameSearchQuery.toLowerCase()));
+          .includes(this.nameSearchQuery.toLowerCase());
 
       if (allTypeCheckboxesOff) {
         return matchesDateRange && matchesNameSearch;
@@ -494,8 +482,8 @@ export class InvoiceComponent implements OnInit {
     subtotal: number;
     iva: number;
     total: number;
-    reteica: number;
-    retefuente: number;
+    /*reteica: number;
+    retefuente: number;*/
   }> {
     const order = invoice.order;
     const cliente = order.client;
@@ -516,7 +504,7 @@ export class InvoiceComponent implements OnInit {
       total = subtotal;
     }
 
-    let retefuente = 0;
+    /*let retefuente = 0;
     if (cliente?.retefuente && invoice.include_iva) {
       const declara = cliente.is_declarante ? 'declara' : 'no_declara';
       const key = (
@@ -547,9 +535,9 @@ export class InvoiceComponent implements OnInit {
       if (rate > 0) {
         reteica = +(subtotal * rate).toFixed(2);
       }
-    }
+    }*/
 
-    return { subtotal, iva, total, reteica, retefuente };
+    return { subtotal, iva, total/*, reteica, retefuente*/ };
   }
 
   async selectInvoice(invoice: Invoice) {
@@ -987,7 +975,7 @@ export class InvoiceComponent implements OnInit {
       return;
     }
 
-    const { subtotal, iva, total, reteica, retefuente } =
+    const { subtotal, iva, total/*, reteica, retefuente*/ } =
       await this.calculateInvoiceValues(invoice);
     const totalPaid = this.getTotalPayments(invoice.order);
     const remainingBalance = total - totalPaid;
@@ -1029,14 +1017,14 @@ export class InvoiceComponent implements OnInit {
     let y = 80;
     doc.text(`Nombre: ${invoice.order.client.name}`, 10, y);
     y += 6;
+    doc.text(`Identificación: ${invoice.order.client.document_number}`, 10, y);
+    y += 6;
     doc.text(`Dirección: ${invoice.order.client.address}`, 10, y);
     y += 6;
-    doc.text(`Ciudad: ${invoice.order.client.city}`, 10, y);
-    y += 6;
-    doc.text(`Provincia: ${invoice.order.client.province}`, 10, y);
+    /*doc.text(`Provincia: ${invoice.order.client.province}`, 10, y);
     y += 6;
     doc.text(`Código Postal: ${invoice.order.client.postal_code}`, 10, y);
-    y += 6;
+    y += 6;*/
     doc.text(`E-mail: ${invoice.order.client.email}`, 10, y);
     y += 6;
     doc.text(`Teléfono: ${invoice.order.client.cellphone}`, 10, y);
@@ -1055,8 +1043,8 @@ export class InvoiceComponent implements OnInit {
     y += 10;
 
     // **TABLA DE DETALLES SEGÚN TIPO DE PEDIDO**
-    const orderType = invoice.order.order_type;
-
+    /*const orderType = invoice.order.order_type;
+    
     if (orderType === 'print') {
       const { data: printsData, error } = await this.supabase
         .from('prints')
@@ -1293,7 +1281,7 @@ export class InvoiceComponent implements OnInit {
       }
 
       doc.setFont('helvetica', 'normal');
-    }
+    }*/
     // Resumen financiero
     let currentY = y;
 
@@ -1331,7 +1319,7 @@ export class InvoiceComponent implements OnInit {
       currentY += 7;
     }
 
-    if (retefuente > 0) {
+    /*if (retefuente > 0) {
       doc.text(this.retefuenteLabel(invoice) + ':', summaryX, currentY);
       doc.text(`-$${retefuente.toFixed(2)}`, valueX, currentY, {
         align: 'left',
@@ -1343,7 +1331,7 @@ export class InvoiceComponent implements OnInit {
       doc.text(this.reteicaLabel(invoice) + ':', summaryX, currentY);
       doc.text(`-$${reteica.toFixed(2)}`, valueX, currentY, { align: 'left' });
       currentY += 7;
-    }
+    }*/
 
     doc.setFontSize(14);
     doc.text('Total:', summaryX, currentY);
@@ -1441,7 +1429,7 @@ export class InvoiceComponent implements OnInit {
       return;
     }
 
-    const { subtotal, iva, total, reteica, retefuente } =
+    const { subtotal, iva, total/*, reteica, retefuente*/ } =
       await this.calculateInvoiceValues(invoice);
     const totalPaid = this.getTotalPayments(invoice.order);
     const remainingBalance = total - totalPaid;
@@ -1483,14 +1471,14 @@ export class InvoiceComponent implements OnInit {
     let y = 80;
     doc.text(`Nombre: ${invoice.order.client.name}`, 10, y);
     y += 6;
+    doc.text(`Identificación: ${invoice.order.client.document_number}`, 10, y);
+    y += 6;
     doc.text(`Dirección: ${invoice.order.client.address}`, 10, y);
     y += 6;
-    doc.text(`Ciudad: ${invoice.order.client.city}`, 10, y);
-    y += 6;
-    doc.text(`Provincia: ${invoice.order.client.province}`, 10, y);
+    /*doc.text(`Provincia: ${invoice.order.client.province}`, 10, y);
     y += 6;
     doc.text(`Código Postal: ${invoice.order.client.postal_code}`, 10, y);
-    y += 6;
+    y += 6;*/
     doc.text(`E-mail: ${invoice.order.client.email}`, 10, y);
     y += 6;
     doc.text(`Teléfono: ${invoice.order.client.cellphone}`, 10, y);
@@ -1509,7 +1497,7 @@ export class InvoiceComponent implements OnInit {
     y += 10;
 
     // **TABLA DE DETALLES SEGÚN TIPO DE PEDIDO**
-    const orderType = invoice.order.order_type;
+    /*const orderType = invoice.order.order_type;
 
     if (orderType === 'print') {
       const { data: printsData, error } = await this.supabase
@@ -1745,7 +1733,7 @@ export class InvoiceComponent implements OnInit {
       }
 
       doc.setFont('helvetica', 'normal');
-    }
+    }*/
 
     // Resumen financiero
     let currentY = y;
@@ -1763,7 +1751,7 @@ export class InvoiceComponent implements OnInit {
       currentY += 7;
     }
 
-    if (retefuente > 0) {
+    /*if (retefuente > 0) {
       doc.text(this.retefuenteLabel(invoice) + ':', summaryX, currentY);
       doc.text(`-$${retefuente.toFixed(2)}`, valueX, currentY, {
         align: 'left',
@@ -1775,7 +1763,7 @@ export class InvoiceComponent implements OnInit {
       doc.text(this.reteicaLabel(invoice) + ':', summaryX, currentY);
       doc.text(`-$${reteica.toFixed(2)}`, valueX, currentY, { align: 'left' });
       currentY += 7;
-    }
+    }*/
 
     doc.setFontSize(14);
     doc.text('Total:', summaryX, currentY);
@@ -1840,7 +1828,7 @@ export class InvoiceComponent implements OnInit {
     let y = 130;
 
     // **LISTA PARA PRINTS: Material, Tipo y Procesos**
-    const orderType = order.order_type;
+    /*const orderType = order.order_type;
 
     if (orderType === 'print') {
       const { data: printsData, error } = await this.supabase
@@ -1961,7 +1949,7 @@ export class InvoiceComponent implements OnInit {
 
         y += 2;
       }
-    }
+    }*/
 
     y += 10;
 
@@ -2006,14 +1994,13 @@ export class InvoiceComponent implements OnInit {
           document_number: '',
           cellphone: '',
           nit: '',
-          company_name: '',
           email: '',
           status: '',
           debt: 0,
           address: '',
           city: '',
-          province: '',
-          postal_code: '',
+          /*province: '',
+          postal_code: '',*/
         } as Client,
       } as Orders,
     };
@@ -2042,9 +2029,7 @@ export class InvoiceComponent implements OnInit {
     };
     this.isEditing = true;
     this.showModal = true;
-    this.clientSearchQuery = `${invoice.order.client.name} (${
-      invoice.order.client.company_name || 'Sin empresa'
-    })`;
+    this.clientSearchQuery = `${invoice.order.client.name}`;
     this.updateClientOrders();
 
     // Calcular payment_term desde delivery_date al abrir en modo edición
@@ -2477,7 +2462,6 @@ export class InvoiceComponent implements OnInit {
       email: '',
       document_type: '',
       document_number: '',
-      company_name: '',
       cellphone: '',
       address: '',
       status: '',

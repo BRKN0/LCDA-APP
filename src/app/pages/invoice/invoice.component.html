@@ -284,7 +284,7 @@
               class="p-2 hover:bg-gray-200 cursor-pointer"
               (click)="selectClient(client)"
             >
-              {{ client.name }} ({{ client.company_name || "Sin empresa" }})
+              {{ client.name }}
             </div>
           </div>
         </div>
@@ -304,6 +304,7 @@
           <option value="sales">Ventas</option>
         </select>
       </div>
+      <!--
       <div class="mb-4" *ngIf="selectedInvoice">
         <label class="block text-gray-700"
           >Clasificación tributaria (para impuestos)<span class="text-red-500"
@@ -319,7 +320,7 @@
           <option value="BIEN">Bien</option>
           <option value="SERVICIO">Servicio</option>
         </select>
-      </div>
+      </div> -->
       <div class="mb-4" *ngIf="selectedInvoice">
         <label class="block modal-input-item">{{ ivaLabel() }}</label>
         <input
@@ -463,14 +464,6 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block text-gray-700">Empresa</label>
-        <input
-          [(ngModel)]="newClient.company_name"
-          name="company_name"
-          class="form-input"
-        />
-      </div>
-      <div class="mb-4">
         <label class="block text-gray-700">Teléfono</label>
         <input
           type="number"
@@ -566,16 +559,12 @@
         <div class="text-right">
           <p>
             <strong>De:</strong>
-            {{
-              selectedInvoiceDetails[0].order.client.company_name ||
-                selectedInvoiceDetails[0].order.client.name
-            }}
-          </p>
-          <p>{{ selectedInvoiceDetails[0].order.client.address }}</p>
+            {{ selectedInvoiceDetails[0].order.client.name }}</p>
+          <p>{{ selectedInvoiceDetails[0].order.client.document_number }}</p>
           <p>
-            {{ selectedInvoiceDetails[0].order.client.city }},
-            {{ selectedInvoiceDetails[0].order.client.province }}
-            {{ selectedInvoiceDetails[0].order.client.postal_code }}
+            {{ selectedInvoiceDetails[0].order.client.address }},
+            <!-- {{ selectedInvoiceDetails[0].order.client.province }} 
+            {{ selectedInvoiceDetails[0].order.client.postal_code }} -->
           </p>
           <p>{{ selectedInvoiceDetails[0].order.client.email }}</p>
           <p>{{ selectedInvoiceDetails[0].order.client.cellphone }}</p>
@@ -619,8 +608,8 @@
             <p>{{ valores.iva | currency : "COP" }}</p>
           </div>
         </div>
-
-        <!-- RETEFUENTE -->
+        <!--  
+        RETEFUENTE
         <div class="flex justify-between">
           <p>
             <strong>{{ retefuenteLabel(selectedInvoiceDetails[0]) }}:</strong>
@@ -634,7 +623,7 @@
           </p>
         </div>
 
-        <!-- RETEICA -->
+        RETEICA
         <div class="flex justify-between">
           <p>
             <strong>{{ reteicaLabel(selectedInvoiceDetails[0]) }}:</strong>
@@ -647,6 +636,7 @@
             }}
           </p>
         </div>
+        -->
         <div
           class="flex justify-between"
           *ngIf="selectedInvoiceDetails[0].include_iva"
