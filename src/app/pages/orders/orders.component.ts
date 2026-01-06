@@ -31,6 +31,7 @@ interface Orders {
   id_client: string;
   payments?: Payment[];
   file_path: string;
+  invoice_file: string;
   scheduler: string;
   cutting_time?: number;
   extra_charges?: {
@@ -250,6 +251,7 @@ export class OrdersComponent implements OnInit {
   selectedFile: File | null = null;
   uploadedFileName: string | null = null;
   uploadedFilePath: string | null = null;
+  selectedInvoiceFile: File | null = null;
   showStockWarningModal = false;
   stockWarningMessage = '';
   selectedScheduler: string = '';
@@ -1442,6 +1444,7 @@ export class OrdersComponent implements OnInit {
         order_delivery_status: 'toBeDelivered',
         notes: '',
         file_path: '',
+        invoice_file: '',
         scheduler: '',
         discount: 0,
         discount_type: 'fixed',
@@ -1899,6 +1902,7 @@ export class OrdersComponent implements OnInit {
       order_delivery_status: newOrderForm.order_delivery_status,
       notes: newOrderForm.notes,
       file_path: newOrderForm.file_path,
+      invoice_file: newOrderForm.file_path,
       extra_charges: newOrderForm.extra_charges || [],
       base_total: baseTotal,
       scheduler: await this.getUserName() || 'Desconocido',
@@ -3139,6 +3143,13 @@ export class OrdersComponent implements OnInit {
     }
   }
 
+  onInvoiceFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files?.length) {
+      this.selectedInvoiceFile = input.files[0];
+    }
+  }
+
   async uploadOrderFile(orderId: string, filePath: string, file: File) {
     if (!this.selectedFile || !orderId) return;
 
@@ -3960,27 +3971,38 @@ export class OrdersComponent implements OnInit {
     this.updateFilteredOrders();
   }
   private async handleFileUploadForOrder(orderId: string): Promise<void> {
-    if (!this.selectedFile) return;
+    // ARCHIVO DE TRABAJO
+    if (this.selectedFile) {
+      const file = this.selectedFile;
+      const filePath = `${orderId}/work/${Date.now()}_${file.name}`;
 
-    const file = this.selectedFile;
-    const filePath = `order-files/${orderId}/${Date.now()}_${file.name}`;
+      await this.uploadOrderFile(orderId, filePath, file);
 
-    await this.uploadOrderFile(orderId, filePath, file);
+      await this.supabase
+        .from('orders')
+        .update({ file_path: filePath })
+        .eq('id_order', orderId);
 
-    const { error: updatePathError } = await this.supabase
-      .from('orders')
-      .update({ file_path: filePath })
-      .eq('id_order', orderId);
-
-    if (updatePathError) {
-      console.error(
-        'Error al actualizar file_path del pedido:',
-        updatePathError
-      );
+      this.newOrder.file_path = filePath;
+      this.selectedFile = null;
     }
 
-    this.newOrder.file_path = filePath;
-    this.selectedFile = null;
+    // ARCHIVO DE FACTURA
+    if (this.selectedInvoiceFile) {
+      const file = this.selectedInvoiceFile;
+      const filePath = `${orderId}/invoice/${Date.now()}_${file.name}`;
+
+      await this.uploadOrderFile(orderId, filePath, file);
+
+      await this.supabase
+        .from('orders')
+        .update({ invoice_file: filePath })
+        .eq('id_order', orderId);
+
+      this.newOrder.invoice_file = filePath;
+      this.selectedInvoiceFile = null;
+    }
+
     this.uploadedFileName = null;
   }
 }
