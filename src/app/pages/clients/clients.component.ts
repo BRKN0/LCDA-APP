@@ -49,10 +49,10 @@ interface Client {
   province: string;
   postal_code: string;
   orders?: Orders[];
-  tax_regime: number;
+  /*tax_regime: number;
   is_declarante: boolean;
   retefuente: boolean;
-  applies_ica_retention: boolean;
+  applies_ica_retention: boolean;*/
 }
 
 interface Payment {
@@ -117,10 +117,10 @@ export class ClientsComponent implements OnInit {
     city: '',
     province: '',
     postal_code: '',
-    tax_regime: 0,
+    /*tax_regime: 0,
     is_declarante: false,
     retefuente: false,
-    applies_ica_retention: false,
+    applies_ica_retention: false,*/
   };
   showAddClientForm = false;
   IVA_RATE = 0.19;
@@ -210,7 +210,7 @@ export class ClientsComponent implements OnInit {
     this.loading = false;
   }
 
-  taxRegimeConfig: Record<number, { is_declarante: boolean; retefuente: boolean; applies_ica_retention: boolean }> = {
+  /*taxRegimeConfig: Record<number, { is_declarante: boolean; retefuente: boolean; applies_ica_retention: boolean }> = {
     1: { is_declarante: true, retefuente: true, applies_ica_retention: true }, // Autorretenedor
     2: { is_declarante: true, retefuente: true, applies_ica_retention: true }, // Gran Contribuyente
     3: { is_declarante: true, retefuente: true, applies_ica_retention: false }, // Responsable IVA
@@ -225,7 +225,7 @@ export class ClientsComponent implements OnInit {
       this.selectedClientData.retefuente = config.retefuente;
       this.selectedClientData.applies_ica_retention = config.applies_ica_retention;
     }
-  }
+  }*/
 
   calculateClientDebt(client: Client): number {
     if (!client.orders || client.orders.length === 0) return 0;
@@ -273,7 +273,16 @@ export class ClientsComponent implements OnInit {
       alert('No hay cliente seleccionado.');
       return;
     }
+
+    if (!amount || amount <= 0) {
+      alert('Ingrese un monto válido.');
+      return;
+    }
+
     await this.allocatePaymentAcrossOrders(this.selectedClient, amount, paymentMethod);
+
+    this.newPaymentAmount = 0;
+    this.selectedPaymentMethod = 'cash';
   }
 
 
@@ -290,9 +299,15 @@ export class ClientsComponent implements OnInit {
     }
 
     // Ordena por más antiguo
-    const ordersByOldest = [...client.orders].sort(
-      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-    );
+    const ordersByOldest = [...client.orders].sort((a, b) => {
+      const dateDiff =
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+
+      if (dateDiff !== 0) return dateDiff;
+
+      // Desempate por código: menor código = pedido más antiguo
+      return a.code - b.code;
+    });
 
     let remaining = amount;
     const paymentsBatch: Payment[] = [];
@@ -455,7 +470,10 @@ export class ClientsComponent implements OnInit {
       this.startDate = '';
       this.endDate = '';
       this.onlyWithDebt = false;
-      this.selectedClient = { ...client };
+      this.selectedClient = { 
+        ...client,
+        orders: [...client.orders].sort((a, b) => b.code - a.code) 
+      };
       this.showOrders = true;
       this.currentOrderPage = 1;
       this.newPaymentAmounts = {};
@@ -603,10 +621,10 @@ export class ClientsComponent implements OnInit {
       city: '',
       province: '',
       postal_code: '',
-      tax_regime: 0,
+      /*tax_regime: 0,
       is_declarante: false,
       retefuente: false,
-      applies_ica_retention: false,
+      applies_ica_retention: false,*/
     };
     this.isEditing = false;
     this.showModal = true;
@@ -640,10 +658,10 @@ export class ClientsComponent implements OnInit {
       city: this.selectedClientData.city,
       province: this.selectedClientData.province,
       postal_code: this.selectedClientData.postal_code,
-      tax_regime: this.selectedClientData.tax_regime,
+      /*tax_regime: this.selectedClientData.tax_regime,
       is_declarante: this.selectedClientData.is_declarante || false,
       retefuente: this.selectedClientData.retefuente || false,
-      applies_ica_retention: this.selectedClientData.applies_ica_retention || false,
+      applies_ica_retention: this.selectedClientData.applies_ica_retention || false,*/
       credit_limit: this.selectedClientData.credit_limit,
     };
 
