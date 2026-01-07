@@ -1292,7 +1292,12 @@ export class InvoiceComponent implements OnInit {
       doc.setFont('helvetica', 'normal');
       invoice.order.payments.forEach((payment) => {
         doc.text(
-          `$${payment.amount} - ${payment.payment_method} - ${
+          `$${payment.amount} - ${
+            payment.payment_method === 'cash' ? 'Efectivo' :
+            payment.payment_method === 'nequi' ? 'Nequi' :
+            payment.payment_method === 'bancolombia' ? 'Bancolombia' :
+            payment.payment_method === 'Davivienda' ? 'Davivienda' :
+            payment.payment_method === 'other' ? 'Otro' : 'Desconocido'} - ${
             payment.payment_date
               ? new Date(payment.payment_date).toLocaleDateString('es-CO')
               : ''

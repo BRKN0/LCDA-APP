@@ -684,7 +684,15 @@
             <li
               *ngFor="let payment of selectedInvoiceDetails[0].order.payments"
             >
-              ${{ payment.amount }} - {{ payment.payment_method }} -
+              ${{ payment.amount }} - 
+              {{ 
+                payment.payment_method === 'cash' ? 'Efectivo' :
+                payment.payment_method === 'nequi' ? 'Nequi' : 
+                payment.payment_method === 'bancolombia' ? 'Bancolombia' :
+                payment.payment_method === 'Davivienda' ? 'Davivienda' :
+                payment.payment_method === 'other' ? 'Otro' 
+                : "Desconocido"
+              }} -
               {{ payment.payment_date | date : "dd-MM-yyyy" }}
               <button class="text-blue-500 ml-2" (click)="editPayment(payment)">
                 Editar

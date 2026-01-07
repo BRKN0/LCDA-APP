@@ -205,6 +205,9 @@ export class ClientsComponent implements OnInit {
       }
     }
 
+    this.clients.sort((a, b) =>
+      a.name.localeCompare(b.name, 'es', { sensitivity: 'base' })
+    );
     this.filteredClients = this.clients;
     this.updatePaginatedClients();
     this.loading = false;
@@ -286,7 +289,7 @@ export class ClientsComponent implements OnInit {
   }
 
 
-  private getOrderDebt(order: Orders): number {
+  getOrderDebt(order: Orders): number {
     const total = this.calculateOrderTotal(order);
     const paid = order.payments?.reduce((s, p) => s + p.amount, 0) || 0;
     return Math.max(0, total - paid);

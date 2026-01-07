@@ -293,6 +293,7 @@
               <th class="modal-table-column">Fecha</th>
               <th class="modal-table-column">Detalles</th>
               <th class="modal-table-column">Total</th>
+              <th class="modal-table-column">Por pagar</th>
               <th class="modal-table-column">Estado de pago</th>
               <th class="modal-table-column">Abonos</th>
             </tr>
@@ -307,6 +308,17 @@
               <td class="modal-table-column">
                 ${{ calculateOrderTotal(order).toFixed(2) }}
                 {{ order.include_iva ? "" : "" }}
+              </td>
+              <td
+                class="modal-table-column"
+                [class.text-red-600]="getOrderDebt(order) > 0"
+                [class.text-green-600]="getOrderDebt(order) === 0"
+              >
+                {{
+                  getOrderDebt(order) > 0
+                    ? '$' + getOrderDebt(order).toFixed(2)
+                    : 'Pagado'
+                }}
               </td>
               <td
                 class="modal-table-column"
