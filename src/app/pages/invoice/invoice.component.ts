@@ -630,10 +630,12 @@ export class InvoiceComponent implements OnInit {
 
       const totalPaidUpdated = this.getTotalPayments(order);
       const newRemainingBalance = total - totalPaidUpdated;
+      /*
       const newOrderStatus =
         newRemainingBalance <= 0
           ? 'finished'
           : order.order_completion_status || '';
+      */
       const newPaymentStatus =
         newRemainingBalance <= 0 ? 'upToDate' : 'overdue';
 
@@ -641,7 +643,6 @@ export class InvoiceComponent implements OnInit {
         .from('orders')
         .update({
           order_payment_status: newPaymentStatus,
-          order_completion_status: newOrderStatus,
         })
         .eq('id_order', order.id_order);
 
@@ -838,13 +839,10 @@ export class InvoiceComponent implements OnInit {
       const newRemainingBalance = total - totalPaid;
       const newStatus = newRemainingBalance <= 0 ? 'upToDate' : 'overdue';
 
-      const newCompletionStatus = newRemainingBalance > 0 ? 'standby' : 'finished';
-
       await this.supabase
         .from('orders')
         .update({
           order_payment_status: newStatus,
-          order_completion_status: newCompletionStatus
         })
         .eq('id_order', order.id_order);
 
