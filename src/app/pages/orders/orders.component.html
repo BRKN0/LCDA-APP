@@ -259,9 +259,9 @@
           </td>
           <td
             [ngClass]="{
-              'text-green-600': order.order_completion_status === 'finished',
-              'text-red-600': order.order_completion_status === 'standby',
-              'text-orange-400': order.order_completion_status === 'inProgress'
+              'text-green-600': order.order_completion_status === 'delivered',
+              'text-blue-600': order.order_completion_status === 'inProgress',
+              'text-purple-400': order.order_completion_status === 'finished'
             }"
           >
             <select
@@ -270,8 +270,8 @@
               (change)="toggleOrderCompletionStatus(order)"
             >
               <option value="finished">Terminado</option>
-              <option value="standby">En espera</option>
-              <option value="inProgress">En progreso</option>
+              <option value="delivered">Entregado</option>
+              <option value="inProgress">En proceso</option>
             </select>
           </td>
           <td
@@ -328,23 +328,9 @@
             }}
           </td>
           <td
-            [ngClass]="{
-              'text-green-600': order.order_completion_status === 'finished',
-              'text-blue-600':
-                order.order_completion_status !== 'finished' &&
-                getRemainingDeliveryDays(order) > 0,
-              'text-red-600':
-                order.order_completion_status !== 'finished' &&
-                getRemainingDeliveryDays(order) <= 0
-            }"
+            [ngClass]="getDaysRemainingClass(order)"
           >
-            {{
-              order.order_completion_status === "finished"
-                ? "Completo"
-                : getRemainingDeliveryDays(order) > 0
-                ? getRemainingDeliveryDays(order) + " días"
-                : "Vencido"
-            }}
+            {{ getDaysRemainingLabel(order) }}
           </td>
           <td>{{ order.total }}</td>
           <td
@@ -367,7 +353,7 @@
             </button>
             <button class="btn-edit" (click)="editOrder(order)">Editar</button>
             <button
-              *ngIf="userRole == 'admin'"
+              *ngIf="userRole == 'admin' || userRole === 'scheduler'"
               class="btn-delete"
               (click)="deleteOrder(order)"
             >
@@ -395,9 +381,9 @@
 
           <td
             [ngClass]="{
-              'text-green-600': order.order_completion_status === 'finished',
-              'text-red-600': order.order_completion_status === 'standby',
-              'text-orange-400': order.order_completion_status === 'inProgress'
+              'text-green-600': order.order_completion_status === 'delivered',
+              'text-blue-600': order.order_completion_status === 'inProgress',
+              'text-purple-400': order.order_completion_status === 'finished'
             }"
           >
             <select
@@ -406,8 +392,8 @@
               (change)="toggleOrderCompletionStatus(order)"
             >
               <option value="finished">Terminado</option>
-              <option value="standby">En espera</option>
-              <option value="inProgress">En progreso</option>
+              <option value="delivered">Entregado</option>
+              <option value="inProgress">En proceso</option>
             </select>
           </td>
           <td>{{ order.created_at | date : "dd-MM-yyyy" }}</td>
@@ -433,7 +419,7 @@
             </button>
             <button class="btn-edit" (click)="editOrder(order)">Editar</button>
             <button
-              *ngIf="userRole == 'admin'"
+              *ngIf="userRole == 'admin' || userRole === 'scheduler'"
               class="btn-delete"
               (click)="deleteOrder(order)"
             >
@@ -546,11 +532,11 @@
             {{
               selectedOrderDetails[0].order_completion_status === "finished"
                 ? "Completado"
-                : selectedOrderDetails[0].order_completion_status === "standby"
-                ? "En espera"
+                : selectedOrderDetails[0].order_completion_status === "delivered"
+                ? "Entregado"
                 : selectedOrderDetails[0].order_completion_status ===
                   "inProgress"
-                ? "En progreso"
+                ? "En proceso"
                 : "Desconocido"
             }}
           </p>
@@ -1072,7 +1058,7 @@
             required
           />
         </div>
-        <!-- ✅ NUEVO: Valor Total del Pedido (ingreso manual) -->
+        <!-- Valor Total del Pedido (ingreso manual) -->
         <div class="mb-4 border-t pt-4">
           <label class="block modal-input-item"
             >Valor Total del Pedido<span class="text-red-500">*</span></label
@@ -1158,7 +1144,7 @@
             </li>
           </ul>
         </div>
-         <!-- ✅ NUEVO: Tiempo de Corte (solo para laser) -->
+         <!-- Tiempo de Corte (solo para laser) -->
         <div *ngIf="newOrder.order_type === 'laser'" class="mb-4 border-t pt-4">
           <h4 class="font-semibold text-yellow-600">Datos de Corte</h4>
 

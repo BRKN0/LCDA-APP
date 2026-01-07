@@ -1407,7 +1407,7 @@ export class OrdersComponent implements OnInit {
       console.error('Error actualizando estado:', error);
       // Revertir el cambio local en caso de error
       order.order_completion_status =
-        order.order_completion_status === 'finished' ? 'standby' : 'finished';
+        order.order_completion_status === 'finished' ? 'inProgress' : 'finished';
     } else {
       // Actualizar localmente para reflejar el cambio inmediato
       order.order_delivery_status = newDeliveryStatus;
@@ -1446,7 +1446,7 @@ export class OrdersComponent implements OnInit {
         amount: '',
         id_client: '',
         order_confirmed_status: 'notConfirmed',
-        order_completion_status: 'standby',
+        order_completion_status: 'inProgress',
         order_delivery_status: 'toBeDelivered',
         notes: '',
         file_path: '',
@@ -3103,6 +3103,25 @@ export class OrdersComponent implements OnInit {
 
     const diffTime = deliveryDate.getTime() - now.getTime();
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  }
+
+  getDaysRemainingLabel(order: Orders): string {
+    if (order.order_completion_status !== 'inProgress') {
+      return 'Completo';
+    }
+
+    const days = this.getRemainingDeliveryDays(order);
+    return days > 0 ? `${days} días` : 'Vencido';
+  }
+
+  getDaysRemainingClass(order: Orders): string {
+    if (order.order_completion_status !== 'inProgress') {
+      return 'text-green-600';
+    }
+
+    return this.getRemainingDeliveryDays(order) > 0
+      ? 'text-blue-600'
+      : 'text-red-600';
   }
 
   public getRemainingDeliveryHours(order: Orders): number {

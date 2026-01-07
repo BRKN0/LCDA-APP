@@ -129,7 +129,7 @@
       <div class="modal-content modal-h250" [class.expanded]="modalExpanded">
         <h3 class="text-lg font-bold mb-4">
           Cliente: {{ selectedClient?.name }}
-        </h3>
+        </h3> 
         <div class="flex space-x-4 mb-4">
           <button
             (click)="toggleOrders(selectedClient)"
@@ -137,7 +137,7 @@
           >
             Mostrar Pedidos
           </button>
-          <button class="btn-liquidation" (click)="generatePDF()">
+          <button class="btn-liquidation" (click)="toggleExtractFilters()">
             Descargar Extracto
           </button>
           <button class="btn-details" (click)="toggleClientDetails()">
@@ -222,6 +222,51 @@
               }}
             </span>
           </p>
+        </div>
+        <div
+          *ngIf="showExtractFilters"
+          class="mt-5 p-4 border rounded-lg bg-gray-50 space-y-4"
+        >
+          <!-- Filtros -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-sm font-semibold mb-1">Estado</label>
+              <select [(ngModel)]="extractStatusFilter" class="input w-full">
+                <option value="all">Todos los pedidos</option>
+                <option value="overdue">Solo pedidos en mora</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold mb-1">Desde</label>
+              <input
+                type="date"
+                [(ngModel)]="extractFromDate"
+                class="border rounded p-1"
+              />
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold mb-1">Hasta</label>
+              <input
+                type="date"
+                [(ngModel)]="extractToDate"
+                class="border rounded p-1"
+              />
+            </div>
+          </div>
+
+          <!-- Mensaje de error o información -->
+          <div *ngIf="extractMessage" class="text-sm text-red-600 mt-2">
+            {{ extractMessage }}
+          </div>
+
+          <!-- Acción -->
+          <div class="flex justify-start pt-2">
+            <button class="btn-primary px-5 py-2" (click)="downloadExtract()">
+              Descargar PDF
+            </button>
+          </div>
         </div>
 
         <!-- Botones en la parte inferior derecha -->

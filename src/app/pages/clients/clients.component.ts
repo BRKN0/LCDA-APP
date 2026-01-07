@@ -101,6 +101,11 @@ export class ClientsComponent implements OnInit {
   endDate: string = '';
   onlyWithDebt: boolean = false;
   selectedPaymentMethod: string = 'cash';
+  showExtractFilters = false;
+  extractStatusFilter: 'all' | 'overdue' = 'all';
+  extractFromDate?: string;
+  extractToDate?: string;
+  extractMessage: string | null = null;
   newClient: Partial<Client> = {
     id_client: '',
     document_type: '',
@@ -457,11 +462,22 @@ export class ClientsComponent implements OnInit {
     this.selectedClient = null;
     this.showDetails = false;
     this.showOrders = false;
+    this.showExtractFilters = false;
+    this.extractMessage = null;
+    this.resetExtractFilters();
   }
 
   toggleClientDetails() {
     this.showDetails = !this.showDetails;
     this.modalExpanded = !this.modalExpanded;
+  }
+
+  toggleExtractFilters() {
+    this.showExtractFilters = !this.showExtractFilters;
+
+    if (!this.showExtractFilters) {
+      this.resetExtractFilters();
+    }
   }
 
   toggleOrders(client: Client | null): void {
@@ -727,10 +743,43 @@ export class ClientsComponent implements OnInit {
     this.isEditing = false;
   }
 
-  generatePDF(): void {
+  resetExtractFilters() {
+    this.extractStatusFilter = 'all';
+    this.extractFromDate = undefined;
+    this.extractToDate = undefined;
+    this.extractMessage = null;
+  }
+
+  generatePDF(): boolean {
     if (!this.selectedClient || !this.selectedClient.orders) {
-      console.error('No hay datos de pedidos para exportar');
-      return;
+      this.extractMessage = 'No hay datos para generar el extracto.';
+      return false;
+    }
+
+    let filteredOrders = [...this.selectedClient.orders];
+
+    //  FILTRO POR FECHA (SIEMPRE)
+    if (this.extractFromDate && this.extractToDate) {
+      const from = new Date(this.extractFromDate).setHours(0, 0, 0, 0);
+      const to = new Date(this.extractToDate).setHours(23, 59, 59, 999);
+
+      filteredOrders = filteredOrders.filter(order => {
+        const orderDate = new Date(order.created_at).getTime();
+        return orderDate >= from && orderDate <= to;
+      });
+    }
+
+    //  FILTRO POR ESTADO (OPCIONAL)
+    if (this.extractStatusFilter === 'overdue') {
+      filteredOrders = filteredOrders.filter(
+        order => this.getOrderDebt(order) > 0
+      );
+    }
+
+    if (filteredOrders.length === 0) {
+      this.extractMessage =
+        'No hay pedidos que coincidan con los filtros seleccionados.';
+      return false;
     }
 
     const doc = new jsPDF();
@@ -744,31 +793,54 @@ export class ClientsComponent implements OnInit {
       10
     );
 
-    const orders = this.selectedClient.orders.map((order: Orders) => [
-      order.code,
-      new Date(order.created_at).toLocaleDateString('es-CO'),
-      order.description,
-      `$${this.calculateOrderTotal(order).toFixed(2)}`,
-      order.order_payment_status === 'upToDate' ? 'Al Día' : 'En Mora',
-      (order.payments || [])
-        .map(
-          (p) =>
-            `$${p.amount.toFixed(2)} - ${this.formatPaymentMethod(p.payment_method)} - ${
-              p.payment_date ? new Date(p.payment_date).toLocaleDateString('es-CO') : 'Sin fecha'
-            }`
-        )
-        .join('\n'),
-    ]);
+    const orders = filteredOrders.map((order: Orders) => {
+      const debt = this.getOrderDebt(order);
+
+      return [
+        order.code,
+        new Date(order.created_at).toLocaleDateString('es-CO'),
+        order.description,
+        `$${this.calculateOrderTotal(order).toFixed(2)}`,
+        debt > 0 ? `$${debt.toFixed(2)}` : '0',
+        order.order_payment_status === 'upToDate' ? 'Al Día' : 'En Mora',
+        (order.payments || [])
+          .map(
+            (p) =>
+              `$${p.amount.toFixed(2)} - ${this.formatPaymentMethod(
+                p.payment_method
+              )} - ${
+                p.payment_date
+                  ? new Date(p.payment_date).toLocaleDateString('es-CO')
+                  : 'Sin fecha'
+              }`
+          )
+          .join('\n'),
+      ];
+    });
+
 
     (doc as any).autoTable({
-      head: [['#', 'Fecha', 'Detalles', 'Total', 'Estado', 'Abonos']],
+      head: [['#', 'Fecha', 'Detalles', 'Total', 'Deuda', 'Estado', 'Abonos']],
       body: orders,
       startY: 40,
     });
 
     doc.save(
-      `Extracto-${this.selectedClient.company_name || this.selectedClient.name}.pdf`
+      `Extracto-${this.selectedClient.name}.pdf`
     );
+
+    return true;
+  }
+
+  downloadExtract() {
+    this.extractMessage = null;
+
+    const success = this.generatePDF();
+
+    if (!success) return;
+
+    this.resetExtractFilters();
+    this.showExtractFilters = false;
   }
 
   generateClientsKardex(): void {
