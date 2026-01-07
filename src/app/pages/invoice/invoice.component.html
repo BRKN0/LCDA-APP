@@ -164,9 +164,11 @@
         </td>
         <td class="table-column-std">
           {{
-            getRemainingDeliveryDays(invoice.due_date) > 0
-              ? getRemainingDeliveryDays(invoice.due_date) + " días"
-              : "Vencido"
+            getRemainingBalance(invoice) <= 0
+              ? 'Pagado'
+              : getRemainingPaymentDays(invoice) <= 0
+              ? 'Vencido'
+              : getRemainingPaymentDays(invoice) + ' días'
           }}
         </td>
         <td class="table-column-std">
@@ -339,9 +341,10 @@
           [(ngModel)]="selectedInvoice.payment_term"
           name="paymentTerm"
           class="form-input mt-1 block w-full border border-gray-300 rounded-md"
-          placeholder="Ej. 15"
-          [readonly]="isEditing"
+          placeholder="30"
+          min="1"
         />
+        <p class="text-sm text-gray-500 mt-1">Plazo de pago predeterminado: 30 días</p>
       </div>
       <div class="mb-4" *ngIf="selectedInvoice">
         <label class="block text-gray-700">Valor Total</label>
@@ -551,9 +554,14 @@
                 : "Desconocido"
             }}
           </p>
-          <p>
-            <strong>Plazo de Pago:</strong>
-            {{ getRemainingPaymentTerm(selectedInvoiceDetails[0]) }}
+          <p><strong>Plazo de Pago:</strong>
+            {{
+              getRemainingBalance(selectedInvoiceDetails[0]) <= 0
+                ? 'Pagado'
+                : getRemainingPaymentDays(selectedInvoiceDetails[0]) <= 0
+                ? 'Vencido'
+                : getRemainingPaymentDays(selectedInvoiceDetails[0]) + ' días'
+            }}
           </p>
         </div>
         <div class="text-right">
@@ -563,7 +571,7 @@
           <p>{{ selectedInvoiceDetails[0].order.client.document_number }}</p>
           <p>
             {{ selectedInvoiceDetails[0].order.client.address }},
-            <!-- {{ selectedInvoiceDetails[0].order.client.province }} 
+            <!-- {{ selectedInvoiceDetails[0].order.client.province }}
             {{ selectedInvoiceDetails[0].order.client.postal_code }} -->
           </p>
           <p>{{ selectedInvoiceDetails[0].order.client.email }}</p>
@@ -608,7 +616,7 @@
             <p>{{ valores.iva | currency : "COP" }}</p>
           </div>
         </div>
-        <!--  
+        <!--
         RETEFUENTE
         <div class="flex justify-between">
           <p>
@@ -684,13 +692,13 @@
             <li
               *ngFor="let payment of selectedInvoiceDetails[0].order.payments"
             >
-              ${{ payment.amount }} - 
-              {{ 
+              ${{ payment.amount }} -
+              {{
                 payment.payment_method === 'cash' ? 'Efectivo' :
-                payment.payment_method === 'nequi' ? 'Nequi' : 
+                payment.payment_method === 'nequi' ? 'Nequi' :
                 payment.payment_method === 'bancolombia' ? 'Bancolombia' :
                 payment.payment_method === 'Davivienda' ? 'Davivienda' :
-                payment.payment_method === 'other' ? 'Otro' 
+                payment.payment_method === 'other' ? 'Otro'
                 : "Desconocido"
               }} -
               {{ payment.payment_date | date : "dd-MM-yyyy" }}

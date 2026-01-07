@@ -1795,7 +1795,7 @@ export class OrdersComponent implements OnInit {
       ? order.delivery_date.slice(0, 10)
       : '';
 
-     // ✅ CARGAR cutting_time en tempCutTime para pedidos tipo LASER
+     // CARGAR cutting_time en tempCutTime para pedidos tipo LASER
       if (order.order_type === 'laser') {
         this.tempCutTime = Number(order.cutting_time) || 0;
       } else {
@@ -1914,19 +1914,18 @@ export class OrdersComponent implements OnInit {
       scheduler: await this.getUserName() || 'Desconocido',
     };
 
-    // ✅ CORRECCIÓN: Asignar tempCutTime para pedidos tipo LASER
+    // Asignar tempCutTime para pedidos tipo LASER
     if (this.newOrder.order_type === 'laser') {
-      this.newOrder.cutting_time = this.tempCutTime || 0; // ✅ Usar this.tempCutTime
+      this.newOrder.cutting_time = this.tempCutTime || 0;
 }
 
     const deliveryDate = newOrderForm.delivery_date
       ? new Date(newOrderForm.delivery_date)
       : new Date();
-    const paymentTerm = 0;
-    const dueDate = new Date(
-      deliveryDate.getTime() + paymentTerm * 24 * 60 * 60 * 1000
-    );
-    const dueDateISOString = dueDate.toISOString();
+    const paymentTerm = 30;
+    const currentDate = new Date();
+    const dueDate = new Date(currentDate);
+    dueDate.setDate(dueDate.getDate() + paymentTerm);
 
     if (this.isEditing) {
       // ========================================
@@ -1940,7 +1939,7 @@ export class OrdersComponent implements OnInit {
 
       this.newOrder.id_order = newOrderForm.id_order;
 
-      // ✅ ACTUALIZAR cutting_time desde tempCutTime
+      // ACTUALIZAR cutting_time desde tempCutTime
       if (this.newOrder.order_type === 'laser') {
         this.newOrder.cutting_time = this.tempCutTime || 0;
       }
@@ -1962,7 +1961,7 @@ export class OrdersComponent implements OnInit {
         return;
       }
 
-      // ✅ NUEVO: Actualizar también en tabla cuts si es tipo laser
+      // NUEVO: Actualizar también en tabla cuts si es tipo laser
       if (this.newOrder.order_type === 'laser') {
         // Verificar si ya existe un registro en cuts
         const { data: existingCut } = await this.supabase
@@ -1976,7 +1975,7 @@ export class OrdersComponent implements OnInit {
           const { error: updateCutError } = await this.supabase
             .from('cuts')
             .update({
-              cutting_time: this.tempCutTime,  // ✅ número
+              cutting_time: this.tempCutTime,
               unit_price: Number(this.newOrder.unitary_value) || 0,
             })
             .eq('id_order', this.newOrder.id_order);
@@ -1992,12 +1991,12 @@ export class OrdersComponent implements OnInit {
             id_order: this.newOrder.id_order,
             category: 'Corte Laser',
             material_type: 'General',
-            color: null,                    // ✅ null
-            caliber: null,                  // ✅ null
-            height: null,                   // ✅ null
-            width: null,                    // ✅ null
-            quantity: 1,                    // ✅ número
-            cutting_time: this.tempCutTime, // ✅ número
+            color: null,
+            caliber: null,
+            height: null,
+            width: null,
+            quantity: 1,
+            cutting_time: this.tempCutTime,
             unit_price: Number(this.newOrder.unitary_value) || 0,
           };
 
@@ -2052,18 +2051,18 @@ export class OrdersComponent implements OnInit {
 
       const insertedOrder = insertedOrderData[0];
 
-      // ✅ CORRECCIÓN: Si es pedido tipo LASER, insertar registro en tabla cuts
+      // Si es pedido tipo LASER, insertar registro en tabla cuts
       if (this.newOrder.order_type === 'laser' && this.tempCutTime > 0) {
         const cutRecord = {
           id_order: insertedOrder.id_order,
           category: 'Corte Laser',
           material_type: 'General',
-          color: null,                    // ✅ null en lugar de ''
-          caliber: null,                  // ✅ null en lugar de ''
-          height: null,                   // ✅ null en lugar de ''
-          width: null,                    // ✅ null en lugar de ''
-          quantity: 1,                    // ✅ número en lugar de '1'
-          cutting_time: this.tempCutTime, // ✅ número en lugar de string
+          color: null,
+          caliber: null,
+          height: null,
+          width: null,
+          quantity: 1,
+          cutting_time: this.tempCutTime,
           unit_price: Number(this.newOrder.unitary_value) || 0,
         };
 
@@ -2120,7 +2119,7 @@ export class OrdersComponent implements OnInit {
         code: this.newOrder.code?.toString() || '',
         payment_term: paymentTerm,
         include_iva: false,
-        due_date: dueDateISOString,
+        due_date: dueDate.toISOString().split('T')[0],
         created_at: new Date().toISOString(),
         invoice_status: 'overdue',
       };
