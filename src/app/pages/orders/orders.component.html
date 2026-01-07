@@ -367,7 +367,7 @@
             </button>
             <button class="btn-edit" (click)="editOrder(order)">Editar</button>
             <button
-              *ngIf="userRole == 'admin'"
+              *ngIf="userRole == 'admin' || userRole === 'scheduler'"
               class="btn-delete"
               (click)="deleteOrder(order)"
             >
@@ -433,7 +433,7 @@
             </button>
             <button class="btn-edit" (click)="editOrder(order)">Editar</button>
             <button
-              *ngIf="userRole == 'admin'"
+              *ngIf="userRole == 'admin' || userRole === 'scheduler'"
               class="btn-delete"
               (click)="deleteOrder(order)"
             >
