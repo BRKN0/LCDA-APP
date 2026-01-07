@@ -470,9 +470,9 @@ export class ClientsComponent implements OnInit {
       this.startDate = '';
       this.endDate = '';
       this.onlyWithDebt = false;
-      this.selectedClient = { 
+      this.selectedClient = {
         ...client,
-        orders: [...client.orders].sort((a, b) => b.code - a.code) 
+        orders: [...client.orders].sort((a, b) => b.code - a.code)
       };
       this.showOrders = true;
       this.currentOrderPage = 1;
@@ -645,7 +645,7 @@ export class ClientsComponent implements OnInit {
     }
 
     const clientToSave = {
-      name: this.selectedClientData.name || null,
+      name: this.selectedClientData.name?.toUpperCase().trim() || null,
       document_type: this.selectedClientData.document_type,
       document_number: this.selectedClientData.document_number || null,
       cellphone: this.selectedClientData.cellphone,

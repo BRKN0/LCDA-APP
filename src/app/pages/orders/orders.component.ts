@@ -302,7 +302,7 @@ export class OrdersComponent implements OnInit {
     email: '',
     document_type: '',
     document_number: '0',
-    company_name: '',
+    //company_name: '',
     cellphone: '0',
     address: '',
     status: '',
@@ -454,7 +454,7 @@ export class OrdersComponent implements OnInit {
       email: '',
       document_type: '',
       document_number: '',
-      company_name: '',
+      //company_name: '',
       cellphone: '',
       address: '',
       status: '',
@@ -467,9 +467,15 @@ export class OrdersComponent implements OnInit {
       return;
     }
 
+    const clientToSave = {
+      ...this.newClient,
+      name: this.newClient.name.toUpperCase().trim(),
+    };
+
+    //
     const { data, error } = await this.supabase
       .from('clients')
-      .insert([this.newClient]);
+      .insert([clientToSave]);
 
     if (error) {
       console.error('Error añadiendo el cliente:', error);
