@@ -11,6 +11,7 @@ type OrderLite = {
   code: string | null | undefined;
   created_at: string | null | undefined;
   scheduler: string | null | undefined;
+  description: string | null | undefined;
 };
 function toOrderLite(raw: any): OrderLite | null {
   if (!raw) return null;
@@ -22,6 +23,7 @@ function toOrderLite(raw: any): OrderLite | null {
     code: o.code ?? null,
     created_at: o.created_at ?? null,
     scheduler: o.scheduler ?? null,
+    description: o.description ?? null,
   };
 }
 interface Cut {
@@ -159,7 +161,8 @@ export class ScheduleComponent implements OnInit {
           id_order,
           code,
           created_at,
-          scheduler
+          scheduler, 
+          description
         )
       )
     `
@@ -189,7 +192,7 @@ export class ScheduleComponent implements OnInit {
         category: c.category ?? null,
         material_type: c.material_type ?? null,
         color: c.color ?? null,
-        order: toOrderLite(c.order),
+        order: toOrderLite(c.orders),
       };
 
       return {
@@ -224,7 +227,8 @@ export class ScheduleComponent implements OnInit {
       id_order,
       code,
       created_at,
-      scheduler
+      scheduler,
+      description
     )
   `
       )
@@ -246,7 +250,7 @@ export class ScheduleComponent implements OnInit {
             category: c.category ?? null,
             material_type: c.material_type ?? null,
             color: c.color ?? null,
-            order: toOrderLite(c.order),
+            order: toOrderLite(c.orders),
           } as Cut)
       );
 
@@ -313,7 +317,7 @@ export class ScheduleComponent implements OnInit {
         category: c.category ?? null,
         material_type: c.material_type ?? null,
         color: c.color ?? null,
-        order: toOrderLite(c.order),
+        order: toOrderLite(c.orders),
       })) as Cut[];
   }
 
@@ -387,7 +391,7 @@ export class ScheduleComponent implements OnInit {
     if (!cut.order && cut.id_order) {
       const { data: ord } = await this.supabase
         .from('orders')
-        .select('id_order, code, created_at, scheduler')
+        .select('id_order, code, created_at, scheduler, description')
         .eq('id_order', cut.id_order)
         .maybeSingle();
 
@@ -395,7 +399,7 @@ export class ScheduleComponent implements OnInit {
       if (!cut.order && cut.id_order) {
         const { data: ord, error } = await this.supabase
           .from('orders')
-          .select('id_order, code, created_at, scheduler')
+          .select('id_order, code, created_at, scheduler, description')
           .eq('id_order', cut.id_order)
           .maybeSingle();
         if (!error && ord) {
@@ -406,6 +410,7 @@ export class ScheduleComponent implements OnInit {
               code: ord.code ?? null,
               created_at: ord.created_at ?? null,
               scheduler: ord.scheduler ?? null,
+              description: ord.description ?? null
             },
           };
         }
