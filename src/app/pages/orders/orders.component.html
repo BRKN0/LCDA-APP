@@ -945,7 +945,7 @@
           >
         </button>
       </div>
-      <ng-container *ngIf="userRole === 'admin'">
+      <ng-container *ngIf="userRole === 'admin' || userRole === 'scheduler'">
         <div *ngIf="selectedOrderDetails[0]?.invoice_file" class="mt-4">
           <p class="font-semibold">Factura adjunta:</p>
           <button
@@ -2108,7 +2108,7 @@
           Archivo subido: {{ uploadedFileName }}
         </p>
       </div>
-      <ng-container *ngIf="userRole === 'admin'">
+      <ng-container *ngIf="userRole === 'admin' || userRole === 'scheduler'">
         <div class="mb-4">
           <label class="block modal-input-item">Factura (PDF)</label>
           <input type="file" (change)="onInvoiceFileSelected($event)" />
