@@ -85,6 +85,9 @@ export class ExpensesComponent implements OnInit {
   otherCategory: string = '';
   uniqueCategories: string[] = [];
   selectedCategory: string = '';
+  isNewCategoryMode: boolean = false;
+  newCategory: string = '';
+  categoryJustAdded: boolean = false;
   standardCategories = [
     { value: 'SUPPLIES', label: 'Compra de Insumos / Proveedores' },
     { value: 'RENT', label: 'Arriendo' },
@@ -93,7 +96,6 @@ export class ExpensesComponent implements OnInit {
     { value: 'MAINTENANCE', label: 'Mantenimiento' },
     { value: 'TAXES', label: 'Impuestos' },
     { value: 'MARKETING', label: 'Publicidad' },
-    { value: 'OTHER', label: 'Otros' },
   ];
   baseCategories = [
     'SUPPLIES',
@@ -103,7 +105,6 @@ export class ExpensesComponent implements OnInit {
     'MAINTENANCE',
     'TAXES',
     'MARKETING',
-    'OTHER',
   ];
 
   // Service categories
@@ -183,6 +184,16 @@ export class ExpensesComponent implements OnInit {
       new Set(this.expenses.map((e) => e.category).filter(Boolean))
     ).sort();
   }
+  confirmNewCategory(): void {
+    if (!this.newCategory) return;
+
+    const normalized = this.newCategory.trim().toUpperCase();
+
+    this.selectedExpense.category = normalized;
+    this.newCategory = '';
+    this.isNewCategoryMode = false;
+    this.categoryJustAdded = true;
+  }
   confirmNewServiceType(): void {
     if (!this.newServiceType) return;
 
@@ -213,18 +224,26 @@ export class ExpensesComponent implements OnInit {
   }
 
   // Handle dropdown changes
-  onCategoryChange(event: Event): void {
-    const selectedValue = (event.target as HTMLSelectElement).value;
-    this.selectedExpense.category = selectedValue;
+ onCategoryChange(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
 
-    this.isServiceCategory = selectedValue === 'UTILITIES';
+    if (value === 'NEW_CATEGORY_OPTION') {
+      this.isNewCategoryMode = true;
+      this.selectedExpense.category = '';
+      return;
+    }
+
+    this.isNewCategoryMode = false;
+    this.selectedExpense.category = value;
+
+    this.isServiceCategory = value === 'UTILITIES';
 
     if (!this.isServiceCategory) {
       this.selectedExpense.service_type = null;
       this.newServiceType = '';
     }
 
-    if (selectedValue !== 'SUPPLIES') {
+    if (value !== 'SUPPLIES') {
       this.selectedExpense.id_provider = '';
       this.isNewProviderMode = false;
     }
@@ -617,6 +636,8 @@ export class ExpensesComponent implements OnInit {
     this.newServiceType = '';
     this.showOtherCategoryInput = false;
     this.otherCategory = '';
+    this.isNewCategoryMode = false;
+    this.categoryJustAdded = false;
     this.isEditing = false;
     this.showModal = true;
   }
@@ -644,6 +665,8 @@ export class ExpensesComponent implements OnInit {
     this.showOtherCategoryInput = false;
     this.otherCategory = '';
     this.isServiceCategory = false;
+    this.isNewCategoryMode = false;
+    this.categoryJustAdded = false;
     this.newServiceType = '';
 
     this.selectedExpense = {
