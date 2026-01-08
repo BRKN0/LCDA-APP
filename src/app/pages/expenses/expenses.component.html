@@ -273,10 +273,48 @@
           required
         >
           <option value="" disabled selected>Seleccione...</option>
-          <option *ngFor="let cat of standardCategories" [value]="cat.value">
-            {{ cat.label }}
+          <option
+            *ngFor="let cat of getAllCategories()"
+            [value]="cat"
+          >
+            {{ getCategoryLabel(cat) }}
+          </option>
+
+          <option value="NEW_CATEGORY_OPTION" class="font-bold text-blue-600">
+            + Nueva categoría
           </option>
         </select>
+      </div>
+      <div
+        *ngIf="categoryJustAdded"
+        class="mt-2 text-sm font-semibold text-green-700 bg-green-50 border border-green-200 rounded px-3 py-2 animate-fadeIn"
+      >
+        Categoría <span class="font-bold">{{ selectedExpense.category }}</span> seleccionada
+      </div>
+      <div
+        *ngIf="isNewCategoryMode"
+        class="bg-blue-50 p-4 rounded-md border border-blue-200 space-y-2 mt-2"
+      >
+        <label class="block text-sm font-medium text-blue-800">
+          Nueva Categoría
+        </label>
+
+        <div class="flex gap-2">
+          <input
+            type="text"
+            [(ngModel)]="newCategory"
+            name="new_category"
+            placeholder="Ej: Seguros, Honorarios, Fletes"
+            class="form-input w-full text-sm rounded-md"
+          />
+          <button
+            type="button"
+            class="btn-primary text-sm px-3"
+            (click)="confirmNewCategory()"
+          >
+            Usar
+          </button>
+        </div>
       </div>
       <!-- Tipo de Servicio (solo para SERVICES) -->
       <div
