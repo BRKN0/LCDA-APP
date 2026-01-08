@@ -89,7 +89,7 @@ export const routes: Routes = [
     path: 'invoice',
     loadComponent: () => InvoiceComponent,
     canMatch: [roleGuard],
-    data: { roles: ['admin', 'scheduler', 'cuts_employee'] },
+    data: { roles: ['admin', 'scheduler'] },
   },
   {
     path: 'expenses',

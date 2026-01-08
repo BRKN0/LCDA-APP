@@ -228,15 +228,6 @@
           <span>Clientes</span>
         </div>
         <div
-          *ngIf="userRole == 'cuts_employee'"
-          class="nav-item cursor-pointer"
-          [ngClass]="{ active: router.url.startsWith('/clients') }"
-          (click)="goToInvoices()"
-        >
-          <i class="fas fa-users"></i>
-          <span>Facturas</span>
-        </div>
-        <div
           *ngIf="userRole == 'admin' || userRole == 'scheduler'"
           class="relative"
           (clickOutside)="closeDropdowns()"
