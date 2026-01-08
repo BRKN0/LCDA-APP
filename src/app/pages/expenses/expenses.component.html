@@ -5,22 +5,46 @@
   <p>Cargando egresos...</p>
 </div>
 <div class="flex justify-between items-center mb-4 mt-4 ml-2">
-  <div
-    class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 mt-4 ml-2 gap-4 pr-4"
-  >
-    <div class="flex flex-wrap gap-4">
-      <label
-        class="flex items-center cursor-pointer"
-        *ngFor="let category of uniqueCategories"
+  <div class="flex flex-wrap gap-4 items-end mt-4 mb-4">
+    <!-- Categoría -->
+    <div>
+      <label class="block text-sm font-semibold">Categoría</label>
+      <select
+        [(ngModel)]="filterCategory"
+        (change)="onFilterCategoryChange()"
+        class="form-select w-48"
       >
-        <input
-          type="checkbox"
-          [(ngModel)]="categoryCheckboxes[category]"
-          (change)="onCheckboxChange(category)"
-          class="form-checkbox h-4 w-4 text-red-600 rounded border-gray-300 focus:ring-red-500"
-        />
-        <span class="ml-2 text-sm">{{ getCategoryLabel(category) }}</span>
-      </label>
+        <option value="">Todas</option>
+        <option *ngFor="let c of getFilterCategories()" [value]="c">
+          {{ getCategoryLabel(c) }}
+        </option>
+      </select>
+    </div>
+
+    <!-- Tipo de servicio -->
+    <div *ngIf="filterCategory === 'UTILITIES'">
+      <label class="block text-sm font-semibold">Tipo de servicio</label>
+      <select
+        [(ngModel)]="filterServiceType"
+        (change)="applyFilters()"
+        class="form-select w-48"
+      >
+        <option value="">Todos</option>
+        <option *ngFor="let s of getFilterServiceTypes()" [value]="s">
+          {{ s }}
+        </option>
+      </select>
+    </div>
+
+    <!-- Solo pendientes -->
+    <div class="flex items-center gap-2 mt-6">
+      <input
+        type="checkbox"
+        [(ngModel)]="onlyPending"
+        (change)="applyFilters()"
+        class="form-checkbox h-4 w-4 text-red-600"
+      />
+      <span class="text-sm font-semibold">Solo pendientes</span>
     </div>
   </div>
   <div class="flex space-x-2">
@@ -90,7 +114,11 @@
         </td>
 
         <td class="px-4 py-2 border-b">
-          {{ getCategoryLabel(expense.category) }}
+          {{
+            expense.category === 'UTILITIES' && expense.service_type
+              ? getCategoryLabel(expense.category) + ' - ' + expense.service_type
+              : getCategoryLabel(expense.category)
+          }}
         </td>
         <td class="px-4 py-2 border-b text-sm text-gray-600">
           {{ expense.provider_name || "NO APLICA" }}
@@ -240,6 +268,45 @@
             {{ cat.label }}
           </option>
         </select>
+      </div>
+      <!-- Tipo de Servicio (solo para SERVICES) -->
+      <div
+        *ngIf="isServiceCategory"
+        class="bg-yellow-50 p-4 rounded-md border border-yellow-200 space-y-3 mt-2"
+      >
+        <h3 class="font-semibold text-yellow-800 text-sm">
+          Tipo de Servicio
+        </h3>
+
+        <!-- Selector -->
+        <select
+          [(ngModel)]="selectedExpense.service_type"
+          name="service_type"
+          class="form-select mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+        >
+          <option value="" disabled>Seleccione tipo de servicio</option>
+          <option *ngFor="let s of getServiceTypes()" [value]="s">
+            {{ s }}
+          </option>
+        </select>
+
+        <!-- Crear nuevo -->
+        <div class="flex gap-2 mt-2">
+          <input
+            type="text"
+            [(ngModel)]="newServiceType"
+            name="new_service_type"
+            placeholder="Nuevo tipo de servicio (Ej: Gas)"
+            class="form-input w-full text-sm rounded-md"
+          />
+          <button
+            type="button"
+            class="btn-primary text-sm px-3"
+            (click)="confirmNewServiceType()"
+          >
+            Usar
+          </button>
+        </div>
       </div>
 
       <div
