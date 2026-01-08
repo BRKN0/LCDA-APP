@@ -77,7 +77,7 @@ export const routes: Routes = [
     path: 'schedule',
     loadComponent: () => ScheduleComponent,
     canMatch: [roleGuard],
-    data: { roles: ['admin', 'scheduler'] },
+    data: { roles: ['admin', 'scheduler', 'cuts_employee'] },
   },
   {
     path: 'quotation',
@@ -89,7 +89,7 @@ export const routes: Routes = [
     path: 'invoice',
     loadComponent: () => InvoiceComponent,
     canMatch: [roleGuard],
-    data: { roles: ['admin'] },
+    data: { roles: ['admin', 'scheduler', 'cuts_employee'] },
   },
   {
     path: 'expenses',
