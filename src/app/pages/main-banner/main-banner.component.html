@@ -199,14 +199,18 @@
           >
             <li
               class="p-2 nav-item cursor-pointer"
-              [ngClass]="{ active: router.url.startsWith('/inventory/materials') }"
+              [ngClass]="{
+                active: router.url.startsWith('/inventory/materials')
+              }"
               (click)="goToInventory(); closeDropdowns()"
             >
               Materiales
             </li>
             <li
               class="p-2 nav-item cursor-pointer"
-              [ngClass]="{ active: router.url.startsWith('/inventory/product') }"
+              [ngClass]="{
+                active: router.url.startsWith('/inventory/product')
+              }"
               (click)="goToProducts(); closeDropdowns()"
             >
               Productos
@@ -223,7 +227,15 @@
           <i class="fas fa-users"></i>
           <span>Clientes</span>
         </div>
-
+        <div
+          *ngIf="userRole == 'cuts_employee'"
+          class="nav-item cursor-pointer"
+          [ngClass]="{ active: router.url.startsWith('/clients') }"
+          (click)="goToInvoices()"
+        >
+          <i class="fas fa-users"></i>
+          <span>Facturas</span>
+        </div>
         <div
           *ngIf="userRole == 'admin' || userRole == 'scheduler'"
           class="relative"
@@ -296,7 +308,7 @@
           <span>Empleados</span>
         </div>
         <div
-          *ngIf="userRole == 'admin'"
+          *ngIf="userRole == 'admin' || userRole == 'scheduler' || userRole == 'cuts_employee'"
           class="nav-item cursor-pointer"
           [ngClass]="{ active: router.url.startsWith('/schedule') }"
           (click)="goToSchedule()"
@@ -327,7 +339,7 @@
           </svg>
         </div>
         <div
-        *ngIf="userRole"
+          *ngIf="userRole"
           class="p-1 btn-signout absolute top-2 right-2 shadow-md cursor-pointer flex items-center"
           (click)="signOut()"
         >

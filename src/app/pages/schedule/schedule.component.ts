@@ -157,7 +157,7 @@ export class ScheduleComponent implements OnInit {
         category,
         material_type,
         color,
-        order:orders (
+        order:orders!cuts_id_order_fkey (
           id_order,
           code,
           created_at,
@@ -223,7 +223,7 @@ export class ScheduleComponent implements OnInit {
     category,
     material_type,
     color,
-    orders (
+    orders!cuts_id_order_fkey (
       id_order,
       code,
       created_at,
@@ -279,7 +279,7 @@ export class ScheduleComponent implements OnInit {
       category,
       material_type,
       color,
-      orders (
+      orders!cuts_id_order_fkey (
         id_order,
         code,
         description,
