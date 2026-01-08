@@ -146,7 +146,6 @@
           <th class="table-column-std">Atención</th>
           <th class="table-column-std">Estado de pago</th>
           <th class="table-column-std">Estado de trabajo</th>
-          <th class="table-column-std">Estado Stock</th>
           <th class="table-column-std">Fecha</th>
           <th class="table-column-std">Fecha de Entrega</th>
           <th class="table-column-std">Días Restantes</th>
@@ -225,32 +224,6 @@
               <option value="inProgress">En proceso</option>
             </select>
           </td>
-          <td
-            [ngClass]="{
-              'text-green-600': order.stock_status === 'fulfilled',
-              'text-orange-600': order.stock_status === 'partially_fulfilled',
-              'text-red-600': order.stock_status === 'pending_stock'
-            }"
-          >
-            <span
-              *ngIf="!order.stock_status || order.stock_status === 'fulfilled'"
-            >
-              Completo
-            </span>
-            <span *ngIf="order.stock_status === 'partially_fulfilled'">
-              Parcial
-              <span class="text-xs block"
-                >({{ order.pending_quantity || 0 }} pend.)</span
-              >
-            </span>
-            <span *ngIf="order.stock_status === 'pending_stock'">
-              Pendiente
-              <span class="text-xs block"
-                >({{ order.pending_quantity || 0 }} pend.)</span
-              >
-            </span>
-          </td>
-
           <td>
             <div>
               {{ order.created_at | date : "dd-MM-yyyy" }}
@@ -1029,7 +1002,13 @@
         <button type="button" class="btn-danger" (click)="toggleAddOrderForm()">
           Cancelar
         </button>
-        <button type="submit" class="btn-success ml-2">Guardar Pedido</button>
+        <button
+          *ngIf="userRole == 'admin' || userRole == 'scheduler'"
+          type="submit"
+          class="btn-success ml-2"
+        >
+          Guardar Pedido
+        </button>
       </div>
     </form>
   </div>
@@ -1124,7 +1103,11 @@
         >
           Cancelar
         </button>
-        <button type="submit" class="btn-success px-4 py-2 rounded-md">
+        <button
+          *ngIf="userRole == 'admin' || userRole == 'scheduler'"
+          type="submit"
+          class="btn-success px-4 py-2 rounded-md"
+        >
           Guardar Cliente
         </button>
       </div>

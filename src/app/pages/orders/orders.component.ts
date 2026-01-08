@@ -40,7 +40,6 @@ interface Orders {
     type?: 'fixed' | 'percentage';
   }[];
   base_total?: number;
-  stock_status?: 'fulfilled' | 'pending_stock' | 'partially_fulfilled';
   pending_quantity?: number;
   discount?: number;
   discount_type?: 'percentage' | 'fixed';
