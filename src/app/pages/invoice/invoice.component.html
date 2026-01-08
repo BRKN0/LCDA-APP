@@ -164,9 +164,11 @@
         </td>
         <td class="table-column-std">
           {{
-            getRemainingDeliveryDays(invoice.due_date) > 0
-              ? getRemainingDeliveryDays(invoice.due_date) + " días"
-              : "Vencido"
+            getRemainingBalance(invoice) <= 0
+              ? 'Pagado'
+              : getRemainingPaymentDays(invoice) <= 0
+              ? 'Vencido'
+              : getRemainingPaymentDays(invoice) + ' días'
           }}
         </td>
         <td class="table-column-std">
@@ -284,7 +286,7 @@
               class="p-2 hover:bg-gray-200 cursor-pointer"
               (click)="selectClient(client)"
             >
-              {{ client.name }} ({{ client.company_name || "Sin empresa" }})
+              {{ client.name }}
             </div>
           </div>
         </div>
@@ -304,6 +306,7 @@
           <option value="sales">Ventas</option>
         </select>
       </div>
+      <!--
       <div class="mb-4" *ngIf="selectedInvoice">
         <label class="block text-gray-700"
           >Clasificación tributaria (para impuestos)<span class="text-red-500"
@@ -319,7 +322,7 @@
           <option value="BIEN">Bien</option>
           <option value="SERVICIO">Servicio</option>
         </select>
-      </div>
+      </div> -->
       <div class="mb-4" *ngIf="selectedInvoice">
         <label class="block modal-input-item">{{ ivaLabel() }}</label>
         <input
@@ -338,9 +341,10 @@
           [(ngModel)]="selectedInvoice.payment_term"
           name="paymentTerm"
           class="form-input mt-1 block w-full border border-gray-300 rounded-md"
-          placeholder="Ej. 15"
-          [readonly]="isEditing"
+          placeholder="30"
+          min="1"
         />
+        <p class="text-sm text-gray-500 mt-1">Plazo de pago predeterminado: 30 días</p>
       </div>
       <div class="mb-4" *ngIf="selectedInvoice">
         <label class="block text-gray-700">Valor Total</label>
@@ -463,14 +467,6 @@
         />
       </div>
       <div class="mb-4">
-        <label class="block text-gray-700">Empresa</label>
-        <input
-          [(ngModel)]="newClient.company_name"
-          name="company_name"
-          class="form-input"
-        />
-      </div>
-      <div class="mb-4">
         <label class="block text-gray-700">Teléfono</label>
         <input
           type="number"
@@ -558,24 +554,25 @@
                 : "Desconocido"
             }}
           </p>
-          <p>
-            <strong>Plazo de Pago:</strong>
-            {{ getRemainingPaymentTerm(selectedInvoiceDetails[0]) }}
+          <p><strong>Plazo de Pago:</strong>
+            {{
+              getRemainingBalance(selectedInvoiceDetails[0]) <= 0
+                ? 'Pagado'
+                : getRemainingPaymentDays(selectedInvoiceDetails[0]) <= 0
+                ? 'Vencido'
+                : getRemainingPaymentDays(selectedInvoiceDetails[0]) + ' días'
+            }}
           </p>
         </div>
         <div class="text-right">
           <p>
             <strong>De:</strong>
-            {{
-              selectedInvoiceDetails[0].order.client.company_name ||
-                selectedInvoiceDetails[0].order.client.name
-            }}
-          </p>
-          <p>{{ selectedInvoiceDetails[0].order.client.address }}</p>
+            {{ selectedInvoiceDetails[0].order.client.name }}</p>
+          <p>{{ selectedInvoiceDetails[0].order.client.document_number }}</p>
           <p>
-            {{ selectedInvoiceDetails[0].order.client.city }},
-            {{ selectedInvoiceDetails[0].order.client.province }}
-            {{ selectedInvoiceDetails[0].order.client.postal_code }}
+            {{ selectedInvoiceDetails[0].order.client.address }},
+            <!-- {{ selectedInvoiceDetails[0].order.client.province }}
+            {{ selectedInvoiceDetails[0].order.client.postal_code }} -->
           </p>
           <p>{{ selectedInvoiceDetails[0].order.client.email }}</p>
           <p>{{ selectedInvoiceDetails[0].order.client.cellphone }}</p>
@@ -619,8 +616,8 @@
             <p>{{ valores.iva | currency : "COP" }}</p>
           </div>
         </div>
-
-        <!-- RETEFUENTE -->
+        <!--
+        RETEFUENTE
         <div class="flex justify-between">
           <p>
             <strong>{{ retefuenteLabel(selectedInvoiceDetails[0]) }}:</strong>
@@ -634,7 +631,7 @@
           </p>
         </div>
 
-        <!-- RETEICA -->
+        RETEICA
         <div class="flex justify-between">
           <p>
             <strong>{{ reteicaLabel(selectedInvoiceDetails[0]) }}:</strong>
@@ -647,6 +644,7 @@
             }}
           </p>
         </div>
+        -->
         <div
           class="flex justify-between"
           *ngIf="selectedInvoiceDetails[0].include_iva"
@@ -694,7 +692,15 @@
             <li
               *ngFor="let payment of selectedInvoiceDetails[0].order.payments"
             >
-              ${{ payment.amount }} - {{ payment.payment_method }} -
+              ${{ payment.amount }} -
+              {{
+                payment.payment_method === 'cash' ? 'Efectivo' :
+                payment.payment_method === 'nequi' ? 'Nequi' :
+                payment.payment_method === 'bancolombia' ? 'Bancolombia' :
+                payment.payment_method === 'Davivienda' ? 'Davivienda' :
+                payment.payment_method === 'other' ? 'Otro'
+                : "Desconocido"
+              }} -
               {{ payment.payment_date | date : "dd-MM-yyyy" }}
               <button class="text-blue-500 ml-2" (click)="editPayment(payment)">
                 Editar
@@ -732,11 +738,11 @@
               class="form-select w-full mt-1"
             >
               <option value="" disabled selected>Seleccione un método</option>
-              <option value="Efectivo">Efectivo</option>
-              <option value="Nequi">Nequi</option>
-              <option value="Bancolombia">Bancolombia</option>
+              <option value="cash">Efectivo</option>
+              <option value="nequi">Nequi</option>
+              <option value="bancolombia">Bancolombia</option>
               <option value="Davivienda">Davivienda</option>
-              <option value="Otro">Otro</option>
+              <option value="other">Otro</option>
             </select>
           </div>
           <div class="flex justify-end mt-4">
@@ -806,11 +812,11 @@
             name="editPaymentMethod"
             class="form-select w-full mt-1"
           >
-            <option value="Efectivo">Efectivo</option>
-            <option value="Nequi">Nequi</option>
-            <option value="Bancolombia">Bancolombia</option>
+            <option value="cash">Efectivo</option>
+            <option value="nequi">Nequi</option>
+            <option value="bancolombia">Bancolombia</option>
             <option value="Davivienda">Davivienda</option>
-            <option value="Otro">Otro</option>
+            <option value="other">Otro</option>
           </select>
         </div>
         <div class="flex justify-end">

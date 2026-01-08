@@ -38,8 +38,10 @@
                 {{ cut.category }} · {{ cut.material_type }}
                 {{ cut.color }}
 
-                {{ cut.cutting_time || 0 }} min · Encargado:
+                {{ cut.cutting_time || 0 }} min
+                <!-- · Encargado:
                 {{ cut.order?.scheduler || "—" }}
+                -->
               </div>
             </div>
             <button
@@ -84,8 +86,11 @@
                 {{ cut.category }} · {{ cut.material_type }}
                 {{ cut.color }}
 
-                {{ cut.cutting_time || 0 }} min · Encargado:
+                {{ cut.cutting_time || 0 }} min ·
+                <!--
+                Encargado:
                 {{ cut.order?.scheduler || "—" }} ·
+                -->
                 {{ cut.order?.created_at | date : "short" }}
               </div>
             </div>
@@ -130,8 +135,10 @@
                 {{ cut.category }} · {{ cut.material_type }}
                 {{ cut.color }}
 
-                {{ cut.cutting_time || 0 }} min · Encargado:
+                {{ cut.cutting_time || 0 }} min
+                <!-- · Encargado:
                 {{ cut.order?.scheduler || "—" }}
+              -->
               </div>
             </div>
             <button
@@ -198,8 +205,10 @@
             <div class="text-xs opacity-90">
               {{ toClock(b.startMin) }}–{{ toClock(b.endMin) }} ({{
                 b.actualDuration
-              }}m) ·
+              }}m)
+              <!-- ·
               {{ b.cut.order?.scheduler || "—" }}
+              -->
             </div>
           </div>
           <button
@@ -236,18 +245,22 @@
                 {{ selectedBlock!.actualDuration }} min
               </div>
             </div>
+            <!---
             <div>
               <span class="text-gray-500 text-xs">Encargado</span>
               <div class="font-medium">
                 {{ selectedBlock!.cut.order?.scheduler || "—" }}
               </div>
             </div>
+            -->
+            <!--
             <div>
               <span class="text-gray-500 text-xs">Codigo de pedido</span>
               <div class="font-medium">
                 {{ selectedBlock!.cut.order?.code }}
               </div>
             </div>
+             -->
             <div>
               <span class="text-gray-500 text-xs">Categoría</span>
               <div class="font-medium">
@@ -255,17 +268,19 @@
               </div>
             </div>
             <div>
-              <span class="text-gray-500 text-xs">Tipo de material</span>
+              <span class="text-gray-500 text-xs">Descripción del pedido</span>
               <div class="font-medium">
-                {{ selectedBlock!.cut.material_type || "—" }}
+                {{ selectedBlock!.cut.order?.description || "—" }}
               </div>
             </div>
+            <!--
             <div>
               <span class="text-gray-500 text-xs">Color</span>
               <div class="font-medium">
                 {{ selectedBlock!.cut.color || "—" }}
               </div>
             </div>
+            -->
             <div>
               <span class="text-gray-500 text-xs">Tiempo de corte</span>
               <div class="font-medium">

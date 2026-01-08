@@ -76,7 +76,7 @@
         <th class="table-column-std">Fecha</th>
         <th class="table-column-std">Categoría</th>
         <th class="table-column-std">Proveedor</th>
-        <th class="table-column-std">Descripción</th>
+        <th class="table-column-std">Anotación</th>
         <th class="table-column-std">Costo</th>
         <th class="table-column-std">Tipo Pago</th>
         <th class="table-column-std">Estado</th>
@@ -335,9 +335,7 @@
       </div>
 
       <div class="modal-input-item">
-        <label class="block text-sm font-medium text-gray-700"
-          >Descripción</label
-        >
+        <label for="description">Anotación</label>
         <textarea
           [(ngModel)]="selectedExpense.description"
           name="description"

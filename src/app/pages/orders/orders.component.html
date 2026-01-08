@@ -61,6 +61,7 @@
       </svg>
       <span>Añadir</span>
     </button>
+    <!--
     <button
       class="btn-details inline-flex items-center space-x-2"
       (click)="openCalculator()"
@@ -108,6 +109,7 @@
       </svg>
       <span>Calculadora</span>
     </button>
+    -->
     <button class="btn-clear" (click)="clearFilters()">Limpiar</button>
   </div>
 </div>
@@ -257,9 +259,9 @@
           </td>
           <td
             [ngClass]="{
-              'text-green-600': order.order_completion_status === 'finished',
-              'text-red-600': order.order_completion_status === 'standby',
-              'text-orange-400': order.order_completion_status === 'inProgress'
+              'text-green-600': order.order_completion_status === 'delivered',
+              'text-blue-600': order.order_completion_status === 'inProgress',
+              'text-purple-400': order.order_completion_status === 'finished'
             }"
           >
             <select
@@ -268,8 +270,8 @@
               (change)="toggleOrderCompletionStatus(order)"
             >
               <option value="finished">Terminado</option>
-              <option value="standby">En espera</option>
-              <option value="inProgress">En progreso</option>
+              <option value="delivered">Entregado</option>
+              <option value="inProgress">En proceso</option>
             </select>
           </td>
           <td
@@ -296,6 +298,7 @@
                 >({{ order.pending_quantity || 0 }} pend.)</span
               >
             </span>
+            <!--
             <button
               *ngIf="
                 order.stock_status === 'pending_stock' ||
@@ -306,6 +309,7 @@
             >
               Completar Stock
             </button>
+            -->
           </td>
 
           <td>
@@ -313,7 +317,7 @@
               {{ order.created_at | date:'dd-MM-yyyy' }}
             </div>
             <small *ngIf="order.created_time">
-              {{ order.created_time }}
+              {{ order.created_time.slice(0, 5) }}
             </small>
           </td>
           <td>
@@ -324,23 +328,9 @@
             }}
           </td>
           <td
-            [ngClass]="{
-              'text-green-600': order.order_completion_status === 'finished',
-              'text-blue-600':
-                order.order_completion_status !== 'finished' &&
-                getRemainingDeliveryDays(order) > 0,
-              'text-red-600':
-                order.order_completion_status !== 'finished' &&
-                getRemainingDeliveryDays(order) <= 0
-            }"
+            [ngClass]="getDaysRemainingClass(order)"
           >
-            {{
-              order.order_completion_status === "finished"
-                ? "Completo"
-                : getRemainingDeliveryDays(order) > 0
-                ? getRemainingDeliveryDays(order) + " días"
-                : "Vencido"
-            }}
+            {{ getDaysRemainingLabel(order) }}
           </td>
           <td>{{ order.total }}</td>
           <td
@@ -363,7 +353,7 @@
             </button>
             <button class="btn-edit" (click)="editOrder(order)">Editar</button>
             <button
-              *ngIf="userRole == 'admin'"
+              *ngIf="userRole == 'admin' || userRole === 'scheduler'"
               class="btn-delete"
               (click)="deleteOrder(order)"
             >
@@ -391,9 +381,9 @@
 
           <td
             [ngClass]="{
-              'text-green-600': order.order_completion_status === 'finished',
-              'text-red-600': order.order_completion_status === 'standby',
-              'text-orange-400': order.order_completion_status === 'inProgress'
+              'text-green-600': order.order_completion_status === 'delivered',
+              'text-blue-600': order.order_completion_status === 'inProgress',
+              'text-purple-400': order.order_completion_status === 'finished'
             }"
           >
             <select
@@ -402,8 +392,8 @@
               (change)="toggleOrderCompletionStatus(order)"
             >
               <option value="finished">Terminado</option>
-              <option value="standby">En espera</option>
-              <option value="inProgress">En progreso</option>
+              <option value="delivered">Entregado</option>
+              <option value="inProgress">En proceso</option>
             </select>
           </td>
           <td>{{ order.created_at | date : "dd-MM-yyyy" }}</td>
@@ -429,7 +419,7 @@
             </button>
             <button class="btn-edit" (click)="editOrder(order)">Editar</button>
             <button
-              *ngIf="userRole == 'admin'"
+              *ngIf="userRole == 'admin' || userRole === 'scheduler'"
               class="btn-delete"
               (click)="deleteOrder(order)"
             >
@@ -527,7 +517,7 @@
           <p>
             <strong>Fecha:</strong>
             {{ selectedOrderDetails[0].created_at | date : "dd-MM-yyyy" }}
-            {{ selectedOrderDetails[0].created_time }}
+            {{ selectedOrderDetails[0].created_time?.slice(0, 5) }}
           </p>
           <p>
             <strong>Fecha de Entrega:</strong>
@@ -542,11 +532,11 @@
             {{
               selectedOrderDetails[0].order_completion_status === "finished"
                 ? "Completado"
-                : selectedOrderDetails[0].order_completion_status === "standby"
-                ? "En espera"
+                : selectedOrderDetails[0].order_completion_status === "delivered"
+                ? "Entregado"
                 : selectedOrderDetails[0].order_completion_status ===
                   "inProgress"
-                ? "En progreso"
+                ? "En proceso"
                 : "Desconocido"
             }}
           </p>
@@ -637,22 +627,42 @@
       </div>
       <!-- Specific details for cuts -->
       <div *ngIf="selectedOrderDetails[0].order_type === 'laser'" class="my-6">
+        <!--
         <h4 class="font-semibold text-purple-700">Detalles de Corte</h4>
+        -->
 
-        <!-- Tabla de materiales de corte -->
+        <!-- Tabla de materiales de corte
         <ng-container *ngIf="selectedOrderTypeDetail?.length; else noCuts">
+          -->
+          <!--
           <table class="min-w-full text-sm border mt-3">
+            -->
+            <!--
             <thead class="bg-gray-200">
+              -->
+              <!--
               <tr>
+                -->
+                <!--
                 <th class="border px-2 py-1">Material</th>
                 <th class="border px-2 py-1">Color</th>
                 <th class="border px-2 py-1">Cantidad</th>
                 <th class="border px-2 py-1">Tiempo (min)</th>
                 <th class="border px-2 py-1">Dimensiones</th>
+                -->
+                <!--
               </tr>
+              -->
+              <!--
             </thead>
+            -->
+            <!--
             <tbody>
+              -->
+              <!--
               <tr *ngFor="let c of selectedOrderTypeDetail">
+                -->
+                <!--
                 <td class="border px-2 py-1">
                   <strong>{{ c.category }}</strong
                   ><br />
@@ -660,6 +670,8 @@
                     c.material_type
                   }}</span>
                 </td>
+                -->
+                <!--
                 <td class="border px-2 py-1">{{ c.color || "Vacío" }}</td>
                 <td class="border px-2 py-1">{{ c.quantity }}</td>
                 <td class="border px-2 py-1">{{ c.cutting_time }}</td>
@@ -669,25 +681,41 @@
                   </span>
                   <span *ngIf="!c.height && !c.width">-</span>
                 </td>
+                -->
+                <!--
               </tr>
+              -->
+              <!--
             </tbody>
+            -->
+            <!--
           </table>
+          -->
+          <!--
         </ng-container>
+        -->
 
+        <!--
         <ng-template #noCuts>
           <p class="text-gray-500">
             Este pedido no tiene materiales de corte registrados.
           </p>
         </ng-template>
+        -->
       </div>
 
       <!-- Specific details for prints -->
       <div *ngIf="selectedOrderDetails[0].order_type === 'print'" class="my-6">
+        <!--
         <h4 class="font-semibold text-green-700">Detalles de Impresión</h4>
-
-        <!-- Tabla de materiales de impresión -->
+        -->
+        <!-- Tabla de materiales de impresión
         <ng-container *ngIf="selectedOrderTypeDetail?.length; else noPrints">
+          -->
+          <!--
           <table class="min-w-full text-sm border mt-3">
+            -->
+            <!--
             <thead class="bg-gray-200">
               <tr>
                 <th class="border px-2 py-1">Material</th>
@@ -696,6 +724,8 @@
                 <th class="border px-2 py-1">Procesos</th>
               </tr>
             </thead>
+            -->
+            <!--
             <tbody>
               <tr *ngFor="let p of selectedOrderTypeDetail">
                 <td class="border px-2 py-1">
@@ -725,13 +755,18 @@
               </tr>
             </tbody>
           </table>
+          -->
+          <!--
         </ng-container>
+        -->
 
+        <!--
         <ng-template #noPrints>
           <p class="text-gray-500">
             Este pedido no tiene materiales de impresión registrados.
           </p>
         </ng-template>
+        -->
       </div>
       <!-- Specific details for sales -->
       <div
@@ -742,14 +777,22 @@
         "
         class="my-6"
       >
+      <!--
         <h4 class="font-semibold text-green-700">Detalles de venta</h4>
-
+        -->
+        <!--
         <ng-container *ngIf="selectedOrderTypeDetail?.length; else noSales">
+        -->
+          <!--
           <ul class="list-none">
+            -->
+            <!--
             <li
               *ngFor="let s of selectedOrderTypeDetail"
               class="mb-4 pb-4 border-b"
             >
+            -->
+              <!--
               <p>
                 <strong>Tipo de ítem:</strong>
                 {{
@@ -760,9 +803,12 @@
                     : "Desconocido"
                 }}
               </p>
+              -->
 
-              <!-- Si es MATERIAL -->
+              <!-- Si es MATERIAL
               <ng-container *ngIf="s.item_type === 'material'; else productTpl">
+                -->
+                <!--
                 <p *ngIf="s.category">
                   <strong>Categoría:</strong> {{ s.category }}
                 </p>
@@ -773,7 +819,8 @@
                   <strong>Calibre:</strong> {{ s.caliber }}
                 </p>
                 <p *ngIf="s.color"><strong>Color:</strong> {{ s.color }}</p>
-                <!-- Si no tienes snapshots, al menos muestra el ID -->
+                -->
+                <!-- Si no tienes snapshots, al menos muestra el ID
                 <p
                   *ngIf="
                     !s.category && !s.material_type && !s.caliber && !s.color
@@ -781,33 +828,52 @@
                 >
                   <strong>Material ID:</strong> {{ s.material_id }}
                 </p>
+                -->
+                <!--
               </ng-container>
+              -->
 
-              <!-- Si es PRODUCTO -->
+              <!-- Si es PRODUCTO
               <ng-template #productTpl>
+                 -->
+                <!--
                 <p>
                   <strong>Producto:</strong>
                   {{
                     s.product_name_snapshot || getProductNameById(s.product_id)
                   }}
                 </p>
+                 -->
+                <!--
               </ng-template>
+               -->
 
-              <!-- Económicos -->
+              <!-- Económicos
               <p><strong>Cantidad:</strong> {{ s.quantity }}</p>
+               -->
+              <!--
               <p>
                 <strong>Precio unitario:</strong>
                 {{ s.unit_price | number : "1.0-2" }}
               </p>
+               -->
+              <!--
             </li>
+             -->
+            <!--
           </ul>
+           -->
+          <!--
         </ng-container>
+         -->
 
+         <!--
         <ng-template #noSales>
           <p class="text-gray-500">
             Este pedido no tiene líneas de venta registradas.
           </p>
         </ng-template>
+         -->
       </div>
 
       <!-- Totals Section -->
@@ -815,7 +881,7 @@
         <div class="border-t pt-4 mt-4">
           <div class="flex justify-between">
             <p><strong>Subtotal</strong></p>
-            <p>{{ getCalculatedSubtotal(selectedOrderDetails[0]) }}</p>
+            <p>{{ selectedOrderDetails[0].subtotal }}</p>
           </div>
           <div class="flex justify-between" *ngIf="selectedOrderDetails[0].iva">
             <p><strong>IVA</strong></p>
@@ -865,6 +931,33 @@
           >
         </button>
       </div>
+      <ng-container *ngIf="userRole === 'admin' || userRole === 'scheduler'">
+        <div *ngIf="selectedOrderDetails[0]?.invoice_file" class="mt-4">
+          <p class="font-semibold">Factura adjunta:</p>
+          <button
+            class="btn-secondary mt-2"
+            (click)="downloadFile(selectedOrderDetails[0].invoice_file)"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4"
+              />
+            </svg>
+            <span class="text-blue-400 hover:text-blue-800">
+              Descargar Factura
+            </span>
+          </button>
+        </div>
+      </ng-container>
 
       <div class="flex justify-end mt-4">
         <button
@@ -965,6 +1058,23 @@
             required
           />
         </div>
+        <!-- Valor Total del Pedido (ingreso manual) -->
+        <div class="mb-4 border-t pt-4">
+          <label class="block modal-input-item"
+            >Valor Total del Pedido<span class="text-red-500">*</span></label
+          >
+          <input
+            type="number"
+            [(ngModel)]="newOrder.unitary_value"
+            name="unitary_value"
+            class="form-input mt-1 block w-full"
+            placeholder="Ej: 50000"
+            min="0"
+            step="100"
+            required
+            (change)="updateOrderTotalWithExtras()"
+          />
+        </div>
         <div class="mb-4 border-t pt-4">
           <h4 class="font-semibold text-blue-600">Cargos Extras</h4>
           <div class="flex gap-2 mb-2">
@@ -1034,13 +1144,76 @@
             </li>
           </ul>
         </div>
+        <!-- ===================== -->
+        <!-- SECCIÓN DE PAGO -->
+        <!-- ===================== -->
+        <ng-container *ngIf= "!isEditing">
+          <div class="mb-4 border-t pt-4">
+            <h4 class="font-semibold text-green-600">Pago del Pedido</h4>
+
+            <label class="block modal-input-item">Tipo de pago</label>
+            <select
+              [(ngModel)]="initialPaymentType"
+              name="initialPaymentType"
+              class="form-select mt-1 block w-full"
+            >
+              <option value="none">No paga ahora</option>
+              <option value="full">Pago total</option>
+              <option value="partial">Abono</option>
+            </select>
+
+            <div *ngIf="initialPaymentType !== 'none'" class="mt-3">
+              <label class="block modal-input-item">Monto pagado</label>
+              <input
+                type="number"
+                [(ngModel)]="initialPaymentAmount"
+                name="initialPaymentAmount"
+                class="form-input mt-1 block w-full"
+                min="0"
+              />
+
+              <label class="block modal-input-item mt-2">Método de pago</label>
+              <select
+                [(ngModel)]="initialPaymentMethod"
+                name="initialPaymentMethod"
+                class="form-select mt-1 block w-full"
+              >
+                <option value="" disabled selected>Seleccione un método</option>
+                <option value="cash">Efectivo</option>
+                <option value="nequi">Nequi</option>
+                <option value="bancolombia">Bancolombia</option>
+                <option value="Davivienda">Davivienda</option>
+                <option value="other">Otro</option>
+              </select>
+            </div>
+          </div>
+        </ng-container>
+        <!-- Tiempo de Corte (solo para laser) -->
+        <div *ngIf="newOrder.order_type === 'laser'" class="mb-4 border-t pt-4">
+          <h4 class="font-semibold text-yellow-600">Datos de Corte</h4>
+
+          <label class="block mt-2 modal-input-item"
+            >Tiempo de Corte (minutos)<span class="text-red-500">*</span></label
+          >
+          <input
+            type="number"
+            [(ngModel)]="tempCutTime"
+            name="cutting_time"
+            class="form-input mt-1 block w-full"
+            placeholder="Ej: 30"
+            min="0"
+          />
+        </div>
         <!-- DESCUENTOS -->
         <div class="mb-4 border-t pt-4">
+          <!--
           <h4 class="font-semibold text-green-600">Descuento</h4>
+           -->
 
-          <!-- Formulario para agregar descuento (solo si no hay uno aplicado) -->
+          <!-- Formulario para agregar descuento (solo si no hay uno aplicado)
           <div *ngIf="!hasDiscountApplied" class="flex gap-2 mb-2">
-            <!-- Tipo de descuento -->
+            -->
+            <!-- Tipo de descuento
             <select
               [(ngModel)]="discountType"
               name="discountType"
@@ -1049,8 +1222,8 @@
               <option value="fixed">Valor Fijo ($)</option>
               <option value="percentage">Porcentaje (%)</option>
             </select>
-
-            <!-- Valor del descuento -->
+            -->
+            <!-- Valor del descuento
             <input
               type="number"
               [(ngModel)]="discount"
@@ -1062,20 +1235,30 @@
               [max]="discountType === 'percentage' ? 100 : null"
               min="0"
             />
+            -->
 
-            <!-- Botón para agregar -->
+            <!-- Botón para agregar
             <button type="button" class="btn-primary" (click)="applyDiscount()">
               Añadir
             </button>
+            -->
+          <!--
           </div>
+           -->
 
-          <!-- Descuento aplicado (con botón eliminar) -->
+          <!-- Descuento aplicado (con botón eliminar)
           <div
             *ngIf="hasDiscountApplied"
             class="p-3 bg-green-50 rounded border border-green-200"
           >
+          -->
+            <!--
             <div class="flex items-center justify-between">
+              -->
+              <!--
               <div>
+                -->
+                <!--
                 <p class="text-sm font-semibold text-green-800">
                   Descuento aplicado:
                 </p>
@@ -1090,7 +1273,11 @@
                     Valor fijo: ${{ newOrder.discount ?? 0 | number : "1.0-0" }}
                   </span>
                 </p>
+                -->
+                <!--
               </div>
+              -->
+              <!--
               <button
                 type="button"
                 class="btn-danger btn-xs"
@@ -1098,18 +1285,28 @@
               >
                 Eliminar
               </button>
+              -->
+            <!--
             </div>
+            -->
+          <!--
           </div>
+          -->
         </div>
       </ng-container>
 
       <!-- Sección de Datos Específicos para Prints -->
+       <!--
       <div *ngIf="newOrder.order_type === 'print'" class="mb-4 border-t pt-4">
+        -->
+        <!--
         <h4 class="font-semibold text-blue-600">Datos de Impresión</h4>
+        -->
 
-        <!-- Selección de Material -->
+        <!-- Selección de Material
         <div class="grid grid-cols-2 gap-4 mt-4">
-          <!-- Categoría -->
+        -->
+          <!-- Categoría
           <div>
             <label class="block modal-input-item">Categoría</label>
             <select
@@ -1129,8 +1326,9 @@
               </option>
             </select>
           </div>
+          -->
 
-          <!-- Tipo -->
+          <!-- Tipo
           <div>
             <label class="block modal-input-item">Tipo</label>
             <select
@@ -1147,8 +1345,9 @@
               <option *ngFor="let t of getTypes()" [value]="t">{{ t }}</option>
             </select>
           </div>
+          -->
 
-          <!-- Calibre -->
+          <!-- Calibre
           <div>
             <label class="block modal-input-item">Calibre</label>
             <select
@@ -1163,8 +1362,9 @@
               </option>
             </select>
           </div>
+          -->
 
-          <!-- Color -->
+          <!-- Color
           <div>
             <label class="block modal-input-item">Color</label>
             <select
@@ -1179,17 +1379,21 @@
               </option>
             </select>
           </div>
+          -->
+        <!--
         </div>
+        -->
 
-        <!-- Info de stock del material seleccionado -->
+        <!-- Info de stock del material seleccionado
         <div
           class="text-sm text-gray-600 mt-2"
           *ngIf="getSelectedMaterial() as sm"
         >
           Stock disponible: <strong>{{ sm.material_quantity }}</strong>
         </div>
+        -->
 
-        <!-- Valor Unitario del Material -->
+        <!-- Valor Unitario del Material
         <div class="mt-4">
           <label class="block modal-input-item"
             >Valor Unitario del Material</label
@@ -1203,8 +1407,9 @@
             placeholder="Ingrese el valor unitario"
           />
         </div>
+        -->
 
-        <!-- Cantidad -->
+        <!-- Cantidad
         <div class="mt-4">
           <label class="block modal-input-item">Cantidad</label>
           <input
@@ -1216,7 +1421,9 @@
             placeholder="Ingrese la cantidad"
           />
         </div>
+        -->
 
+        <!--
         <div>
           <label class="block modal-input-item">Ancho de Rollo</label>
           <input
@@ -1236,8 +1443,9 @@
             placeholder="0"
           />
         </div>
+        -->
 
-        <!-- Checkboxes de Procesos -->
+        <!-- Checkboxes de Procesos
         <div class="mt-4">
           <label class="block modal-input-item mb-2">Procesos</label>
           <div class="grid grid-cols-2 gap-4">
@@ -1282,20 +1490,33 @@
             </label>
           </div>
         </div>
+        -->
 
-        <!-- Botón Añadir Material -->
+        <!-- Botón Añadir Material
         <button type="button" class="btn-add mt-4" (click)="addPrintItem()">
           Añadir Material
         </button>
+        -->
+        <!--
       </div>
+      -->
+
+
 
       <!-- Tabla de materiales añadidos para prints -->
+       <!--
       <div
         *ngIf="printsItems.length > 0 && newOrder.order_type === 'print'"
         class="mt-6 mb-4"
       >
+      -->
+        <!--
         <h4 class="font-semibold text-gray-700">Materiales del Pedido</h4>
+        -->
+        <!--
         <table class="min-w-full text-sm border mt-2">
+          -->
+          <!--
           <thead class="bg-gray-200">
             <tr>
               <th class="border px-2 py-1">Material</th>
@@ -1305,6 +1526,8 @@
               <th class="border px-2 py-1">Acción</th>
             </tr>
           </thead>
+          -->
+          <!--
           <tbody>
             <tr *ngFor="let item of printsItems; let i = index">
               <td class="border px-2 py-1">
@@ -1330,17 +1553,29 @@
               </td>
             </tr>
           </tbody>
+          -->
+          <!--
         </table>
+        -->
+        <!--
       </div>
+      -->
       <!-- Campos específicos para Cortes -->
       <!-- removed userRole !='admin' requirement, otherwise admin can't select material-->
+       <!--
       <div *ngIf="newOrder.order_type === 'laser'" class="mb-4 border-t pt-4">
+        -->
+        <!--
         <h4 class="font-semibold text-orange-600">Datos de Corte</h4>
-
+        -->
+        <!--
         <div class="px-4">
+          -->
           <!-- Selección de Material -->
+           <!--
           <div class="grid grid-cols-2 gap-4 mt-4">
-            <!-- Categoría -->
+            -->
+            <!-- Categoría
             <div>
               <label class="block modal-input-item">Categoría</label>
               <select
@@ -1357,8 +1592,9 @@
                 </option>
               </select>
             </div>
+            -->
 
-            <!-- Tipo -->
+            <!-- Tipo
             <div>
               <label class="block modal-input-item">Tipo</label>
               <select
@@ -1373,8 +1609,9 @@
                 </option>
               </select>
             </div>
+            -->
 
-            <!-- Calibre -->
+            <!-- Calibre
             <div>
               <label class="block modal-input-item">Calibre</label>
               <select
@@ -1389,8 +1626,9 @@
                 </option>
               </select>
             </div>
+            -->
 
-            <!-- Color -->
+            <!-- Color
             <div>
               <label class="block modal-input-item">Color</label>
               <select
@@ -1404,16 +1642,21 @@
                 </option>
               </select>
             </div>
+            -->
+            <!--
           </div>
+          -->
 
-          <!-- Stock Disponible -->
+          <!-- Stock Disponible
           <div
             *ngIf="getSelectedMaterial() as sm"
             class="text-sm text-gray-600 mt-3 p-3 bg-blue-50 border border-blue-200 rounded-md"
           >
             Stock disponible: <strong>{{ sm.material_quantity }}</strong>
           </div>
+          -->
 
+          <!--
           <div class="mt-4">
             <label class="block modal-input-item"
               >Valor Unitario del Material</label
@@ -1427,9 +1670,12 @@
               placeholder="Ingrese el valor unitario"
             />
           </div>
+          -->
 
-          <!-- Cantidad y Tiempo de Corte -->
+          <!-- Cantidad y Tiempo de Corte
           <div class="grid grid-cols-2 gap-4 mt-4">
+            -->
+            <!--
             <div>
               <label class="block modal-input-item">Cantidad</label>
               <input
@@ -1441,11 +1687,17 @@
                 placeholder="1"
               />
             </div>
-
+            -->
+            <!--
             <div>
+              -->
+              <!--
               <label class="block modal-input-item"
                 >Tiempo de corte (min)</label
               >
+              -->
+              <!-- En el metodo que me arrojo la ia menciona en name cutting_time entonces
+               comprobar con cual de los 2 funciona
               <input
                 type="number"
                 [(ngModel)]="tempCutTime"
@@ -1455,10 +1707,15 @@
                 step="0.1"
                 placeholder="0"
               />
+              -->
+              <!--
             </div>
+            -->
+            <!--
           </div>
+          -->
 
-          <!-- Medidas (Alto y Ancho) -->
+          <!-- Medidas (Alto y Ancho)
           <div class="grid grid-cols-2 gap-4 mt-4">
             <div>
               <label class="block modal-input-item">Alto (m)</label>
@@ -1486,29 +1743,35 @@
               />
             </div>
           </div>
+          -->
 
-          <!-- Botón Añadir Material -->
+          <!-- Botón Añadir Material
           <div class="flex justify-center mt-6">
             <button type="button" (click)="addCutItem()" class="btn-add">
               Añadir Material
             </button>
           </div>
+          -->
 
-          <!-- Tabla de Materiales Agregados para CUTS -->
+          <!-- Tabla de Materiales Agregados para CUTS
           <div *ngIf="newOrder.order_type === 'laser'" class="mt-6 mb-4">
+            -->
+            <!--
             <h4 class="font-semibold text-gray-700 mb-2">
               Materiales del Pedido
             </h4>
+            -->
 
-            <!-- Mensaje si está cargando -->
+            <!-- Mensaje si está cargando
             <div
               *ngIf="cutsItems.length === 0 && isEditing"
               class="text-gray-500 text-sm mb-2"
             >
               Cargando materiales...
             </div>
+            -->
 
-            <!-- Mensaje si no hay items y NO está editando -->
+            <!-- Mensaje si no hay items y NO está editando
             <div
               *ngIf="cutsItems.length === 0 && !isEditing"
               class="text-gray-500 text-sm mb-2"
@@ -1516,23 +1779,40 @@
               No hay materiales agregados. Usa el formulario arriba para
               agregar.
             </div>
+            -->
 
-            <!-- Tabla de materiales -->
+            <!-- Tabla de materiales
             <table
               *ngIf="cutsItems.length > 0"
               class="min-w-full text-sm border mt-2"
             >
+            -->
+              <!--
               <thead class="bg-gray-200">
+                -->
+                <!--
                 <tr>
+                  -->
+                  <!--
                   <th class="border px-2 py-1">Material</th>
                   <th class="border px-2 py-1">Cant.</th>
                   <th class="border px-2 py-1">Tiempo (min)</th>
                   <th class="border px-2 py-1">Precio Total</th>
                   <th class="border px-2 py-1">Acción</th>
+                  -->
+                  <!--
                 </tr>
+                -->
+                <!--
               </thead>
+              -->
+              <!--
               <tbody>
+                -->
+                <!--
                 <tr *ngFor="let item of cutsItems; let i = index">
+                  -->
+                  <!--
                   <td class="border px-2 py-1">
                     {{ item.material.category }} - {{ item.material.type }}
                     <br />
@@ -1543,11 +1823,19 @@
                       >
                     </span>
                   </td>
+                  -->
+                  <!--
                   <td class="border px-2 py-1">{{ item.quantity }}</td>
+                  -->
+                  <!--
                   <td class="border px-2 py-1">{{ item.cutTime }}</td>
+                  -->
+                  <!--
                   <td class="border px-2 py-1">
                     {{ item.subtotal | number : "1.0-0" }}
                   </td>
+                  -->
+                  <!--
                   <td class="border px-2 py-1 text-center">
                     <button
                       type="button"
@@ -1557,18 +1845,35 @@
                       Eliminar
                     </button>
                   </td>
+                  -->
+                  <!--
                 </tr>
+                -->
+                <!--
               </tbody>
+              -->
+              <!--
             </table>
+            -->
+            <!--
           </div>
+          -->
+          <!--
         </div>
+        -->
+        <!--
       </div>
+      -->
       <!-- Sección de Datos Específicos para Sales -->
       <div *ngIf="newOrder.order_type === 'sales'" class="mb-4 border-t pt-4">
+        <!--
         <h4 class="font-semibold text-green-700">Datos de Venta</h4>
+        -->
 
-        <!-- ¿Qué vas a vender? -->
+        <!-- ¿Qué vas a vender?
         <label class="block mt-2 modal-input-item">¿Qué vas a vender?</label>
+        -->
+        <!--
         <select
           [(ngModel)]="saleMode"
           name="saleMode"
@@ -1578,11 +1883,16 @@
           <option value="material">Material</option>
           <option value="product">Producto</option>
         </select>
+        -->
 
         <!-- VENTA: MATERIAL  -->
+         <!--
         <div *ngIf="saleMode === 'material'">
-          <!-- Encadenado: CATEGORÍA -->
+          -->
+          <!-- Encadenado: CATEGORÍA
           <label class="block mt-2 modal-input-item">Categoría</label>
+          -->
+          <!--
           <select
             [(ngModel)]="selectedCategory"
             name="sale_category"
@@ -1596,9 +1906,12 @@
               {{ c }}
             </option>
           </select>
+          -->
 
-          <!-- Encadenado: TIPO -->
+          <!-- Encadenado: TIPO
           <label class="block mt-2 modal-input-item">Tipo</label>
+          -->
+          <!--
           <select
             [(ngModel)]="selectedType"
             name="sale_type"
@@ -1610,9 +1923,12 @@
               {{ t }}
             </option>
           </select>
+          -->
 
-          <!-- Encadenado: CALIBRE -->
+          <!-- Encadenado: CALIBRE
           <label class="block mt-2 modal-input-item">Calibre</label>
+          -->
+          <!--
           <select
             [(ngModel)]="selectedCaliber"
             name="sale_caliber"
@@ -1624,9 +1940,12 @@
               {{ cal }}
             </option>
           </select>
+          -->
 
-          <!-- Encadenado: COLOR -->
+          <!-- Encadenado: COLOR
           <label class="block mt-2 modal-input-item">Color</label>
+          -->
+          <!--
           <select
             [(ngModel)]="selectedColor"
             name="sale_color"
@@ -1637,17 +1956,21 @@
               {{ col }}
             </option>
           </select>
+          -->
 
-          <!-- Info de stock del material seleccionado -->
+          <!-- Info de stock del material seleccionado
           <div
             class="text-sm text-gray-600 mt-2"
             *ngIf="getSelectedMaterial() as sm"
           >
             Stock disponible: <strong>{{ sm.material_quantity }}</strong>
           </div>
+          -->
 
-          <!-- Datos económicos de la línea de venta -->
+          <!-- Datos económicos de la línea de venta
           <label class="block mt-2 modal-input-item">Cantidad a vender</label>
+          -->
+          <!--
           <input
             [(ngModel)]="saleMaterialQuantity"
             type="number"
@@ -1655,8 +1978,11 @@
             name="sale_material_qty"
             class="form-input mt-1 block w-full"
           />
-
+          -->
+          <!--
           <label class="block mt-2 modal-input-item">Precio unitario</label>
+          -->
+          <!--
           <input
             [(ngModel)]="saleMaterialUnitPrice"
             type="number"
@@ -1665,18 +1991,26 @@
             class="form-input mt-1 block w-full"
             placeholder="Ej: 12000"
           />
+          -->
+          <!--
         </div>
-        <!-- VENTA DE PRODUCTO  -->
+        -->
+        <!-- VENTA DE PRODUCTO
         <div
           *ngIf="newOrder.order_type === 'sales' && saleMode === 'product'"
           class="mb-4 border-t pt-4"
         >
+         -->
+          <!--
           <h4 class="font-semibold text-emerald-600">
             Datos de Venta: Producto
           </h4>
+          -->
 
-          <!-- Producto -->
+          <!-- Producto
           <label class="block mt-2 modal-input-item">Producto</label>
+          -->
+          <!--
           <select
             [(ngModel)]="selectedProductId"
             name="selectedProductId"
@@ -1688,9 +2022,12 @@
               {{ p.name }} — Stock: {{ p.stock }} — ${{ p.price }}
             </option>
           </select>
+          -->
 
-          <!-- Cantidad -->
+          <!-- Cantidad
           <label class="block mt-2 modal-input-item">Cantidad a vender</label>
+          -->
+          <!--
           <input
             [(ngModel)]="saleMaterialQuantity"
             type="number"
@@ -1699,9 +2036,12 @@
             name="saleProductQty"
             class="form-input mt-1 block w-full"
           />
+          -->
 
-          <!-- P. Unitario -->
+          <!-- P. Unitario
           <label class="block mt-2 modal-input-item">Precio unitario</label>
+          -->
+          <!--
           <input
             [(ngModel)]="saleMaterialUnitPrice"
             type="number"
@@ -1712,8 +2052,12 @@
             class="form-input mt-1 block w-full"
             placeholder="Autollenado al elegir producto (editable)"
           />
+          -->
+          <!--
         </div>
+         -->
 
+         <!--
         <button
           type="button"
           (click)="addSaleItem()"
@@ -1721,12 +2065,19 @@
         >
           Agregar ítem
         </button>
+         -->
 
         <!--  LÍNEAS AGREGADAS  -->
+          <!--
         <div *ngIf="salesItems.length > 0" class="mt-4">
+           -->
+          <!--
           <h4 class="font-semibold text-gray-700 mb-2">Items agregados</h4>
-
+           -->
+          <!--
           <table class="min-w-full text-sm border">
+             -->
+            <!--
             <thead class="bg-gray-200">
               <tr>
                 <th class="border px-2 py-1">Detalle</th>
@@ -1736,7 +2087,8 @@
                 <th class="border px-2 py-1"></th>
               </tr>
             </thead>
-
+             -->
+            <!--
             <tbody>
               <tr *ngFor="let item of salesItems; let i = index">
                 <td class="border px-2 py-1">
@@ -1769,8 +2121,13 @@
                 </td>
               </tr>
             </tbody>
+             -->
+            <!--
           </table>
+           -->
+          <!--
         </div>
+         -->
       </div>
       <!-- Archivo adjunto -->
       <div class="mb-4">
@@ -1781,6 +2138,17 @@
           Archivo subido: {{ uploadedFileName }}
         </p>
       </div>
+      <ng-container *ngIf="userRole === 'admin' || userRole === 'scheduler'">
+        <div class="mb-4">
+          <label class="block modal-input-item">Factura (PDF)</label>
+          <input type="file" (change)="onInvoiceFileSelected($event)" />
+
+          <p *ngIf="selectedInvoiceFile" class="text-green-600 text-sm mt-1">
+            Factura seleccionada: {{ selectedInvoiceFile.name }}
+          </p>
+        </div>
+      </ng-container>
+
       <div class="flex justify-end mt-4">
         <button type="button" class="btn-danger" (click)="toggleAddOrderForm()">
           Cancelar
@@ -1822,18 +2190,18 @@
           class="form-select"
         >
           <option value="NIT">NIT</option>
-          <option value="civil registry">Registro civil</option>
-          <option value="identity card">Tarjeta de identidad</option>
-          <option value="citizenship card">Cédula de ciudadanía</option>
-          <option value="alien card">Tarjeta de extranjería</option>
-          <option value="foreigner's identity card">
+          <option value="Registro civil">Registro civil</option>
+          <option value="Tarjeta de identidad">Tarjeta de identidad</option>
+          <option value="Cédula de ciudadanía">Cédula de ciudadanía</option>
+          <option value="Tarjeta de extranjería">Tarjeta de extranjería</option>
+          <option value="Cédula de extranjería">
             Cédula de extranjería
           </option>
-          <option value="passport">Pasaporte</option>
-          <option value="foreign identification document">
+          <option value="Pasaporte">Pasaporte</option>
+          <option value="Documento de identificación extranjero">
             Documento de identificación extranjero
           </option>
-          <option value="NIT from another country">NIT de otro país</option>
+          <option value="NIT de otro país">NIT de otro país</option>
           <option value="NUIP">NUIP</option>
         </select>
       </div>
@@ -1845,6 +2213,7 @@
           class="form-input"
         />
       </div>
+      <!--
       <div class="mb-4">
         <label class="block text-gray-700">Empresa</label>
         <input
@@ -1853,6 +2222,7 @@
           class="form-input"
         />
       </div>
+      -->
       <div class="mb-4">
         <label class="block text-gray-700">Teléfono</label>
         <input
@@ -1899,16 +2269,22 @@
 </div>
 
 <!-- Modal Calculadora -->
+ <!--
 <div
   *ngIf="showCalculator"
   class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
 >
+-->
+  <!--
   <div
     class="bg-white w-[500px] max-w-[90vw] rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto"
   >
+  -->
+    <!--
     <h3 class="text-lg font-bold mb-4">Calculadora</h3>
+     -->
 
-    <!-- calculator type -->
+    <!-- calculator type
     <div class="mb-4">
       <label class="block text-gray-700">¿Qué desea calcular?</label>
       <select
@@ -1921,8 +2297,9 @@
         <option value="cuts">Cortes</option>
       </select>
     </div>
+     -->
 
-    <!-- Tipo de cliente -->
+    <!-- Tipo de cliente
     <div class="mb-4" *ngIf="calculationType">
       <label class="block text-gray-700">Tipo de Cliente</label>
       <select
@@ -1935,9 +2312,12 @@
         <option value="final">Final</option>
       </select>
     </div>
+    -->
 
-    <!-- Calculadora de impresiones -->
+    <!-- Calculadora de impresiones
     <div *ngIf="calculationType === 'prints'">
+      -->
+      <!--
       <div class="mb-4">
         <label class="block text-gray-700">Ancho del rollo (m)</label>
         <input
@@ -1948,6 +2328,8 @@
           (change)="calculatePrice()"
         />
       </div>
+      -->
+      <!--
       <div class="mb-4">
         <label class="block text-gray-700">Medición (m)</label>
         <input
@@ -1958,6 +2340,8 @@
           (change)="calculatePrice()"
         />
       </div>
+      -->
+      <!--
       <div class="mb-4">
         <label class="block text-gray-700">Valor del material</label>
         <input
@@ -1968,6 +2352,8 @@
           (change)="calculatePrice()"
         />
       </div>
+      -->
+      <!--
       <div class="mb-4">
         <label class="block text-gray-700">Número de productos</label>
         <input
@@ -1978,9 +2364,17 @@
           (change)="calculatePrice()"
         />
       </div>
+      -->
+      <!--
       <div class="mb-4">
+        -->
+        <!--
         <label class="block text-gray-700">Opciones</label>
+        -->
+        <!--
         <div class="flex gap-4 mt-2">
+          -->
+          <!--
           <label
             ><input
               type="checkbox"
@@ -1990,6 +2384,8 @@
             />
             Laminado</label
           >
+          -->
+          <!--
           <label
             ><input
               type="checkbox"
@@ -1999,6 +2395,8 @@
             />
             Impresión</label
           >
+          -->
+          <!--
           <label
             ><input
               type="checkbox"
@@ -2008,6 +2406,8 @@
             />
             Troquelado</label
           >
+          -->
+          <!--
           <label
             ><input
               type="checkbox"
@@ -2017,12 +2417,21 @@
             />
             Ensamblado</label
           >
+          -->
+          <!--
         </div>
+        -->
+        <!--
       </div>
+      -->
+      <!--
     </div>
+    -->
 
-    <!-- Calculadora de cortes -->
+    <!-- Calculadora de cortes
     <div *ngIf="calculationType === 'cuts'">
+      -->
+      <!--
       <div class="mb-4">
         <label class="block text-gray-700">Valor del material</label>
         <input
@@ -2033,6 +2442,8 @@
           (change)="calculatePrice()"
         />
       </div>
+      -->
+      <!--
       <div class="mb-4">
         <label class="block text-gray-700">Tiempo de uso (min)</label>
         <input
@@ -2043,20 +2454,36 @@
           (change)="calculatePrice()"
         />
       </div>
+      -->
+      <!--
     </div>
+    -->
 
-    <!-- Resultado -->
+    <!-- Resultado
     <div class="mb-4" *ngIf="calculatorResult > 0">
       <p class="font-bold">Resultado: {{ calculatorResult }} COP</p>
     </div>
+    -->
 
+    <!--
     <div class="flex justify-end mt-4">
+      -->
+      <!--
       <button type="button" class="btn-danger" (click)="closeCalculator()">
         Cerrar
       </button>
+      -->
+      <!--
     </div>
+    -->
+    <!--
   </div>
+  -->
+  <!--
 </div>
+-->
+
+<!--
 <div *ngIf="showStockWarningModal" class="modal-overlay top">
   <div class="modal-content modal-h250 top">
     <h3 class="text-lg font-bold mb-4">Stock insuficiente</h3>
@@ -2068,6 +2495,7 @@
     </div>
   </div>
 </div>
+ -->
 
 <!-- Notificación temporal -->
 <div

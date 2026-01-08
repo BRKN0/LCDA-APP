@@ -49,10 +49,10 @@ interface Client {
   province: string;
   postal_code: string;
   orders?: Orders[];
-  tax_regime: number;
+  /*tax_regime: number;
   is_declarante: boolean;
   retefuente: boolean;
-  applies_ica_retention: boolean;
+  applies_ica_retention: boolean;*/
 }
 
 interface Payment {
@@ -101,6 +101,11 @@ export class ClientsComponent implements OnInit {
   endDate: string = '';
   onlyWithDebt: boolean = false;
   selectedPaymentMethod: string = 'cash';
+  showExtractFilters = false;
+  extractStatusFilter: 'all' | 'overdue' = 'all';
+  extractFromDate?: string;
+  extractToDate?: string;
+  extractMessage: string | null = null;
   newClient: Partial<Client> = {
     id_client: '',
     document_type: '',
@@ -117,10 +122,10 @@ export class ClientsComponent implements OnInit {
     city: '',
     province: '',
     postal_code: '',
-    tax_regime: 0,
+    /*tax_regime: 0,
     is_declarante: false,
     retefuente: false,
-    applies_ica_retention: false,
+    applies_ica_retention: false,*/
   };
   showAddClientForm = false;
   IVA_RATE = 0.19;
@@ -205,12 +210,15 @@ export class ClientsComponent implements OnInit {
       }
     }
 
+    this.clients.sort((a, b) =>
+      a.name.localeCompare(b.name, 'es', { sensitivity: 'base' })
+    );
     this.filteredClients = this.clients;
     this.updatePaginatedClients();
     this.loading = false;
   }
 
-  taxRegimeConfig: Record<number, { is_declarante: boolean; retefuente: boolean; applies_ica_retention: boolean }> = {
+  /*taxRegimeConfig: Record<number, { is_declarante: boolean; retefuente: boolean; applies_ica_retention: boolean }> = {
     1: { is_declarante: true, retefuente: true, applies_ica_retention: true }, // Autorretenedor
     2: { is_declarante: true, retefuente: true, applies_ica_retention: true }, // Gran Contribuyente
     3: { is_declarante: true, retefuente: true, applies_ica_retention: false }, // Responsable IVA
@@ -225,7 +233,7 @@ export class ClientsComponent implements OnInit {
       this.selectedClientData.retefuente = config.retefuente;
       this.selectedClientData.applies_ica_retention = config.applies_ica_retention;
     }
-  }
+  }*/
 
   calculateClientDebt(client: Client): number {
     if (!client.orders || client.orders.length === 0) return 0;
@@ -273,11 +281,20 @@ export class ClientsComponent implements OnInit {
       alert('No hay cliente seleccionado.');
       return;
     }
+
+    if (!amount || amount <= 0) {
+      alert('Ingrese un monto válido.');
+      return;
+    }
+
     await this.allocatePaymentAcrossOrders(this.selectedClient, amount, paymentMethod);
+
+    this.newPaymentAmount = 0;
+    this.selectedPaymentMethod = 'cash';
   }
 
 
-  private getOrderDebt(order: Orders): number {
+  getOrderDebt(order: Orders): number {
     const total = this.calculateOrderTotal(order);
     const paid = order.payments?.reduce((s, p) => s + p.amount, 0) || 0;
     return Math.max(0, total - paid);
@@ -290,9 +307,15 @@ export class ClientsComponent implements OnInit {
     }
 
     // Ordena por más antiguo
-    const ordersByOldest = [...client.orders].sort(
-      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-    );
+    const ordersByOldest = [...client.orders].sort((a, b) => {
+      const dateDiff =
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+
+      if (dateDiff !== 0) return dateDiff;
+
+      // Desempate por código: menor código = pedido más antiguo
+      return a.code - b.code;
+    });
 
     let remaining = amount;
     const paymentsBatch: Payment[] = [];
@@ -439,11 +462,22 @@ export class ClientsComponent implements OnInit {
     this.selectedClient = null;
     this.showDetails = false;
     this.showOrders = false;
+    this.showExtractFilters = false;
+    this.extractMessage = null;
+    this.resetExtractFilters();
   }
 
   toggleClientDetails() {
     this.showDetails = !this.showDetails;
     this.modalExpanded = !this.modalExpanded;
+  }
+
+  toggleExtractFilters() {
+    this.showExtractFilters = !this.showExtractFilters;
+
+    if (!this.showExtractFilters) {
+      this.resetExtractFilters();
+    }
   }
 
   toggleOrders(client: Client | null): void {
@@ -455,7 +489,10 @@ export class ClientsComponent implements OnInit {
       this.startDate = '';
       this.endDate = '';
       this.onlyWithDebt = false;
-      this.selectedClient = { ...client };
+      this.selectedClient = {
+        ...client,
+        orders: [...client.orders].sort((a, b) => b.code - a.code)
+      };
       this.showOrders = true;
       this.currentOrderPage = 1;
       this.newPaymentAmounts = {};
@@ -603,10 +640,10 @@ export class ClientsComponent implements OnInit {
       city: '',
       province: '',
       postal_code: '',
-      tax_regime: 0,
+      /*tax_regime: 0,
       is_declarante: false,
       retefuente: false,
-      applies_ica_retention: false,
+      applies_ica_retention: false,*/
     };
     this.isEditing = false;
     this.showModal = true;
@@ -627,7 +664,7 @@ export class ClientsComponent implements OnInit {
     }
 
     const clientToSave = {
-      name: this.selectedClientData.name || null,
+      name: this.selectedClientData.name?.toUpperCase().trim() || null,
       document_type: this.selectedClientData.document_type,
       document_number: this.selectedClientData.document_number || null,
       cellphone: this.selectedClientData.cellphone,
@@ -640,10 +677,10 @@ export class ClientsComponent implements OnInit {
       city: this.selectedClientData.city,
       province: this.selectedClientData.province,
       postal_code: this.selectedClientData.postal_code,
-      tax_regime: this.selectedClientData.tax_regime,
+      /*tax_regime: this.selectedClientData.tax_regime,
       is_declarante: this.selectedClientData.is_declarante || false,
       retefuente: this.selectedClientData.retefuente || false,
-      applies_ica_retention: this.selectedClientData.applies_ica_retention || false,
+      applies_ica_retention: this.selectedClientData.applies_ica_retention || false,*/
       credit_limit: this.selectedClientData.credit_limit,
     };
 
@@ -706,10 +743,43 @@ export class ClientsComponent implements OnInit {
     this.isEditing = false;
   }
 
-  generatePDF(): void {
+  resetExtractFilters() {
+    this.extractStatusFilter = 'all';
+    this.extractFromDate = undefined;
+    this.extractToDate = undefined;
+    this.extractMessage = null;
+  }
+
+  generatePDF(): boolean {
     if (!this.selectedClient || !this.selectedClient.orders) {
-      console.error('No hay datos de pedidos para exportar');
-      return;
+      this.extractMessage = 'No hay datos para generar el extracto.';
+      return false;
+    }
+
+    let filteredOrders = [...this.selectedClient.orders];
+
+    //  FILTRO POR FECHA (SIEMPRE)
+    if (this.extractFromDate && this.extractToDate) {
+      const from = new Date(this.extractFromDate).setHours(0, 0, 0, 0);
+      const to = new Date(this.extractToDate).setHours(23, 59, 59, 999);
+
+      filteredOrders = filteredOrders.filter(order => {
+        const orderDate = new Date(order.created_at).getTime();
+        return orderDate >= from && orderDate <= to;
+      });
+    }
+
+    //  FILTRO POR ESTADO (OPCIONAL)
+    if (this.extractStatusFilter === 'overdue') {
+      filteredOrders = filteredOrders.filter(
+        order => this.getOrderDebt(order) > 0
+      );
+    }
+
+    if (filteredOrders.length === 0) {
+      this.extractMessage =
+        'No hay pedidos que coincidan con los filtros seleccionados.';
+      return false;
     }
 
     const doc = new jsPDF();
@@ -723,31 +793,54 @@ export class ClientsComponent implements OnInit {
       10
     );
 
-    const orders = this.selectedClient.orders.map((order: Orders) => [
-      order.code,
-      new Date(order.created_at).toLocaleDateString('es-CO'),
-      order.description,
-      `$${this.calculateOrderTotal(order).toFixed(2)}`,
-      order.order_payment_status === 'upToDate' ? 'Al Día' : 'En Mora',
-      (order.payments || [])
-        .map(
-          (p) =>
-            `$${p.amount.toFixed(2)} - ${this.formatPaymentMethod(p.payment_method)} - ${
-              p.payment_date ? new Date(p.payment_date).toLocaleDateString('es-CO') : 'Sin fecha'
-            }`
-        )
-        .join('\n'),
-    ]);
+    const orders = filteredOrders.map((order: Orders) => {
+      const debt = this.getOrderDebt(order);
+
+      return [
+        order.code,
+        new Date(order.created_at).toLocaleDateString('es-CO'),
+        order.description,
+        `$${this.calculateOrderTotal(order).toFixed(2)}`,
+        debt > 0 ? `$${debt.toFixed(2)}` : '0',
+        order.order_payment_status === 'upToDate' ? 'Al Día' : 'En Mora',
+        (order.payments || [])
+          .map(
+            (p) =>
+              `$${p.amount.toFixed(2)} - ${this.formatPaymentMethod(
+                p.payment_method
+              )} - ${
+                p.payment_date
+                  ? new Date(p.payment_date).toLocaleDateString('es-CO')
+                  : 'Sin fecha'
+              }`
+          )
+          .join('\n'),
+      ];
+    });
+
 
     (doc as any).autoTable({
-      head: [['#', 'Fecha', 'Detalles', 'Total', 'Estado', 'Abonos']],
+      head: [['#', 'Fecha', 'Detalles', 'Total', 'Deuda', 'Estado', 'Abonos']],
       body: orders,
       startY: 40,
     });
 
     doc.save(
-      `Extracto-${this.selectedClient.company_name || this.selectedClient.name}.pdf`
+      `Extracto-${this.selectedClient.name}.pdf`
     );
+
+    return true;
+  }
+
+  downloadExtract() {
+    this.extractMessage = null;
+
+    const success = this.generatePDF();
+
+    if (!success) return;
+
+    this.resetExtractFilters();
+    this.showExtractFilters = false;
   }
 
   generateClientsKardex(): void {
