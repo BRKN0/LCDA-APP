@@ -5,50 +5,44 @@
   <p>Cargando egresos...</p>
 </div>
 <div class="flex justify-between items-center mb-4 mt-4 ml-2">
-  <div class="flex flex-wrap gap-4">
-    <label class="flex items-center" *ngFor="let category of uniqueCategories">
-      <input
-        type="checkbox"
-        [(ngModel)]="categoryCheckboxes[category]"
-        (click)="onCheckboxChange(category)"
-        class="form-checkbox"
-      />
-      <span class="ml-2">{{ category }}</span>
-    </label>
+  <div
+    class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 mt-4 ml-2 gap-4 pr-4"
+  >
+    <div class="flex flex-wrap gap-4">
+      <label
+        class="flex items-center cursor-pointer"
+        *ngFor="let category of uniqueCategories"
+      >
+        <input
+          type="checkbox"
+          [(ngModel)]="categoryCheckboxes[category]"
+          (change)="onCheckboxChange(category)"
+          class="form-checkbox h-4 w-4 text-red-600 rounded border-gray-300 focus:ring-red-500"
+        />
+        <span class="ml-2 text-sm">{{ getCategoryLabel(category) }}</span>
+      </label>
+    </div>
   </div>
-  <div class="flex space-x-2 mr-4">
+  <div class="flex space-x-2">
     <button
       class="btn-add inline-flex items-center space-x-2"
       (click)="addNewExpense()"
     >
       <svg
-        class="w-5 h-5 inline-block align-middle mt-[3px]"
+        class="w-5 h-5 inline-block"
         viewBox="0 0 24 24"
         fill="none"
-        xmlns="http://www.w3.org/2000/svg"
+        stroke="white"
+        stroke-width="2"
       >
-        <path
-          d="M12.75 9C12.75 8.58579 12.4142 8.25 12 8.25C11.5858 8.25 11.25 8.58579 11.25 9L11.25 11.25H9C8.58579 11.25 8.25 11.5858 8.25 12C8.25 12.4142 8.58579 12.75 9 12.75H11.25V15C11.25 15.4142 11.5858 15.75 12 15.75C12.4142 15.75 12.75 15.4142 12.75 15L12.75 12.75H15C15.4142 12.75 15.75 12.4142 15.75 12C15.75 11.5858 15.4142 11.25 15 11.25H12.75V9Z"
-          fill="#ffffff"
-        />
-        <path
-          fill-rule="evenodd"
-          clip-rule="evenodd"
-          d="M12 1.25C6.06294 1.25 1.25 6.06294 1.25 12C1.25 17.9371 6.06294 22.75 12 22.75C17.9371 22.75 22.75 17.9371 22.75 12C22.75 6.06294 17.9371 1.25 12 1.25ZM2.75 12C2.75 6.89137 6.89137 2.75 12 2.75C17.1086 2.75 21.25 6.89137 21.25 12C21.25 17.1086 17.1086 21.25 12 21.25C6.89137 21.25 2.75 17.1086 2.75 12Z"
-          fill="#ffffff"
-        />
+        <path d="M12 5v14M5 12h14" />
       </svg>
       <span>Añadir</span>
     </button>
     <button class="btn-details" (click)="generateExpensesKardex()">
       Generar Kardex
     </button>
-    <button
-      class="btn-clear "
-      (click)="clearFilters()"
-    >
-      Limpiar
-  </button>
+    <button class="btn-clear" (click)="clearFilters()">Limpiar</button>
   </div>
 </div>
 <div class="flex items-center space-x-4">
@@ -75,32 +69,81 @@
 </div>
 
 <!-- Tabla -->
-<div class="mt-4">
-  <table class="table-std">
+<div class="mt-4 overflow-x-auto">
+  <table class="table-std w-full">
     <thead>
       <tr>
         <th class="table-column-std">Fecha</th>
         <th class="table-column-std">Categoría</th>
-        <th class="table-column-std">Tipo</th>
+        <th class="table-column-std">Proveedor</th>
         <th class="table-column-std">Descripción</th>
         <th class="table-column-std">Costo</th>
+        <th class="table-column-std">Tipo Pago</th>
+        <th class="table-column-std">Estado</th>
         <th class="table-column-std">Acciones</th>
       </tr>
     </thead>
     <tbody>
-      <tr *ngFor="let expense of paginatedExpenses">
-        <td>{{ expense.payment_date | date : "dd-MM-yyyy" }}</td>
-        <td>{{ expense.category }}</td>
-        <td>{{ expense.type }}</td>
-        <td>{{ expense.description }}</td>
-        <td>{{ expense.cost | currency }}</td>
-        <td>
-          <button class="btn-edit" (click)="editExpense(expense)">
-            Editar
-          </button>
-          <button class="btn-delete" (click)="deleteExpense(expense)">
-            Eliminar
-          </button>
+      <tr *ngFor="let expense of paginatedExpenses" class="hover:bg-gray-50">
+        <td class="px-4 py-2 border-b">
+          {{ expense.payment_date | date : "dd-MM-yyyy" }}
+        </td>
+
+        <td class="px-4 py-2 border-b">
+          {{ getCategoryLabel(expense.category) }}
+        </td>
+        <td class="px-4 py-2 border-b text-sm text-gray-600">
+          {{ expense.provider_name || "NO APLICA" }}
+        </td>
+        <td class="px-4 py-2 border-b">{{ expense.description }}</td>
+        <td class="px-4 py-2 border-b text-right font-mono">
+          {{ expense.cost | currency }}
+        </td>
+        <td class="px-4 py-2 border-b">{{ expense.type }}</td>
+
+        <td class="px-4 py-2 border-b text-center">
+          <div class="flex items-center justify-start gap-2">
+            <input
+              type="checkbox"
+              [checked]="expense.payment_status === 'PAID'"
+              (change)="toggleExpenseStatus(expense)"
+              class="w-4 h-4 text-green-600 rounded border-gray-300 cursor-pointer focus:ring-green-500"
+            />
+            <span
+              class="text-xs font-bold"
+              [ngClass]="{
+                'text-green-600': expense.payment_status === 'PAID',
+                'text-red-500': expense.payment_status === 'PENDING'
+              }"
+            >
+              {{ expense.payment_status === "PAID" ? "Pagado" : "Pendiente" }}
+            </span>
+          </div>
+          <div
+            *ngIf="
+              expense.payment_status === 'PENDING' && expense.payment_due_date
+            "
+            class="text-xs text-red-400 mt-1 text-left"
+          >
+            Vence: {{ expense.payment_due_date | date : "dd-MM-yyyy" }}
+          </div>
+        </td>
+
+        <td class="px-4 py-2 border-b">
+          <div class="flex gap-2">
+            <button
+              class="btn-edit text-xs px-2 py-1"
+              (click)="editExpense(expense)"
+            >
+              Editar
+            </button>
+            <button
+              class="btn-delete text-xs px-2 py-1"
+              (click)="deleteExpense(expense)"
+            >
+              Eliminar
+            </button>
+          </div>
         </td>
       </tr>
     </tbody>
@@ -167,92 +210,218 @@
     </h2>
 
     <!-- Formulario -->
-    <form (ngSubmit)="saveExpense()" novalidate>
+    <form (ngSubmit)="saveExpense()" class="space-y-4">
       <div class="modal-input-item">
-        <label for="payment_date"
-          >Fecha<span class="text-red-500">*</span></label
+        <label class="block text-sm font-medium text-gray-700"
+          >Fecha de Egreso <span class="text-red-500">*</span></label
         >
         <input
           type="date"
-          id="payment_date"
           [(ngModel)]="selectedExpense.payment_date"
           name="payment_date"
-          class="form-input"
+          class="form-input mt-1 block w-full rounded-md border-gray-300 shadow-sm"
           required
         />
       </div>
 
       <div class="modal-input-item">
-        <label for="category"
-          >Categoría<span class="text-red-500">*</span></label
+        <label class="block text-sm font-medium text-gray-700"
+          >Categoría <span class="text-red-500">*</span></label
         >
         <select
-          id="category"
           [(ngModel)]="selectedExpense.category"
-          name="category"
-          class="form-select"
           (change)="onCategoryChange($event)"
+          name="category"
+          class="form-select mt-1 block w-full rounded-md border-gray-300 shadow-sm"
           required
         >
-          <option *ngFor="let category of uniqueCategories" [value]="category">
-            {{ category }}
+          <option value="" disabled selected>Seleccione...</option>
+          <option *ngFor="let cat of standardCategories" [value]="cat.value">
+            {{ cat.label }}
           </option>
-          <option value="Otros">Otros</option>
         </select>
-        <input
-          *ngIf="showOtherCategoryInput"
-          type="text"
-          [(ngModel)]="otherCategory"
-          placeholder="Especificar categoría"
-          class="form-input mt-2"
-          required
-        />
+      </div>
+
+      <div
+        *ngIf="selectedExpense.category === 'SUPPLIES'"
+        class="bg-blue-50 p-4 rounded-md border border-blue-200 space-y-3 mt-2"
+      >
+        <h3 class="font-semibold text-blue-800 text-sm">
+          Detalles del Proveedor
+        </h3>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700"
+            >Proveedor</label
+          >
+          <select
+            [ngModel]="
+              isNewProviderMode
+                ? 'NEW_PROVIDER_OPTION'
+                : selectedExpense.id_provider
+            "
+            (change)="onProviderChange($event)"
+            name="id_provider"
+            class="form-select mt-1 block w-full rounded-md border-gray-300"
+            [disabled]="isEditing && !isNewProviderMode"
+          >
+            <option value="" disabled>Seleccione un proveedor</option>
+            <option value="NEW_PROVIDER_OPTION" class="font-bold text-blue-600">
+              + Nuevo Proveedor
+            </option>
+            <option disabled>----------------</option>
+            <option
+              *ngFor="let prov of providersList"
+              [value]="prov.id_provider"
+            >
+              {{ prov.company_name || prov.name }} ({{ prov.document_number }})
+            </option>
+          </select>
+        </div>
+
+        <div
+          *ngIf="isNewProviderMode"
+          class="pl-2 border-l-2 border-blue-400 space-y-2"
+        >
+          <div>
+            <input
+              type="text"
+              [(ngModel)]="newProviderData.company_name"
+              name="new_company"
+              placeholder="Nombre Empresa / Razón Social"
+              class="form-input w-full text-sm rounded-md"
+            />
+          </div>
+          <div class="flex gap-2">
+            <input
+              type="text"
+              [(ngModel)]="newProviderData.name"
+              name="new_name"
+              placeholder="Nombre Contacto"
+              class="form-input w-1/2 text-sm rounded-md"
+            />
+            <input
+              type="text"
+              [(ngModel)]="newProviderData.document_number"
+              name="new_doc"
+              placeholder="NIT / Cédula"
+              class="form-input w-1/2 text-sm rounded-md"
+            />
+          </div>
+          <div>
+            <input
+              type="text"
+              [(ngModel)]="newProviderData.phone_number"
+              name="new_phone"
+              placeholder="Teléfono"
+              class="form-input w-full text-sm rounded-md"
+            />
+          </div>
+        </div>
       </div>
 
       <div class="modal-input-item">
-        <label for="type">Tipo</label>
+        <label class="block text-sm font-medium text-gray-700"
+          >Tipo de Pago</label
+        >
         <input
           type="text"
-          id="type"
           [(ngModel)]="selectedExpense.type"
           name="type"
-          class="form-input"
+          placeholder="Ej: Efectivo, Transferencia"
+          class="form-input mt-1 block w-full rounded-md border-gray-300 shadow-sm"
           required
         />
       </div>
 
       <div class="modal-input-item">
-        <label for="description">Descripción</label>
+        <label class="block text-sm font-medium text-gray-700"
+          >Descripción</label
+        >
         <textarea
-          id="description"
           [(ngModel)]="selectedExpense.description"
           name="description"
-          class="form-textarea"
-          rows="3"
+          rows="2"
+          class="form-textarea mt-1 block w-full rounded-md border-gray-300 shadow-sm"
           required
         ></textarea>
       </div>
 
       <div class="modal-input-item">
-        <label for="cost">Costo</label>
+        <label class="block text-sm font-medium text-gray-700">Costo</label>
         <input
           type="number"
-          id="cost"
           [(ngModel)]="selectedExpense.cost"
           name="cost"
-          class="form-input"
           step="0.01"
+          class="form-input mt-1 block w-full rounded-md border-gray-300 shadow-sm"
           required
         />
       </div>
 
-      <!-- Botones -->
-      <div class="flex justify-end items-center mt-5">
-        <button type="button" class="btn-danger" (click)="closeModal()">
+      <div class="bg-gray-50 p-3 rounded border border-gray-200 mt-4">
+        <div class="flex gap-4 items-center">
+          <span class="text-sm font-bold text-gray-700">Estado de Pago:</span>
+
+          <label class="inline-flex items-center cursor-pointer">
+            <input
+              type="radio"
+              class="form-radio text-green-600"
+              name="payment_status"
+              value="PAID"
+              [(ngModel)]="selectedExpense.payment_status"
+              (change)="onStatusChange($event)"
+            />
+            <span class="ml-2 text-sm">Pagado</span>
+          </label>
+
+          <label class="inline-flex items-center cursor-pointer">
+            <input
+              type="radio"
+              class="form-radio text-red-600"
+              name="payment_status"
+              value="PENDING"
+              [(ngModel)]="selectedExpense.payment_status"
+              (change)="onStatusChange($event)"
+            />
+            <span class="ml-2 text-sm">Pendiente</span>
+          </label>
+        </div>
+
+        <div
+          *ngIf="selectedExpense.payment_status === 'PENDING'"
+          class="mt-3 animate-fadeIn"
+        >
+          <label class="block text-sm font-medium text-red-700"
+            >Fecha Límite de Pago <span class="text-red-500">*</span></label
+          >
+          <input
+            type="date"
+            [(ngModel)]="selectedExpense.payment_due_date"
+            name="payment_due_date"
+            class="form-input mt-1 block w-full rounded-md border-red-300 focus:ring-red-500"
+            required
+          />
+          <p class="text-xs text-red-500 mt-1 font-semibold">
+            Se generará alerta 1 día antes y el mismo día.
+          </p>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-3 pt-4 border-t mt-4">
+        <button
+          type="button"
+          class="btn-danger px-4 py-2"
+          (click)="closeModal()"
+        >
           Cancelar
         </button>
-        <button type="submit" class="btn-success">
-          {{ isEditing ? "Actualizar Egreso" : "Añadir Egreso" }}
+        <button
+          type="submit"
+          class="btn-success px-4 py-2"
+          [disabled]="isSaving"
+        >
+          {{ isSaving ? "Guardando..." : isEditing ? "Actualizar" : "Guardar" }}
         </button>
       </div>
     </form>

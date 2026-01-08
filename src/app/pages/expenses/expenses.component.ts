@@ -14,6 +14,10 @@ interface ExpensesItem {
   description: string;
   cost: number;
   code: number;
+  id_provider?: string;
+  provider_name?: string | null;
+  payment_due_date?: string | null;
+  payment_status: 'PAID' | 'PENDING';
 }
 
 @Component({
@@ -24,13 +28,9 @@ interface ExpensesItem {
   styleUrls: ['./expenses.component.scss'],
 })
 export class ExpensesComponent implements OnInit {
-  // Variables existentes
+  // Expenses data
   expenses: ExpensesItem[] = [];
   filteredExpenses: ExpensesItem[] = [];
-  uniqueCategories: string[] = [];
-  selectedCategory: string = '';
-  loading: boolean = false;
-  showModal: boolean = false;
   selectedExpense: ExpensesItem = {
     id_expenses: '',
     payment_date: '',
@@ -40,100 +40,238 @@ export class ExpensesComponent implements OnInit {
     cost: 0,
     code: 0,
     created_at: new Date(),
-  }; // Inicializado con valores por defecto
+    id_provider: '',
+    provider_name: '',
+    payment_due_date: null,
+    payment_status: 'PAID',
+  };
+  // helpers for modal
+  loading: boolean = false;
+  showModal: boolean = false;
   isEditing: boolean = false;
   startDate: string = '';
   endDate: string = '';
   isSaving: boolean = false; // Variable to prevent multiple clicks
 
-  // Paginación
+  // Pagination
   currentPage: number = 1;
   itemsPerPage: number = 10; // Elementos por página
   totalPages: number = 1; // Total de páginas
   paginatedExpenses: ExpensesItem[] = []; // Lista paginada
 
-  // Nuevas variables para los checkboxes de categorías
+  // Categories
   categoryCheckboxes: { [key: string]: boolean } = {};
   showOtherCategoryInput: boolean = false;
   otherCategory: string = '';
+  uniqueCategories: string[] = [];
+  selectedCategory: string = '';
+  standardCategories = [
+    { value: 'SUPPLIES', label: 'Compra de Insumos / Proveedores' },
+    { value: 'RENT', label: 'Arriendo' },
+    { value: 'UTILITIES', label: 'Servicios Públicos' },
+    { value: 'PAYROLL', label: 'Nómina' },
+    { value: 'MAINTENANCE', label: 'Mantenimiento' },
+    { value: 'TAXES', label: 'Impuestos' },
+    { value: 'MARKETING', label: 'Publicidad' },
+    { value: 'OTHER', label: 'Otros' },
+  ];
+
+  // Providers
+  providersList: any[] = [];
+  isNewProviderMode: boolean = false;
+  newProviderData = {
+    company_name: '',
+    name: '',
+    document_number: '',
+    phone_number: '',
+  };
 
   constructor(private readonly supabase: SupabaseService) {}
 
   ngOnInit(): void {
     this.getExpenses();
-    this.initializeCategoryCheckboxes(); // Inicializar los checkboxes
+    this.getProviders();
+    this.initializeCategoryCheckboxes();
   }
 
-  // Inicializar los checkboxes con las categorías únicas
+  async getProviders() {
+    const { data, error } = await this.supabase
+      .from('providers')
+      .select('id_provider, company_name, name, document_number');
+
+    if (!error && data) {
+      this.providersList = data;
+    }
+  }
+  resetExpense(): ExpensesItem {
+    return {
+      id_expenses: '',
+      payment_date: new Date().toISOString().split('T')[0],
+      category: '',
+      type: '',
+      description: '',
+      cost: 0,
+      code: 0,
+      created_at: new Date(),
+      id_provider: '',
+      provider_name: '',
+      payment_due_date: null,
+      payment_status: 'PAID',
+    };
+  }
+  getCategoryLabel(value: string): string {
+    const found = this.standardCategories.find((c) => c.value === value);
+    return found ? found.label : value;
+  }
   initializeCategoryCheckboxes(): void {
     this.uniqueCategories.forEach((category) => {
-      this.categoryCheckboxes[category] = true; // Por defecto, todos los checkboxes están activos
+      this.categoryCheckboxes[category] = true;
     });
   }
 
-  // Método para manejar el cambio en la selección de categoría en el dropdown
+  // Handle dropdown changes
   onCategoryChange(event: Event): void {
     const selectedValue = (event.target as HTMLSelectElement).value;
-    this.showOtherCategoryInput = selectedValue === 'Otros';
-    if (!this.showOtherCategoryInput) {
-      this.otherCategory = ''; // Limpiar el campo si no se selecciona "Otros"
+    this.selectedExpense.category = selectedValue;
+
+    if (selectedValue !== 'SUPPLIES') {
+      this.selectedExpense.id_provider = '';
+      this.isNewProviderMode = false;
     }
-    if (selectedValue && selectedValue !== 'Otros') {
-      this.selectedExpense.category = selectedValue; // Actualizar la categoría seleccionada
+  }
+  // Handle Status Change
+  onStatusChange(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value as
+      | 'PAID'
+      | 'PENDING';
+    this.selectedExpense.payment_status = value;
+
+    if (value === 'PAID') {
+      this.selectedExpense.payment_due_date = null;
     }
   }
-
-  // Método para guardar el egreso y actualizar los checkboxes
-  saveExpense(): void {
-  if (this.isSaving) return;
-  this.isSaving = true;
-
-  if (!this.selectedExpense.payment_date) {
-    alert('Por favor, seleccione una fecha.');
-    this.isSaving = false;
-    return;
-  }
-
-  if (!this.selectedExpense.category) {
-    alert('Por favor, seleccione una categoría.');
-    this.isSaving = false;
-    return;
-  }
-
-  const finalCategory = this.showOtherCategoryInput
-    ? this.otherCategory
-    : this.selectedExpense.category;
-
-  const expenseToSave: Partial<ExpensesItem> = {
-    payment_date: this.selectedExpense.payment_date,
-    category: finalCategory,
-    type: this.selectedExpense.type,
-    description: this.selectedExpense.description,
-    cost: this.selectedExpense.cost,
-    code: this.selectedExpense.code,
-  };
-
-  const operation = this.isEditing
-    ? this.supabase
-        .from('expenses')
-        .update(expenseToSave)
-        .eq('id_expenses', this.selectedExpense.id_expenses)
-    : this.supabase.from('expenses').insert([expenseToSave]);
-
-  operation.then(({ error }) => {
-    this.isSaving = false;
-    if (error) {
-      console.error('Error al guardar:', error);
-      alert(`Error: ${error.message}`);
+  onProviderChange(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    if (value === 'NEW_PROVIDER_OPTION') {
+      this.isNewProviderMode = true;
+      this.selectedExpense.id_provider = '';
     } else {
+      this.isNewProviderMode = false;
+      this.selectedExpense.id_provider = value;
+    }
+  }
+  // Save expenses and update checkboxes
+  async saveExpense() {
+    if (this.isSaving) return;
+    this.isSaving = true;
+
+    // Validations
+    if (!this.selectedExpense.payment_date) {
+      alert('Por favor, seleccione una fecha.');
+      this.isSaving = false;
+      return;
+    }
+    if (!this.selectedExpense.category) {
+      alert('Por favor, seleccione una categoría.');
+      this.isSaving = false;
+      return;
+    }
+    if (this.selectedExpense.payment_status === 'PENDING' && !this.selectedExpense.payment_due_date) {
+      alert('Si el estado es "Pendiente", debe seleccionar una Fecha Límite de Pago.');
+      this.isSaving = false;
+      return;
+    }
+
+    let rollbackProviderId: string | null = null;
+
+    try {
+      let finalProviderId = this.selectedExpense.id_provider;
+      let finalProviderName = '';
+
+      // Create New Provider
+      if (this.selectedExpense.category === 'SUPPLIES' && this.isNewProviderMode) {
+        if (!this.newProviderData.company_name && !this.newProviderData.name) {
+          throw new Error('Debe ingresar Nombre o Empresa para el nuevo proveedor');
+        }
+
+        // Determine the name to save immediately
+        finalProviderName = this.newProviderData.company_name || this.newProviderData.name;
+
+        const { data: provData, error: provError } = await this.supabase
+          .from('providers')
+          .insert([{
+            company_name: this.newProviderData.company_name,
+            name: this.newProviderData.name,
+            document_number: this.newProviderData.document_number,
+            phone_number: this.newProviderData.phone_number,
+            created_at: new Date()
+          }])
+          .select()
+          .single();
+
+        if (provError) throw provError;
+
+        finalProviderId = provData.id_provider;
+        rollbackProviderId = provData.id_provider;
+      } 
+      else if (this.selectedExpense.category === 'SUPPLIES' && finalProviderId) {
+        // Find the selected provider in the list to get the name
+        const selectedProv = this.providersList.find(p => p.id_provider === finalProviderId);
+        if (selectedProv) {
+          finalProviderName = selectedProv.company_name || selectedProv.name;
+        }
+      }
+
+      const expenseToSave: any = {
+        payment_date: this.selectedExpense.payment_date,
+        category: this.selectedExpense.category,
+        type: this.selectedExpense.type,
+        description: this.selectedExpense.description,
+        cost: this.selectedExpense.cost,
+        code: this.selectedExpense.code,
+        
+        // Link ID (can be null if deleted later)
+        id_provider: this.selectedExpense.category === 'SUPPLIES' ? finalProviderId : null,
+        // Snapshot Name
+        provider_name: this.selectedExpense.category === 'SUPPLIES' ? finalProviderName : null,
+        
+        payment_status: this.selectedExpense.payment_status,
+        payment_due_date: this.selectedExpense.payment_status === 'PENDING' ? this.selectedExpense.payment_due_date : null
+      };
+
+      let operation;
+      if (this.isEditing) {
+        operation = this.supabase
+          .from('expenses')
+          .update(expenseToSave)
+          .eq('id_expenses', this.selectedExpense.id_expenses);
+      } else {
+        operation = this.supabase.from('expenses').insert([expenseToSave]);
+      }
+
+      const { error } = await operation;
+
+      if (error) throw error;
+
       alert(this.isEditing ? 'Egreso actualizado' : 'Egreso añadido');
+      
+      if (rollbackProviderId) await this.getProviders();
+      
       this.getExpenses();
       this.closeModal();
-    }
-  });
-}
 
-  // Métodos existentes ajustados
+    } catch (err: any) {
+      console.error(err);
+      // Rollback orphaned provider
+      if (rollbackProviderId) {
+        await this.supabase.from('providers').delete().eq('id_provider', rollbackProviderId);
+      }
+      alert('Error: ' + err.message);
+    } finally {
+      this.isSaving = false;
+    }
+  }
+
   getExpenses(): void {
     this.loading = true;
     this.supabase
@@ -172,21 +310,18 @@ export class ExpensesComponent implements OnInit {
           } while (swapped);
           this.filteredExpenses = [...this.expenses];
 
-          // Obtener categorías únicas y ordenarlas
           this.uniqueCategories = [
             ...new Set(this.expenses.map((e) => e.category || '')),
           ].sort();
 
-          // Inicializar los checkboxes con las categorías existentes
           this.initializeCategoryCheckboxes();
 
-          // Aplicar filtros iniciales
           this.applyFilters();
         }
       });
   }
 
-  // Nueva función para generar el kardex de egresos
+  // Genererate Expenses Kardex
   generateExpensesKardex(): void {
     console.log('Botón Generar Kardex clicado');
     try {
@@ -213,7 +348,10 @@ export class ExpensesComponent implements OnInit {
 
       const csvRows = this.filteredExpenses.map((expense) => {
         console.log('Procesando egreso:', expense);
-        const costValue = typeof expense.cost === 'number' ? expense.cost : parseFloat(expense.cost || '0');
+        const costValue =
+          typeof expense.cost === 'number'
+            ? expense.cost
+            : parseFloat(expense.cost || '0');
         const formattedCost = isNaN(costValue) ? '0.00' : costValue.toFixed(2);
 
         return [
@@ -228,9 +366,13 @@ export class ExpensesComponent implements OnInit {
         ].map((value) => `"${value}"`);
       });
 
-      const csvContent = [csvHeader, ...csvRows].map((row) => row.join(';')).join('\r\n');
+      const csvContent = [csvHeader, ...csvRows]
+        .map((row) => row.join(';'))
+        .join('\r\n');
       const bom = '\uFEFF';
-      const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const blob = new Blob([bom + csvContent], {
+        type: 'text/csv;charset=utf-8;',
+      });
       const url = window.URL.createObjectURL(blob);
 
       const a = document.createElement('a');
@@ -253,7 +395,7 @@ export class ExpensesComponent implements OnInit {
         ? Object.entries(this.categoryCheckboxes)
             .filter(([_, checked]) => checked)
             .some(([category]) => e.category === category)
-        : true; // Si no hay checkboxes activos, mostrar todos
+        : true; // If no checkboxes are active, show all
 
       const expenseDate = new Date(e.payment_date);
       const isWithinDateRange =
@@ -263,20 +405,20 @@ export class ExpensesComponent implements OnInit {
       return matchesCategory && isWithinDateRange;
     });
 
-    // Actualizar la paginación después de aplicar los filtros
+    // Update paginated expenses after filtering
     this.updatePaginatedExpenses();
   }
 
-  // Verificar si hay al menos un checkbox de categoría activado
+  // Verify if at least one category checkbox is checked
   isAnyCategoryChecked(): boolean {
     return Object.values(this.categoryCheckboxes).some((checked) => checked);
   }
 
   onCheckboxChange(category: string): void {
-    // Alternar el estado del checkbox
+    // Alternate the checkbox state
     this.categoryCheckboxes[category] = !this.categoryCheckboxes[category];
 
-    // Aplicar filtros después de cambiar el estado del checkbox
+    // Apply filters after checkbox state change
     this.applyFilters();
   }
 
@@ -290,6 +432,10 @@ export class ExpensesComponent implements OnInit {
       cost: 0,
       code: 0,
       created_at: new Date(),
+      id_provider: '',
+      provider_name: '',
+      payment_due_date: null,
+      payment_status: 'PAID',
     };
     this.showOtherCategoryInput = false;
     this.otherCategory = '';
@@ -320,6 +466,10 @@ export class ExpensesComponent implements OnInit {
       cost: 0,
       code: 0,
       created_at: new Date(),
+      id_provider: '',
+      provider_name: '',
+      payment_due_date: null,
+      payment_status: 'PAID',
     };
   }
 
@@ -346,7 +496,7 @@ export class ExpensesComponent implements OnInit {
     }
   }
 
-  // Paginación
+  // Pagination Methods
   paginateItems<T>(items: T[], page: number, itemsPerPage: number): T[] {
     const startIndex = (page - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
@@ -354,37 +504,54 @@ export class ExpensesComponent implements OnInit {
   }
 
   updatePaginatedExpenses(): void {
-    // Calcular el número total de páginas
+    // Calculate total pages
     this.totalPages = Math.max(
       1,
       Math.ceil(this.filteredExpenses.length / this.itemsPerPage)
     );
-
-    // Asegurar que currentPage no sea menor que 1 ni mayor que totalPages
+    // Ensure currentPage is not less than 1 or greater than totalPages
     this.currentPage = Math.min(Math.max(this.currentPage, 1), this.totalPages);
 
-    // Calcular los índices de inicio y fin
+    // Calculate start and end indexes
     const startIndex = Number((this.currentPage - 1) * this.itemsPerPage);
     const endIndex = startIndex + Number(this.itemsPerPage);
-
-    // Obtener los elementos para la página actual
+    // Obtain items for the current page
     this.paginatedExpenses = this.filteredExpenses.slice(startIndex, endIndex);
   }
   clearFilters(): void {
-  // Limpiar fechas
-  this.startDate = '';
-  this.endDate = '';
+    this.startDate = '';
+    this.endDate = '';
+    Object.keys(this.categoryCheckboxes).forEach((key) => {
+      this.categoryCheckboxes[key] = true;
+    });
 
-  // Limpiar categorías seleccionadas
-  Object.keys(this.categoryCheckboxes).forEach((key) => {
-    this.categoryCheckboxes[key] = true;
-  });
+    this.otherCategory = '';
+    this.showOtherCategoryInput = false;
 
-  // Limpiar campo "Otros"
-  this.otherCategory = '';
-  this.showOtherCategoryInput = false;
+    this.applyFilters();
+  }
+  async toggleExpenseStatus(expense: ExpensesItem) {
+    const oldStatus = expense.payment_status;
+    const newStatus = oldStatus === 'PAID' ? 'PENDING' : 'PAID';
+    expense.payment_status = newStatus;
 
-  // Reaplicar filtros (que ahora estarán vacíos)
-  this.applyFilters();
-}
+
+    const updateData: any = { payment_status: newStatus };
+
+    if (newStatus === 'PAID') {
+      updateData.payment_due_date = null;
+      expense.payment_due_date = null;
+    } 
+
+    const { error } = await this.supabase
+      .from('expenses')
+      .update(updateData)
+      .eq('id_expenses', expense.id_expenses);
+
+    if (error) {
+      console.error('Error updating status:', error);
+      expense.payment_status = oldStatus; // Revert UI
+      alert('Hubo un error al actualizar el estado.');
+    }
+  }
 }

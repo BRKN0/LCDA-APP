@@ -31,6 +31,7 @@ export class NotificationsComponent implements OnInit {
   reminders: Notifications[] = [];
   cutsOrders: Notifications[] = [];
   printsOrders: Notifications[] = [];
+  paymentDues: Notifications[] = [];
   loading: boolean = true;
   notifications: Notifications[] = [];
   showAddReminderForm = false;
@@ -137,8 +138,10 @@ export class NotificationsComponent implements OnInit {
 
     this.notifications = data as Notifications[];
     this.lowStock = [];
-
     this.reminders = [];
+    this.printsOrders = [];
+    this.cutsOrders = [];
+    this.paymentDues = [];
 
     for (let i = 0; i < this.notifications.length; i++) {
       switch (this.notifications[i].type) {
@@ -153,6 +156,9 @@ export class NotificationsComponent implements OnInit {
           break;
         case 'cuts':
           this.cutsOrders.push(this.notifications[i]);
+          break;
+        case 'payment_due':
+          this.paymentDues.push(this.notifications[i]);
           break;
         default:
           console.log(

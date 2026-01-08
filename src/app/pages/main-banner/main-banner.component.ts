@@ -2,8 +2,8 @@ import { Component, HostListener, OnInit, NgZone } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { RoleService } from '../../services/role.service';
 import { SupabaseService } from '../../services/supabase.service';
-import { ActivatedRoute, Router } from '@angular/router';
-import { map } from 'rxjs';
+import { Router } from '@angular/router';
+import { map, firstValueFrom } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -53,7 +53,7 @@ export class MainBannerComponent implements OnInit {
     this.router.navigate(['/inventory/product']);
   }
   goToAcrylics() {
-    this.router.navigate(['/pricing/acrylics']); 
+    this.router.navigate(['/pricing/acrylics']);
   }
   goToMdf() {
     this.router.navigate(['/pricing/mdf']);
@@ -74,7 +74,7 @@ export class MainBannerComponent implements OnInit {
     this.router.navigate(['/bank/providers']);
   }
   goToThirdParties() {
-    this.router.navigate(['/bank/third'])
+    this.router.navigate(['/bank/third']);
   }
   goToClients() {
     this.router.navigate(['/clients']);
@@ -94,7 +94,7 @@ export class MainBannerComponent implements OnInit {
   goToControlPanel() {
     this.router.navigate(['/control-panel']);
   }
-    goToSchedule() {
+  goToSchedule() {
     this.router.navigate(['/schedule']);
   }
   goToQuotation() {
@@ -143,6 +143,7 @@ export class MainBannerComponent implements OnInit {
 
     if (this.userRole === 'admin') {
       query = query.eq('id_user', this.userId);
+      this.runNotificationCheck();
     } else if (this.userRole === 'prints_employee') {
       query = query.eq('type', 'prints');
     } else if (this.userRole === 'cuts_employee') {
@@ -161,6 +162,18 @@ export class MainBannerComponent implements OnInit {
 
     this.newNotification = (data?.length ?? 0) > 0;
     return;
+  }
+  async runNotificationCheck() {
+    try {
+      const response = await firstValueFrom(
+        this.supabase.rpc$('check_and_generate_notifications', {})
+      );
+      if (response.error) {
+        console.error('Error running notification check', response.error);
+      }
+    } catch (err) {
+      console.error('Observable error', err);
+    }
   }
   toggleFinanceDropdown(event: MouseEvent): void {
     event.stopPropagation();
