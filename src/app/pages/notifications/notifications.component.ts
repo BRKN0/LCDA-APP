@@ -32,6 +32,7 @@ export class NotificationsComponent implements OnInit {
   cutsOrders: Notifications[] = [];
   printsOrders: Notifications[] = [];
   paymentDues: Notifications[] = [];
+  paymentDeadlines: Notifications[] = [];
   loading: boolean = true;
   notifications: Notifications[] = [];
   showAddReminderForm = false;
@@ -77,6 +78,7 @@ export class NotificationsComponent implements OnInit {
 
           if (!this.hasFetchedNotifications) {
             if (role === 'admin') {
+              await this.checkAllPendingInvoicesDeadlines();
               await this.getNotifications();
             } else {
               await this.getEmployeeNotifications();
@@ -142,6 +144,7 @@ export class NotificationsComponent implements OnInit {
     this.printsOrders = [];
     this.cutsOrders = [];
     this.paymentDues = [];
+    this.paymentDeadlines = [];
 
     for (let i = 0; i < this.notifications.length; i++) {
       switch (this.notifications[i].type) {
@@ -160,6 +163,9 @@ export class NotificationsComponent implements OnInit {
         case 'payment_due':
           this.paymentDues.push(this.notifications[i]);
           break;
+        case 'payment_deadline':
+          this.paymentDeadlines.push(this.notifications[i]);
+          break;
         default:
           console.log(
             'notification type is unknown: ',
@@ -170,6 +176,99 @@ export class NotificationsComponent implements OnInit {
     }
     this.loading = false;
   }
+
+  // Verificar todas las facturas pendientes al cargar el módulo
+  async checkAllPendingInvoicesDeadlines(): Promise<void> {
+    try {
+      const { data: invoices, error } = await this.supabase
+        .from('invoices')
+        .select(`
+          *,
+          orders!inner(
+            *,
+            clients(*),
+            payments(*)
+          )
+        `)
+        .eq('invoice_status', 'overdue')
+        .not('due_date', 'is', null);
+
+      if (error) {
+        console.error('Error al obtener facturas:', error);
+        return;
+      }
+
+      if (!invoices || invoices.length === 0) return;
+
+      for (const invoice of invoices) {
+        await this.checkSingleInvoiceDeadline(invoice);
+      }
+
+      // Recargar notificaciones después de verificar
+      await this.getNotifications();
+    } catch (error) {
+      console.error('Error verificando plazos de pago:', error);
+    }
+  }
+
+  async checkSingleInvoiceDeadline(invoice: any): Promise<void> {
+    if (!invoice.due_date) return;
+
+    const totalPaid = invoice.orders?.payments?.reduce(
+      (sum: number, p: any) => sum + (p.amount || 0),
+      0
+    ) || 0;
+
+    const total = invoice.orders?.total || 0;
+    const remainingBalance = total - totalPaid;
+
+    if (remainingBalance <= 0) {
+      await this.supabase
+        .from('notifications')
+        .delete()
+        .eq('id_invoice', invoice.id_invoice)
+        .eq('type', 'payment_deadline');
+      return;
+    }
+
+    const currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0);
+
+    const dueDate = new Date(invoice.due_date);
+    dueDate.setHours(0, 0, 0, 0);
+
+    const diffTime = dueDate.getTime() - currentDate.getTime();
+    const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (daysRemaining <= 3 && daysRemaining > 0) {
+      const { data: existingNotification } = await this.supabase
+        .from('notifications')
+        .select('*')
+        .eq('id_invoice', invoice.id_invoice)
+        .eq('type', 'payment_deadline')
+        .maybeSingle();
+
+      if (!existingNotification) {
+        const notificationData = {
+          type: 'payment_deadline',
+          description: `Plazo de pago próximo a vencer: Factura ${invoice.code} - Cliente: ${invoice.orders.clients.name} - Faltan ${daysRemaining} día(s)`,
+          id_invoice: invoice.id_invoice,
+          due_date: invoice.due_date,
+        };
+
+        await this.supabase
+          .from('notifications')
+          .insert([notificationData]);
+      }
+    } else if (daysRemaining <= 0) {
+      await this.supabase
+        .from('notifications')
+        .delete()
+        .eq('id_invoice', invoice.id_invoice)
+        .eq('type', 'payment_deadline');
+    }
+  }
+
   getUpdatedDescription(description: string): string {
     if (description.includes('low')) {
       return description.replace('low', 'bajo');
