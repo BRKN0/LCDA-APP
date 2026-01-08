@@ -267,6 +267,9 @@ export class OrdersComponent implements OnInit {
   extraChargeDescription: string = '';
   extraChargeAmount: number = 0;
   extraChargeType: 'fixed' | 'percentage' = 'fixed';
+  initialPaymentType: 'none' | 'full' | 'partial' = 'none';
+  initialPaymentAmount: number = 0;
+  initialPaymentMethod: string = '';
   /*
   discount: number = 0;
   discountType: 'fixed' | 'percentage' = 'fixed';
@@ -1795,12 +1798,12 @@ export class OrdersComponent implements OnInit {
       ? order.delivery_date.slice(0, 10)
       : '';
 
-     // CARGAR cutting_time en tempCutTime para pedidos tipo LASER
-      if (order.order_type === 'laser') {
-        this.tempCutTime = Number(order.cutting_time) || 0;
-      } else {
-        this.tempCutTime = 0; // Limpiar para otros tipos
-      }
+    // CARGAR cutting_time en tempCutTime para pedidos tipo LASER
+    if (order.order_type === 'laser') {
+      this.tempCutTime = Number(order.cutting_time) || 0;
+    } else {
+      this.tempCutTime = 0; // Limpiar para otros tipos
+    }
 
     // base_total calcula without breaking if extra_charges is not an array
     const extrasArray = Array.isArray(this.newOrder.extra_charges)
@@ -1917,7 +1920,7 @@ export class OrdersComponent implements OnInit {
     // Asignar tempCutTime para pedidos tipo LASER
     if (this.newOrder.order_type === 'laser') {
       this.newOrder.cutting_time = this.tempCutTime || 0;
-}
+    }
 
     const deliveryDate = newOrderForm.delivery_date
       ? new Date(newOrderForm.delivery_date)
@@ -1983,7 +1986,7 @@ export class OrdersComponent implements OnInit {
           if (updateCutError) {
             console.error('Error al actualizar tabla cuts:', updateCutError);
           } else {
-            console.log('✅ Registro actualizado en tabla cuts');
+            console.log('Registro actualizado en tabla cuts');
           }
         } else {
           // Si no existe, insertar
@@ -2007,7 +2010,7 @@ export class OrdersComponent implements OnInit {
           if (insertCutError) {
             console.error('Error al insertar en tabla cuts:', insertCutError);
           } else {
-            console.log('✅ Registro insertado en tabla cuts');
+            console.log('Registro insertado en tabla cuts');
           }
         }
       }
@@ -2051,6 +2054,11 @@ export class OrdersComponent implements OnInit {
 
       const insertedOrder = insertedOrderData[0];
 
+      await this.createInitialPaymentForOrder(
+        insertedOrder,
+        total
+      );
+
       // Si es pedido tipo LASER, insertar registro en tabla cuts
       if (this.newOrder.order_type === 'laser' && this.tempCutTime > 0) {
         const cutRecord = {
@@ -2073,7 +2081,7 @@ export class OrdersComponent implements OnInit {
         if (cutError) {
           console.error('Error al insertar en tabla cuts:', cutError);
         } else {
-          console.log('✅ Registro insertado correctamente en tabla cuts');
+          console.log('Registro insertado correctamente en tabla cuts');
         }
       }
 
@@ -2136,6 +2144,75 @@ export class OrdersComponent implements OnInit {
       this.showModal = false;
       await this.getOrders();
     }
+  }
+
+  async createInitialPaymentForOrder(
+    order: Orders,
+    totalOrderAmount: number
+  ): Promise<void> {
+    if (this.initialPaymentType === 'none') return;
+
+    let amountToPay = 0;
+
+    if (this.initialPaymentType === 'full') {
+      amountToPay = totalOrderAmount;
+    } else {
+      amountToPay = this.initialPaymentAmount;
+    }
+
+    if (amountToPay <= 0) return;
+    if (!this.initialPaymentMethod) return;
+
+    const payment = {
+      id_order: order.id_order,
+      amount: amountToPay,
+      payment_method: this.initialPaymentMethod,
+    };
+
+    // Insertar pago
+    const { error: paymentError } = await this.supabase
+      .from('payments')
+      .insert([payment]);
+
+    if (paymentError) {
+      console.error('Error al registrar pago inicial:', paymentError);
+      return;
+    }
+
+    // Actualizar deuda del cliente
+    const { data: clientData } = await this.supabase
+      .from('clients')
+      .select('debt')
+      .eq('id_client', order.id_client)
+      .single();
+
+    const currentDebt = clientData?.debt || 0;
+    const newDebt = Math.max(currentDebt - amountToPay, 0);
+
+    await this.supabase
+      .from('clients')
+      .update({
+        debt: newDebt,
+        status: newDebt > 0 ? 'overdue' : 'upToDate',
+      })
+      .eq('id_client', order.id_client);
+
+    // Actualizar estado del pedido
+    const remainingOrderBalance = totalOrderAmount - amountToPay;
+
+    const paymentStatus =
+      remainingOrderBalance <= 0 ? 'upToDate' : 'overdue';
+
+    await this.supabase
+      .from('orders')
+      .update({ order_payment_status: paymentStatus })
+      .eq('id_order', order.id_order);
+
+    // Actualizar factura
+    await this.supabase
+      .from('invoices')
+      .update({ invoice_status: paymentStatus })
+      .eq('id_order', order.id_order);
   }
 
   /*
@@ -3344,7 +3421,7 @@ export class OrdersComponent implements OnInit {
 
       if (stillPending === 0) {
         alert(
-          `✅ Stock completado exitosamente.\n\nSe cumplieron ${totalCompleted} unidades.`
+          `Stock completado exitosamente.\n\nSe cumplieron ${totalCompleted} unidades.`
         );
       } else {
         alert(
@@ -3464,7 +3541,7 @@ export class OrdersComponent implements OnInit {
 
       if (stillPending === 0) {
         alert(
-          `✅ Stock completado exitosamente.\n\nSe cumplieron ${totalCompleted} unidades.`
+          `Stock completado exitosamente.\n\nSe cumplieron ${totalCompleted} unidades.`
         );
       } else {
         alert(

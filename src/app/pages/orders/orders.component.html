@@ -1144,7 +1144,51 @@
             </li>
           </ul>
         </div>
-         <!-- Tiempo de Corte (solo para laser) -->
+        <!-- ===================== -->
+        <!-- SECCIÓN DE PAGO -->
+        <!-- ===================== -->
+        <ng-container *ngIf= "!isEditing">
+          <div class="mb-4 border-t pt-4">
+            <h4 class="font-semibold text-green-600">Pago del Pedido</h4>
+
+            <label class="block modal-input-item">Tipo de pago</label>
+            <select
+              [(ngModel)]="initialPaymentType"
+              name="initialPaymentType"
+              class="form-select mt-1 block w-full"
+            >
+              <option value="none">No paga ahora</option>
+              <option value="full">Pago total</option>
+              <option value="partial">Abono</option>
+            </select>
+
+            <div *ngIf="initialPaymentType !== 'none'" class="mt-3">
+              <label class="block modal-input-item">Monto pagado</label>
+              <input
+                type="number"
+                [(ngModel)]="initialPaymentAmount"
+                name="initialPaymentAmount"
+                class="form-input mt-1 block w-full"
+                min="0"
+              />
+
+              <label class="block modal-input-item mt-2">Método de pago</label>
+              <select
+                [(ngModel)]="initialPaymentMethod"
+                name="initialPaymentMethod"
+                class="form-select mt-1 block w-full"
+              >
+                <option value="" disabled selected>Seleccione un método</option>
+                <option value="cash">Efectivo</option>
+                <option value="nequi">Nequi</option>
+                <option value="bancolombia">Bancolombia</option>
+                <option value="Davivienda">Davivienda</option>
+                <option value="other">Otro</option>
+              </select>
+            </div>
+          </div>
+        </ng-container>
+        <!-- Tiempo de Corte (solo para laser) -->
         <div *ngIf="newOrder.order_type === 'laser'" class="mb-4 border-t pt-4">
           <h4 class="font-semibold text-yellow-600">Datos de Corte</h4>
 

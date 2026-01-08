@@ -782,84 +782,84 @@ export class InvoiceComponent implements OnInit {
   }
 
   async deletePayment(payment: Payment, order: Orders): Promise<void> {
-  if (!payment || !payment.id_payment) {
-    this.showNotification('No se ha seleccionado un abono válido.');
-    return;
-  }
-
-  if (!confirm('¿Estás seguro de que deseas eliminar este abono?')) {
-    return;
-  }
-
-  try {
-    const { error: deleteError } = await this.supabase
-      .from('payments')
-      .delete()
-      .eq('id_payment', payment.id_payment);
-
-    if (deleteError) {
-      console.error('Error al eliminar el abono:', deleteError);
-      this.showNotification('Error al eliminar el abono.');
+    if (!payment || !payment.id_payment) {
+      this.showNotification('No se ha seleccionado un abono válido.');
       return;
     }
 
-    const { data: clientData, error: clientError } = await this.supabase
-      .from('clients')
-      .select('debt')
-      .eq('id_client', order.id_client)
-      .single();
-
-    if (clientError || !clientData) {
-      console.error('Error al obtener la deuda del cliente:', clientError);
-      this.showNotification('Error al actualizar la deuda del cliente.');
+    if (!confirm('¿Estás seguro de que deseas eliminar este abono?')) {
       return;
     }
 
-    const currentDebt = clientData.debt || 0;
-    const newDebt = currentDebt + payment.amount;
-    const { error: debtError } = await this.supabase
-      .from('clients')
-      .update({ debt: newDebt, status: newDebt > 0 ? 'overdue' : 'upToDate' })
-      .eq('id_client', order.id_client);
+    try {
+      const { error: deleteError } = await this.supabase
+        .from('payments')
+        .delete()
+        .eq('id_payment', payment.id_payment);
 
-    if (debtError) {
-      console.error('Error al actualizar la deuda:', debtError);
-      this.showNotification('Error al actualizar la deuda del cliente.');
-      return;
+      if (deleteError) {
+        console.error('Error al eliminar el abono:', deleteError);
+        this.showNotification('Error al eliminar el abono.');
+        return;
+      }
+
+      const { data: clientData, error: clientError } = await this.supabase
+        .from('clients')
+        .select('debt')
+        .eq('id_client', order.id_client)
+        .single();
+
+      if (clientError || !clientData) {
+        console.error('Error al obtener la deuda del cliente:', clientError);
+        this.showNotification('Error al actualizar la deuda del cliente.');
+        return;
+      }
+
+      const currentDebt = clientData.debt || 0;
+      const newDebt = currentDebt + payment.amount;
+      const { error: debtError } = await this.supabase
+        .from('clients')
+        .update({ debt: newDebt, status: newDebt > 0 ? 'overdue' : 'upToDate' })
+        .eq('id_client', order.id_client);
+
+      if (debtError) {
+        console.error('Error al actualizar la deuda:', debtError);
+        this.showNotification('Error al actualizar la deuda del cliente.');
+        return;
+      }
+
+      if (order.payments) {
+        order.payments = order.payments.filter(
+          (p) => p.id_payment !== payment.id_payment
+        );
+
+        const totalPaid = this.getTotalPayments(order);
+        const invoice = this.selectedInvoiceDetails![0];
+        const { total } = await this.calculateInvoiceValues(invoice);
+        const newRemainingBalance = total - totalPaid;
+        const newStatus = newRemainingBalance <= 0 ? 'upToDate' : 'overdue';
+
+        await this.supabase
+          .from('orders')
+          .update({
+            order_payment_status: newStatus,
+          })
+          .eq('id_order', order.id_order);
+
+        await this.supabase
+          .from('invoices')
+          .update({ invoice_status: newStatus })
+          .eq('id_order', order.id_order);
+
+        await this.getInvoices();
+      }
+
+      this.showNotification('Abono eliminado correctamente.');
+    } catch (error) {
+      console.error('Error inesperado:', error);
+      this.showNotification('Ocurrió un error inesperado.');
     }
-
-    if (order.payments) {
-      order.payments = order.payments.filter(
-        (p) => p.id_payment !== payment.id_payment
-      );
-
-      const totalPaid = this.getTotalPayments(order);
-      const invoice = this.selectedInvoiceDetails![0];
-      const { total } = await this.calculateInvoiceValues(invoice);
-      const newRemainingBalance = total - totalPaid;
-      const newStatus = newRemainingBalance <= 0 ? 'upToDate' : 'overdue';
-
-      await this.supabase
-        .from('orders')
-        .update({
-          order_payment_status: newStatus,
-        })
-        .eq('id_order', order.id_order);
-
-      await this.supabase
-        .from('invoices')
-        .update({ invoice_status: newStatus })
-        .eq('id_order', order.id_order);
-
-      await this.getInvoices();
-    }
-
-    this.showNotification('Abono eliminado correctamente.');
-  } catch (error) {
-    console.error('Error inesperado:', error);
-    this.showNotification('Ocurrió un error inesperado.');
   }
-}
 
   getTotalPayments(order: Orders): number {
     if (!order || !Array.isArray(order.payments)) return 0;
