@@ -114,24 +114,6 @@ interface Payment {
   payment_date?: string;
 }
 
-interface Invoice {
-  id_invoice: string;
-  created_at: string;
-  invoice_status: string;
-  id_order: string;
-  code: string;
-  payment_term: number;
-  include_iva: boolean;
-  due_date: string;
-}
-
-interface Variables {
-  id: string;
-  name: string;
-  category: string;
-  value: number;
-  label: string;
-}
 interface VariableMap {
   iva: number;
   utility_margin: number;
@@ -219,25 +201,6 @@ export class OrdersComponent implements OnInit {
   selectedPayment: Payment | null = null;
   notificationMessage: string | null = null;
   private searchSubject = new Subject<void>();
-  //showCalculator: boolean = false;
-  //calculationType: 'prints' | 'cuts' | 'sales' | null = null;
-  //clientType: 'intermediary' | 'final' | null = null;
-  //lamination: boolean = false;
-  //pPrint: boolean = false;
-  //stamping: boolean = false;
-  //assemble: boolean = false;
-  //laminationValue: number = 2;
-  //printValue: number = 1.2;
-  //stampingValue: number = 1.2;
-  //assembleValue: number = 1.2;
-  //rollWidth: number = 0;
-  //measurement: number = 0;
-  //productNumber: number = 1;
-  //materialValue: number = 0;
-  //intermediaryPerMinute: number = 800;
-  //finalPerMinute: number = 1000;
-  //usageTime: number = 0;
-  //calculatorResult: number = 0;
   showAddClientModal = false;
   filteredClients: Client[] = [];
   newOrder: Partial<Orders> = {};
@@ -255,51 +218,12 @@ export class OrdersComponent implements OnInit {
   showStockWarningModal = false;
   stockWarningMessage = '';
   selectedScheduler: string = '';
-  /* Variables para ventas (sales)
-  saleMode: 'none' | 'material' | 'product' = 'none';
-  saleMaterialQuantity: number = 1;
-  saleMaterialUnitPrice: number = 0;
-  allProducts: any[] = [];
-  selectedProductId: string = '';
-  salesItems: any[] = [];
-  isSaleModeLocked: boolean = false;
-  */
   extraChargeDescription: string = '';
   extraChargeAmount: number = 0;
   extraChargeType: 'fixed' | 'percentage' = 'fixed';
   initialPaymentType: 'none' | 'full' | 'partial' = 'none';
   initialPaymentAmount: number = 0;
   initialPaymentMethod: string = '';
-  /*
-  discount: number = 0;
-  discountType: 'fixed' | 'percentage' = 'fixed';
-  hasDiscountApplied: boolean = false;
-  totalBeforeDiscount: number = 0;
-  */
-  /*
-  // Array para almacenar múltiples materiales en prints
-  printsItems: any[] = [];
-  isPrintsModeLocked: boolean = false;
-
-  // Variables temporales para cada material de prints
-  tempPrintQuantity: number = 1;
-  tempPrintLaminating: boolean = false;
-  tempPrintDieCutting: boolean = false;
-  tempPrintAssembly: boolean = false;
-  tempPrintPrinting: boolean = false;
-  tempPrintUnitaryValue: number = 0;
-  tempPrintRollWidth: number = 0;
-  tempPrintMeasurement: number = 0;
-  */
-  /*
-  cutsItems: any[] = [];
-  isCutsModeLocked: boolean = false;
-  tempCutQuantity: number = 1;
-  tempCutHeight: number = 0;
-  tempCutWidth: number = 0;
-  tempCutNotes: string = '';
-  tempCutUnitaryValue: number = 0;
-  */
   tempCutTime: number = 0;
 
   newClient = {
@@ -307,7 +231,6 @@ export class OrdersComponent implements OnInit {
     email: '',
     document_type: '',
     document_number: '0',
-    //company_name: '',
     cellphone: '0',
     address: '',
     status: '',
@@ -334,7 +257,6 @@ export class OrdersComponent implements OnInit {
           });
           this.getClients();
           this.getMaterials();
-          //this.getProducts();
           this.getVariables();
         });
       } else {
@@ -427,20 +349,6 @@ export class OrdersComponent implements OnInit {
     this.allMaterials = data || [];
   }
 
-  /*
-  async getProducts(): Promise<void> {
-    const { data, error } = await this.supabase
-      .from('products')
-      .select('id, name, stock, price, code, category');
-
-    if (error) {
-      console.error('Error al cargar productos:', error);
-      return;
-    }
-    this.allProducts = data || [];
-  }¨
-  */
-
   private getCurrentTimeHHMM(): string {
     const now = new Date();
     const hours = now.getHours().toString().padStart(2, '0');
@@ -492,354 +400,6 @@ export class OrdersComponent implements OnInit {
     this.closeAddClientModal();
     await this.getClients();
   }
-
-  /* Venta (sales)
-  isSale(): boolean {
-    const t = this.newOrder?.order_type;
-    return t === 'sales';
-  }
-    */
-
-  /* Builds the row for `sales` (sales-material)
-  private buildSaleRowMaterial(orderId: string, m: any) {
-    return {
-      id_order: orderId,
-      item_type: 'material',
-      product_id: null,
-      material_id: m.id_material,
-      quantity: Number(this.saleMaterialQuantity) || 0,
-      unit_price: Number(this.saleMaterialUnitPrice) || 0,
-      // snapshots útiles
-      material_type: m?.type || '',
-      caliber: m?.caliber || '',
-      color: m?.color || '',
-      category: m?.category || '',
-    };
-  }
-  /*
-
-  private isSaleActive(): boolean {
-    return (
-      this.newOrder?.order_type === 'sales' &&
-      (this.saleMode === 'material' || this.saleMode === 'product')
-    );
-  }
-
-  /*
-  recalcSalesTotal(): void {
-    if (!this.isSaleActive()) return;
-    const q = Number(this.saleMaterialQuantity) || 0;
-    const u = Number(this.saleMaterialUnitPrice) || 0;
-    this.newOrder.base_total = q * u;
-    this.updateOrderTotalWithExtras();
-  }
-  */
-
-  /* Producto
-  onProductChange(): void {
-    const p = this.allProducts.find((x) => x.id === this.selectedProductId);
-    if (p) {
-      this.saleMaterialUnitPrice = Number(p.price) || 0; // autollenar
-      if (!this.saleMaterialQuantity || this.saleMaterialQuantity <= 0) {
-        this.saleMaterialQuantity = 1;
-      }
-    }
-    this.recalcSalesTotal(); // actualiza base_total + total (extras)
-  }
-  */
-
-  /*
-  private buildSaleRowProduct(orderId: string, p: any) {
-    return {
-      id_order: orderId,
-      item_type: 'product',
-      product_id: p.id,
-      material_id: null,
-      quantity: Number(this.saleMaterialQuantity) || 0,
-      unit_price: Number(this.saleMaterialUnitPrice) || 0,
-    };
-  }
-  */
-
-  /*
-  getProductNameById(productId: string | null | undefined): string {
-    if (!productId) return '';
-    const product = this.allProducts?.find((p) => p.id === productId);
-    return product ? product.name : '';
-  }
-  /*
-
-  asNumber(v: any): number {
-    return typeof v === 'number' ? v : Number(v || 0);
-  }
-
-  /*
-  addSaleItem(): void {
-    if (this.saleMode === 'none') {
-      alert('Seleccione si va a vender material o producto.');
-      return;
-    }
-
-    // bloqueo del modo después del primer ítem
-    if (!this.isSaleModeLocked && this.salesItems.length >= 1) {
-      this.isSaleModeLocked = true;
-    }
-
-    // MATERIAL
-    if (this.saleMode === 'material') {
-      const m = this.getSelectedMaterial();
-      if (!m) {
-        alert('Seleccione un material completo.');
-        return;
-      }
-
-      const qty = Number(this.saleMaterialQuantity);
-      const price = Number(this.saleMaterialUnitPrice);
-
-      if (qty <= 0 || price <= 0) {
-        alert('Cantidad y precio deben ser mayores a cero.');
-        return;
-      }
-
-      this.salesItems.push({
-        mode: 'material',
-        material: m,
-        quantity: qty,
-        unit_price: price,
-        subtotal: qty * price,
-      });
-    }
-
-    // PRODUCTO
-    if (this.saleMode === 'product') {
-      const p = this.allProducts.find((x) => x.id === this.selectedProductId);
-      if (!p) {
-        alert('Seleccione un producto.');
-        return;
-      }
-
-      const qty = Number(this.saleMaterialQuantity);
-      const price = Number(this.saleMaterialUnitPrice);
-
-      if (qty <= 0 || price <= 0) {
-        alert('Cantidad y precio deben ser mayores a cero.');
-        return;
-      }
-
-      this.salesItems.push({
-        mode: 'product',
-        product: p,
-        quantity: qty,
-        unit_price: price,
-        subtotal: qty * price,
-      });
-    }
-
-    this.recalcSalesFromItems();
-  }
-  */
-
-  /*
-  removeSaleItem(index: number): void {
-    this.salesItems.splice(index, 1);
-
-    if (this.salesItems.length === 0) {
-      this.isSaleModeLocked = false;
-    }
-
-    this.recalcSalesFromItems();
-  }
-  */
-
-  /*
-  recalcSalesFromItems(): void {
-    let total = 0;
-    for (const item of this.salesItems) {
-      total += item.subtotal;
-    }
-
-    this.newOrder.base_total = total;
-    this.updateOrderTotalWithExtras();
-  }
-    */
-
-  /*
-  validateSalesStock(): boolean {
-    for (const item of this.salesItems) {
-      const available = parseFloat(
-        item.material?.material_quantity ?? item.product?.stock ?? 0
-      );
-      if (available < item.quantity) {
-        // Mostrar error al usuario
-        this.showStockError(
-          `No hay suficiente stock. Disponible: ${available}`
-        );
-        return false;
-      }
-    }
-    return true;
-  }
-  */
-
-
-  /*
-  async saveSaleItemsToSupabase(orderId: string): Promise<boolean> {
-    let hasStockIssues = false;
-    let totalPendingQty = 0;
-
-    for (const item of this.salesItems) {
-      // MATERIAL
-      if (item.mode === 'material') {
-        const m = item.material;
-
-        const { data: matData, error: matErr } = await this.supabase
-          .from('materials')
-          .select('material_quantity')
-          .eq('id_material', m.id_material)
-          .single();
-
-        if (matErr || !matData) {
-          alert('No se pudo leer stock del material.');
-          return false;
-        }
-
-        const currentStock = Number(matData.material_quantity);
-        const requestedQty = item.quantity;
-
-        // Descontar solo lo que hay disponible
-        let deductedQty = 0;
-        if (currentStock >= requestedQty) {
-          deductedQty = requestedQty;
-        } else {
-          deductedQty = currentStock;
-          hasStockIssues = true;
-          totalPendingQty += requestedQty - currentStock;
-        }
-
-        // Actualizar stock (nunca negativo)
-        const newQty = Math.max(currentStock - deductedQty, 0);
-
-        const { error: updateErr } = await this.supabase
-          .from('materials')
-          .update({ material_quantity: newQty.toString() })
-          .eq('id_material', m.id_material);
-
-        if (updateErr) {
-          console.error('Error actualizando stock:', updateErr);
-          return false;
-        }
-
-        // Insertar en sales
-        const row = {
-          id_order: orderId,
-          item_type: 'material',
-          material_id: m.id_material,
-          product_id: null,
-          quantity: item.quantity,
-          fulfilled_quantity: deductedQty,
-          pending_quantity: requestedQty - deductedQty,
-          unit_price: item.unit_price,
-          line_total: item.subtotal,
-          material_type: m.type,
-          caliber: m.caliber,
-          color: m.color,
-          category: m.category,
-        };
-
-        const { error: insErr } = await this.supabase
-          .from('sales')
-          .insert([row]);
-
-        if (insErr) {
-          console.error('Error insertando línea de material:', insErr);
-          return false;
-        }
-      }
-
-      // PRODUCTO
-      if (item.mode === 'product') {
-        const p = item.product;
-
-        const { data: prodData, error: prodErr } = await this.supabase
-          .from('products')
-          .select('stock')
-          .eq('id', p.id)
-          .single();
-
-        if (prodErr || !prodData) {
-          alert('No se pudo leer stock del producto.');
-          return false;
-        }
-
-        const currentStock = Number(prodData.stock);
-        const requestedQty = item.quantity;
-
-        // Descontar solo lo que hay disponible
-        let deductedQty = 0;
-        if (currentStock >= requestedQty) {
-          deductedQty = requestedQty;
-        } else {
-          deductedQty = currentStock;
-          hasStockIssues = true;
-          totalPendingQty += requestedQty - currentStock;
-        }
-
-        const newStock = Math.max(currentStock - deductedQty, 0);
-
-        await this.supabase
-          .from('products')
-          .update({ stock: newStock })
-          .eq('id', p.id);
-
-        const row = {
-          id_order: orderId,
-          item_type: 'product',
-          product_id: p.id,
-          material_id: null,
-          quantity: item.quantity,
-          fulfilled_quantity: deductedQty,
-          pending_quantity: requestedQty - deductedQty,
-          unit_price: item.unit_price,
-          line_total: item.subtotal,
-        };
-
-        const { error: insErr } = await this.supabase
-          .from('sales')
-          .insert([row]);
-
-        if (insErr) {
-          console.error('Error insertando línea de producto:', insErr);
-          return false;
-        }
-      }
-    }
-
-    // Actualizar el estado de stock del pedido
-    const stockStatus = hasStockIssues
-      ? totalPendingQty ===
-        this.salesItems.reduce((sum, i) => sum + i.quantity, 0)
-        ? 'pending_stock'
-        : 'partially_fulfilled'
-      : 'fulfilled';
-
-    await this.supabase
-      .from('orders')
-      .update({
-        stock_status: stockStatus,
-        pending_quantity: totalPendingQty,
-      })
-      .eq('id_order', orderId);
-
-    // Mostrar advertencia si hay problemas de stock
-    if (hasStockIssues) {
-      alert(
-        ` ADVERTENCIA: El pedido fue creado pero hay ${totalPendingQty} unidades pendientes por falta de stock.`
-      );
-    }
-
-    return true;
-  }
-  */
 
   showNotification(message: string) {
     this.notificationMessage = message;
@@ -1059,147 +619,35 @@ export class OrdersComponent implements OnInit {
       this.showNotification('Ocurrió un error inesperado.');
     }
   }
-
+  /*
+    Delete order and adjust client debt (handled in DB trigger)
+    The database trigger will update the client's debt and cascade delete prints, cuts, sales, invoices, etc.
+    Don't do that in here to avoid race conditions and lag PLEASE.
+  */
   async deleteOrder(order: Orders): Promise<void> {
-    if (confirm(`¿Eliminar orden #${order.code}?`)) {
-      try {
-        if (order.order_type === 'print') {
-          const { error: deletePrintsError } = await this.supabase
-            .from('prints')
-            .delete()
-            .eq('id_order', order.id_order);
+    if (!confirm(`¿Eliminar orden #${order.code}?`)) {
+      return;
+    }
 
-          if (deletePrintsError) {
-            console.error(
-              'Error al eliminar registros de prints:',
-              deletePrintsError
-            );
-            this.showNotification('Error al eliminar registros de prints.');
-            return;
-          }
-        } else if (order.order_type === 'laser') {
-          const { error: deleteCutsError } = await this.supabase
-            .from('cuts')
-            .delete()
-            .eq('id_order', order.id_order);
+    try {
+      const { error } = await this.supabase
+        .from('orders')
+        .delete()
+        .eq('id_order', order.id_order);
 
-          if (deleteCutsError) {
-            console.error(
-              'Error al eliminar registros de cuts:',
-              deleteCutsError
-            );
-            this.showNotification('Error al eliminar registros de cuts.');
-            return;
-          }
-        } else if (order.order_type === 'sales') {
-          const { error: deleteSalesError } = await this.supabase
-            .from('sales')
-            .delete()
-            .eq('id_order', order.id_order);
-
-          if (deleteSalesError) {
-            console.error(
-              'Error al eliminar registros de sales:',
-              deleteSalesError
-            );
-            this.showNotification('Error al eliminar registros de sales.');
-            return;
-          }
-        }
-
-        const { error: deleteNotificationsError } = await this.supabase
-          .from('notifications')
-          .delete()
-          .eq('id_order', order.id_order);
-
-        if (deleteNotificationsError) {
-          console.error(
-            'Error al eliminar notificaciones:',
-            deleteNotificationsError
-          );
-          this.showNotification('Error al eliminar notificaciones asociadas.');
-          return;
-        }
-
-        const { error: deleteInvoicesError } = await this.supabase
-          .from('invoices')
-          .delete()
-          .eq('id_order', order.id_order);
-
-        if (deleteInvoicesError) {
-          console.error(
-            'Error al eliminar facturas asociadas:',
-            deleteInvoicesError
-          );
-          this.showNotification('Error al eliminar facturas asociadas.');
-          return;
-        }
-
-        const { error: deletePaymentsError } = await this.supabase
-          .from('payments')
-          .delete()
-          .eq('id_order', order.id_order);
-
-        if (deletePaymentsError) {
-          console.error(
-            'Error al eliminar pagos asociados:',
-            deletePaymentsError
-          );
-          this.showNotification('Error al eliminar pagos asociados.');
-          return;
-        }
-
-        const orderTotal = parseFloat(String(order.total)) || 0;
-        const { data: clientData, error: clientError } = await this.supabase
-          .from('clients')
-          .select('debt')
-          .eq('id_client', order.id_client)
-          .single();
-
-        if (clientError || !clientData) {
-          console.error('Error al obtener la deuda del cliente:', clientError);
-          this.showNotification('Error al actualizar la deuda del cliente.');
-          return;
-        }
-
-        const currentDebt = clientData.debt || 0;
-        const newDebt = currentDebt - orderTotal;
-        const newStatus = newDebt > 0 ? 'overdue' : 'upToDate';
-
-        const { error: updateClientError } = await this.supabase
-          .from('clients')
-          .update({ debt: newDebt, status: newStatus })
-          .eq('id_client', order.id_client);
-
-        if (updateClientError) {
-          console.error(
-            'Error al actualizar la deuda del cliente:',
-            updateClientError
-          );
-          this.showNotification('Error al actualizar la deuda del cliente.');
-          return;
-        }
-
-        const { error: deleteOrderError } = await this.supabase
-          .from('orders')
-          .delete()
-          .eq('id_order', order.id_order);
-
-        if (deleteOrderError) {
-          console.error('Error al eliminar el pedido:', deleteOrderError);
-          this.showNotification('Error al eliminar el pedido.');
-          return;
-        }
-
-        this.orders = this.orders.filter((o) => o.id_order !== order.id_order);
-        this.updateFilteredOrders();
-        this.showNotification('Orden eliminada correctamente.');
-      } catch (error) {
-        console.error('Error inesperado al eliminar la orden:', error);
-        this.showNotification(
-          'Ocurrió un error inesperado al eliminar la orden.'
-        );
+      if (error) {
+        console.error('Error al eliminar el pedido:', error);
+        this.showNotification('Error al eliminar el pedido.');
+        return;
       }
+
+      // Update local state
+      this.orders = this.orders.filter((o) => o.id_order !== order.id_order);
+      this.updateFilteredOrders();
+      this.showNotification('Orden eliminada y deuda ajustada correctamente.');
+    } catch (error) {
+      console.error('Error inesperado al eliminar la orden:', error);
+      this.showNotification('Ocurrió un error inesperado.');
     }
   }
 
@@ -1405,14 +853,13 @@ export class OrdersComponent implements OnInit {
         order_delivery_status: newDeliveryStatus,
       })
       .eq('id_order', order.id_order);
-
     if (error) {
       console.error('Error actualizando estado:', error);
-      // Revertir el cambio local en caso de error
       order.order_completion_status =
-        order.order_completion_status === 'finished' ? 'inProgress' : 'finished';
+        order.order_completion_status === 'finished'
+          ? 'inProgress'
+          : 'finished';
     } else {
-      // Actualizar localmente para reflejar el cambio inmediato
       order.order_delivery_status = newDeliveryStatus;
     }
   }
@@ -1458,37 +905,11 @@ export class OrdersComponent implements OnInit {
         discount: 0,
         discount_type: 'fixed',
       };
-      /*
-      this.salesItems = [];
-      this.saleMode = 'none';
-      this.saleMaterialQuantity = 1;
-      this.saleMaterialUnitPrice = 0;¨
-      */
       this.selectedCategory = '';
       this.selectedType = '';
       this.selectedCaliber = '';
       this.selectedColor = '';
-      /*
-      this.isSaleModeLocked = false;
-      this.discount = 0;
-      this.discountType = 'fixed';
-      */
-      /*
-      this.extraChargeType = 'fixed';¨
-      this.hasDiscountApplied = false;
-      this.totalBeforeDiscount = 0;
-      this.printsItems = [];
-      this.isSaleModeLocked = false;
-      this.isPrintsModeLocked = false;
-      this.cutsItems = [];
-      this.tempCutQuantity = 1;
-      this.tempCutHeight = 0;
-      this.tempCutWidth = 0;
-      */
       this.tempCutTime = 0;
-      /*
-      this.tempCutUnitaryValue = 0;¨
-      */
     }
     this.showModal = !this.showModal;
     if (!this.showModal) {
@@ -1496,296 +917,6 @@ export class OrdersComponent implements OnInit {
     }
   }
 
-  /*
-  async editOrder(order: Orders): Promise<void> {
-    this.isEditing = true;
-    this.showModal = true;
-
-    await this.getMaterials();
-
-    this.newOrder = { ...order };
-
-    // Normaliza fecha (tu col es timestamp/date)
-    this.newOrder.delivery_date = order.delivery_date
-      ? order.delivery_date.slice(0, 10)
-      : '';
-
-    // base_total calculates without breaking if extra_charges is not an array
-    const extrasArray = Array.isArray(this.newOrder.extra_charges)
-      ? this.newOrder.extra_charges
-      : [];
-
-    if (!this.newOrder.base_total || isNaN(Number(this.newOrder.base_total))) {
-      if (this.newOrder.subtotal && !isNaN(Number(this.newOrder.subtotal))) {
-        this.newOrder.base_total = Number(this.newOrder.subtotal);
-      } else {
-        const extrasSum = extrasArray.reduce(
-          (sum: number, c: any) => sum + Number(c?.amount || 0),
-          0
-        );
-        this.newOrder.base_total = Number(this.newOrder.total || 0) - extrasSum;
-      }
-    }
-
-    // PRINTS
-    if (order.order_type === 'print') {
-      // === 1. Traer TODAS las líneas de prints ===
-      const { data: rows, error } = await this.supabase
-        .from('prints')
-        .select('*')
-        .eq('id_order', order.id_order);
-
-      if (error) {
-        console.error('editOrder: Error cargando prints', error);
-        return;
-      }
-
-      // === 2. Resetear printsItems ===
-      this.printsItems = [];
-
-      if (!rows || rows.length === 0) {
-        // No tiene líneas → pedido sin materiales
-        return;
-      }
-
-      // === 3. Insertar todas las líneas en printsItems[] ===
-      for (const r of rows) {
-        // Buscar el material completo en allMaterials
-        const material = this.allMaterials.find(
-          (m: any) =>
-            m.category === r.category &&
-            m.type === r.material_type &&
-            (m.caliber || '') === (r.caliber || '') &&
-            (m.color || '') === (r.color || '')
-        );
-
-        if (material) {
-          // Calcular procesos en string
-          const processes: string[] = [];
-          if (r.laminating) processes.push('Laminado');
-          if (r.printing) processes.push('Impresión');
-          if (r.die_cutting) processes.push('Troquelado');
-          if (r.assembly) processes.push('Armado');
-          const processesStr = processes.join(', ') || '-';
-
-          // Calcular cantidad y subtotal
-          const quantity = Number(r.quantity);
-
-          // Usar el unit_price guardado en la BD (si existe)
-          const processedValue = Number(r.unit_price) || 0;
-          const subtotal = quantity * processedValue;
-
-          // Push al array
-          this.printsItems.push({
-            material: material,
-            quantity: quantity,
-            laminating: r.laminating || false,
-            die_cutting: r.die_cutting || false,
-            assembly: r.assembly || false,
-            printing: r.printing || false,
-            unitary_value: Number(material.unitary_value) || 0,
-            processed_unit_value: processedValue,
-            subtotal: subtotal,
-            roll_width: Number(r.roll_width) || 0,
-            measurement: Number(r.measurement) || 0,
-            processes: processesStr,
-          });
-        }
-      }
-
-      // === 4. Limpiar selects para agregar nuevos ítems ===
-      this.selectedCategory = '';
-      this.selectedType = '';
-      this.selectedCaliber = '';
-      this.selectedColor = '';
-      this.tempPrintQuantity = 1;
-      this.tempPrintUnitaryValue = 0;
-      this.tempPrintLaminating = false;
-      this.tempPrintDieCutting = false;
-      this.tempPrintAssembly = false;
-      this.tempPrintPrinting = false;
-      this.tempPrintRollWidth = 0;
-      this.tempPrintMeasurement = 0;
-    }
-
-    // LASER CUTS
-    else if (order.order_type === 'laser') {
-      // 1. Traer TODAS las líneas de cuts
-      const { data: rows, error } = await this.supabase
-        .from('cuts')
-        .select('*')
-        .eq('id_order', order.id_order);
-
-      if (error) {
-        console.error('editOrder: Error cargando cuts:', error);
-        return;
-      }
-
-      // 2. Resetear cutsItems
-      this.cutsItems = [];
-
-      if (!rows || rows.length === 0) {
-        console.log('No hay líneas de cuts para este pedido');
-        return;
-      }
-
-      // 3. Insertar todas las líneas en cutsItems
-      for (const r of rows) {
-        let material = this.allMaterials.find(
-          (m: any) =>
-            m.category?.toString().toLowerCase().trim() ===
-              r.category?.toString().toLowerCase().trim() &&
-            m.type?.toString().toLowerCase().trim() ===
-              r.material_type?.toString().toLowerCase().trim() &&
-            m.caliber?.toString().toLowerCase().trim() ===
-              r.caliber?.toString().toLowerCase().trim() &&
-            m.color?.toString().toLowerCase().trim() ===
-              r.color?.toString().toLowerCase().trim()
-        );
-
-        // FALLBACK: Si no se encuentra, crear objeto con datos guardados
-        if (!material) {
-          material = {
-            category: r.category,
-            type: r.material_type,
-            caliber: r.caliber,
-            color: r.color,
-            unitaryvalue: r.unit_price || 0,
-            idmaterial: null,
-          };
-        }
-
-        const quantity = Number(r.quantity);
-        const unitPrice = Number(r.unit_price || 0);
-        const cutTime = Number(r.cutting_time || 0);
-
-        // Calcular el costo del corte
-        const cutCost = this.calculateCutCost(cutTime);
-
-        // Total = (precio unitario × cantidad) + costo de corte
-        const subtotal = unitPrice * quantity + cutCost;
-
-        // Push al array
-        this.cutsItems.push({
-          material: material,
-          quantity: quantity,
-          height: Number(r.height || 0),
-          width: Number(r.width || 0),
-          cutTime: cutTime,
-          unitPrice: unitPrice,
-          processedValue: cutCost,
-          subtotal: subtotal,
-        });
-      }
-
-      // 4. Limpiar selects
-      this.selectedCategory = '';
-      this.selectedType = '';
-      this.selectedCaliber = '';
-      this.selectedColor = '';
-      this.tempCutQuantity = 1;
-      this.tempCutHeight = 0;
-      this.tempCutWidth = 0;
-      this.tempCutTime = 0;
-      this.tempCutUnitaryValue = 0;
-    }
-
-    // SALES
-    else if (this.newOrder.order_type === 'sales') {
-      // 1. Traer TODAS las líneas de ventas
-      const { data: rows, error } = await this.supabase
-        .from('sales')
-        .select(
-          'item_type, product_id, material_id, quantity, unit_price, line_total, material_type, caliber, color, category'
-        )
-        .eq('id_order', order.id_order);
-
-      if (error) {
-        console.error('editOrder: Error cargando ventas', error);
-        return;
-      }
-
-      // 2. Resetear salesItems
-      this.salesItems = [];
-
-      if (!rows || rows.length === 0) {
-        // No tiene líneas (pedido raro o cotización antigua)
-        this.saleMode = 'none';
-        this.isSaleModeLocked = false;
-        return;
-      }
-
-      // 3. Insertar todas las líneas en salesItems
-      for (const r of rows) {
-        if (r.item_type === 'material') {
-          this.salesItems.push({
-            mode: 'material',
-            material: {
-              id_material: r.material_id,
-              category: r.category,
-              type: r.material_type,
-              caliber: r.caliber,
-              color: r.color,
-            },
-            quantity: Number(r.quantity),
-            unit_price: Number(r.unit_price),
-            subtotal: Number(r.line_total),
-          });
-        }
-        if (r.item_type === 'product') {
-          const prod = this.allProducts.find((p: any) => p.id === r.product_id);
-          this.salesItems.push({
-            mode: 'product',
-            product: prod
-              ? prod
-              : { id: r.product_id, name: 'Producto eliminado' },
-            quantity: Number(r.quantity),
-            unit_price: Number(r.unit_price),
-            subtotal: Number(r.line_total),
-          });
-        }
-      }
-
-      // 4. Configurar el modo de venta según la primera línea
-      const first = this.salesItems[0];
-      this.saleMode = first.mode;
-      this.isSaleModeLocked = true;
-
-      // 5. Limpiar selects para agregar nuevos ítems
-      this.selectedProductId = '';
-      this.selectedCategory = '';
-      this.selectedType = '';
-      this.selectedCaliber = '';
-      this.selectedColor = '';
-      this.saleMaterialQuantity = 1;
-      this.saleMaterialUnitPrice = 0;
-
-      // 6. Recalcular totales
-      this.recalcSalesFromItems();
-    }
-
-    // DESCUENTO
-    if (this.newOrder.discount && Number(this.newOrder.discount) > 0) {
-      this.hasDiscountApplied = true;
-
-      // Guardar el descuento en las variables del componente
-      this.discount = Number(this.newOrder.discount);
-      this.discountType = this.newOrder.discount_type || 'fixed';
-
-      // Calcular el total SIN descuento (base + extras)
-      const base = Number(this.newOrder.base_total) || 0;
-      const extras =
-        this.newOrder.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
-      this.totalBeforeDiscount = base + extras;
-    } else {
-      this.hasDiscountApplied = false;
-      this.totalBeforeDiscount = 0;
-      this.discount = 0;
-      this.discountType = 'fixed';
-    }
-  }
-  */
-
   async editOrder(order: Orders): Promise<void> {
     this.isEditing = true;
     this.showModal = true;
@@ -1793,19 +924,17 @@ export class OrdersComponent implements OnInit {
 
     this.newOrder = { ...order };
 
-    // Normalizar fecha (tu col es timestamp/date)
+    // Normalize date
     this.newOrder.delivery_date = order.delivery_date
       ? order.delivery_date.slice(0, 10)
       : '';
 
-    // CARGAR cutting_time en tempCutTime para pedidos tipo LASER
     if (order.order_type === 'laser') {
       this.tempCutTime = Number(order.cutting_time) || 0;
     } else {
       this.tempCutTime = 0; // Limpiar para otros tipos
     }
-
-    // base_total calcula without breaking if extra_charges is not an array
+    // in case extra_charges is not an array
     const extrasArray = Array.isArray(this.newOrder.extra_charges)
       ? this.newOrder.extra_charges
       : [];
@@ -1822,15 +951,6 @@ export class OrdersComponent implements OnInit {
       }
     }
 
-    // ====================================================================
-    // NOTA IMPORTANTE: Ya no cargamos datos de prints, cuts ni sales
-    // Solo mostramos la información global del pedido
-    // ====================================================================
-
-    // Para CUTS, el campo cutting_time ya está en newOrder desde la tabla orders
-    // No es necesario hacer ninguna carga adicional
-
-    // Limpiar los selectores para evitar confusión
     this.selectedCategory = '';
     this.selectedType = '';
     this.selectedCaliber = '';
@@ -1880,13 +1000,9 @@ export class OrdersComponent implements OnInit {
       }
     }
 
-    // Calcular el total base (valor ingresado manualmente)
     const baseTotal = parseFloat(newOrderForm.unitary_value as string) || 0;
-
-    // Sumar cargos extras
-    const extras = newOrderForm.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
-
-    // Total final = base + extras
+    const extras =
+      newOrderForm.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
     const total = baseTotal + extras;
 
     this.newOrder = {
@@ -1899,10 +1015,10 @@ export class OrdersComponent implements OnInit {
       created_time: this.getCurrentTimeHHMM(),
       delivery_date: newOrderForm.delivery_date,
       order_quantity: newOrderForm.order_quantity,
-      unitary_value: baseTotal, // Valor total del pedido (ingresado manualmente)
+      unitary_value: baseTotal,
       iva: newOrderForm.iva || 0,
-      subtotal: baseTotal, // Subtotal = valor base
-      total: total, // Total = base + extras
+      subtotal: baseTotal,
+      total: total,
       amount: newOrderForm.amount || 0,
       cutting_time: newOrderForm.cutting_time || 0,
       id_client: newOrderForm.id_client,
@@ -1914,10 +1030,9 @@ export class OrdersComponent implements OnInit {
       invoice_file: newOrderForm.file_path,
       extra_charges: newOrderForm.extra_charges || [],
       base_total: baseTotal,
-      scheduler: await this.getUserName() || 'Desconocido',
+      scheduler: (await this.getUserName()) || 'Desconocido',
     };
 
-    // Asignar tempCutTime para pedidos tipo LASER
     if (this.newOrder.order_type === 'laser') {
       this.newOrder.cutting_time = this.tempCutTime || 0;
     }
@@ -1931,9 +1046,6 @@ export class OrdersComponent implements OnInit {
     dueDate.setDate(dueDate.getDate() + paymentTerm);
 
     if (this.isEditing) {
-      // ========================================
-      // MODO EDICIÓN
-      // ========================================
       if (!newOrderForm.id_order) {
         console.error('ID del pedido no definido para actualizar.');
         alert('Error: No se puede actualizar un pedido sin ID.');
@@ -1942,17 +1054,14 @@ export class OrdersComponent implements OnInit {
 
       this.newOrder.id_order = newOrderForm.id_order;
 
-      // ACTUALIZAR cutting_time desde tempCutTime
       if (this.newOrder.order_type === 'laser') {
         this.newOrder.cutting_time = this.tempCutTime || 0;
       }
 
-      // Subir archivo si existe
       await this.handleFileUploadForOrder(this.newOrder.id_order!);
       this.selectedFile = null;
       this.uploadedFileName = null;
 
-      // Actualizar el pedido en la tabla orders
       const { error } = await this.supabase
         .from('orders')
         .update([this.newOrder])
@@ -1964,9 +1073,7 @@ export class OrdersComponent implements OnInit {
         return;
       }
 
-      // NUEVO: Actualizar también en tabla cuts si es tipo laser
       if (this.newOrder.order_type === 'laser') {
-        // Verificar si ya existe un registro en cuts
         const { data: existingCut } = await this.supabase
           .from('cuts')
           .select('id')
@@ -1974,7 +1081,6 @@ export class OrdersComponent implements OnInit {
           .maybeSingle();
 
         if (existingCut) {
-          // Si existe, actualizar
           const { error: updateCutError } = await this.supabase
             .from('cuts')
             .update({
@@ -1989,7 +1095,6 @@ export class OrdersComponent implements OnInit {
             console.log('Registro actualizado en tabla cuts');
           }
         } else {
-          // Si no existe, insertar
           const cutRecord = {
             id_order: this.newOrder.id_order,
             category: 'Corte Laser',
@@ -2018,13 +1123,7 @@ export class OrdersComponent implements OnInit {
       alert('Pedido actualizado correctamente.');
       this.showModal = false;
       await this.getOrders();
-
     } else {
-      // ========================================
-      // MODO CREACIÓN
-      // ========================================
-
-      // Obtener el código más alto
       const { data: maxCodeData, error: maxCodeError } = await this.supabase
         .from('orders')
         .select('code')
@@ -2037,14 +1136,12 @@ export class OrdersComponent implements OnInit {
         return;
       }
 
-      const maxCode = maxCodeData && maxCodeData.length > 0 ? maxCodeData[0].code : 0;
+      const maxCode =
+        maxCodeData && maxCodeData.length > 0 ? maxCodeData[0].code : 0;
       this.newOrder.code = maxCode + 1;
 
-      // Insertar el pedido
-      const { data: insertedOrderData, error: insertError } = await this.supabase
-        .from('orders')
-        .insert([this.newOrder])
-        .select();
+      const { data: insertedOrderData, error: insertError } =
+        await this.supabase.from('orders').insert([this.newOrder]).select();
 
       if (insertError || !insertedOrderData || insertedOrderData.length === 0) {
         console.error('Error al insertar el pedido:', insertError);
@@ -2054,12 +1151,8 @@ export class OrdersComponent implements OnInit {
 
       const insertedOrder = insertedOrderData[0];
 
-      await this.createInitialPaymentForOrder(
-        insertedOrder,
-        total
-      );
+      await this.createInitialPaymentForOrder(insertedOrder, total);
 
-      // Si es pedido tipo LASER, insertar registro en tabla cuts
       if (this.newOrder.order_type === 'laser' && this.tempCutTime > 0) {
         const cutRecord = {
           id_order: insertedOrder.id_order,
@@ -2085,12 +1178,10 @@ export class OrdersComponent implements OnInit {
         }
       }
 
-      // Subir archivo si existe
       await this.handleFileUploadForOrder(insertedOrder.id_order);
       this.selectedFile = null;
       this.uploadedFileName = null;
 
-      // Actualizar la deuda del cliente
       const newClientDebt = currentDebt + orderAmount;
       const { error: updateDebtError } = await this.supabase
         .from('clients')
@@ -2101,10 +1192,12 @@ export class OrdersComponent implements OnInit {
         .eq('id_client', newOrderForm.id_client);
 
       if (updateDebtError) {
-        console.error('Error al actualizar la deuda del cliente:', updateDebtError);
+        console.error(
+          'Error al actualizar la deuda del cliente:',
+          updateDebtError
+        );
       }
 
-      // Crear notificación
       this.notificationToInsert = {
         type: 'order',
         description: `Nuevo pedido creado: ${this.newOrder.code}`,
@@ -2121,7 +1214,6 @@ export class OrdersComponent implements OnInit {
         console.error('Error al crear la notificación:', notificationError);
       }
 
-      // Crear factura
       const invoiceData = {
         id_order: insertedOrder.id_order,
         code: this.newOrder.code?.toString() || '',
@@ -2169,7 +1261,7 @@ export class OrdersComponent implements OnInit {
       payment_method: this.initialPaymentMethod,
     };
 
-    // Insertar pago
+    // Insert payment record
     const { error: paymentError } = await this.supabase
       .from('payments')
       .insert([payment]);
@@ -2179,7 +1271,7 @@ export class OrdersComponent implements OnInit {
       return;
     }
 
-    // Actualizar deuda del cliente
+    // Update client debt
     const { data: clientData } = await this.supabase
       .from('clients')
       .select('debt')
@@ -2197,636 +1289,21 @@ export class OrdersComponent implements OnInit {
       })
       .eq('id_client', order.id_client);
 
-    // Actualizar estado del pedido
+    // Update order payment status
     const remainingOrderBalance = totalOrderAmount - amountToPay;
 
-    const paymentStatus =
-      remainingOrderBalance <= 0 ? 'upToDate' : 'overdue';
+    const paymentStatus = remainingOrderBalance <= 0 ? 'upToDate' : 'overdue';
 
     await this.supabase
       .from('orders')
       .update({ order_payment_status: paymentStatus })
       .eq('id_order', order.id_order);
-
-    // Actualizar factura
+    // Update invoice payment status
     await this.supabase
       .from('invoices')
       .update({ invoice_status: paymentStatus })
       .eq('id_order', order.id_order);
   }
-
-  /*
-  async addOrder(newOrderForm: Partial<Orders>): Promise<void> {
-    const selectedClient = this.clients.find(
-      (client) => client.id_client === newOrderForm.id_client
-    );
-    newOrderForm.name = selectedClient ? selectedClient.name : '';
-
-    const { data: clientData, error: clientError } = await this.supabase
-      .from('clients')
-      .select('debt, credit_limit')
-      .eq('id_client', newOrderForm.id_client)
-      .single();
-
-    if (clientError || !clientData) {
-      console.error('Error al obtener detalles del cliente:', clientError);
-      alert('Error al verificar el cliente.');
-      return;
-    }
-
-    const currentDebt = clientData.debt || 0;
-    const creditLimit = clientData.credit_limit || 0;
-    const orderAmount = parseFloat(newOrderForm.total as string) || 0;
-    const newDebt = currentDebt + orderAmount;
-
-    if (creditLimit > 0 && newDebt > creditLimit) {
-      const confirmMessage = `El cliente ha excedido su límite de crédito por lo que su deuda actual aumentara en el caso de que el pedido sea autorizado.
-
-      ¿Desea autorizar este pedido de todas formas?`;
-
-      if (!confirm(confirmMessage)) {
-        return;
-      }
-    }
-
-    const extras =
-      newOrderForm.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
-    const discountAmount = this.hasDiscountApplied ? this.discount || 0 : 0;
-    const total = parseFloat(newOrderForm.total as string) || 0;
-
-    // Calcular base_total (sin extras, sin descuento)
-    let base_total = 0;
-    if (this.newOrder.base_total && !isNaN(Number(this.newOrder.base_total))) {
-      // Si ya existe base_total, usarlo
-      base_total = Number(this.newOrder.base_total);
-    } else {
-      // Si no existe, calcularlo desde el total
-      // Fórmula: base_total = total - extras + descuento
-      base_total = total - extras + discountAmount;
-    }
-
-    const subtotal = base_total; // El subtotal es igual al base_total
-
-    this.newOrder = {
-      order_type: newOrderForm.order_type,
-      name: newOrderForm.name,
-      client_type: newOrderForm.client_type,
-      description: newOrderForm.description,
-      order_payment_status: newOrderForm.order_payment_status || 'overdue',
-      created_at: newOrderForm.created_at || new Date().toISOString(),
-      delivery_date: newOrderForm.delivery_date,
-      order_quantity: newOrderForm.order_quantity,
-      unitary_value: newOrderForm.unitary_value || 0,
-      iva: newOrderForm.iva || 0,
-      subtotal: subtotal.toString(),
-      total: newOrderForm.total || 0,
-      amount: newOrderForm.amount || 0,
-      id_client: newOrderForm.id_client,
-      order_confirmed_status: newOrderForm.order_confirmed_status,
-      order_completion_status: newOrderForm.order_completion_status,
-      order_delivery_status: newOrderForm.order_delivery_status,
-      notes: newOrderForm.notes,
-      file_path: newOrderForm.file_path,
-      extra_charges: newOrderForm.extra_charges || [],
-      base_total: base_total,
-      discount: this.discount || 0,
-      discount_type: this.discountType || 'fixed',
-    };
-
-    const deliveryDate = newOrderForm.delivery_date
-      ? new Date(newOrderForm.delivery_date)
-      : new Date();
-    const paymentTerm = 0;
-    const dueDate = new Date(
-      deliveryDate.getTime() + paymentTerm * 24 * 60 * 60 * 1000
-    );
-    const dueDateISOString = dueDate.toISOString();
-
-    if (this.isEditing) {
-      if (!newOrderForm.id_order) {
-        console.error('ID del pedido no definido para actualizar.');
-        alert('Error: No se puede actualizar un pedido sin ID.');
-        return;
-      }
-
-      this.newOrder.id_order = newOrderForm.id_order;
-
-      if (this.newOrder.order_type === 'sales') {
-        this.recalcSalesFromItems();
-      }
-
-      await this.handleFileUploadForOrder(this.newOrder.id_order!);
-
-      this.selectedFile = null;
-      this.uploadedFileName = null;
-      const { error } = await this.supabase
-        .from('orders')
-        .update([this.newOrder])
-        .eq('id_order', this.newOrder.id_order);
-
-      if (error) {
-        console.error('Error al actualizar el pedido:', error);
-        return;
-      }
-
-      // PRINTS (EDICIÓN)
-      if (this.newOrder.order_type === 'print') {
-        if (this.printsItems.length === 0) {
-          alert(
-            'Debe agregar al menos un material para el pedido de impresión.'
-          );
-          return;
-        }
-
-        const { error: deleteError } = await this.supabase
-          .from('prints')
-          .delete()
-          .eq('id_order', this.newOrder.id_order);
-
-        if (deleteError) {
-          console.error('Error eliminando prints antiguos:', deleteError);
-          alert('Error al eliminar materiales anteriores del pedido.');
-          return;
-        }
-
-        for (const item of this.printsItems) {
-          const selectedMaterial = item.material;
-
-          const printData = {
-            id_order: this.newOrder.id_order,
-            material_type: selectedMaterial?.type || '',
-            caliber: selectedMaterial?.caliber || '',
-            color: selectedMaterial?.color || '',
-            category: selectedMaterial?.category || '',
-            laminating: item.laminating,
-            die_cutting: item.die_cutting,
-            assembly: item.assembly,
-            printing: item.printing,
-            product_number: '1',
-            quantity: item.quantity.toString(),
-            damaged_material: '0',
-            notes: '',
-            unit_price: item.processed_unit_value,
-            roll_width: item.roll_width || 0,
-            measurement: item.measurement || 0,
-            fulfilled_quantity: 0,
-            pending_quantity: item.quantity,
-          };
-
-          const { error: printInsertError } = await this.supabase
-            .from('prints')
-            .insert([printData]);
-
-          if (printInsertError) {
-            console.error('Error insertando impresión:', printInsertError);
-            alert('Error al guardar los materiales del pedido.');
-            return;
-          }
-        }
-
-        // Recalcular el total del pedido
-        this.recalcPrintsFromItems();
-
-        alert('Pedido actualizado correctamente.');
-      }
-      // LASER (EDICIÓN)
-      else if (this.newOrder.order_type === 'laser') {
-        if (this.cutsItems.length === 0) {
-          alert('Debe agregar al menos un material para el pedido de corte.');
-          return;
-        }
-
-        const { error: deleteError } = await this.supabase
-          .from('cuts')
-          .delete()
-          .eq('id_order', this.newOrder.id_order);
-
-        if (deleteError) {
-          console.error('Error eliminando cuts antiguos:', deleteError);
-          alert('Error al eliminar materiales anteriores del pedido.');
-          return;
-        }
-
-        // En modo edición, asumimos que el stock ya fue descontado previamente
-        // Solo actualizamos las líneas de cuts con los datos actuales de cutsItems
-        for (const item of this.cutsItems) {
-          const selectedMaterial = item.material;
-
-          // Insertar en cuts manteniendo fulfilled_quantity y pending_quantity
-          const cutData = {
-            id_order: this.newOrder.id_order,
-            material_type: selectedMaterial?.type || '',
-            caliber: selectedMaterial?.caliber || '',
-            color: selectedMaterial?.color || '',
-            category: selectedMaterial?.category || '',
-            quantity: item.quantity.toString(),
-            height: item.height.toString(),
-            width: item.width.toString(),
-            cutting_time: item.cutTime.toString(),
-            fulfilled_quantity: item.quantity,
-            pending_quantity: 0,
-            unit_price: item.unitPrice,
-            line_total: item.subtotal,
-          };
-
-          const { error: cutInsertError } = await this.supabase
-            .from('cuts')
-            .insert(cutData);
-
-          if (cutInsertError) {
-            console.error('Error insertando corte:', cutInsertError);
-            alert('Error al guardar los materiales del pedido.');
-            return;
-          }
-        }
-
-        // Recalcular el total del pedido (solo precios, no stock)
-        this.recalcCutsFromItems();
-
-        alert('Pedido actualizado correctamente.');
-      }
-      // SALES (EDICIÓN)
-      else if (this.newOrder.order_type === 'sales') {
-        const orderId = this.newOrder.id_order!;
-
-        // 1. Eliminar las filas antiguas del pedido
-        const { error: delErr } = await this.supabase
-          .from('sales')
-          .delete()
-          .eq('id_order', orderId);
-
-        if (delErr) {
-          console.error('Error eliminando líneas antiguas de ventas:', delErr);
-          return;
-        }
-
-        // 2. Insertar todas las nuevas líneas desde salesItems[]
-        const rowsToInsert = this.salesItems.map((item) => {
-          if (item.mode === 'material') {
-            return {
-              id_order: orderId,
-              item_type: 'material',
-              product_id: null,
-              material_id: item.material.id_material,
-              quantity: item.quantity,
-              unit_price: item.unit_price,
-              line_total: item.subtotal,
-              material_type: item.material.type,
-              caliber: item.material.caliber,
-              color: item.material.color,
-              category: item.material.category,
-            };
-          } else {
-            return {
-              id_order: orderId,
-              item_type: 'product',
-              product_id: item.product.id,
-              material_id: null,
-              quantity: item.quantity,
-              unit_price: item.unit_price,
-              line_total: item.subtotal,
-            };
-          }
-        });
-
-        const { error: insertErr } = await this.supabase
-          .from('sales')
-          .insert(rowsToInsert);
-
-        if (insertErr) {
-          console.error('Error insertando líneas nuevas de ventas:', insertErr);
-          return;
-        }
-      }
-
-      const { data: existingInvoice, error: invoiceError } = await this.supabase
-        .from('invoices')
-        .select('*')
-        .eq('id_order', this.newOrder.id_order)
-        .single();
-
-      if (invoiceError && invoiceError.code !== 'PGRST116') {
-        console.error('Error al buscar factura existente:', invoiceError);
-        return;
-      }
-
-      if (existingInvoice) {
-        const updatedInvoice: Partial<Invoice> = {
-          due_date: dueDateISOString,
-        };
-        const { error: updateInvoiceError } = await this.supabase
-          .from('invoices')
-          .update(updatedInvoice)
-          .eq('id_order', this.newOrder.id_order);
-
-        if (updateInvoiceError) {
-          console.error('Error al actualizar la factura:', updateInvoiceError);
-          return;
-        }
-      }
-
-      await this.getOrders();
-      this.toggleAddOrderForm();
-    }
-    // CREACIÓN (NUEVO PEDIDO)
-    else {
-      const userName = await this.getUserName();
-      this.newOrder.scheduler = userName || '';
-
-      // Hora exacta del agendamiento
-      this.newOrder.created_time = this.getCurrentTimeHHMM();
-
-      if (this.newOrder.order_type === 'sales') {
-        this.recalcSalesFromItems();
-      }
-
-      if (this.newOrder.order_type === 'sales') {
-        const valid = await this.validateSalesStock();
-        if (!valid) return;
-        this.recalcSalesFromItems();
-      }
-
-      const { data, error } = await this.supabase
-        .from('orders')
-        .insert([this.newOrder])
-        .select();
-
-      if (error) {
-        console.error('Error al añadir el pedido:', error);
-        return;
-      }
-
-      const insertedOrder = data[0];
-      this.newOrder.id_order = insertedOrder.id_order;
-      this.newOrder.code = insertedOrder.code;
-
-      await this.handleFileUploadForOrder(this.newOrder.id_order!);
-
-      // PRINTS (CREACIÓN)
-      if (this.newOrder.order_type === 'print' && this.printsItems.length > 0) {
-        let hasStockIssues = false;
-        let totalPendingQty = 0;
-
-        for (const item of this.printsItems) {
-          const selectedMaterial = item.material;
-
-          // Leer stock actual
-          const { data: matData, error: matErr } = await this.supabase
-            .from('materials')
-            .select('material_quantity')
-            .eq('id_material', selectedMaterial.id_material)
-            .single();
-
-          if (matErr || !matData) {
-            alert('No se pudo leer stock del material.');
-            return;
-          }
-
-          const currentStock = Number(matData.material_quantity);
-          const requestedQty = item.quantity;
-
-          // Descontar solo lo que hay disponible
-          let deductedQty = 0;
-          if (currentStock >= requestedQty) {
-            deductedQty = requestedQty;
-          } else {
-            deductedQty = currentStock;
-            hasStockIssues = true;
-            totalPendingQty += requestedQty - currentStock;
-          }
-
-          // Actualizar stock
-          const newQty = Math.max(currentStock - deductedQty, 0);
-          const { error: updateErr } = await this.supabase
-            .from('materials')
-            .update({ material_quantity: newQty.toString() })
-            .eq('id_material', selectedMaterial.id_material);
-
-          if (updateErr) {
-            console.error('Error actualizando stock', updateErr);
-            return;
-          }
-
-          // Insertar en prints
-          const printRow = {
-            id_order: this.newOrder.id_order,
-            material_type: selectedMaterial.type,
-            caliber: selectedMaterial.caliber || '',
-            color: selectedMaterial.color || '',
-            category: selectedMaterial.category,
-            laminating: item.laminating,
-            die_cutting: item.die_cutting,
-            assembly: item.assembly,
-            printing: item.printing,
-            product_number: '1',
-            quantity: requestedQty.toString(),
-            fulfilled_quantity: deductedQty,
-            pending_quantity: requestedQty - deductedQty,
-            damaged_material: '0',
-            notes: '',
-            unit_price: item.processed_unit_value,
-            roll_width: item.roll_width || 0,
-            measurement: item.measurement || 0,
-          };
-
-          const { error: insErr } = await this.supabase
-            .from('prints')
-            .insert(printRow);
-
-          if (insErr) {
-            console.error('Error insertando print', insErr);
-            return;
-          }
-        }
-
-        // Actualizar stock status del pedido
-        const stockStatus = hasStockIssues
-          ? totalPendingQty >=
-            this.printsItems.reduce((sum, i) => sum + i.quantity, 0)
-            ? 'pending_stock'
-            : 'partially_fulfilled'
-          : 'fulfilled';
-
-        await this.supabase
-          .from('orders')
-          .update({
-            stock_status: stockStatus,
-            pending_quantity: totalPendingQty,
-          })
-          .eq('id_order', this.newOrder.id_order);
-
-        // Mostrar advertencia si hay problemas
-        if (hasStockIssues) {
-          alert(
-            `⚠️ ADVERTENCIA: El pedido fue creado pero hay ${totalPendingQty} unidades pendientes por falta de stock.`
-          );
-        }
-      }
-      // GUARDAR CUTS (CORTES) - CREACIÓN
-      else if (this.newOrder.order_type === 'laser') {
-        if (this.cutsItems.length === 0) {
-          alert('Debe agregar al menos un material para el pedido de corte.');
-          return;
-        }
-
-        let hasStockIssues = false;
-        let totalPendingQty = 0;
-
-        // Insertar múltiples cuts
-        for (const item of this.cutsItems) {
-          const selectedMaterial = item.material;
-
-          // Leer stock actual
-          const { data: matData, error: matErr } = await this.supabase
-            .from('materials')
-            .select('material_quantity')
-            .eq('id_material', selectedMaterial.id_material)
-            .single();
-
-          if (matErr || !matData) {
-            alert('No se pudo leer stock del material.');
-            return;
-          }
-
-          const currentStock = Number(matData.material_quantity);
-          const quantityToUse = item.quantity;
-
-          // Descontar solo lo que hay disponible
-          let deductedQty = 0;
-          let pendingQty = 0;
-
-          if (currentStock >= quantityToUse) {
-            deductedQty = quantityToUse;
-            pendingQty = 0;
-          } else {
-            deductedQty = currentStock;
-            pendingQty = quantityToUse - currentStock;
-            hasStockIssues = true;
-            totalPendingQty += pendingQty;
-          }
-
-          // Actualizar stock
-          const finalStock = Math.max(currentStock - deductedQty, 0);
-          await this.supabase
-            .from('materials')
-            .update({ material_quantity: finalStock.toString() })
-            .eq('id_material', selectedMaterial.id_material);
-
-          // Insertar en cuts
-          const cutData = {
-            id_order: this.newOrder.id_order,
-            material_type: selectedMaterial?.type || '',
-            caliber: selectedMaterial?.caliber || '',
-            color: selectedMaterial?.color || '',
-            category: selectedMaterial?.category || '',
-            quantity: item.quantity.toString(),
-            height: item.height.toString(),
-            width: item.width.toString(),
-            cutting_time: item.cutTime.toString(),
-            fulfilled_quantity: deductedQty,
-            pending_quantity: pendingQty,
-            unit_price: item.unitPrice,
-            line_total: item.subtotal,
-          };
-
-          const { error: cutInsertError } = await this.supabase
-            .from('cuts')
-            .insert(cutData);
-
-          if (cutInsertError) {
-            console.error('Error insertando corte:', cutInsertError);
-            return;
-          }
-        }
-
-        // Actualizar stock_status en orders
-        const stockStatus = hasStockIssues
-          ? totalPendingQty >=
-            this.cutsItems.reduce((sum, i) => sum + i.quantity, 0)
-            ? 'pending_stock'
-            : 'partially_fulfilled'
-          : 'fulfilled';
-
-        await this.supabase
-          .from('orders')
-          .update({
-            stock_status: stockStatus,
-            pending_quantity: totalPendingQty,
-          })
-          .eq('id_order', this.newOrder.id_order);
-
-        // Mostrar advertencia si hay problemas de stock
-        if (hasStockIssues) {
-          alert(
-            `⚠️ ADVERTENCIA: El pedido fue creado pero hay ${totalPendingQty} unidades pendientes por falta de stock.\n\n` +
-              `Podrás usar el botón "Completar Stock" cuando haya material disponible.`
-          );
-        }
-      }
-
-      // SALES (CREACIÓN)
-      else if (this.newOrder.order_type === 'sales') {
-        const ok = await this.saveSaleItemsToSupabase(this.newOrder.id_order!);
-        if (!ok) return;
-      }
-
-      const newInvoice: Partial<Invoice> = {
-        created_at: new Date().toISOString(),
-        invoice_status: 'overdue',
-        id_order: insertedOrder.id_order,
-        code: insertedOrder.code.toString(),
-        payment_term: paymentTerm,
-        include_iva: false,
-        due_date: dueDateISOString,
-      };
-
-      const { error: invoiceInsertError } = await this.supabase
-        .from('invoices')
-        .insert([newInvoice]);
-
-      if (invoiceInsertError) {
-        console.error('Error al crear la factura:', invoiceInsertError);
-        return;
-      }
-
-      const { data: clientData, error: clientUpdateError } = await this.supabase
-        .from('clients')
-        .select('debt')
-        .eq('id_client', insertedOrder.id_client)
-        .single();
-
-      if (clientUpdateError || !clientData) {
-        console.error(
-          'Error al obtener la deuda del cliente:',
-          clientUpdateError
-        );
-        return;
-      }
-
-      const currentClientDebt = clientData.debt || 0;
-      const updatedDebt =
-        currentClientDebt + parseFloat(insertedOrder.total as string);
-      const newClientStatus = updatedDebt > 0 ? 'overdue' : 'upToDate';
-
-      const { error: updateClientError } = await this.supabase
-        .from('clients')
-        .update({ debt: updatedDebt, status: newClientStatus })
-        .eq('id_client', insertedOrder.id_client);
-
-      if (updateClientError) {
-        console.error(
-          'Error al actualizar la deuda del cliente:',
-          updateClientError
-        );
-        return;
-      }
-
-      await this.getOrders();
-      this.createNotification(insertedOrder);
-      this.toggleAddOrderForm();
-    }
-  }
-  */
 
   // Función para calcular el subtotal dinámicamente
   getCalculatedSubtotal(order: Orders): number {
@@ -2873,8 +1350,7 @@ export class OrdersComponent implements OnInit {
             ) || 0;
 
           // Fórmula: base_total = total - extras
-          this.newOrder.base_total =
-            currentTotal - existingExtras;
+          this.newOrder.base_total = currentTotal - existingExtras;
         }
       }
 
@@ -2910,70 +1386,13 @@ export class OrdersComponent implements OnInit {
 
   updateOrderTotalWithExtras(): void {
     const baseTotal = Number(this.newOrder.unitary_value) || 0;
-    const extras = this.newOrder.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
+    const extras =
+      this.newOrder.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
 
     this.newOrder.total = baseTotal + extras;
     this.newOrder.subtotal = baseTotal;
     this.newOrder.base_total = baseTotal;
   }
-
-  /*
-  updateOrderTotalWithExtras(): void {
-    // 1. Obtener base (subtotal de materiales/items)
-    let base =
-      typeof this.newOrder.base_total === 'number' &&
-      !isNaN(this.newOrder.base_total)
-        ? this.newOrder.base_total
-        : parseFloat(this.newOrder.subtotal as string) || 0;
-
-    // Si aún no hay base, calcularla
-    if (!base) {
-      const maybeTotal = parseFloat(this.newOrder.total as string) || 0;
-      const extras =
-        this.newOrder.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
-      base = maybeTotal - extras;
-      this.newOrder.base_total = base;
-    }
-
-    // 2. Sumar cargos extras
-    const extras =
-      this.newOrder.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
-
-    // 3. Calcular total SIN descuento (base + extras)
-    const totalWithoutDiscount = base + extras;
-
-    // 4. Actualizar subtotal
-    this.newOrder.subtotal = base.toString();
-
-    // 5. Aplicar descuento si existe
-    if (
-      this.hasDiscountApplied &&
-      this.newOrder.discount &&
-      this.newOrder.discount > 0
-    ) {
-      let discountAmount = 0;
-
-      if (this.newOrder.discount_type === 'percentage') {
-        // Descuento porcentual sobre el total (base + extras)
-        discountAmount = Math.round(
-          (totalWithoutDiscount * this.newOrder.discount) / 100
-        );
-      } else {
-        // Descuento fijo
-        discountAmount = Math.round(this.newOrder.discount);
-      }
-
-      const finalTotal = Math.max(totalWithoutDiscount - discountAmount, 0);
-
-      this.newOrder.total = finalTotal.toString();
-      this.totalBeforeDiscount = totalWithoutDiscount;
-    } else {
-      // Sin descuento
-      this.newOrder.total = totalWithoutDiscount.toString();
-      this.totalBeforeDiscount = 0;
-    }
-  }
-  */
 
   async createNotification(addedOrder: Partial<Orders>) {
     this.notificationDesc =
@@ -3015,69 +1434,6 @@ export class OrdersComponent implements OnInit {
     }
   }
 
-  /* MÉTODOS PARA DESCUENTOS
-  calculateDiscountAmount(): number {
-    if (!this.discount || this.discount === 0) {
-      return 0;
-    }
-
-    // Calcular base (subtotal + extras)
-    const baseTotal = Number(this.newOrder.base_total || 0);
-    const extras =
-      this.newOrder.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
-    const totalBeforeDiscount = baseTotal + extras;
-
-    if (this.discountType === 'percentage') {
-      // Descuento porcentual
-      return (totalBeforeDiscount * this.discount) / 100;
-    } else {
-      // Descuento fijo
-      return this.discount;
-    }
-  }
-  /*
-
-  /*
-  applyDiscount(): void {
-    if (this.discount > 0 && !this.hasDiscountApplied) {
-      // Marcar que hay descuento aplicado
-      this.hasDiscountApplied = true;
-
-      // Guardar datos del descuento
-      this.newOrder.discount = this.discount;
-      this.newOrder.discount_type = this.discountType;
-
-      // Recalcular todo con el descuento aplicado
-      this.updateOrderTotalWithExtras();
-    } else if (this.discount <= 0) {
-      alert('Por favor, ingrese un valor de descuento válido.');
-    }
-  }
-  */
-
-  /*
-  clearDiscount(): void {
-    // Limpiar variables
-    this.discount = 0;
-    this.discountType = 'fixed';
-    this.hasDiscountApplied = false;
-    this.newOrder.discount = 0;
-    this.newOrder.discount_type = 'fixed';
-    this.totalBeforeDiscount = 0;
-
-    // Recalcular sin descuento
-    this.updateOrderTotalWithExtras();
-  }
-    */
-
-  private formatDateForInput(date: Date | string): string {
-    const dateObj = new Date(date);
-    const year = dateObj.getFullYear();
-    const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
-    const day = dateObj.getDate().toString().padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
-
   paginateItems<T>(items: T[], page: number, itemsPerPage: number): T[] {
     const startIndex = (page - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
@@ -3094,82 +1450,6 @@ export class OrdersComponent implements OnInit {
     const endIndex = startIndex + Number(this.itemsPerPage);
     this.paginatedOrders = this.filteredOrdersList.slice(startIndex, endIndex);
   }
-
-  /*
-  openCalculator(): void {
-    this.showCalculator = true;
-    this.calculationType = null;
-    this.resetForm();
-  }
-  */
-
-  /*
-  closeCalculator(): void {
-    this.showCalculator = false;
-    this.resetForm();
-  }
-  */
-
-  /* MÉTODOS CALCULADORA DE PRECIOS
-  resetForm(): void {
-    this.calculatorResult = 0;
-    this.clientType = null;
-    this.lamination = false;
-    this.pPrint = false;
-    this.stamping = false;
-    this.assemble = false;
-    this.rollWidth = 0;
-    this.measurement = 0;
-    this.productNumber = 1;
-    this.materialValue = 0;
-    this.usageTime = 0;
-  }
-    */
-
-  /*
-  setValoresPorCliente(): void {
-    if (this.clientType === 'intermediary') {
-      this.laminationValue = this.variables.intermediaryLaminationValue;
-      this.printValue = this.variables.intermediaryPrintValue;
-      this.stampingValue = this.variables.intermediaryStampingValue;
-      this.assembleValue = this.variables.intermediaryAssembleValue;
-    } else if (this.clientType === 'final') {
-      this.laminationValue = this.variables.finalLaminationValue;
-      this.printValue = this.variables.finalPrintValue;
-      this.stampingValue = this.variables.finalStampingValue;
-      this.assembleValue = this.variables.finalAssembleValue;
-    }
-  }
-  */
-
-  /*
-  calculatePrice(): void {
-    if (this.calculationType == 'prints') {
-      const base = this.rollWidth * this.measurement * this.productNumber;
-
-      let factor = 0;
-
-      if (this.lamination) factor += this.laminationValue;
-      if (this.pPrint) factor += this.printValue;
-      if (this.stamping) factor += this.stampingValue;
-      if (this.assemble) factor += this.assembleValue;
-
-      this.calculatorResult = base * factor;
-    } else if (this.calculationType == 'cuts') {
-      let valorTiempo = 0;
-      if (this.usageTime <= 10) {
-        valorTiempo = this.variables.baseCutTimeValue;
-      } else {
-        valorTiempo =
-          this.clientType === 'intermediary'
-            ? this.usageTime * this.variables.intermediaryPerMinute
-            : this.usageTime * this.variables.finalPerMinute;
-      }
-
-      this.calculatorResult = this.materialValue + valorTiempo;
-    }
-  }
-  */
 
   public getRemainingDeliveryDays(order: Orders): number {
     if (!order.delivery_date) return 0;
@@ -3269,502 +1549,17 @@ export class OrdersComponent implements OnInit {
       console.error('error downloading image: ', error);
       return;
     }
-    const response = await fetch(data.signedUrl);
-    const blob = await response.blob();
-    const blobUrl = window.URL.createObjectURL(blob);
+    const downloadUrl = `${data.signedUrl}&download=true`;
 
     const anchor = document.createElement('a');
-    anchor.href = blobUrl;
-    anchor.download = filePath.split('/').pop() || 'archivo';
+    anchor.href = downloadUrl;
+    anchor.setAttribute('download', filePath.split('/').pop() || 'archivo');
     anchor.style.display = 'none';
     document.body.appendChild(anchor);
     anchor.click();
     document.body.removeChild(anchor);
-    window.URL.revokeObjectURL(blobUrl);
   }
 
-  /*
-  closeStockModal() {
-    this.showStockWarningModal = false;
-  }
-  */
-
-  /*
-  async showStockError(message: string): Promise<void> {
-    this.stockWarningMessage = message;
-    this.showStockWarningModal = true;
-
-    return new Promise((resolve) => {
-      this.closeStockModal = () => {
-        this.showStockWarningModal = false;
-        resolve();
-      };
-    });
-  }
-  */
-
-  /*
-  async completeStockForOrder(order: Orders): Promise<void> {
-    if (!order || !order.id_order) {
-      alert('Orden no válida.');
-      return;
-    }
-
-    // Refrescar materiales para tener stock actualizado
-    await this.getMaterials();
-
-    // PRINTS
-    if (order.order_type === 'print') {
-      const { data: prints, error: printsErr } = await this.supabase
-        .from('prints')
-        .select('*')
-        .eq('id_order', order.id_order);
-
-      if (printsErr || !prints) {
-        alert('Error al cargar las líneas de impresión.');
-        return;
-      }
-
-      // Verificar si hay cantidades pendientes
-      const totalPending = prints.reduce(
-        (sum, p) => sum + Number(p.pending_quantity || 0),
-        0
-      );
-      if (totalPending === 0) {
-        alert('No hay cantidades pendientes para este pedido.');
-        return;
-      }
-
-      let totalCompleted = 0;
-      let stillPending = 0;
-      let stockIssues: string[] = [];
-
-      for (const p of prints) {
-        const pendingQty = Number(p.pending_quantity || 0);
-        if (pendingQty === 0) continue;
-
-        const material = this.allMaterials.find(
-          (m: any) =>
-            m.category === p.category &&
-            m.type === p.material_type &&
-            m.caliber === p.caliber &&
-            m.color === p.color
-        );
-
-        if (!material) {
-          stockIssues.push(
-            `Material no encontrado: ${p.category} - ${p.material_type}`
-          );
-          stillPending += pendingQty;
-          continue;
-        }
-
-        const availableStock = Number(material.material_quantity || 0);
-        const toFulfill = Math.min(availableStock, pendingQty);
-
-        if (toFulfill > 0) {
-          const newStock = availableStock - toFulfill;
-          await this.supabase
-            .from('materials')
-            .update({ material_quantity: newStock.toString() })
-            .eq('id_material', material.id_material);
-
-          const newFulfilled = Number(p.fulfilled_quantity || 0) + toFulfill;
-          const newPending = pendingQty - toFulfill;
-
-          await this.supabase
-            .from('prints')
-            .update({
-              fulfilled_quantity: newFulfilled,
-              pending_quantity: newPending,
-            })
-            .eq('id', p.id);
-
-          totalCompleted += toFulfill;
-          stillPending += newPending;
-
-          if (newPending > 0) {
-            stockIssues.push(
-              `${p.category} - ${p.material_type}: Completadas ${toFulfill}, Faltan ${newPending}`
-            );
-          }
-        } else {
-          stillPending += pendingQty;
-          stockIssues.push(
-            `${p.category} - ${p.material_type}: Sin stock (necesita ${pendingQty})`
-          );
-        }
-      }
-
-      if (totalCompleted === 0) {
-        alert(
-          '❌ NO SE PUDO COMPLETAR STOCK\n\n' +
-            'No hay suficiente material en el inventario.\n\n' +
-            'Detalles:\n' +
-            stockIssues.join('\n')
-        );
-        return;
-      }
-
-      const newStatus =
-        stillPending === 0 ? 'fulfilled' : 'partially_fulfilled';
-      await this.supabase
-        .from('orders')
-        .update({
-          stock_status: newStatus,
-          pending_quantity: stillPending,
-        })
-        .eq('id_order', order.id_order);
-
-      await this.getOrders();
-      await this.getMaterials(); // Refrescar inventario
-
-      if (stillPending === 0) {
-        alert(
-          `Stock completado exitosamente.\n\nSe cumplieron ${totalCompleted} unidades.`
-        );
-      } else {
-        alert(
-          `⚠️ Stock parcialmente completado.\n\n` +
-            `Completadas: ${totalCompleted} unidades\n` +
-            `Aún pendientes: ${stillPending} unidades\n\n` +
-            `Detalles:\n${stockIssues.join('\n')}`
-        );
-      }
-    }
-
-    // LASER (CUTS)
-    else if (order.order_type === 'laser') {
-      const { data: cuts, error: cutsErr } = await this.supabase
-        .from('cuts')
-        .select('*')
-        .eq('id_order', order.id_order);
-
-      if (cutsErr || !cuts) {
-        alert('Error al cargar las líneas de corte.');
-        return;
-      }
-
-      // Verificar si hay cantidades pendientes
-      const totalPending = cuts.reduce(
-        (sum, c) => sum + Number(c.pending_quantity || 0),
-        0
-      );
-      if (totalPending === 0) {
-        alert('No hay cantidades pendientes para este pedido.');
-        return;
-      }
-
-      let totalCompleted = 0;
-      let stillPending = 0;
-      let stockIssues: string[] = [];
-
-      for (const c of cuts) {
-        const pendingQty = Number(c.pending_quantity || 0);
-        if (pendingQty === 0) continue;
-
-        const material = this.allMaterials.find(
-          (m: any) =>
-            m.category === c.category &&
-            m.type === c.material_type &&
-            m.caliber === c.caliber &&
-            m.color === c.color
-        );
-
-        if (!material) {
-          stockIssues.push(
-            `Material no encontrado: ${c.category} - ${c.material_type}`
-          );
-          stillPending += pendingQty;
-          continue;
-        }
-
-        const availableStock = Number(material.material_quantity || 0);
-        const toFulfill = Math.min(availableStock, pendingQty);
-
-        if (toFulfill > 0) {
-          const newStock = availableStock - toFulfill;
-          await this.supabase
-            .from('materials')
-            .update({ material_quantity: newStock.toString() })
-            .eq('id_material', material.id_material);
-
-          const newFulfilled = Number(c.fulfilled_quantity || 0) + toFulfill;
-          const newPending = pendingQty - toFulfill;
-
-          await this.supabase
-            .from('cuts')
-            .update({
-              fulfilled_quantity: newFulfilled,
-              pending_quantity: newPending,
-            })
-            .eq('id', c.id);
-
-          totalCompleted += toFulfill;
-          stillPending += newPending;
-
-          if (newPending > 0) {
-            stockIssues.push(
-              `${c.category} - ${c.material_type}: Completadas ${toFulfill}, Faltan ${newPending}`
-            );
-          }
-        } else {
-          stillPending += pendingQty;
-          stockIssues.push(
-            `${c.category} - ${c.material_type}: Sin stock (necesita ${pendingQty})`
-          );
-        }
-      }
-
-      if (totalCompleted === 0) {
-        alert(
-          '❌ NO SE PUDO COMPLETAR STOCK\n\n' +
-            'No hay suficiente material en el inventario.\n\n' +
-            'Detalles:\n' +
-            stockIssues.join('\n')
-        );
-        return;
-      }
-
-      const newStatus =
-        stillPending === 0 ? 'fulfilled' : 'partially_fulfilled';
-      await this.supabase
-        .from('orders')
-        .update({
-          stock_status: newStatus,
-          pending_quantity: stillPending,
-        })
-        .eq('id_order', order.id_order);
-
-      await this.getOrders();
-      await this.getMaterials(); // Refrescar inventario
-
-      if (stillPending === 0) {
-        alert(
-          `Stock completado exitosamente.\n\nSe cumplieron ${totalCompleted} unidades.`
-        );
-      } else {
-        alert(
-          `⚠️ Stock parcialmente completado.\n\n` +
-            `Completadas: ${totalCompleted} unidades\n` +
-            `Aún pendientes: ${stillPending} unidades\n\n` +
-            `Detalles:\n${stockIssues.join('\n')}`
-        );
-      }
-    }
-
-    // SALES
-    else if (order.order_type === 'sales') {
-      alert('Para ventas, usa el proceso normal de completar ítems.');
-      return;
-    } else {
-      alert('Tipo de pedido no soportado.');
-      return;
-    }
-  }
-  */
-
-  /* Función para añadir un material a prints
-  addPrintItem(): void {
-    if (this.newOrder.order_type !== 'print') return;
-
-    const selectedMaterial = this.getSelectedMaterial();
-    if (!selectedMaterial) {
-      alert(
-        'Seleccione un material completo (categoría, tipo, calibre y color).'
-      );
-      return;
-    }
-
-    const qty = Number(this.tempPrintQuantity) || 0;
-    const unitValue = Number(this.tempPrintUnitaryValue) || 0;
-
-    if (qty <= 0) {
-      alert('La cantidad debe ser mayor a cero.');
-      return;
-    }
-
-    if (unitValue <= 0) {
-      alert('El valor unitario debe ser mayor a cero.');
-      return;
-    }
-
-    // Calcular el valor unitario procesado (con multiplicadores de procesos)
-    const processedUnitValue = this.calculatePrintValueFromUnit(unitValue);
-
-    this.printsItems.push({
-      material: selectedMaterial,
-      quantity: qty,
-      laminating: this.tempPrintLaminating,
-      die_cutting: this.tempPrintDieCutting,
-      assembly: this.tempPrintAssembly,
-      printing: this.tempPrintPrinting,
-      unitary_value: unitValue,
-      processed_unit_value: processedUnitValue,
-      subtotal: qty * processedUnitValue,
-      roll_width: this.tempPrintRollWidth || 0,
-      measurement: this.tempPrintMeasurement || 0,
-      processes: this.getProcessesString(),
-    });
-
-    // Limpiar campos temporales
-    this.resetTempPrintFields();
-
-    // Recalcular el total del pedido
-    this.recalcPrintsFromItems();
-  }
-  */
-  /*
-  calculatePrintValueFromUnit(unitValue: number): number {
-    const clientType = this.newOrder.client_type || 'intermediary';
-
-    let totalValue = unitValue; // Empezar con el valor ingresado
-
-    // Multiplicar en cadena según los procesos seleccionados
-    if (clientType === 'final') {
-      if (this.tempPrintLaminating) {
-        totalValue = totalValue * this.variables.finalLaminationValue;
-      }
-      if (this.tempPrintPrinting) {
-        totalValue = totalValue * this.variables.finalPrintValue;
-      }
-      if (this.tempPrintDieCutting) {
-        totalValue = totalValue * this.variables.finalStampingValue;
-      }
-      if (this.tempPrintAssembly) {
-        totalValue = totalValue * this.variables.finalAssembleValue;
-      }
-    } else {
-      // intermediary
-      if (this.tempPrintLaminating) {
-        totalValue = totalValue * this.variables.intermediaryLaminationValue;
-      }
-      if (this.tempPrintPrinting) {
-        totalValue = totalValue * this.variables.intermediaryPrintValue;
-      }
-      if (this.tempPrintDieCutting) {
-        totalValue = totalValue * this.variables.intermediaryStampingValue;
-      }
-      if (this.tempPrintAssembly) {
-        totalValue = totalValue * this.variables.intermediaryAssembleValue;
-      }
-    }
-
-    return totalValue;
-  }
-  */
-
-  /* Función para obtener string de procesos
-  getProcessesString(): string {
-    const processes = [];
-    if (this.tempPrintLaminating) processes.push('Laminado');
-    if (this.tempPrintPrinting) processes.push('Impresión');
-    if (this.tempPrintDieCutting) processes.push('Troquelado');
-    if (this.tempPrintAssembly) processes.push('Armado');
-    return processes.join(', ') || '-';
-  }
-  */
-
-  /* Resetear campos temporales
-  resetTempPrintFields(): void {
-    this.tempPrintQuantity = 1;
-    this.tempPrintLaminating = false;
-    this.tempPrintDieCutting = false;
-    this.tempPrintAssembly = false;
-    this.tempPrintPrinting = false;
-    this.tempPrintUnitaryValue = 0;
-    this.selectedCategory = '';
-    this.selectedType = '';
-    this.selectedCaliber = '';
-    this.selectedColor = '';
-  }
-  */
-
-  /* Eliminar un item de prints
-  removePrintItem(index: number): void {
-    // Si es el último item, preguntar si quiere eliminar el pedido completo
-    if (this.printsItems.length === 1 && this.isEditing) {
-      const confirmDelete = confirm(
-        '⚠️ ADVERTENCIA: Este es el último material del pedido.\n\n' +
-          'Si lo eliminas, el pedido completo será eliminado.\n\n' +
-          '¿Deseas eliminar el pedido completo?'
-      );
-
-      if (!confirmDelete) {
-        return; // Usuario canceló
-      }
-
-      // Buscar el pedido en la lista de orders
-      const orderToDelete = this.orders.find(
-        (o) => o.id_order === this.newOrder.id_order
-      );
-
-      if (orderToDelete) {
-        // Llamar al método deleteOrder existente que ya maneja todo
-        this.deleteOrder(orderToDelete);
-      } else {
-        alert('No se pudo encontrar el pedido para eliminar.');
-      }
-
-      return; // No continuar con la eliminación del item
-    }
-
-    // Si NO es el último item, eliminar normalmente
-    this.printsItems.splice(index, 1);
-
-    if (this.printsItems.length === 0) {
-      this.isPrintsModeLocked = false;
-    }
-
-    // Recalcular totales
-    this.recalcPrintsFromItems();
-  }
-  */
-
-  async deleteOrderCompletely(orderId: string): Promise<void> {
-    try {
-      // 1. Eliminar prints
-      await this.supabase.from('prints').delete().eq('id_order', orderId);
-
-      // 2. Eliminar notificaciones
-      await this.supabase
-        .from('notifications')
-        .delete()
-        .eq('id_order', orderId);
-
-      // 3. Eliminar facturas
-      await this.supabase.from('invoices').delete().eq('id_order', orderId);
-
-      // 4. Eliminar pagos
-      await this.supabase.from('payments').delete().eq('id_order', orderId);
-
-      // 5. Eliminar el pedido
-      await this.supabase.from('orders').delete().eq('id_order', orderId);
-
-      alert('El pedido fue eliminado correctamente.');
-
-      // Cerrar el modal y recargar pedidos
-      this.toggleAddOrderForm();
-      await this.getOrders();
-    } catch (error) {
-      console.error('Error eliminando pedido:', error);
-      alert('Error al eliminar el pedido.');
-    }
-  }
-
-  /* Recalcular total desde los items
-  recalcPrintsFromItems(): void {
-    let total = 0;
-    for (const item of this.printsItems) {
-      total += item.subtotal;
-    }
-
-    this.newOrder.base_total = total;
-    this.updateOrderTotalWithExtras();
-  }
-  */
-
-  // Funciones para obtener opciones únicas de materiales
   getCategories(): string[] {
     const categories = this.allMaterials
       .map((m) => m.category)
@@ -3790,10 +1585,7 @@ export class OrdersComponent implements OnInit {
       filtered = filtered.filter((m) => m.type === this.selectedType);
     }
 
-    // Mapear los calibers, dejando vacíos como están (null, undefined, "")
     const calibers = filtered.map((m) => m.caliber || '');
-
-    // Retornar únicos (incluyendo string vacío si existe)
     return [...new Set(calibers)];
   }
 
@@ -3806,21 +1598,16 @@ export class OrdersComponent implements OnInit {
       filtered = filtered.filter((m) => m.type === this.selectedType);
     }
     if (this.selectedCaliber !== undefined && this.selectedCaliber !== null) {
-      // Comparar considerando valores vacíos
       filtered = filtered.filter((m) => {
         const matCaliber = m.caliber || '';
         return matCaliber === this.selectedCaliber;
       });
     }
 
-    // Mapear los colores, dejando vacíos como están
     const colors = filtered.map((m) => m.color || '');
-
-    // Retornar únicos (incluyendo string vacío si existe)
     return [...new Set(colors)];
   }
 
-  // Función auxiliar para obtener el material seleccionado
   getSelectedMaterial(): any | null {
     if (
       !this.selectedCategory ||
@@ -3838,7 +1625,7 @@ export class OrdersComponent implements OnInit {
         const categoryMatch = m.category === this.selectedCategory;
         const typeMatch = m.type === this.selectedType;
 
-        // Normalizar a string vacío si es null/undefined
+        // Normalize strings to empty if null/undefined
         const matCaliber = m.caliber || '';
         const matColor = m.color || '';
 
@@ -3849,216 +1636,6 @@ export class OrdersComponent implements OnInit {
       }) || null
     );
   }
-
-  /*
-  onPrintMaterialChange(): void {
-    const material = this.getSelectedMaterial();
-    if (material) {
-      // Autocompletar el valor unitario del material
-      this.tempPrintUnitaryValue = Number(material.unitary_value) || 0;
-    } else {
-      this.tempPrintUnitaryValue = 0;
-    }
-  }
-  */
-
-  /* Añadir un material a cuts
-  addCutItem(): void {
-    const material = this.getSelectedMaterial();
-
-    if (!material) {
-      alert(
-        'Seleccione un material completo (Categoría, Tipo, Calibre, Color).'
-      );
-      return;
-    }
-
-    const quantity = Number(this.tempCutQuantity) || 0;
-    const cutTime = Number(this.tempCutTime) || 0;
-    const unitPrice = Number(this.tempCutUnitaryValue) || 0;
-
-    if (quantity <= 0) {
-      alert('La cantidad debe ser mayor a cero.');
-      return;
-    }
-
-    if (cutTime < 0) {
-      alert('El tiempo de corte no puede ser negativo.');
-      return;
-    }
-
-    // Calcular el costo del corte
-    const cutCost = this.calculateCutCost(cutTime);
-
-    // FÓRMULA: Total = (Precio Unitario × cantidad) + costo de corte
-    const totalPrice = unitPrice * quantity + cutCost;
-
-    // Guardar en el array temporal de items
-    this.cutsItems.push({
-      material: material,
-      quantity: quantity,
-      height: this.tempCutHeight || 0,
-      width: this.tempCutWidth || 0,
-      cutTime: cutTime,
-      unitPrice: unitPrice,
-      processedValue: cutCost,
-      subtotal: totalPrice,
-    });
-
-    // Limpiar campos temporales
-    this.selectedCategory = '';
-    this.selectedType = '';
-    this.selectedCaliber = '';
-    this.selectedColor = '';
-    this.tempCutQuantity = 1;
-    this.tempCutHeight = 0;
-    this.tempCutWidth = 0;
-    this.tempCutTime = 0;
-    this.tempCutNotes = '';
-    this.tempCutUnitaryValue = 0;
-
-    // Recalcular totales
-    this.recalcCutsFromItems();
-  }
-
-  */
-
-  /* Calcular SOLO el costo del corte (sin material)
-  calculateCutCost(cutTime: number): number {
-    const clientType = this.newOrder.client_type;
-    let cutCost = 0;
-
-    if (clientType === 'intermediary') {
-      // Cliente Intermediario
-      const ratePerMinute = this.variables.intermediaryPerMinute || 800;
-      const minCharge = this.variables.baseCutTimeValue || 8000;
-
-      if (cutTime <= 10) {
-        cutCost = minCharge;
-      } else {
-        cutCost = ratePerMinute * cutTime;
-      }
-    } else {
-      // Cliente Final
-      const ratePerMinute = this.variables.finalPerMinute || 1000;
-      const minCharge = 10000; // Valor fijo para cliente final (10 min)
-
-      if (cutTime <= 10) {
-        cutCost = minCharge;
-      } else {
-        cutCost = ratePerMinute * cutTime;
-      }
-    }
-
-    return cutCost;
-  }
-  */
-
-  /*
-   * Calcular el valor del cut basado en tiempo de corte
-
-  calculateCutValue(material: any, cutTime: number): number {
-    const materialValue = Number(material.unitaryvalue) || 0;
-    const cutCost = this.calculateCutCost(cutTime);
-
-    // Retornar solo el material + corte (sin multiplicar por cantidad aquí)
-    return materialValue + cutCost;
-  }
-    */
-
-  /**
-   * Resetear campos temporales de cuts
-
-  resetTempCutFields(): void {
-    this.tempCutQuantity = 1;
-    this.tempCutHeight = 0;
-    this.tempCutWidth = 0;
-    this.tempCutTime = 0;
-    this.tempCutNotes = '';
-    this.selectedCategory = '';
-    this.selectedType = '';
-    this.selectedCaliber = '';
-    this.selectedColor = '';
-  }
-    */
-
-  /**
-   * Eliminar un item de corte con validación
-
-  removeCutItem(index: number): void {
-    // Si es el último item, confirmar eliminación
-    if (this.cutsItems.length === 1) {
-      const confirmDelete = confirm(
-        '⚠️ Este es el último material del pedido.\n\n' +
-          'Si lo eliminas, se borrará todo el pedido.\n\n' +
-          '¿Estás seguro de que deseas continuar?'
-      );
-
-      if (!confirmDelete) {
-        return; // Cancelar eliminación
-      }
-
-      // Si confirma, eliminar el pedido completo
-      if (this.isEditing && this.newOrder.id_order) {
-        this.deleteOrder(this.selectedOrder!);
-        this.toggleAddOrderForm(); // Cerrar el modal
-        return;
-      } else {
-        // Si es un pedido nuevo (no guardado aún), simplemente cerrar el modal
-        this.cutsItems = [];
-        this.toggleAddOrderForm();
-        return;
-      }
-    }
-
-    // Si hay más de un item, eliminarlo normalmente
-    this.cutsItems.splice(index, 1);
-    this.recalcCutsFromItems();
-  }
-    */
-
-  /**
-   * Recalcular totales del pedido desde cutsItems
-
-  recalcCutsFromItems(): void {
-    if (!this.newOrder || this.newOrder.order_type !== 'laser') {
-      return;
-    }
-
-    // 1. Calcular base_total (suma de subtotales de todos los items)
-    let baseTotal = 0;
-    for (const item of this.cutsItems) {
-      baseTotal += item.subtotal;
-    }
-
-    this.newOrder.base_total = baseTotal;
-
-    // 2. Aplicar extras
-    const extras =
-      this.newOrder.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
-
-    // 3. Calcular total antes de descuento
-    let totalBeforeDiscount = baseTotal + extras;
-
-    // 4. Aplicar descuento si existe
-    let discountAmount = 0;
-    if (this.hasDiscountApplied && this.discount > 0) {
-      if (this.discountType === 'percentage') {
-        discountAmount = (totalBeforeDiscount * this.discount) / 100;
-      } else {
-        discountAmount = this.discount;
-      }
-      this.totalBeforeDiscount = totalBeforeDiscount;
-    }
-
-    // 5. Total final
-    const finalTotal = Math.max(0, totalBeforeDiscount - discountAmount);
-
-    // 6. Actualizar el pedido
-    this.newOrder.subtotal = baseTotal.toString();
-    this.newOrder.total = finalTotal.toString();
-  }
-    */
 
   clearFilters(): void {
     this.startDate = '';
@@ -4072,7 +1649,6 @@ export class OrdersComponent implements OnInit {
     this.updateFilteredOrders();
   }
   private async handleFileUploadForOrder(orderId: string): Promise<void> {
-    // ARCHIVO DE TRABAJO
     if (this.selectedFile) {
       const file = this.selectedFile;
       const filePath = `${orderId}/work/${Date.now()}_${file.name}`;
@@ -4088,7 +1664,6 @@ export class OrdersComponent implements OnInit {
       this.selectedFile = null;
     }
 
-    // ARCHIVO DE FACTURA
     if (this.selectedInvoiceFile) {
       const file = this.selectedInvoiceFile;
       const filePath = `${orderId}/invoice/${Date.now()}_${file.name}`;

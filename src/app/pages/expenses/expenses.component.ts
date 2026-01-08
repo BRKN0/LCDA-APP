@@ -19,6 +19,8 @@ interface ExpensesItem {
   provider_name?: string | null;
   payment_due_date?: string | null;
   payment_status: 'PAID' | 'PENDING';
+  invoice_file_path?: string | null;
+  proof_of_payment_path?: string | null;
 }
 
 @Component({
@@ -46,6 +48,8 @@ export class ExpensesComponent implements OnInit {
     provider_name: '',
     payment_due_date: null,
     payment_status: 'PAID',
+    invoice_file_path: null,
+    proof_of_payment_path: null,
   };
   // helpers for modal
   loading: boolean = false;
@@ -53,7 +57,16 @@ export class ExpensesComponent implements OnInit {
   isEditing: boolean = false;
   startDate: string = '';
   endDate: string = '';
-  isSaving: boolean = false; // Variable to prevent multiple clicks
+  isSaving: boolean = false;
+  showDetailsModal: boolean = false;
+
+  // File Paths
+  invoice_file_path?: string | null;
+  proof_of_payment_path?: string | null;
+
+  // File Upload State
+  selectedInvoiceFile: File | null = null;
+  selectedProofFile: File | null = null;
 
   // Pagination
   currentPage: number = 1;
@@ -140,6 +153,8 @@ export class ExpensesComponent implements OnInit {
       provider_name: '',
       payment_due_date: null,
       payment_status: 'PAID',
+      invoice_file_path: null,
+      proof_of_payment_path: null,
     };
   }
   getCategoryLabel(value: string): string {
@@ -150,7 +165,7 @@ export class ExpensesComponent implements OnInit {
     return Array.from(
       new Set([
         ...this.baseCategories,
-        ...this.expenses.map(e => e.category).filter(Boolean),
+        ...this.expenses.map((e) => e.category).filter(Boolean),
       ])
     ).sort();
   }
@@ -158,16 +173,14 @@ export class ExpensesComponent implements OnInit {
     return Array.from(
       new Set(
         this.expenses
-          .filter(e => e.category === 'UTILITIES' && e.service_type)
-          .map(e => e.service_type!)
+          .filter((e) => e.category === 'UTILITIES' && e.service_type)
+          .map((e) => e.service_type!)
       )
     ).sort();
   }
   getFilterCategories(): string[] {
     return Array.from(
-      new Set(
-        this.expenses.map(e => e.category).filter(Boolean)
-      )
+      new Set(this.expenses.map((e) => e.category).filter(Boolean))
     ).sort();
   }
   confirmNewServiceType(): void {
@@ -182,8 +195,8 @@ export class ExpensesComponent implements OnInit {
     return Array.from(
       new Set(
         this.expenses
-          .filter(e => e.category === 'UTILITIES' && e.service_type)
-          .map(e => e.service_type!)
+          .filter((e) => e.category === 'UTILITIES' && e.service_type)
+          .map((e) => e.service_type!)
       )
     ).sort();
   }
@@ -211,7 +224,6 @@ export class ExpensesComponent implements OnInit {
       this.newServiceType = '';
     }
 
-    // proveedor solo para SUPPLIES
     if (selectedValue !== 'SUPPLIES') {
       this.selectedExpense.id_provider = '';
       this.isNewProviderMode = false;
@@ -254,8 +266,13 @@ export class ExpensesComponent implements OnInit {
       this.isSaving = false;
       return;
     }
-    if (this.selectedExpense.payment_status === 'PENDING' && !this.selectedExpense.payment_due_date) {
-      alert('Si el estado es "Pendiente", debe seleccionar una Fecha Límite de Pago.');
+    if (
+      this.selectedExpense.payment_status === 'PENDING' &&
+      !this.selectedExpense.payment_due_date
+    ) {
+      alert(
+        'Si el estado es "Pendiente", debe seleccionar una Fecha Límite de Pago.'
+      );
       this.isSaving = false;
       return;
     }
@@ -267,23 +284,31 @@ export class ExpensesComponent implements OnInit {
       let finalProviderName = '';
 
       // Create New Provider
-      if (this.selectedExpense.category === 'SUPPLIES' && this.isNewProviderMode) {
+      if (
+        this.selectedExpense.category === 'SUPPLIES' &&
+        this.isNewProviderMode
+      ) {
         if (!this.newProviderData.company_name && !this.newProviderData.name) {
-          throw new Error('Debe ingresar Nombre o Empresa para el nuevo proveedor');
+          throw new Error(
+            'Debe ingresar Nombre o Empresa para el nuevo proveedor'
+          );
         }
 
         // Determine the name to save immediately
-        finalProviderName = this.newProviderData.company_name || this.newProviderData.name;
+        finalProviderName =
+          this.newProviderData.company_name || this.newProviderData.name;
 
         const { data: provData, error: provError } = await this.supabase
           .from('providers')
-          .insert([{
-            company_name: this.newProviderData.company_name,
-            name: this.newProviderData.name,
-            document_number: this.newProviderData.document_number,
-            phone_number: this.newProviderData.phone_number,
-            created_at: new Date()
-          }])
+          .insert([
+            {
+              company_name: this.newProviderData.company_name,
+              name: this.newProviderData.name,
+              document_number: this.newProviderData.document_number,
+              phone_number: this.newProviderData.phone_number,
+              created_at: new Date(),
+            },
+          ])
           .select()
           .single();
 
@@ -291,10 +316,14 @@ export class ExpensesComponent implements OnInit {
 
         finalProviderId = provData.id_provider;
         rollbackProviderId = provData.id_provider;
-      } 
-      else if (this.selectedExpense.category === 'SUPPLIES' && finalProviderId) {
+      } else if (
+        this.selectedExpense.category === 'SUPPLIES' &&
+        finalProviderId
+      ) {
         // Find the selected provider in the list to get the name
-        const selectedProv = this.providersList.find(p => p.id_provider === finalProviderId);
+        const selectedProv = this.providersList.find(
+          (p) => p.id_provider === finalProviderId
+        );
         if (selectedProv) {
           finalProviderName = selectedProv.company_name || selectedProv.name;
         }
@@ -312,49 +341,89 @@ export class ExpensesComponent implements OnInit {
         payment_date: this.selectedExpense.payment_date,
         category: this.selectedExpense.category,
         service_type:
-        this.selectedExpense.category === 'UTILITIES'
-          ? this.selectedExpense.service_type
-          : null,
+          this.selectedExpense.category === 'UTILITIES'
+            ? this.selectedExpense.service_type
+            : null,
         type: this.selectedExpense.type,
         description: this.selectedExpense.description,
         cost: this.selectedExpense.cost,
         code: this.selectedExpense.code,
-        
+
         // Link ID (can be null if deleted later)
-        id_provider: this.selectedExpense.category === 'SUPPLIES' ? finalProviderId : null,
+        id_provider:
+          this.selectedExpense.category === 'SUPPLIES' ? finalProviderId : null,
         // Snapshot Name
-        provider_name: this.selectedExpense.category === 'SUPPLIES' ? finalProviderName : null,
-        
+        provider_name:
+          this.selectedExpense.category === 'SUPPLIES'
+            ? finalProviderName
+            : null,
+
         payment_status: this.selectedExpense.payment_status,
-        payment_due_date: this.selectedExpense.payment_status === 'PENDING' ? this.selectedExpense.payment_due_date : null
+        payment_due_date:
+          this.selectedExpense.payment_status === 'PENDING'
+            ? this.selectedExpense.payment_due_date
+            : null,
       };
 
-      let operation;
+      let savedExpenseId: string | null = null;
       if (this.isEditing) {
-        operation = this.supabase
+        const { error } = await this.supabase
           .from('expenses')
           .update(expenseToSave)
-          .eq('id_expenses', this.selectedExpense.id_expenses);
+          .eq('id_expenses', this.selectedExpense.id_expenses)
+          .select()
+          .single();
+        if (error) throw error;
+        savedExpenseId = this.selectedExpense.id_expenses;
       } else {
-        operation = this.supabase.from('expenses').insert([expenseToSave]);
+        const { data: newExpense, error } = await this.supabase
+          .from('expenses')
+          .insert([expenseToSave])
+          .select()
+          .single();
+        if (error) throw error;
+        savedExpenseId = newExpense.id_expenses;
       }
+      if (!savedExpenseId) {
+        throw new Error('No se pudo obtener el ID del registro guardado.');
+      }
+      const uploadResults = await this.handleFileUploadForExpense(
+        savedExpenseId
+      );
+      if (uploadResults.invoicePath || uploadResults.proofPath) {
+        const finalUpdate: any = {};
+        if (uploadResults.invoicePath)
+          finalUpdate.invoice_file_path = uploadResults.invoicePath;
+        if (uploadResults.proofPath)
+          finalUpdate.proof_of_payment_path = uploadResults.proofPath;
 
-      const { error } = await operation;
+        const { error: finalError } = await this.supabase
+          .from('expenses')
+          .update(finalUpdate)
+          .eq('id_expenses', savedExpenseId);
 
-      if (error) throw error;
-
+        if (finalError) {
+          console.error('Error saving file paths to DB:', finalError);
+          throw new Error(
+            'Gasto guardado pero no se pudieron registrar los archivos en la BD.'
+          );
+        }
+      }
       alert(this.isEditing ? 'Egreso actualizado' : 'Egreso añadido');
-      
+      this.selectedInvoiceFile = null;
+      this.selectedProofFile = null;
       if (rollbackProviderId) await this.getProviders();
-      
+
       this.getExpenses();
       this.closeModal();
-
     } catch (err: any) {
       console.error(err);
       // Rollback orphaned provider
       if (rollbackProviderId) {
-        await this.supabase.from('providers').delete().eq('id_provider', rollbackProviderId);
+        await this.supabase
+          .from('providers')
+          .delete()
+          .eq('id_provider', rollbackProviderId);
       }
       alert('Error: ' + err.message);
     } finally {
@@ -481,17 +550,18 @@ export class ExpensesComponent implements OnInit {
 
   applyFilters(): void {
     this.filteredExpenses = this.expenses.filter((e) => {
-      // Fecha
+      // Date range
       const expenseDate = new Date(e.payment_date);
-      if (this.startDate && expenseDate < new Date(this.startDate)) return false;
+      if (this.startDate && expenseDate < new Date(this.startDate))
+        return false;
       if (this.endDate && expenseDate > new Date(this.endDate)) return false;
 
-      // Categoría
+      // Category
       if (this.filterCategory && e.category !== this.filterCategory) {
         return false;
       }
 
-      // Tipo de servicio (solo si aplica)
+      // Service Type (if applicable)
       if (
         this.filterCategory === 'UTILITIES' &&
         this.filterServiceType &&
@@ -500,7 +570,7 @@ export class ExpensesComponent implements OnInit {
         return false;
       }
 
-      // Solo pendientes
+      // Only Pending
       if (this.onlyPending && e.payment_status !== 'PENDING') {
         return false;
       }
@@ -540,6 +610,8 @@ export class ExpensesComponent implements OnInit {
       provider_name: '',
       payment_due_date: null,
       payment_status: 'PAID',
+      invoice_file_path: null,
+      proof_of_payment_path: null,
     };
     this.isServiceCategory = false;
     this.newServiceType = '';
@@ -558,7 +630,14 @@ export class ExpensesComponent implements OnInit {
     this.isEditing = true;
     this.showModal = true;
   }
-
+  viewExpenseDetails(expense: ExpensesItem) {
+    this.selectedExpense = { ...expense };
+    this.showDetailsModal = true;
+  }
+  closeDetailsModal() {
+    this.showDetailsModal = false;
+    this.selectedExpense = this.resetExpense();
+  }
   closeModal(): void {
     this.showModal = false;
     this.isEditing = false;
@@ -581,6 +660,8 @@ export class ExpensesComponent implements OnInit {
       provider_name: '',
       payment_due_date: null,
       payment_status: 'PAID',
+      invoice_file_path: null,
+      proof_of_payment_path: null,
     };
   }
 
@@ -643,13 +724,12 @@ export class ExpensesComponent implements OnInit {
     const newStatus = oldStatus === 'PAID' ? 'PENDING' : 'PAID';
     expense.payment_status = newStatus;
 
-
     const updateData: any = { payment_status: newStatus };
 
     if (newStatus === 'PAID') {
       updateData.payment_due_date = null;
       expense.payment_due_date = null;
-    } 
+    }
 
     const { error } = await this.supabase
       .from('expenses')
@@ -661,5 +741,86 @@ export class ExpensesComponent implements OnInit {
       expense.payment_status = oldStatus; // Revert UI
       alert('Hubo un error al actualizar el estado.');
     }
+  }
+
+  // File Handlers
+
+  onInvoiceFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files?.length) {
+      this.selectedInvoiceFile = input.files[0];
+    }
+  }
+
+  onProofFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files?.length) {
+      this.selectedProofFile = input.files[0];
+    }
+  }
+
+  async uploadExpenseFileToStorage(filePath: string, file: File) {
+    const { error } = await this.supabase.uploadFile(
+      filePath,
+      file,
+      'expenses-files'
+    );
+    if (error) throw error;
+  }
+
+  private async handleFileUploadForExpense(
+    expenseId: string
+  ): Promise<{ invoicePath?: string; proofPath?: string }> {
+    const sanitize = (name: string) => name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    let results: { invoicePath?: string; proofPath?: string } = {};
+
+    // 1. Invoice
+    if (this.selectedInvoiceFile) {
+      const file = this.selectedInvoiceFile;
+      const filePath = `${expenseId}/invoice/${Date.now()}_${sanitize(
+        file.name
+      )}`;
+      await this.uploadExpenseFileToStorage(filePath, file);
+      results.invoicePath = filePath;
+    }
+
+    // 2. Proof of Payment
+    if (this.selectedProofFile) {
+      const file = this.selectedProofFile;
+      const filePath = `${expenseId}/proof/${Date.now()}_${sanitize(
+        file.name
+      )}`;
+      await this.uploadExpenseFileToStorage(filePath, file);
+      results.proofPath = filePath;
+    }
+
+    return results;
+  }
+
+  async downloadFile(filePath: string) {
+    if (!filePath) return;
+    const { data, error } = await this.supabase.downloadFile(
+      filePath,
+      'expenses-files'
+    );
+
+    if (error || !data?.signedUrl) {
+      console.error('Error getting signed URL:', error);
+      alert('Error al generar enlace seguro de descarga.');
+      return;
+    }
+    // this triggers a "Save As" dialog
+    const downloadUrl = `${data.signedUrl}&download=true`;
+
+    // Trigger the download
+    const anchor = document.createElement('a');
+    anchor.href = downloadUrl;
+    const fileName = filePath.split('/').pop() || 'archivo';
+    anchor.setAttribute('download', fileName);
+    
+    anchor.style.display = 'none';
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
   }
 }

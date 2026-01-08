@@ -115,8 +115,10 @@
 
         <td class="px-4 py-2 border-b">
           {{
-            expense.category === 'UTILITIES' && expense.service_type
-              ? getCategoryLabel(expense.category) + ' - ' + expense.service_type
+            expense.category === "UTILITIES" && expense.service_type
+              ? getCategoryLabel(expense.category) +
+                " - " +
+                expense.service_type
               : getCategoryLabel(expense.category)
           }}
         </td>
@@ -159,6 +161,13 @@
 
         <td class="px-4 py-2 border-b">
           <div class="flex gap-2">
+            <button
+              class="btn-details inline-flex items-center space-x-2 px-2 py-1 text-xs"
+              (click)="viewExpenseDetails(expense)"
+              title="Ver Detalles y Adjuntos"
+            >
+              <span>Detalles</span>
+            </button>
             <button
               class="btn-edit text-xs px-2 py-1"
               (click)="editExpense(expense)"
@@ -274,9 +283,7 @@
         *ngIf="isServiceCategory"
         class="bg-yellow-50 p-4 rounded-md border border-yellow-200 space-y-3 mt-2"
       >
-        <h3 class="font-semibold text-yellow-800 text-sm">
-          Tipo de Servicio
-        </h3>
+        <h3 class="font-semibold text-yellow-800 text-sm">Tipo de Servicio</h3>
 
         <!-- Selector -->
         <select
@@ -423,7 +430,83 @@
           required
         />
       </div>
+      <div
+        class="bg-gray-50 p-4 rounded-md border border-gray-200 mt-4 space-y-4"
+      >
+        <h3 class="font-semibold text-gray-800 text-sm">Adjuntos</h3>
 
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1"
+            >Factura / Recibo</label
+          >
+          <div class="flex items-center gap-2">
+            <input
+              type="file"
+              (change)="onInvoiceFileSelected($event)"
+              class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            />
+            <button
+              *ngIf="selectedExpense.invoice_file_path"
+              type="button"
+              (click)="downloadFile(selectedExpense.invoice_file_path)"
+              class="text-blue-600 hover:text-blue-800 text-sm font-bold flex items-center gap-1"
+              title="Descargar Factura Actual"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="w-5 h-5"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M12 9.75v10.5m0 0 4.5-4.5M12 20.25l-4.5-4.5M12 3v9"
+                />
+              </svg>
+              Ver
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1"
+            >Comprobante de Pago</label
+          >
+          <div class="flex items-center gap-2">
+            <input
+              type="file"
+              (change)="onProofFileSelected($event)"
+              class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+            />
+            <button
+              *ngIf="selectedExpense.proof_of_payment_path"
+              type="button"
+              (click)="downloadFile(selectedExpense.proof_of_payment_path)"
+              class="text-green-600 hover:text-green-800 text-sm font-bold flex items-center gap-1"
+              title="Descargar Comprobante Actual"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="w-5 h-5"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M12 9.75v10.5m0 0 4.5-4.5M12 20.25l-4.5-4.5M12 3v9"
+                />
+              </svg>
+              Ver
+            </button>
+          </div>
+        </div>
+      </div>
       <div class="bg-gray-50 p-3 rounded border border-gray-200 mt-4">
         <div class="flex gap-4 items-center">
           <span class="text-sm font-bold text-gray-700">Estado de Pago:</span>
@@ -490,5 +573,113 @@
         </button>
       </div>
     </form>
+  </div>
+</div>
+<div *ngIf="showDetailsModal" class="modal-overlay">
+  <div class="modal-content bg-white p-6 rounded-lg shadow-xl w-full max-w-2xl modal-h550 overflow-y-auto">
+    
+    <div class="flex justify-between items-start mb-4 border-b pb-2">
+      <h2 class="text-xl font-bold text-gray-800">
+        Detalle de Egreso
+      </h2>
+      <button (click)="closeDetailsModal()" class="text-gray-500 hover:text-gray-700">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="space-y-4">
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold text-gray-500 uppercase">Fecha</label>
+          <p class="text-gray-900">{{ selectedExpense.payment_date | date : "fullDate" }}</p>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-500 uppercase">Costo</label>
+          <p class="text-xl font-mono font-bold text-gray-900">{{ selectedExpense.cost | currency }}</p>
+        </div>
+        <div>
+           <label class="block text-xs font-bold text-gray-500 uppercase">Categoría</label>
+           <span class="inline-block bg-gray-100 rounded px-2 py-1 text-sm font-semibold text-gray-700">
+             {{ getCategoryLabel(selectedExpense.category) }}
+             <span *ngIf="selectedExpense.service_type"> - {{selectedExpense.service_type}}</span>
+           </span>
+        </div>
+        <div>
+           <label class="block text-xs font-bold text-gray-500 uppercase">Tipo de Pago</label>
+           <p class="text-gray-900">{{ selectedExpense.type }}</p>
+        </div>
+      </div>
+
+      <div *ngIf="selectedExpense.provider_name" class="bg-blue-50 p-3 rounded border border-blue-100">
+         <label class="block text-xs font-bold text-blue-500 uppercase">Proveedor</label>
+         <p class="text-blue-900 font-medium">{{ selectedExpense.provider_name }}</p>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-gray-500 uppercase">Anotación / Descripción</label>
+        <div class="bg-gray-50 p-3 rounded border border-gray-200 text-gray-800 whitespace-pre-wrap">
+          {{ selectedExpense.description }}
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 mt-2">
+         <label class="block text-xs font-bold text-gray-500 uppercase">Estado:</label>
+         <span class="px-2 py-1 text-xs font-bold rounded"
+           [ngClass]="{'bg-green-100 text-green-700': selectedExpense.payment_status === 'PAID', 'bg-red-100 text-red-700': selectedExpense.payment_status === 'PENDING'}">
+            {{ selectedExpense.payment_status === 'PAID' ? 'PAGADO' : 'PENDIENTE' }}
+         </span>
+         <span *ngIf="selectedExpense.payment_status === 'PENDING'" class="text-xs text-red-500 font-semibold">
+           (Vence: {{ selectedExpense.payment_due_date | date: 'dd/MM/yyyy' }})
+         </span>
+      </div>
+
+      <div class="border-t pt-4 mt-4">
+        <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
+           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+             <path stroke-linecap="round" stroke-linejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13" />
+           </svg>
+           Adjuntos
+        </h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          
+          <div class="border rounded p-3 flex items-center justify-between bg-gray-50">
+             <div class="flex items-center gap-2">
+               <span class="text-sm font-semibold text-gray-600">Factura / Recibo</span>
+             </div>
+             <button 
+                *ngIf="selectedExpense.invoice_file_path"
+                (click)="downloadFile(selectedExpense.invoice_file_path)"
+                class="btn-primary text-xs px-3 py-1 flex items-center gap-1"
+             >
+                Descargar
+             </button>
+             <span *ngIf="!selectedExpense.invoice_file_path" class="text-xs text-gray-400 italic">No adjuntado</span>
+          </div>
+
+          <div class="border rounded p-3 flex items-center justify-between bg-gray-50">
+             <div class="flex items-center gap-2">
+               <span class="text-sm font-semibold text-gray-600">Comprobante Pago</span>
+             </div>
+             <button 
+                *ngIf="selectedExpense.proof_of_payment_path"
+                (click)="downloadFile(selectedExpense.proof_of_payment_path)"
+                class="btn-primary text-xs px-3 py-1 flex items-center gap-1"
+             >
+                Descargar
+             </button>
+             <span *ngIf="!selectedExpense.proof_of_payment_path" class="text-xs text-gray-400 italic">No adjuntado</span>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <div class="flex justify-end mt-6">
+      <button class="btn-primary px-6" (click)="closeDetailsModal()">Cerrar</button>
+    </div>
   </div>
 </div>
