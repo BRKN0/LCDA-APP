@@ -27,7 +27,7 @@ interface Providers {
   provider_type: string;
   regimen: string;
   responsibility: string;
-  declares: string;
+  declares: string [];
 }
 
 @Component({
@@ -57,19 +57,20 @@ export class ProvidersComponent implements OnInit {
     'NUIP*',
   ];
   provider_types = ['Juridico', 'Natural'];
-  provider_regimen = ['IVA', 'No responsable de IVA'];
+  provider_regimen = ['Responsable de IVA', 'No responsable de IVA'];
   provider_responsibilities = [
-    'Regimen Simple de Tributacion',
-    'Gran Contribuyente',
-    'Autorretenedor',
-    'Agente de Retencion en el Impuesto sobre las Ventas (IVA)',
-    'Otro',
+    '(O-13) Regimen Simple de Tributacion',
+    '(O-15) Gran Contribuyente',
+    '(O-23) Autorretenedor',
+    '(O-47) Agente de Retencion en el Impuesto sobre las Ventas (IVA)',
+    '(R-99-PN) No Responsable',
   ];
   provider_declarations = [
     'Retencion en Compras',
     'Retencion por Servicios',
-    'RETFUENTE - Retencion sobre Renta',
-    'RETICA - Retencion sobre Renta',
+    'RETEFUENTE - Retencion sobre Renta',
+    'ReteICA - Retencion sobre Renta',
+    'Retencion de IVA',
   ];
   loading: boolean = true;
   providers: Providers[] = [];
@@ -125,19 +126,20 @@ export class ProvidersComponent implements OnInit {
   }
 
   async saveProvider() {
-    if (this.isEditing && this.selectedProvider.id_provider) {
+    const normalizedProvider = this.normalizeProviderText(this.selectedProvider);
+
+    if (this.isEditing && normalizedProvider.id_provider) {
       const { error } = await this.supabase
         .from('providers')
-        .update(this.selectedProvider)
-        .eq('id_provider', this.selectedProvider.id_provider);
-
+        .update(normalizedProvider)
+        .eq('id_provider', normalizedProvider.id_provider);
       if (error) {
         console.error('Error updating provider:', error);
       }
     } else {
       const { error } = await this.supabase
         .from('providers')
-        .insert([this.selectedProvider]);
+        .insert([normalizedProvider]);
 
       if (error) {
         console.error('Error adding provider:', error);
@@ -180,18 +182,27 @@ export class ProvidersComponent implements OnInit {
       document_type: '',
       document_number: '',
       provider_type: '',
+      declares: [],
     };
   }
   updateFilteredProviders() {
-    this.filteredProviders = this.providers.filter(
-      (provider) =>
-        (provider.name ?? '')
-          .toLowerCase()
-          .includes(this.nameSearchQuery.toLowerCase()) ||
+    this.filteredProviders = this.providers
+      .filter((provider) =>
         (provider.company_name ?? '')
           .toLowerCase()
+          .includes(this.nameSearchQuery.toLowerCase()) ||
+        (provider.name ?? '')
+          .toLowerCase()
           .includes(this.nameSearchQuery.toLowerCase())
-    );
+      )
+      .sort((a, b) =>
+        (a.company_name ?? '').localeCompare(
+          b.company_name ?? '',
+          'es',
+          { sensitivity: 'base' }
+        )
+      );
+
     this.updatePaginatedProviders();
   }
 
@@ -220,6 +231,34 @@ export class ProvidersComponent implements OnInit {
       this.itemsPerPage
     );
   }
+  private normalizeProviderText(provider: Partial<Providers>): Partial<Providers> {
+    return {
+      ...provider,
+      company_name: provider.company_name?.toUpperCase().trim() || '',
+      name: provider.name?.toUpperCase().trim() || '',
+      last_name: provider.last_name?.toUpperCase().trim() || '',
+      city: provider.city?.toUpperCase().trim() || '',
+      department: provider.department?.toUpperCase().trim() || '',
+      country: provider.country?.toUpperCase().trim() || '',
+    };
+  }
+  onToggleDeclaration(dec: string, event: Event) {
+    if (!this.selectedProvider.declares) {
+      this.selectedProvider.declares = [];
+    }
+
+    const checked = (event.target as HTMLInputElement).checked;
+
+    if (checked) {
+      if (!this.selectedProvider.declares.includes(dec)) {
+        this.selectedProvider.declares.push(dec);
+      }
+    } else {
+      this.selectedProvider.declares = this.selectedProvider.declares.filter(
+        (d) => d !== dec
+      );
+    }
+  }
   // Exportar proveedores a Excel
   exportToExcel(): void {
     // Construye un array de objetos para exportar
@@ -244,7 +283,7 @@ export class ProvidersComponent implements OnInit {
       TipoProveedor: provider.provider_type,
       Regimen: provider.regimen,
       Responsabilidad: provider.responsibility,
-      Declaraciones: provider.declares,
+      Declaraciones: provider.declares.join(' | '),
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -292,7 +331,9 @@ export class ProvidersComponent implements OnInit {
             provider_type: item['TipoProveedor'] || '',
             regimen: item['Regimen'] || '',
             responsibility: item['Responsabilidad'] || '',
-            declares: item['Declaraciones'] || '',
+            declares: item['Declaraciones']
+              ? item['Declaraciones'].split('|').map((d: string) => d.trim())
+              : [],
           };
 
           try {

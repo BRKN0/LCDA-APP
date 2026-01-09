@@ -10,6 +10,7 @@ import { RouterOutlet } from '@angular/router';
 interface Orders {
   id_order: string;
   order_type: string;
+  is_vitrine?: boolean;
   name: string;
   client_type: string;
   code: number;
@@ -33,6 +34,7 @@ interface Orders {
   file_path: string;
   invoice_file: string;
   scheduler: string;
+  requires_e_invoice: boolean;
   cutting_time?: number;
   extra_charges?: {
     description: string;
@@ -191,6 +193,11 @@ export class OrdersComponent implements OnInit {
   showPrints: boolean = true;
   showCuts: boolean = true;
   showSales: boolean = true;
+  showInProgress = true;
+  showFinished = true;
+  showDelivered = true;
+  vitrineFilterMode: 'all' | 'only' | 'exclude' = 'all';
+  requires_e_invoice: boolean = false;
   currentPage: number = 1;
   itemsPerPage: number = 10;
   totalPages: number = 1;
@@ -681,8 +688,16 @@ export class OrdersComponent implements OnInit {
   }
 
   updateFilteredOrders(): void {
+    if (
+      !this.showPrints &&
+      !this.showCuts &&
+      !this.showSales &&
+      this.vitrineFilterMode === 'all'
+    ) {
+      this.vitrineFilterMode = 'only';
+    }
     const allTypeCheckboxesOff =
-      !this.showPrints && !this.showCuts && !this.showSales;
+      !this.showPrints && !this.showCuts && !this.showSales && this.vitrineFilterMode !== 'only';
 
     this.filteredOrdersList = this.orders.filter((order) => {
       const orderDate = new Date(order.created_at);
@@ -703,19 +718,51 @@ export class OrdersComponent implements OnInit {
       const matchesScheduler =
         !this.selectedScheduler || order.scheduler === this.selectedScheduler;
 
-      if (allTypeCheckboxesOff) {
-        return matchesDateRange && matchesNameSearch && matchesScheduler;
-      }
-
       const isPrintsFilter = this.showPrints && order.order_type === 'print';
       const isCutsFilter = this.showCuts && order.order_type === 'laser';
       const isSalesFilter = this.showSales && order.order_type === 'sales';
 
-      const matchesType = isPrintsFilter || isCutsFilter || isSalesFilter;
+      const matchesType =
+        this.vitrineFilterMode === 'only'
+          ? order.order_type === 'sales'
+          : isPrintsFilter || isCutsFilter || isSalesFilter;
 
-      return (
-        matchesType && matchesDateRange && matchesNameSearch && matchesScheduler
-      );
+      const allStatusCheckboxesOff =
+        !this.showInProgress && !this.showFinished && !this.showDelivered;
+
+      const matchesStatus =
+        allStatusCheckboxesOff ||
+        (this.showInProgress && order.order_completion_status === 'inProgress') ||
+        (this.showFinished && order.order_completion_status === 'finished') ||
+        (this.showDelivered && order.order_completion_status === 'delivered');
+
+      const matchesVitrine = (() => {
+        switch (this.vitrineFilterMode) {
+          case 'only':
+            return order.order_type === 'sales' && order.is_vitrine === true;
+
+          case 'exclude':
+            return !(order.order_type === 'sales' && order.is_vitrine === true);
+
+          case 'all':
+          default:
+            return true;
+        }
+      })();
+
+      if (allTypeCheckboxesOff) {
+        return (
+          matchesDateRange &&
+          matchesNameSearch &&
+          matchesScheduler &&
+          matchesStatus &&
+          matchesVitrine
+        );
+      }
+
+        return (
+          matchesType && matchesDateRange && matchesNameSearch && matchesScheduler && matchesStatus && matchesVitrine
+        );
     });
 
     this.noResultsFound =
@@ -879,6 +926,7 @@ export class OrdersComponent implements OnInit {
       this.newOrder = {
         id_order: '',
         order_type: '',
+        is_vitrine: false,
         name: '',
         client_type: '',
         description: '',
@@ -903,6 +951,7 @@ export class OrdersComponent implements OnInit {
         scheduler: '',
         discount: 0,
         discount_type: 'fixed',
+        requires_e_invoice: false,
       };
       this.selectedCategory = '';
       this.selectedType = '';
@@ -914,6 +963,18 @@ export class OrdersComponent implements OnInit {
     if (!this.showModal) {
       this.getOrders();
     }
+  }
+
+  toggleVitrineFilter(event: Event) {
+    const checked = (event.target as HTMLInputElement).checked;
+
+    if (!checked) {
+      this.vitrineFilterMode = 'exclude';
+    } else if (this.vitrineFilterMode === 'exclude') {
+      this.vitrineFilterMode = 'all';
+    }
+
+    this.updateFilteredOrders();
   }
 
   async editOrder(order: Orders): Promise<void> {
@@ -1006,6 +1067,7 @@ export class OrdersComponent implements OnInit {
 
     this.newOrder = {
       order_type: newOrderForm.order_type,
+      is_vitrine: newOrderForm.is_vitrine ?? false,
       name: newOrderForm.name,
       client_type: newOrderForm.client_type,
       description: newOrderForm.description,
@@ -1030,6 +1092,7 @@ export class OrdersComponent implements OnInit {
       extra_charges: newOrderForm.extra_charges || [],
       base_total: baseTotal,
       scheduler: (await this.getUserName()) || 'Desconocido',
+      requires_e_invoice: newOrderForm.requires_e_invoice ?? false,
     };
 
     if (this.newOrder.order_type === 'laser') {
@@ -1643,6 +1706,10 @@ export class OrdersComponent implements OnInit {
     this.showPrints = true;
     this.showCuts = true;
     this.showSales = true;
+    this.showInProgress = true;
+    this.showFinished = true;
+    this.showDelivered = true;
+    this.vitrineFilterMode = 'all';
     this.searchQuery = '';
     this.selectedScheduler = '';
     this.updateFilteredOrders();

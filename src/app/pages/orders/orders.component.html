@@ -36,6 +36,32 @@
       />
       Ventas
     </label>
+    <label>
+      <input
+        type="checkbox"
+        [checked]="vitrineFilterMode !== 'exclude'"
+        (change)="toggleVitrineFilter($event)"
+      />
+      Vitrina
+    </label>
+    <label>
+      <input type="checkbox" 
+      [(ngModel)]="showInProgress" 
+      (change)="updateFilteredOrders()" />
+      En proceso
+    </label>
+    <label>
+      <input type="checkbox" 
+      [(ngModel)]="showFinished" 
+      (change)="updateFilteredOrders()" />
+      Terminado
+    </label>
+    <label>
+      <input type="checkbox" 
+      [(ngModel)]="showDelivered" 
+      (change)="updateFilteredOrders()" />
+      Entregado
+    </label>
   </div>
   <div class="flex space-x-2 mr-4">
     <button
@@ -179,15 +205,25 @@
         <tr *ngFor="let order of paginatedOrders">
           <td>{{ order.code }}</td>
           <td>
-            {{
-              order.order_type === "print"
-                ? "Impresiones"
-                : order.order_type === "laser"
-                ? "Cortes"
-                : order.order_type === "sales"
-                ? "Ventas"
-                : "Desconocido"
-            }}
+            <span>
+              {{
+                order.order_type === "print"
+                  ? "Impresiones"
+                  : order.order_type === "laser"
+                  ? "Cortes"
+                  : order.order_type === "sales"
+                  ? "Ventas"
+                  : "Desconocido"
+              }}
+            </span>
+
+            <!-- Badge Vitrina -->
+            <span
+              *ngIf="order.order_type === 'sales' && order.is_vitrine"
+              class="px-2 py-0.5 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800"
+            >
+              Vitrina
+            </span>
           </td>
           <td>{{ order.name }}</td>
           <td>
@@ -684,7 +720,7 @@
 
     <form (ngSubmit)="addOrder(newOrder)">
       <!-- Campos comunes -->
-      <ng-container *ngIf="userRole === 'admin' || !isEditing">
+      <ng-container *ngIf="userRole === 'admin' || userRole === 'scheduler' || !isEditing">
         <div class="mb-4">
           <label class="block modal-input-item">Tipo de Pedido</label>
           <select
@@ -698,6 +734,19 @@
             <option value="sales">Ventas</option>
           </select>
         </div>
+        <div
+            class="mb-4"
+            *ngIf="newOrder.order_type === 'sales'"
+          >
+            <label class="flex items-center gap-2">
+              <input
+                type="checkbox"
+                [(ngModel)]="newOrder.is_vitrine"
+                name="is_vitrine"
+              />
+              Vitrina
+            </label>
+          </div>
         <div class="mb-4">
           <label class="block modal-input-item"
             >Cliente<span class="text-red-500">*</span></label
@@ -779,6 +828,14 @@
             required
             (change)="updateOrderTotalWithExtras()"
           />
+          <label class="flex items-center gap-2">
+            <input
+              type="checkbox"
+              name="requires_e_invoice"
+              [(ngModel)]="newOrder.requires_e_invoice"
+            />
+            Requiere factura electrónica
+          </label>
         </div>
         <div class="mb-4 border-t pt-4">
           <h4 class="font-semibold text-blue-600">Cargos Extras</h4>
@@ -849,9 +906,7 @@
             </li>
           </ul>
         </div>
-        <!-- ===================== -->
         <!-- SECCIÓN DE PAGO -->
-        <!-- ===================== -->
         <ng-container *ngIf="!isEditing">
           <div class="mb-4 border-t pt-4">
             <h4 class="font-semibold text-green-600">Pago del Pedido</h4>

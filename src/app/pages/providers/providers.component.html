@@ -154,16 +154,21 @@
         </select>
       </div>
       <div class="mb-4">
-        <label class="block modal-input-item">Declaraciones</label>
-        <select
-          [(ngModel)]="selectedProvider.declares"
-          name="declares"
-          class="form-select mt-1 block w-full"
-        >
-          <option *ngFor="let dec of provider_declarations" [value]="dec">
-            {{ dec }}
-          </option>
-        </select>
+        <label class="mb-2 font-semibold text-gray-800 border-b pb-1">Declaraciones</label>
+
+        <div class="space-y-2">
+          <label
+            *ngFor="let dec of provider_declarations"
+            class="flex items-center gap-2 cursor-pointer"
+          >
+            <input
+              type="checkbox"
+              [checked]="selectedProvider.declares?.includes(dec) ?? false"
+              (change)="onToggleDeclaration(dec, $event)"
+            />
+            <span>{{ dec }}</span>
+          </label>
+        </div>
       </div>
 
       <!-- Sección Contacto -->
@@ -397,7 +402,10 @@
           {{ selectedProviderDetails.responsibility }}
         </p>
         <p>
-          <strong>Declaraciones:</strong> {{ selectedProviderDetails.declares }}
+          <strong>Declaraciones:</strong>
+          {{ selectedProviderDetails.declares.length
+              ? selectedProviderDetails.declares.join(' | ')
+              : '—' }}
         </p>
       </div>
 

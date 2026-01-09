@@ -78,6 +78,7 @@ export class ExpensesComponent implements OnInit {
   filterCategory: string | null = null;
   filterServiceType: string | null = null;
   onlyPending: boolean = false;
+  filterProviderId: string | null = null;
 
   // Categories
   categoryCheckboxes: { [key: string]: boolean } = {};
@@ -243,10 +244,6 @@ export class ExpensesComponent implements OnInit {
       this.newServiceType = '';
     }
 
-    if (value !== 'SUPPLIES') {
-      this.selectedExpense.id_provider = '';
-      this.isNewProviderMode = false;
-    }
   }
   // Handle Status Change
   onStatusChange(event: Event): void {
@@ -303,10 +300,7 @@ export class ExpensesComponent implements OnInit {
       let finalProviderName = '';
 
       // Create New Provider
-      if (
-        this.selectedExpense.category === 'SUPPLIES' &&
-        this.isNewProviderMode
-      ) {
+      if (this.isNewProviderMode) {
         if (!this.newProviderData.company_name && !this.newProviderData.name) {
           throw new Error(
             'Debe ingresar Nombre o Empresa para el nuevo proveedor'
@@ -335,10 +329,7 @@ export class ExpensesComponent implements OnInit {
 
         finalProviderId = provData.id_provider;
         rollbackProviderId = provData.id_provider;
-      } else if (
-        this.selectedExpense.category === 'SUPPLIES' &&
-        finalProviderId
-      ) {
+      } else if ( finalProviderId) {
         // Find the selected provider in the list to get the name
         const selectedProv = this.providersList.find(
           (p) => p.id_provider === finalProviderId
@@ -369,13 +360,9 @@ export class ExpensesComponent implements OnInit {
         code: this.selectedExpense.code,
 
         // Link ID (can be null if deleted later)
-        id_provider:
-          this.selectedExpense.category === 'SUPPLIES' ? finalProviderId : null,
+        id_provider: finalProviderId || null,
         // Snapshot Name
-        provider_name:
-          this.selectedExpense.category === 'SUPPLIES'
-            ? finalProviderName
-            : null,
+        provider_name: finalProviderName || null,
 
         payment_status: this.selectedExpense.payment_status,
         payment_due_date:
@@ -580,6 +567,11 @@ export class ExpensesComponent implements OnInit {
         return false;
       }
 
+      // Provider filter
+      if (this.filterProviderId && e.id_provider !== this.filterProviderId) {
+        return false;
+      }
+
       // Service Type (if applicable)
       if (
         this.filterCategory === 'UTILITIES' &&
@@ -645,9 +637,7 @@ export class ExpensesComponent implements OnInit {
   editExpense(expense: ExpensesItem): void {
     this.selectedExpense = { ...expense }; // copia limpia
     this.isServiceCategory = expense.category === 'UTILITIES';
-    if (!this.isServiceCategory) {
-      this.selectedExpense.service_type = null;
-    }
+    this.isNewProviderMode = false;
     this.isEditing = true;
     this.showModal = true;
   }
@@ -738,6 +728,7 @@ export class ExpensesComponent implements OnInit {
     this.endDate = '';
     this.filterCategory = null;
     this.filterServiceType = null;
+    this.filterProviderId = null;
     this.onlyPending = false;
 
     this.applyFilters();

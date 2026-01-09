@@ -1,91 +1,139 @@
 <router-outlet></router-outlet>
 <app-main-banner></app-main-banner>
 
-<!-- Filtros y búsqueda -->
-<div class="flex justify-between items-center mb-4 mt-4 ml-2">
-  <div class="flex space-x-2">
-    <label>
-      <input
-        type="checkbox"
-        [(ngModel)]="showPrints"
-        class="form-checkbox"
-        (change)="updateFilteredInvoices()"
-      />
-      <span class="ml-2">Impresiones</span>
-    </label>
-    <label>
-      <input
-        type="checkbox"
-        [(ngModel)]="showCuts"
-        class="form-checkbox"
-        (change)="updateFilteredInvoices()"
-      />
-      <span class="ml-2">Cortes</span>
-    </label>
-    <label>
-      <input
-        type="checkbox"
-        [(ngModel)]="showSales"
-        class="form-checkbox"
-        (change)="updateFilteredInvoices()"
-      />
-      <span class="ml-2">Ventas</span>
-    </label>
-    <label>
-      <input
-        type="checkbox"
-        [(ngModel)]="showDebt"
-        class="form-checkbox"
-        (change)="updateFilteredInvoices()"
-      />
-      <span class="ml-2">En Mora</span>
-    </label>
-  </div>
+<!-- Filtros -->
+<div class="mb-4 mt-4 ml-2 space-y-4">
 
-  <div class="flex space-x-2">
-    <!-- Botón Añadir Factura, pegado a la derecha -->
-    <!--<button
-      class="btn-add inline-flex items-center space-x-2"
-      (click)="addNewInvoice()"
-    >
+  <!-- Fila 1: Filtros principales + Limpiar -->
+  <div class="flex justify-between items-center">
+    <div class="flex space-x-2">
+      <label>
+        <input
+          type="checkbox"
+          [(ngModel)]="showPrints"
+          class="form-checkbox"
+          (change)="updateFilteredInvoices()"
+        />
+        <span class="ml-2">Impresiones</span>
+      </label>
 
-      <svg
-        class="w-5 h-5 inline-block align-middle mt-[3px]"
-        viewBox="0 0 24 24"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path
-          d="M12.75 9C12.75 8.58579 12.4142 8.25 12 8.25C11.5858 8.25 11.25 8.58579 11.25 9L11.25 11.25H9C8.58579 11.25 8.25 11.5858 8.25 12C8.25 12.4142 8.58579 12.75 9 12.75H11.25V15C11.25 15.4142 11.5858 15.75 12 15.75C12.4142 15.75 12.75 15.4142 12.75 15L12.75 12.75H15C15.4142 12.75 15.75 12.4142 15.75 12C15.75 11.5858 15.4142 11.25 15 11.25H12.75V9Z"
-          fill="#ffffff"
+      <label>
+        <input
+          type="checkbox"
+          [(ngModel)]="showCuts"
+          class="form-checkbox"
+          (change)="updateFilteredInvoices()"
         />
-        <path
-          fill-rule="evenodd"
-          clip-rule="evenodd"
-          d="M12 1.25C6.06294 1.25 1.25 6.06294 1.25 12C1.25 17.9371 6.06294 22.75 12 22.75C17.9371 22.75 22.75 17.9371 22.75 12C22.75 6.06294 17.9371 1.25 12 1.25ZM2.75 12C2.75 6.89137 6.89137 2.75 12 2.75C17.1086 2.75 21.25 6.89137 21.25 12C21.25 17.1086 17.1086 21.25 12 21.25C6.89137 21.25 2.75 17.1086 2.75 12Z"
-          fill="#ffffff"
+        <span class="ml-2">Cortes</span>
+      </label>
+
+      <label>
+        <input
+          type="checkbox"
+          [(ngModel)]="showSales"
+          class="form-checkbox"
+          (change)="updateFilteredInvoices()"
         />
-      </svg>
-      <span>Añadir</span>
-    </button>
-    -->
+        <span class="ml-2">Ventas</span>
+      </label>
+
+      <label>
+        <input
+          type="checkbox"
+          [(ngModel)]="showVitrineSales"
+          (change)="updateFilteredInvoices()"
+        />
+        Vitrina
+      </label>
+
+      <label>
+        <input
+          type="checkbox"
+          [(ngModel)]="showNonVitrineSales"
+          (change)="updateFilteredInvoices()"
+        />
+        No vitrina
+      </label>
+
+      <label>
+        <input
+          type="checkbox"
+          [(ngModel)]="showDebt"
+          class="form-checkbox"
+          (change)="updateFilteredInvoices()"
+        />
+        <span class="ml-2">En Mora</span>
+      </label>
+    </div>
+
     <button class="btn-clear" (click)="clearFilters()">Limpiar</button>
   </div>
-</div>
 
-<div class="flex items-center justify-center mt-2">
-  <div class="w-full max-w-md relative">
-    <input
-      type="text"
-      placeholder="Ingrese nombre o empresa"
-      [(ngModel)]="nameSearchQuery"
-      (input)="updateFilteredInvoices()"
-      class="w-full py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
-    />
+  <!-- Fila 2: Factura electrónica + Buscador -->
+  <div class="flex items-start">
+
+    <!-- Factura electrónica (collapsible) -->
+    <details class="ml-1">
+      <summary class="cursor-pointer font-semibold text-sm text-gray-700">
+        Factura electrónica
+      </summary>
+
+      <div class="mt-2 ml-4 flex flex-col space-y-1 text-sm">
+        <label>
+          <input
+            type="checkbox"
+            [(ngModel)]="showRequiresFE"
+            (change)="updateFilteredInvoices()"
+          />
+          Requiere FE
+        </label>
+
+        <label>
+          <input
+            type="checkbox"
+            [(ngModel)]="showNoRequiresFE"
+            (change)="updateFilteredInvoices()"
+          />
+          No requiere FE
+        </label>
+
+        <div *ngIf="showRequiresFE" class="ml-4 mt-1 flex space-x-4">
+          <label>
+            <input
+              type="checkbox"
+              [(ngModel)]="showFEPending"
+              (change)="updateFilteredInvoices()"
+            />
+            FE pendiente
+          </label>
+
+          <label>
+            <input
+              type="checkbox"
+              [(ngModel)]="showFEDone"
+              (change)="updateFilteredInvoices()"
+            />
+            FE hecha
+          </label>
+        </div>
+      </div>
+    </details>
   </div>
-</div>
-<!-- Filter date range y botón Añadir Factura, pegado a la derecha y alineado -->
-<div class="mb-2 mt-2 ml-2">
+
+  <!-- Buscador -->
+  <div class="flex justify-center mt-2">
+    <div class="w-full max-w-md relative">
+      <input
+        type="text"
+        placeholder="Nombre del cliente"
+        [(ngModel)]="nameSearchQuery"
+        (input)="updateFilteredInvoices()"
+        class="w-full py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
+      />
+    </div>
+  </div>
+
+  <!-- Fila 3: Rango de fechas -->
   <div class="flex items-center space-x-4">
     <div>
       <label for="startDate" class="mr-2 font-semibold">Desde:</label>
@@ -97,6 +145,7 @@
         class="form-input"
       />
     </div>
+
     <div>
       <label for="endDate" class="mr-2 font-semibold">Hasta:</label>
       <input
@@ -108,7 +157,9 @@
       />
     </div>
   </div>
+
 </div>
+
 <!-- Invoice Table -->
 <div class="mt-4">
   <table class="table-std">
@@ -119,9 +170,10 @@
         <th class="table-column-std">Cliente</th>
         <th class="table-column-std">Fecha</th>
         <th class="table-column-std">Abonos</th>
-        <th class="table-column-std">Falta por pagar</th>
+        <th class="table-column-std">Por pagar</th>
         <th class="table-column-std">Estado</th>
         <th class="table-column-std">Plazo de Pago</th>
+        <th class="table-column-std">F. Electrónica</th>
         <th class="table-column-std">Acciones</th>
       </tr>
     </thead>
@@ -129,15 +181,25 @@
       <tr *ngFor="let invoice of paginatedInvoice">
         <td class="table-column-std">{{ invoice.code }}</td>
         <td class="table-column-std">
-          {{
-            invoice.order.order_type === "print"
-              ? "Impresiones"
-              : invoice.order.order_type === "laser"
-              ? "Cortes"
-              : invoice.order.order_type === "sales"
-              ? "Ventas"
-              : "Otro"
-          }}
+          <span>
+            {{
+              invoice.order.order_type === "print"
+                ? "Impresiones"
+                : invoice.order.order_type === "laser"
+                ? "Cortes"
+                : invoice.order.order_type === "sales"
+                ? "Ventas"
+                : "Desconocido"
+            }}
+          </span>
+
+          <!-- Badge Vitrina -->
+          <span
+            *ngIf="invoice.order.order_type === 'sales' && invoice.order.is_vitrine"
+            class="ml-2 px-2 py-0.5 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800"
+          >
+            Vitrina
+          </span>
         </td>
         <td class="table-column-std">
           {{ invoice.order.client.name }}
@@ -170,6 +232,28 @@
               ? 'Vencido'
               : getRemainingPaymentDays(invoice) + ' días'
           }}
+        </td>
+        <td class="table-column-std text-center font-semibold">
+          <span
+            *ngIf="!invoice.order.requires_e_invoice"
+            class="text-gray-400"
+          >
+            No requiere
+          </span>
+
+          <span
+            *ngIf="invoice.order.requires_e_invoice && !invoice.e_invoice_done"
+            class="text-yellow-600"
+          >
+            Pendiente
+          </span>
+
+          <span
+            *ngIf="invoice.order.requires_e_invoice && invoice.e_invoice_done"
+            class="text-green-600"
+          >
+            Hecha
+          </span>
         </td>
         <td class="table-column-std">
           <button class="btn-details" (click)="selectInvoice(invoice)">
@@ -398,6 +482,16 @@
         <p *ngIf="clientOrders.length === 0" class="text-red-500 mt-2">
           No hay órdenes disponibles para este cliente de este tipo.
         </p>
+      </div>
+      <div *ngIf="selectedInvoice as invoice">
+        <label *ngIf="invoice?.order?.requires_e_invoice">
+          <input
+            type="checkbox"
+            [(ngModel)]="invoice.e_invoice_done"
+            name="e_invoice_done"
+          />
+          Factura electrónica ya gestionada
+        </label>
       </div>
 
       <div class="flex justify-end">
