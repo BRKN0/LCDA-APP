@@ -49,6 +49,7 @@ interface Client {
   province: string;
   postal_code: string;
   orders?: Orders[];
+  default_discount?: number;
   /*tax_regime: number;
   is_declarante: boolean;
   retefuente: boolean;
@@ -640,6 +641,7 @@ export class ClientsComponent implements OnInit {
       city: '',
       province: '',
       postal_code: '',
+      default_discount: 0
       /*tax_regime: 0,
       is_declarante: false,
       retefuente: false,
@@ -682,6 +684,7 @@ export class ClientsComponent implements OnInit {
       retefuente: this.selectedClientData.retefuente || false,
       applies_ica_retention: this.selectedClientData.applies_ica_retention || false,*/
       credit_limit: this.selectedClientData.credit_limit,
+      default_discount: this.selectedClientData.default_discount || 0
     };
 
     try {
