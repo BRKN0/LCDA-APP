@@ -96,21 +96,20 @@ export class AcrylicsComponent implements OnInit {
   tableDiscount: number = 0;
 
   selectedClientForTable: Client | null = null;
+  private utilityMargin: number = 0.30; // Valor por defecto 30%
 
   globalWidth: number = 0;
   globalHeight: number = 0;
   appliedMargin: number = 30;
 
-  private baseUtilidadPercentage = 0.30;
-
   private formatFactors: { [key: string]: { factor: number; margin: number } } = {
     '1 Lámina': { factor: 1, margin: 0 },
-    '1/2 (Media Lámina)': { factor: 0.5, margin: 0.10 },
-    '1/3 (Tercio de Lámina)': { factor: 0.3333, margin: 0.28 },
-    '1/4 (Cuarto de Lámina)': { factor: 0.25, margin: 0.25 },
-    '1/8 (Octavo de Lámina)': { factor: 0.125, margin: 0.33 },
-    '1/16 (Dieciseisavo de Lámina)': { factor: 0.0625, margin: 0.36 },
-    '1/32 (Treintaydosavo de Lámina)': { factor: 0.03125, margin: 0.38 },
+    '1/2 (Media Lámina)': { factor: 0.5, margin: 0 },
+    '1/3 (Tercio de Lámina)': { factor: 0.3333, margin: 0.35 },
+    '1/4 (Cuarto de Lámina)': { factor: 0.25, margin: 0.18 },
+    '1/8 (Octavo de Lámina)': { factor: 0.125, margin: 0.26 },
+    '1/16 (Dieciseisavo de Lámina)': { factor: 0.0625, margin: 0.31 },
+    '1/32 (Treintaydosavo de Lámina)': { factor: 0.03125, margin: 0.33 },
     'Sin formato': { factor: 0, margin: 0 }
   };
 
@@ -124,10 +123,10 @@ export class AcrylicsComponent implements OnInit {
       { width: 180, height: 300, area: 180 * 300 }
   ];
 
-  private M1: number = 0.40;
-  private M2: number = 0.35;
-  private M3: number = 0.40;
-  private M4: number = 0.30;
+  private M1: number = 0.50;
+  private M2: number = 0.45;
+  private M3: number = 0.50;
+  private M4: number = 0.45;
 
   constructor(private readonly supabase: SupabaseService) {
     this.formAcrylic = { id_acrylics: '', width: 0, height: 0, color: '', gauge: 0, cost_price: 0, created_at: '' };
@@ -144,7 +143,8 @@ export class AcrylicsComponent implements OnInit {
     };
   }
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
+    await this.loadUtilityMargin();
     this.getAcrylicItems();
     this.getClients();
   }
@@ -175,6 +175,31 @@ export class AcrylicsComponent implements OnInit {
     }
     this.clients = data;
     this.filteredClients = [...this.clients];
+  }
+
+  async loadUtilityMargin(): Promise<void> {
+    try {
+      const { data, error } = await this.supabase
+        .from('variables')
+        .select('value')
+        .eq('name', 'utility_margin')
+        .single();
+
+      if (error) {
+        console.error('Error al cargar utility_margin:', error);
+        this.utilityMargin = 0.30; // Mantener valor por defecto
+        return;
+      }
+
+      if (data && data.value) {
+        // Convertir de porcentaje a decimal (ej: 30 -> 0.30)
+        this.utilityMargin = parseFloat(data.value) / 100;
+        console.log('Utility margin cargado:', this.utilityMargin);
+      }
+    } catch (error) {
+      console.error('Error inesperado al cargar utility_margin:', error);
+      this.utilityMargin = 0.30;
+    }
   }
 
   searchClients(): void {
@@ -352,7 +377,7 @@ export class AcrylicsComponent implements OnInit {
   ): number {
     const areaStdCm2 = standardSize.width * standardSize.height;
     const areaGlobalCm2 = anchoGlobal * altoGlobal;
-    const precioVenta = Math.round((costoLamina / areaStdCm2) * areaGlobalCm2 / 0.7);
+    const precioVenta = Math.round((costoLamina / areaStdCm2) * areaGlobalCm2 / (1 - this.utilityMargin));
     const costoProporcional = (costoLamina / areaStdCm2) * areaGlobalCm2;
     return Math.round(precioVenta - costoProporcional);
   }
@@ -376,7 +401,7 @@ export class AcrylicsComponent implements OnInit {
     if (orderAreaCm2 <= 0 || totalSheetAreaCm2 <= 0) return 0;
 
     const costProportion = (costPrice * (orderAreaCm2 / totalSheetAreaCm2));
-    const basePrice = costProportion / 0.7;
+    const basePrice = costProportion / (1 - this.utilityMargin);
     const adjustmentFactor = (39.300 / (costProportion / 0.7)) || 1;
     return Math.ceil((basePrice * adjustmentFactor) / 100) * 100;
   }
@@ -452,7 +477,7 @@ export class AcrylicsComponent implements OnInit {
 
   dynamicMargin(areaRatio: number): number {
     if (areaRatio >= 1) return 0;
-    return 0.40 - 0.35 * areaRatio;
+    return 0.50 - 0.45 * areaRatio;
   }
 
   calculatePriceForTable(acrylic: Acrylic): CalculationResult & { noCabe?: boolean } {
@@ -488,7 +513,7 @@ export class AcrylicsComponent implements OnInit {
     }
 
     const costoProporcional = (acrylic.cost_price / areaStdCm2) * adjustedAreaCm2;
-    const precioCon30 = Math.ceil((costoProporcional / 0.7) / 100) * 100;
+    const precioCon30 = Math.ceil((costoProporcional / (1 - this.utilityMargin)) / 100) * 100;
 
     const marginPct = useCustom ? this.dynamicMargin(areaRatio) : extraMargin;
 

@@ -129,7 +129,7 @@
       <div class="modal-content modal-h250" [class.expanded]="modalExpanded">
         <h3 class="text-lg font-bold mb-4">
           Cliente: {{ selectedClient?.name }}
-        </h3> 
+        </h3>
         <div class="flex space-x-4 mb-4">
           <button
             (click)="toggleOrders(selectedClient)"
@@ -158,7 +158,7 @@
           </p>
           <p><strong>Teléfono:</strong> {{ selectedClient.cellphone }}</p>
           <p><strong>Dirección:</strong> {{ selectedClient.address }}</p>
-          <!--  
+          <!--
           <p>
             <strong>Tipo de Cliente(Regimen Tributario):</strong>
             {{ selectedClient.tax_regime }}
@@ -693,6 +693,21 @@
               [(ngModel)]="selectedClientData.credit_limit"
               name="credit_limit"
               class="form-input mt-1 block w-full"
+            />
+          </div>
+          <div class="mb-4" *ngIf="isEditing">
+            <label class="block modal-input-item">
+              Descuento Predeterminado (%)
+            </label>
+            <input
+              type="number"
+              step="0.1"
+              min="0"
+              max="100"
+              [(ngModel)]="selectedClientData!.default_discount"
+              name="defaultDiscount"
+              class="form-input mt-1 block w-full border border-gray-300 rounded-md"
+              placeholder="Ej: 5"
             />
           </div>
           <div class="flex justify-end">
