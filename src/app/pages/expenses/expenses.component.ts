@@ -225,7 +225,7 @@ export class ExpensesComponent implements OnInit {
   }
 
   // Handle dropdown changes
- onCategoryChange(event: Event): void {
+  onCategoryChange(event: Event): void {
     const value = (event.target as HTMLSelectElement).value;
 
     if (value === 'NEW_CATEGORY_OPTION') {
@@ -243,7 +243,6 @@ export class ExpensesComponent implements OnInit {
       this.selectedExpense.service_type = null;
       this.newServiceType = '';
     }
-
   }
   // Handle Status Change
   onStatusChange(event: Event): void {
@@ -329,7 +328,7 @@ export class ExpensesComponent implements OnInit {
 
         finalProviderId = provData.id_provider;
         rollbackProviderId = provData.id_provider;
-      } else if ( finalProviderId) {
+      } else if (finalProviderId) {
         // Find the selected provider in the list to get the name
         const selectedProv = this.providersList.find(
           (p) => p.id_provider === finalProviderId
@@ -813,6 +812,7 @@ export class ExpensesComponent implements OnInit {
 
   async downloadFile(filePath: string) {
     if (!filePath) return;
+
     const { data, error } = await this.supabase.downloadFile(
       filePath,
       'expenses-files'
@@ -823,15 +823,17 @@ export class ExpensesComponent implements OnInit {
       alert('Error al generar enlace seguro de descarga.');
       return;
     }
-    // this triggers a "Save As" dialog
-    const downloadUrl = `${data.signedUrl}&download=true`;
+    // get the file name from the path
+    const fileName = filePath.split('/').pop() || 'archivo';
+    const downloadUrl = `${data.signedUrl}&download=${encodeURIComponent(
+      fileName
+    )}`;
 
-    // Trigger the download
+    // trigger the download
     const anchor = document.createElement('a');
     anchor.href = downloadUrl;
-    const fileName = filePath.split('/').pop() || 'archivo';
     anchor.setAttribute('download', fileName);
-    
+
     anchor.style.display = 'none';
     document.body.appendChild(anchor);
     anchor.click();

@@ -1602,20 +1602,28 @@ export class OrdersComponent implements OnInit {
     this.selectedFile = null;
   }
 
-  async downloadFile(filePath: string) {
+async downloadFile(filePath: string) {
+    if (!filePath) return;
+
     const { data, error } = await this.supabase.downloadFile(
       filePath,
       'order-files'
     );
-    if (error) {
+
+    if (error || !data?.signedUrl) {
       console.error('error downloading image: ', error);
       return;
     }
-    const downloadUrl = `${data.signedUrl}&download=true`;
 
+    // get the file name from the path
+    const fileName = filePath.split('/').pop() || 'archivo';
+    const downloadUrl = `${data.signedUrl}&download=${encodeURIComponent(fileName)}`;
+
+    // trigger the download
     const anchor = document.createElement('a');
     anchor.href = downloadUrl;
-    anchor.setAttribute('download', filePath.split('/').pop() || 'archivo');
+    anchor.setAttribute('download', fileName);
+    
     anchor.style.display = 'none';
     document.body.appendChild(anchor);
     anchor.click();
