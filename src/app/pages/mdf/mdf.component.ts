@@ -59,7 +59,7 @@ export class MDFComponent implements OnInit {
   currentPage: number = 1;
   itemsPerPage: number = 10;
   totalPages: number = 1;
-  selectedFormat: string = '1 Lámina';
+  selectedFormat: string = 'Sin formato';
   selectedClientForTable: Client | null = null;
 
   // Propiedades para la calculadora
@@ -82,6 +82,9 @@ export class MDFComponent implements OnInit {
   showClientDropdown: boolean = false;
   selectedClient: Client | null = null;
   showClientDefaultsModal: boolean = false;
+  globalWidth: number = 0;
+  globalHeight: number = 0;
+  private utilityMargin: number = 0.30;
 
   constructor(private readonly supabase: SupabaseService) {
     this.formMdf = { ...this.newMdf };
@@ -98,9 +101,34 @@ export class MDFComponent implements OnInit {
     };
   }
 
-  ngOnInit(): void {
+    async ngOnInit(): Promise<void> {
+    await this.loadUtilityMargin();
     this.getMdfItems();
     this.getClients();
+  }
+
+  async loadUtilityMargin(): Promise<void> {
+    try {
+      const { data, error } = await this.supabase
+        .from('variables')
+        .select('value')
+        .eq('name', 'utility_margin')
+        .single();
+
+      if (error) {
+        console.error('Error al cargar utility_margin:', error);
+        this.utilityMargin = 0.30;
+        return;
+      }
+
+      if (data && data.value) {
+        this.utilityMargin = parseFloat(data.value) / 100;
+        console.log('Utility margin cargado en MDF:', this.utilityMargin);
+      }
+    } catch (error) {
+      console.error('Error inesperado al cargar utility_margin:', error);
+      this.utilityMargin = 0.30;
+    }
   }
 
   async getMdfItems(): Promise<void> {
@@ -343,7 +371,7 @@ export class MDFComponent implements OnInit {
 
   calculatePriceWith30Profit(mdf: Mdf): number {
     const totalCost = mdf.cost + mdf.freight;
-    return Math.ceil((totalCost / 0.7) / 100) * 100;
+    return Math.ceil((totalCost / (1 - this.utilityMargin)) / 100) * 100;
   }
 
   calculateTotalSheetArea(mdf: Mdf): number {
@@ -351,35 +379,84 @@ export class MDFComponent implements OnInit {
   }
 
   calculateArea(mdf: Mdf, format: string): number {
+    if (format === 'Sin formato') {
+      return this.globalWidth * this.globalHeight;
+    }
     const totalArea = this.calculateTotalSheetArea(mdf);
     const formatFactor = this.getFormatFactor(format);
     return totalArea / formatFactor;
   }
 
   calculatePriceWithMargin(mdf: Mdf, format: string): number {
-    const totalArea = this.calculateTotalSheetArea(mdf);
-    const area = this.calculateArea(mdf, format);
-    const totalCost = mdf.cost + mdf.freight;
-    return area > 0 ? Math.ceil((((totalCost / totalArea) * area) / 0.7) / 100) * 100 : 0;
+  const totalArea = this.calculateTotalSheetArea(mdf);
+  const totalCost = mdf.cost + mdf.freight;
+
+  // Si es "Sin formato", usar dimensiones globales
+  if (format === 'Sin formato') {
+    const customArea = this.globalWidth * this.globalHeight;
+
+    // Validar que las dimensiones globales caben en la lámina
+    const fitsNormal = this.globalWidth <= mdf.width && this.globalHeight <= mdf.height;
+    const fitsSwapped = this.globalWidth <= mdf.height && this.globalHeight <= mdf.width;
+
+    if (!fitsNormal && !fitsSwapped) {
+      return 0; // No cabe
+    }
+
+    if (customArea <= 0) return 0;
+
+    return Math.ceil((((totalCost / totalArea) * customArea) / (1 - this.utilityMargin)) / 100) * 100;
   }
 
-  calculateAppliedMargin(format: string): number {
-    const margins: { [key: string]: number } = {
-      '1 Lámina': 0,
-      '1/2 (Media Lámina)': 0.0010,
-      '1/3 (Tercio de Lámina)': 0.0040,
-      '1/4 (Cuarto de Lámina)': 0.0055,
-      '1/8 (Octavo de Lámina)': 0.0078,
-      '1/16 (Dieciseisavo de Lámina)': 0.0089,
-      '1/32 (Treintaydosavo de Lámina)': 0.0094
-    };
-    return margins[format] || 0;
+  // Para formatos predefinidos, cálculo normal
+  const area = this.calculateArea(mdf, format);
+  return area > 0 ? Math.ceil((((totalCost / totalArea) * area) / (1 - this.utilityMargin)) / 100) * 100 : 0;
+}
+
+  calculateAppliedMargin(format: string, mdf?: Mdf): number {
+  // Si es "Sin formato", calcular margen dinámico
+  if (format === 'Sin formato' && mdf) {
+    const totalSheetArea = this.calculateTotalSheetArea(mdf);
+    const customArea = this.globalWidth * this.globalHeight;
+
+    if (customArea <= 0 || totalSheetArea <= 0) return 0;
+
+    const areaRatio = customArea / totalSheetArea;
+
+    // Si el área es igual o mayor que la lámina completa, margen = 0
+    if (areaRatio >= 1) return 0;
+
+    // Para "Sin formato", el margen es simplemente 1 - areaRatio
+    return 1 - areaRatio;
   }
+
+  // Márgenes fijos para formatos predefinidos
+  const margins: { [key: string]: number } = {
+    '1 Lámina': 0,
+    '1/2 (Media Lámina)': 0.10,
+    '1/3 (Tercio de Lámina)': 0.40,
+    '1/4 (Cuarto de Lámina)': 0.55,
+    '1/8 (Octavo de Lámina)': 0.78,
+    '1/16 (Dieciseisavo de Lámina)': 0.89,
+    '1/32 (Treintaydosavo de Lámina)': 0.94,
+    'Sin formato': 0
+  };
+  return margins[format] || 0;
+}
 
   calculatePricePlusMargin(mdf: Mdf, format: string): number {
     const priceWithMargin = this.calculatePriceWithMargin(mdf, format);
-    const appliedMargin = this.calculateAppliedMargin(format);
+
+    if (priceWithMargin === 0) return 0; // No cabe o área inválida
+
+    const appliedMargin = this.calculateAppliedMargin(format, mdf);
     return Math.ceil(priceWithMargin * (1 + appliedMargin) / 100) * 100;
+  }
+
+  clearGlobalValues(): void {
+    this.globalWidth = 0;
+    this.globalHeight = 0;
+    this.updatePaginatedMdfItems();
   }
 
   calculateDiscount(mdf: Mdf, discountPercent: number = 0, format: string): number {
@@ -420,7 +497,7 @@ export class MDFComponent implements OnInit {
     );
 
     this.filteredMdfItems = this.sortMdf(filtered);
-    
+
 
     const itemsPerPageNum = Number(this.itemsPerPage);
     this.totalPages = Math.max(1, Math.ceil(this.filteredMdfItems.length / itemsPerPageNum));
@@ -448,7 +525,8 @@ export class MDFComponent implements OnInit {
       '1/4 (Cuarto de Lámina)': 4,
       '1/8 (Octavo de Lámina)': 8,
       '1/16 (Dieciseisavo de Lámina)': 16,
-      '1/32 (Treintaydosavo de Lámina)': 32
+      '1/32 (Treintaydosavo de Lámina)': 32,
+      'Sin formato': 0
     };
     return factors[format] || 1;
   }
