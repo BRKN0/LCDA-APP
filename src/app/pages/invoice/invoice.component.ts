@@ -114,6 +114,7 @@ export class InvoiceComponent implements OnInit {
   startDate: string = '';
   endDate: string = '';
   isEditing = false;
+  isSaving = false;
   showModal = false;
   showAddClientModal = false;
   showClientDropdown: boolean = false;
@@ -188,7 +189,7 @@ export class InvoiceComponent implements OnInit {
     private readonly supabase: SupabaseService,
     private readonly zone: NgZone,
     private readonly router: Router
-  ) {}
+  ) { }
 
   async ngOnInit(): Promise<void> {
     this.supabase.authChanges((_, session) => {
@@ -249,20 +250,30 @@ export class InvoiceComponent implements OnInit {
       alert('Por favor, escriba un nombre para el cliente.');
       return;
     }
+    this.isSaving = true;
 
-    const { data, error } = await this.supabase
-      .from('clients')
-      .insert([this.newClient]);
+    try {
 
-    if (error) {
+      const { data, error } = await this.supabase
+        .from('clients')
+        .insert([this.newClient]);
+
+      if (error) {
+        console.error('Error añadiendo el cliente:', error);
+        alert('Error al añadir el cliente.');
+        return;
+      }
+
+      alert('Cliente añadido correctamente.');
+      this.closeAddClientModal();
+      await this.getClients();
+    } catch (error) {
       console.error('Error añadiendo el cliente:', error);
       alert('Error al añadir el cliente.');
-      return;
+    } finally {
+      this.isSaving = false;
     }
 
-    alert('Cliente añadido correctamente.');
-    this.closeAddClientModal();
-    await this.getClients();
   }
 
   searchClients(): void {
@@ -436,7 +447,7 @@ export class InvoiceComponent implements OnInit {
       this.noResultsFound = true;
       return;
     }
-    
+
     const allTypeCheckboxesOff =
       !this.showPrints && !this.showCuts && !this.showSales;
 
@@ -915,56 +926,56 @@ export class InvoiceComponent implements OnInit {
   }
 
   async checkPaymentDeadlineNotification(invoice: Invoice): Promise<void> {
-  if (!invoice.due_date) return;
+    if (!invoice.due_date) return;
 
-  const totalPaid = this.getTotalPayments(invoice.order);
-  const { total } = await this.calculateInvoiceValues(invoice);
-  const remainingBalance = total - totalPaid;
+    const totalPaid = this.getTotalPayments(invoice.order);
+    const { total } = await this.calculateInvoiceValues(invoice);
+    const remainingBalance = total - totalPaid;
 
-  // Solo crear notificación si aún hay saldo pendiente
-  if (remainingBalance <= 0) {
-    // Si está pagado, eliminar notificaciones existentes
-    await this.supabase
-      .from('notifications')
-      .delete()
-      .eq('id_invoice', invoice.id_invoice)
-      .eq('type', 'payment_deadline');
-    return;
-  }
-
-  const daysRemaining = this.getRemainingPaymentDays(invoice);
-
-  // Si faltan 3 días o menos (y aún no ha vencido)
-  if (daysRemaining <= 3 && daysRemaining > 0) {
-    // Verificar si ya existe la notificación
-    const { data: existingNotification } = await this.supabase
-      .from('notifications')
-      .select('*')
-      .eq('id_invoice', invoice.id_invoice)
-      .eq('type', 'payment_deadline')
-      .maybeSingle();
-
-    if (!existingNotification) {
-      const notificationData = {
-        type: 'payment_deadline',
-        description: `Plazo de pago próximo a vencer: Factura ${invoice.code} - Cliente: ${invoice.order.client.name} - Faltan ${daysRemaining} día(s)`,
-        id_invoice: invoice.id_invoice,
-        due_date: invoice.due_date,
-      };
-
+    // Solo crear notificación si aún hay saldo pendiente
+    if (remainingBalance <= 0) {
+      // Si está pagado, eliminar notificaciones existentes
       await this.supabase
         .from('notifications')
-        .insert([notificationData]);
+        .delete()
+        .eq('id_invoice', invoice.id_invoice)
+        .eq('type', 'payment_deadline');
+      return;
     }
-  } else if (daysRemaining <= 0) {
-    // Si ya venció, eliminar la notificación de "próximo a vencer"
-    await this.supabase
-      .from('notifications')
-      .delete()
-      .eq('id_invoice', invoice.id_invoice)
-      .eq('type', 'payment_deadline');
+
+    const daysRemaining = this.getRemainingPaymentDays(invoice);
+
+    // Si faltan 3 días o menos (y aún no ha vencido)
+    if (daysRemaining <= 3 && daysRemaining > 0) {
+      // Verificar si ya existe la notificación
+      const { data: existingNotification } = await this.supabase
+        .from('notifications')
+        .select('*')
+        .eq('id_invoice', invoice.id_invoice)
+        .eq('type', 'payment_deadline')
+        .maybeSingle();
+
+      if (!existingNotification) {
+        const notificationData = {
+          type: 'payment_deadline',
+          description: `Plazo de pago próximo a vencer: Factura ${invoice.code} - Cliente: ${invoice.order.client.name} - Faltan ${daysRemaining} día(s)`,
+          id_invoice: invoice.id_invoice,
+          due_date: invoice.due_date,
+        };
+
+        await this.supabase
+          .from('notifications')
+          .insert([notificationData]);
+      }
+    } else if (daysRemaining <= 0) {
+      // Si ya venció, eliminar la notificación de "próximo a vencer"
+      await this.supabase
+        .from('notifications')
+        .delete()
+        .eq('id_invoice', invoice.id_invoice)
+        .eq('type', 'payment_deadline');
+    }
   }
-}
 
 
   private async syncInvoicesStatusOnLoad(invoices: Invoice[]): Promise<void> {
@@ -1380,15 +1391,13 @@ export class InvoiceComponent implements OnInit {
       doc.setFont('helvetica', 'normal');
       invoice.order.payments.forEach((payment) => {
         doc.text(
-          `$${payment.amount} - ${
-            payment.payment_method === 'cash' ? 'Efectivo' :
+          `$${payment.amount} - ${payment.payment_method === 'cash' ? 'Efectivo' :
             payment.payment_method === 'nequi' ? 'Nequi' :
-            payment.payment_method === 'bancolombia' ? 'Bancolombia' :
-            payment.payment_method === 'Davivienda' ? 'Davivienda' :
-            payment.payment_method === 'other' ? 'Otro' : 'Desconocido'} - ${
-            payment.payment_date
-              ? new Date(payment.payment_date).toLocaleDateString('es-CO')
-              : ''
+              payment.payment_method === 'bancolombia' ? 'Bancolombia' :
+                payment.payment_method === 'Davivienda' ? 'Davivienda' :
+                  payment.payment_method === 'other' ? 'Otro' : 'Desconocido'} - ${payment.payment_date
+            ? new Date(payment.payment_date).toLocaleDateString('es-CO')
+            : ''
           }`,
           10,
           currentY
@@ -2215,7 +2224,7 @@ export class InvoiceComponent implements OnInit {
         : new Date();
       this.selectedInvoice.due_date = new Date(
         deliveryDate.getTime() +
-          this.selectedInvoice.payment_term * 24 * 60 * 60 * 1000
+        this.selectedInvoice.payment_term * 24 * 60 * 60 * 1000
       ).toISOString();
 
       const { error: dueDateError } = await this.supabase
@@ -2317,9 +2326,9 @@ export class InvoiceComponent implements OnInit {
       due_date: dueDate,
       classification: this.selectedInvoice.classification,
       e_invoice_done:
-      this.selectedInvoice.order.requires_e_invoice
-        ? this.selectedInvoice.e_invoice_done
-        : false,
+        this.selectedInvoice.order.requires_e_invoice
+          ? this.selectedInvoice.e_invoice_done
+          : false,
     };
 
     try {
@@ -2580,4 +2589,13 @@ export class InvoiceComponent implements OnInit {
     if (['servicio', 'servicios'].includes(s)) return 'servicios';
     return 'servicios';
   }
+
+  get submitButtonText(): string {
+  if (this.isSaving) return 'Guardando...';
+  return this.isEditing ? 'Actualizar' : 'Guardar';
+}
+
+
+
+
 }

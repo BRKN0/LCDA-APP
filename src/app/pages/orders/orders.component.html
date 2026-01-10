@@ -1069,8 +1069,9 @@
           *ngIf="userRole == 'admin' || userRole == 'scheduler'"
           type="submit"
           class="btn-success ml-2"
+          [disabled]="isSavingOrder"
         >
-          Guardar Pedido
+          {{ submitButtonText }}
         </button>
       </div>
     </form>
@@ -1170,8 +1171,10 @@
           *ngIf="userRole == 'admin' || userRole == 'scheduler'"
           type="submit"
           class="btn-success px-4 py-2 rounded-md"
+          [disabled]="isSavingClient"
+          (click)="saveNewClient()"
         >
-          Guardar Cliente
+          {{ submitButtonText }}
         </button>
       </div>
     </form>
