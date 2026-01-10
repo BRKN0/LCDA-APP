@@ -206,7 +206,7 @@
           </p>
           <p>
             <strong>Limite de credito:</strong>
-            {{ selectedClient.credit_limit }}
+            {{ selectedClient.credit_limit | number:'1.2-2'}}
           </p>
 
           <p>
@@ -215,11 +215,7 @@
               [class.text-green-600]="selectedClient.debt === 0"
               [class.text-red-600]="selectedClient.debt > 0"
             >
-              {{
-                selectedClient.debt > 0
-                  ? "$" + selectedClient.debt
-                  : "Sin Deuda"
-              }}
+              {{ (selectedClient.debt > 0 ? selectedClient.debt : 0) | number:'1.2-2' }}
             </span>
           </p>
         </div>
@@ -351,7 +347,7 @@
               </td>
               <td class="modal-table-column">{{ order.description }}</td>
               <td class="modal-table-column">
-                ${{ calculateOrderTotal(order).toFixed(2) }}
+                ${{ calculateOrderTotal(order).toFixed(2) | number:'1.2-2'}}
                 {{ order.include_iva ? "" : "" }}
               </td>
               <td
@@ -361,7 +357,7 @@
               >
                 {{
                   getOrderDebt(order) > 0
-                    ? '$' + getOrderDebt(order).toFixed(2)
+                    ?  ('$' + (getOrderDebt(order) | number:'1.2-2'))
                     : 'Pagado'
                 }}
               </td>

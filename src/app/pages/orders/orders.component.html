@@ -278,7 +278,7 @@
           <td [ngClass]="getDaysRemainingClass(order)">
             {{ getDaysRemainingLabel(order) }}
           </td>
-          <td>{{ order.total }}</td>
+          <td>{{ order.total  | number:'1.2-2'}}</td>
           <td
             [ngClass]="{
               'text-green-600': order.order_confirmed_status === 'confirmed',
@@ -588,7 +588,7 @@
         <div class="border-t pt-4 mt-4">
           <div class="flex justify-between">
             <p><strong>Subtotal</strong></p>
-            <p>{{ selectedOrderDetails[0].subtotal }}</p>
+            <p>{{ selectedOrderDetails[0].subtotal  | number:'1.2-2'}}</p>
           </div>
           <div class="flex justify-between" *ngIf="selectedOrderDetails[0].iva">
             <p><strong>IVA</strong></p>
@@ -604,12 +604,12 @@
               class="flex justify-between"
             >
               <span>{{ charge.description }}</span>
-              <span>${{ charge.amount }}</span>
+              <span>${{ charge.amount  | number:'1.2-2'}}</span>
             </div>
           </div>
           <div class="flex justify-between">
             <p><strong>Total</strong></p>
-            <p class="font-bold">{{ selectedOrderDetails[0].total }}</p>
+            <p class="font-bold">{{ selectedOrderDetails[0].total  | number:'1.2-2'}}</p>
           </div>
         </div>
       </ng-container>
@@ -722,7 +722,7 @@
       <!-- Campos comunes -->
       <ng-container *ngIf="userRole === 'admin' || userRole === 'scheduler' || !isEditing">
         <div class="mb-4">
-          <label class="block modal-input-item">Tipo de Pedido</label>
+          <label class="block modal-input-item">Tipo de Pedido<span class="text-red-500">*</span></label>
           <select
             [(ngModel)]="newOrder.order_type"
             name="order_type"
@@ -811,6 +811,14 @@
             class="form-input mt-1 block w-full"
             required
           />
+          <label class="flex items-center gap-2 mt-2">
+            <input
+              type="checkbox"
+              [(ngModel)]="newOrder.is_immediate"
+              name="is_immediate"
+            />
+            Trabajo inmediato
+          </label>
         </div>
         <!-- Valor Total del Pedido (ingreso manual) -->
         <div class="mb-4 border-t pt-4">

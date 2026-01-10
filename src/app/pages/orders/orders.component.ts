@@ -23,6 +23,7 @@ interface Orders {
   created_at: string;
   created_time?: string;
   delivery_date: string;
+  is_immediate?: boolean;
   order_quantity: string;
   unitary_value: string | number;
   iva: string | number;
@@ -765,6 +766,30 @@ export class OrdersComponent implements OnInit {
         );
     });
 
+    if (this.userRole !== 'admin' && this.userRole !== 'scheduler') {
+      this.filteredOrdersList = this.filteredOrdersList.sort((a, b) => {
+
+        const aInProgress = a.order_completion_status === 'inProgress';
+        const bInProgress = b.order_completion_status === 'inProgress';
+
+        if (aInProgress !== bInProgress) {
+          return aInProgress ? -1 : 1;
+        }
+
+        if (a.is_immediate !== b.is_immediate) {
+          return a.is_immediate ? -1 : 1;
+        }
+
+        const daysA = this.getRemainingDeliveryDays(a);
+        const daysB = this.getRemainingDeliveryDays(b);
+
+        if (daysA !== daysB) {
+          return daysA - daysB;
+        }
+
+        return b.code - a.code;
+      });
+    }
     this.noResultsFound =
       this.searchByNameQuery.trim() !== '' &&
       this.filteredOrdersList.length === 0;
@@ -890,13 +915,24 @@ export class OrdersComponent implements OnInit {
   async toggleOrderCompletionStatus(order: Orders) {
     const newCompletionStatus = order.order_completion_status;
     const newDeliveryStatus =
-      newCompletionStatus === 'finished' ? 'Completado' : 'toBeDelivered';
+      newCompletionStatus === 'finished'
+        ? 'Completado'
+        : newCompletionStatus === 'delivered'
+        ? 'Completado'
+        : 'toBeDelivered';
+
+      const newConfirmedStatus =
+        newCompletionStatus === 'finished' ||
+        newCompletionStatus === 'delivered'
+          ? 'confirmed'
+          : 'notConfirmed';
 
     const { error } = await this.supabase
       .from('orders')
       .update({
         order_completion_status: newCompletionStatus,
         order_delivery_status: newDeliveryStatus,
+        order_confirmed_status: newConfirmedStatus,
       })
       .eq('id_order', order.id_order);
     if (error) {
@@ -907,6 +943,7 @@ export class OrdersComponent implements OnInit {
           : 'finished';
     } else {
       order.order_delivery_status = newDeliveryStatus;
+      order.order_confirmed_status = newConfirmedStatus;
     }
   }
 
@@ -934,6 +971,7 @@ export class OrdersComponent implements OnInit {
         created_at: new Date().toISOString(),
         created_time: this.getCurrentTimeHHMM(),
         delivery_date: '',
+        is_immediate: false,
         order_quantity: '0',
         unitary_value: '',
         iva: '',
@@ -1060,6 +1098,11 @@ export class OrdersComponent implements OnInit {
       }
     }
 
+    if (this.newOrder.order_type === '') {
+      alert('Por favor, seleccione un tipo de pedido.');
+      return;
+    }
+
     const baseTotal = parseFloat(newOrderForm.unitary_value as string) || 0;
     const extras =
       newOrderForm.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
@@ -1075,6 +1118,7 @@ export class OrdersComponent implements OnInit {
       created_at: new Date().toISOString(),
       created_time: this.getCurrentTimeHHMM(),
       delivery_date: newOrderForm.delivery_date,
+      is_immediate: newOrderForm.is_immediate || false,
       order_quantity: newOrderForm.order_quantity,
       unitary_value: baseTotal,
       iva: newOrderForm.iva || 0,
@@ -1091,7 +1135,6 @@ export class OrdersComponent implements OnInit {
       invoice_file: newOrderForm.file_path,
       extra_charges: newOrderForm.extra_charges || [],
       base_total: baseTotal,
-      scheduler: (await this.getUserName()) || 'Desconocido',
       requires_e_invoice: newOrderForm.requires_e_invoice ?? false,
     };
 
@@ -1123,6 +1166,9 @@ export class OrdersComponent implements OnInit {
       await this.handleFileUploadForOrder(this.newOrder.id_order!);
       this.selectedFile = null;
       this.uploadedFileName = null;
+
+      // scheduler is set only on order creation
+      delete (this.newOrder as any).scheduler;
 
       const { error } = await this.supabase
         .from('orders')
@@ -1202,6 +1248,7 @@ export class OrdersComponent implements OnInit {
         maxCodeData && maxCodeData.length > 0 ? maxCodeData[0].code : 0;
       this.newOrder.code = maxCode + 1;
 
+      this.newOrder.scheduler = (await this.getUserName()) || 'Desconocido';
       const { data: insertedOrderData, error: insertError } =
         await this.supabase.from('orders').insert([this.newOrder]).select();
 
