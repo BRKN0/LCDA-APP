@@ -10,6 +10,7 @@ import { RouterOutlet } from '@angular/router';
 interface Orders {
   id_order: string;
   order_type: string;
+  secondary_process?: 'laser' | 'print' | null;
   is_vitrine?: boolean;
   name: string;
   client_type: string;
@@ -17,6 +18,7 @@ interface Orders {
   description: string;
   order_payment_status: string;
   order_completion_status: string;
+  secondary_completed?: boolean;
   order_confirmed_status: string;
   order_delivery_status: string;
   notes: string;
@@ -34,6 +36,7 @@ interface Orders {
   payments?: Payment[];
   file_path: string;
   invoice_file: string;
+  second_file: string;
   scheduler: string;
   requires_e_invoice: boolean;
   cutting_time?: number;
@@ -222,6 +225,7 @@ export class OrdersComponent implements OnInit {
   uploadedFileName: string | null = null;
   uploadedFilePath: string | null = null;
   selectedInvoiceFile: File | null = null;
+  selectedSecondaryFile: File | null = null;
   showStockWarningModal = false;
   stockWarningMessage = '';
   selectedScheduler: string = '';
@@ -300,7 +304,11 @@ export class OrdersComponent implements OnInit {
         default:
           break;
       }
-      query = query.eq('order_type', this.order_role_filter);
+      if (this.order_role_filter) {
+        query = query.or(
+          `order_type.eq.${this.order_role_filter},secondary_process.eq.${this.order_role_filter}`
+        );
+      }
     }
 
     const { data, error } = await query;
@@ -701,12 +709,14 @@ export class OrdersComponent implements OnInit {
       !this.showPrints && !this.showCuts && !this.showSales && this.vitrineFilterMode !== 'only';
 
     this.filteredOrdersList = this.orders.filter((order) => {
-      const orderDate = new Date(order.created_at);
+      const normalizeDate = (d: Date) =>
+        new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      const orderDate = normalizeDate(new Date(order.created_at));
       const matchesStartDate = this.startDate
-        ? orderDate >= new Date(this.startDate)
+        ? orderDate >= normalizeDate(new Date(this.startDate))
         : true;
       const matchesEndDate = this.endDate
-        ? orderDate <= new Date(this.endDate + 'T23:59:59')
+        ? orderDate <= normalizeDate(new Date(this.endDate))
         : true;
       const matchesDateRange = matchesStartDate && matchesEndDate;
 
@@ -914,6 +924,19 @@ export class OrdersComponent implements OnInit {
 
   async toggleOrderCompletionStatus(order: Orders) {
     const newCompletionStatus = order.order_completion_status;
+
+    if (
+      order.secondary_process &&
+      !order.secondary_completed &&
+      (newCompletionStatus === 'finished' || newCompletionStatus === 'delivered')
+    ) {
+      alert(
+        'Este pedido tiene un proceso secundario pendiente y no puede ser completado aún.'
+      );
+      order.order_completion_status = 'inProgress';
+      return;
+    }
+
     const newDeliveryStatus =
       newCompletionStatus === 'finished'
         ? 'Completado'
@@ -947,6 +970,31 @@ export class OrdersComponent implements OnInit {
     }
   }
 
+  async markSecondaryCompleted(order: Orders) {
+    const { error } = await this.supabase
+      .from('orders')
+      .update({ secondary_completed: true })
+      .eq('id_order', order.id_order);
+
+    if (error) {
+      console.error('Error updating secondary process:', error);
+      return;
+    }
+
+    order.secondary_completed = true;
+
+    // Crear notificación
+    const notification = {
+      type: 'process',
+      description: `Secondary process completed for order ${order.code}`,
+      id_order: order.id_order,
+      due_date: order.delivery_date,
+      id_user: this.userId,
+    };
+
+    await this.supabase.from('notifications').insert([notification]);
+  }
+
   async toggleOrderPaymentStatus(order: Orders) {
     const { error } = await this.supabase
       .from('orders')
@@ -963,6 +1011,7 @@ export class OrdersComponent implements OnInit {
       this.newOrder = {
         id_order: '',
         order_type: '',
+        secondary_process: null,
         is_vitrine: false,
         name: '',
         client_type: '',
@@ -983,9 +1032,11 @@ export class OrdersComponent implements OnInit {
         order_confirmed_status: 'notConfirmed',
         order_completion_status: 'inProgress',
         order_delivery_status: 'toBeDelivered',
+        secondary_completed: false,
         notes: '',
         file_path: '',
         invoice_file: '',
+        second_file: '',
         scheduler: '',
         discount: 0,
         discount_type: 'fixed',
@@ -1110,6 +1161,7 @@ export class OrdersComponent implements OnInit {
 
     this.newOrder = {
       order_type: newOrderForm.order_type,
+      secondary_process: newOrderForm.secondary_process ?? null,
       is_vitrine: newOrderForm.is_vitrine ?? false,
       name: newOrderForm.name,
       client_type: newOrderForm.client_type,
@@ -1130,9 +1182,11 @@ export class OrdersComponent implements OnInit {
       order_confirmed_status: newOrderForm.order_confirmed_status,
       order_completion_status: newOrderForm.order_completion_status,
       order_delivery_status: newOrderForm.order_delivery_status,
+      secondary_completed: newOrderForm.secondary_completed || false,
       notes: newOrderForm.notes,
       file_path: newOrderForm.file_path,
-      invoice_file: newOrderForm.file_path,
+      invoice_file: newOrderForm.invoice_file,
+      second_file: newOrderForm.second_file,
       extra_charges: newOrderForm.extra_charges || [],
       base_total: baseTotal,
       requires_e_invoice: newOrderForm.requires_e_invoice ?? false,
@@ -1626,10 +1680,19 @@ export class OrdersComponent implements OnInit {
     return this.getRemainingDeliveryDays(order) > 1;
   }
 
-  onFileSelected(event: Event) {
+  onFileSelected(event: Event, type: 'main' | 'secondary') {
     const input = event.target as HTMLInputElement;
-    if (input.files?.length) {
-      this.selectedFile = input.files[0];
+    if (!input.files || input.files.length === 0) return;
+
+    const file = input.files[0];
+
+    if (type === 'main') {
+      this.selectedFile = file;
+      this.uploadedFileName = file.name;
+    }
+
+    if (type === 'secondary') {
+      this.selectedSecondaryFile = file;
     }
   }
 
@@ -1641,12 +1704,11 @@ export class OrdersComponent implements OnInit {
   }
 
   async uploadOrderFile(orderId: string, filePath: string, file: File) {
-    if (!this.selectedFile || !orderId) return;
+    if (!file || !orderId) return;
 
     await this.supabase.uploadFile(filePath, file, 'order-files');
 
     this.uploadedFileName = file.name;
-    this.selectedFile = null;
   }
 
 async downloadFile(filePath: string) {
@@ -1798,6 +1860,21 @@ async downloadFile(filePath: string) {
 
       this.newOrder.invoice_file = filePath;
       this.selectedInvoiceFile = null;
+    }
+
+    // Subir archivo secundario si aplica
+    if (this.selectedSecondaryFile && this.newOrder.secondary_process) {
+      const secondaryPath = `${orderId}/secondary/${this.selectedSecondaryFile.name}`;
+
+      await this.uploadOrderFile(orderId, secondaryPath, this.selectedSecondaryFile);
+
+      await this.supabase
+        .from('orders')
+        .update({ second_file: secondaryPath })
+        .eq('id_order', orderId);
+
+      this.newOrder.second_file = secondaryPath;
+      this.selectedSecondaryFile = null;
     }
 
     this.uploadedFileName = null;

@@ -207,13 +207,23 @@
           <td>
             <span>
               {{
-                order.order_type === "print"
-                  ? "Impresiones"
-                  : order.order_type === "laser"
-                  ? "Cortes"
-                  : order.order_type === "sales"
-                  ? "Ventas"
-                  : "Desconocido"
+                order.secondary_process
+                  ? (
+                      order.order_type === 'laser'
+                        ? 'Corte / Impresión'
+                        : order.order_type === 'print'
+                        ? 'Impresión / Corte'
+                        : 'Ventas'
+                    )
+                  : (
+                      order.order_type === 'print'
+                        ? 'Impresiones'
+                        : order.order_type === 'laser'
+                        ? 'Cortes'
+                        : order.order_type === 'sales'
+                        ? 'Ventas'
+                        : 'Desconocido'
+                    )
               }}
             </span>
 
@@ -336,6 +346,12 @@
               class="border rounded p-1"
               [(ngModel)]="order.order_completion_status"
               (change)="toggleOrderCompletionStatus(order)"
+              [disabled]="!!(
+                order.secondary_process &&
+                !order.secondary_completed &&
+                order.order_completion_status === 'inProgress'
+              )"
+              title="Este pedido tiene un proceso secundario pendiente."
             >
               <option value="finished">Terminado</option>
               <option value="delivered">Entregado</option>
@@ -487,6 +503,48 @@
                 : "Desconocido"
             }}
           </p>
+          <div
+            *ngIf="selectedOrderDetails[0]?.secondary_process"
+            class="mt-2 text-sm"
+          >
+            <span class="font-semibold text-gray-700">
+              Proceso secundario:
+            </span>
+
+            <span
+              [ngClass]="{
+                'text-green-600 font-semibold': selectedOrderDetails[0].secondary_completed,
+                'text-orange-500 font-semibold': !selectedOrderDetails[0].secondary_completed
+              }"
+            >
+              {{
+                selectedOrderDetails[0].secondary_completed
+                  ? 'Completado'
+                  : 'Pendiente'
+              }}
+            </span>
+          </div>
+          <!-- Botón para marcar proceso secundario como terminado -->
+          <div
+            *ngIf="
+              selectedOrderDetails[0]?.secondary_process &&
+              !selectedOrderDetails[0]?.secondary_completed &&
+              (
+                (userRole === 'cuts_employee' &&
+                  selectedOrderDetails[0].secondary_process === 'laser') ||
+                (userRole === 'prints_employee' &&
+                  selectedOrderDetails[0].secondary_process === 'print')
+              )
+            "
+            class="mt-3"
+          >
+            <button
+              class="btn-success text-xs px-3 py-1"
+              (click)="markSecondaryCompleted(selectedOrderDetails[0])"
+            >
+              Marcar proceso secundario como terminado
+            </button>
+          </div>
           <p>
             <strong>Confirmación del pedido:</strong>
             {{
@@ -614,7 +672,25 @@
         </div>
       </ng-container>
       <div
-        *ngIf="selectedOrderDetails[0]?.file_path"
+        *ngIf="selectedOrderDetails[0]?.file_path &&
+          (
+            userRole === 'admin' ||
+            userRole === 'scheduler' ||
+            (
+              !selectedOrderDetails[0]?.secondary_process &&
+              (
+                (userRole === 'prints_employee' && selectedOrderDetails[0].order_type === 'print') ||
+                (userRole === 'cuts_employee' && selectedOrderDetails[0].order_type === 'laser')
+              )
+            ) ||
+            (
+              selectedOrderDetails[0]?.secondary_process &&
+              (
+                (userRole === 'prints_employee' && selectedOrderDetails[0].order_type === 'print') ||
+                (userRole === 'cuts_employee' && selectedOrderDetails[0].order_type === 'laser')
+              )
+            )
+          )"
         class="border-t pt-4 mt-4"
       >
         <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
@@ -647,6 +723,56 @@
             class="btn-primary text-xs px-3 py-1 flex items-center gap-1"
             (click)="downloadFile(selectedOrderDetails[0].file_path)"
           >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4"
+              />
+            </svg>
+            <span class="text-white hover:text-blue-800"> Descargar</span>
+          </button>
+        </div>
+      </div>
+      <div
+        *ngIf="
+          selectedOrderDetails[0]?.second_file &&
+          selectedOrderDetails[0]?.secondary_process &&
+          (
+            userRole === 'admin' ||
+            userRole === 'scheduler' ||
+            (userRole === 'cuts_employee' &&
+              selectedOrderDetails[0].secondary_process === 'laser') ||
+            (userRole === 'prints_employee' &&
+              selectedOrderDetails[0].secondary_process === 'print')
+          )
+        "
+        class="border-t pt-4 mt-4"
+      >
+        <div
+          class="border rounded p-3 flex items-center justify-between bg-gray-50"
+        >
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-semibold text-gray-600">
+              {{ selectedOrderDetails[0].secondary_process === 'laser'
+                  ? 'Archivo de Corte'
+                  : 'Archivo de Impresión'
+              }}
+            </span>
+          </div>
+
+          <button
+            class="btn-primary text-xs px-3 py-1 flex items-center gap-1"
+            (click)="downloadFile(selectedOrderDetails[0].second_file)"
+          >
+            <!-- icon -->
             <svg
               xmlns="http://www.w3.org/2000/svg"
               class="h-4 w-4"
@@ -735,18 +861,45 @@
           </select>
         </div>
         <div
-            class="mb-4"
-            *ngIf="newOrder.order_type === 'sales'"
+          class="mb-4"
+          *ngIf="newOrder.order_type === 'sales'"
+        >
+          <label class="flex items-center gap-2">
+            <input
+              type="checkbox"
+              [(ngModel)]="newOrder.is_vitrine"
+              name="is_vitrine"
+            />
+            Vitrina
+          </label>
+        </div>
+        <div class="mb-4">
+          <label class="block modal-input-item">
+            Proceso Secundario
+          </label>
+
+          <select
+            [(ngModel)]="newOrder.secondary_process"
+            name="secondary_process"
+            class="form-select mt-1 block w-full"
           >
-            <label class="flex items-center gap-2">
-              <input
-                type="checkbox"
-                [(ngModel)]="newOrder.is_vitrine"
-                name="is_vitrine"
-              />
-              Vitrina
-            </label>
-          </div>
+            <option [ngValue]="null">-- Ninguno --</option>
+
+            <option
+              *ngIf="newOrder.order_type !== 'laser'"
+              value="laser"
+            >
+              Corte
+            </option>
+
+            <option
+              *ngIf="newOrder.order_type !== 'print'"
+              value="print"
+            >
+              Impresión
+            </option>
+          </select>
+        </div>
         <div class="mb-4">
           <label class="block modal-input-item"
             >Cliente<span class="text-red-500">*</span></label
@@ -985,7 +1138,7 @@
           <div class="flex items-center gap-2">
             <input
               type="file"
-              (change)="onFileSelected($event)"
+              (change)="onFileSelected($event, 'main')"
               class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
             />
 
@@ -1015,6 +1168,55 @@
           </div>
           <p *ngIf="uploadedFileName" class="text-green-600 text-xs mt-1">
             Nuevo: {{ uploadedFileName }}
+          </p>
+        </div>
+
+        <!-- Archivo proceso secundario -->
+        <div *ngIf="newOrder.secondary_process !== null" class="mt-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Archivo de Proceso Secundario
+            ({{ newOrder.secondary_process === 'laser' ? 'Corte' : 'Impresión' }})
+          </label>
+
+          <div class="flex items-center gap-2">
+            <input
+              type="file"
+              (change)="onFileSelected($event, 'secondary')"
+              class="block w-full text-sm text-gray-500
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-full file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-blue-50 file:text-blue-700
+                    hover:file:bg-blue-100"
+            />
+
+            <button
+              *ngIf="newOrder.second_file"
+              type="button"
+              (click)="downloadFile(newOrder.second_file)"
+              class="text-blue-600 hover:text-blue-800 text-sm font-bold flex items-center gap-1"
+              title="Ver archivo actual"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="w-5 h-5"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M12 9.75v10.5m0 0 4.5-4.5M12 20.25l-4.5-4.5M12 3v9"
+                />
+              </svg>
+              Ver
+            </button>
+          </div>
+
+          <p *ngIf="selectedSecondaryFile" class="text-green-600 text-xs mt-1">
+            Nuevo: {{ selectedSecondaryFile.name }}
           </p>
         </div>
 

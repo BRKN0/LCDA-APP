@@ -183,13 +183,23 @@
         <td class="table-column-std">
           <span>
             {{
-              invoice.order.order_type === "print"
-                ? "Impresiones"
-                : invoice.order.order_type === "laser"
-                ? "Cortes"
-                : invoice.order.order_type === "sales"
-                ? "Ventas"
-                : "Desconocido"
+              invoice.order.secondary_process
+                  ? (
+                      invoice.order.order_type === 'laser'
+                        ? 'Corte / Impresión'
+                        : invoice.order.order_type === 'print'
+                        ? 'Impresión / Corte'
+                        : 'Ventas'
+                    )
+                  : (
+                      invoice.order.order_type === 'print'
+                        ? 'Impresiones'
+                        : invoice.order.order_type === 'laser'
+                        ? 'Cortes'
+                        : invoice.order.order_type === 'sales'
+                        ? 'Ventas'
+                        : 'Desconocido'
+                    )
             }}
           </span>
 

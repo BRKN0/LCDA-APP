@@ -32,6 +32,7 @@ interface VariableMap {
 interface Orders {
   id_order: string;
   order_type: string;
+  secondary_process?: string;
   name: string;
   description: string;
   order_payment_status: string;
