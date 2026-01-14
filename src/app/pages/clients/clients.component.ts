@@ -97,6 +97,7 @@ export class ClientsComponent implements OnInit {
   paginatedOrders: Orders[] = [];
   selectedClientData: Partial<Client> = {};
   isEditing = false;
+  isSaving = false;
   showModal = false;
   startDate: string = '';
   endDate: string = '';
@@ -135,7 +136,7 @@ export class ClientsComponent implements OnInit {
     private readonly supabase: SupabaseService,
     private readonly zone: NgZone,
     private readonly roleService: RoleService
-  ) {}
+  ) { }
 
   async ngOnInit(): Promise<void> {
     this.supabase.authChanges((_, session) => {
@@ -184,12 +185,12 @@ export class ClientsComponent implements OnInit {
       ...client,
       orders: Array.isArray(client.orders)
         ? client.orders.map(
-            (order: { payments: any; include_iva?: boolean; iva: number }) => ({
-              ...order,
-              payments: Array.isArray(order.payments) ? order.payments : [],
-              include_iva: order.iva === 1,
-            })
-          )
+          (order: { payments: any; include_iva?: boolean; iva: number }) => ({
+            ...order,
+            payments: Array.isArray(order.payments) ? order.payments : [],
+            include_iva: order.iva === 1,
+          })
+        )
         : [],
     })) as Client[];
 
@@ -605,11 +606,11 @@ export class ClientsComponent implements OnInit {
         this.clients = this.clients.map((c) =>
           c.id_client === client.id_client
             ? {
-                ...c,
-                debt: totalDebt,
-                status: newStatus,
-                orders: client.orders,
-              }
+              ...c,
+              debt: totalDebt,
+              status: newStatus,
+              orders: client.orders,
+            }
             : c
         );
         this.filteredClients = [...this.clients];
@@ -715,6 +716,8 @@ export class ClientsComponent implements OnInit {
       this.closeModal();
     } catch (error) {
       console.error('Error inesperado al guardar cliente:', error);
+    } finally{
+      this.isSaving=false;
     }
   }
 
@@ -789,8 +792,7 @@ export class ClientsComponent implements OnInit {
 
     doc.setFontSize(16);
     doc.text(
-      `Extracto de Cliente: ${
-        this.selectedClient.company_name || this.selectedClient.name
+      `Extracto de Cliente: ${this.selectedClient.company_name || this.selectedClient.name
       }`,
       10,
       10
@@ -811,10 +813,9 @@ export class ClientsComponent implements OnInit {
             (p) =>
               `$${p.amount.toFixed(2)} - ${this.formatPaymentMethod(
                 p.payment_method
-              )} - ${
-                p.payment_date
-                  ? new Date(p.payment_date).toLocaleDateString('es-CO')
-                  : 'Sin fecha'
+              )} - ${p.payment_date
+                ? new Date(p.payment_date).toLocaleDateString('es-CO')
+                : 'Sin fecha'
               }`
           )
           .join('\n'),
@@ -901,8 +902,8 @@ export class ClientsComponent implements OnInit {
           client.status === 'upToDate'
             ? 'Al Día'
             : client.status === 'overdue'
-            ? 'En Mora'
-            : 'Desconocido',
+              ? 'En Mora'
+              : 'Desconocido',
           formattedDebt,
           client.created_at.split('T')[0] || currentDate,
         ].map((value) => `"${value}"`);
@@ -1010,8 +1011,7 @@ export class ClientsComponent implements OnInit {
 
       client.status = newStatus;
       alert(
-        `Estado actualizado a "${
-          newStatus === 'upToDate' ? 'Al día' : 'En mora'
+        `Estado actualizado a "${newStatus === 'upToDate' ? 'Al día' : 'En mora'
         }" correctamente`
       );
     } catch (error) {
@@ -1026,4 +1026,11 @@ export class ClientsComponent implements OnInit {
     this.updatePaginatedClients();
     this.noResultsFound = false;
   }
+
+  get submitButtonText(): string {
+  if (this.isSaving) return 'Guardando...';
+  return this.isEditing ? 'Actualizar' : 'Guardar';
+}
+
+
 }

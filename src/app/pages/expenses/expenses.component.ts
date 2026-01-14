@@ -839,4 +839,11 @@ export class ExpensesComponent implements OnInit {
     anchor.click();
     document.body.removeChild(anchor);
   }
+
+get submitButtonText(): string {
+  if (this.isSaving) return 'Guardando...';
+  return this.isEditing ? 'Actualizar' : 'Guardar';
+}
+
+
 }

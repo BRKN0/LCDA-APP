@@ -508,8 +508,12 @@
         <button type="button" class="btn-danger" (click)="closeModal()">
           Cancelar
         </button>
-        <button type="submit" class="btn-success px-4 py-2 rounded-md">
-          {{ isEditing ? "Actualizar Factura" : "Guardar Factura" }}
+        <button 
+        type="submit" 
+        class="btn-success px-4 py-2 rounded-md"
+        [disabled]="isSaving"
+        >
+          {{ submitButtonText  }}
         </button>
       </div>
     </form>

@@ -710,8 +710,12 @@
             <button type="button" class="btn-danger" (click)="closeModal()">
               Cancelar
             </button>
-            <button type="submit" class="btn-success">
-              {{ isEditing ? "Actualizar Cliente" : "Guardar Cliente" }}
+            <button 
+            type="submit" 
+            class="btn-success"
+            [disabled]="isSaving"
+            >
+              {{ submitButtonText}}
             </button>
           </div>
         </form>
