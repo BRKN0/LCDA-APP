@@ -156,6 +156,18 @@
         class="form-input"
       />
     </div>
+
+    <select
+      [(ngModel)]="selectedPaymentMethodFilter"
+      (change)="updateFilteredInvoices()"
+      class="input"
+    >
+      <option value="all">Todos los métodos</option>
+      <option value="cash">Efectivo</option>
+      <option value="nequi">Nequi</option>
+      <option value="bancolombia">Bancolombia</option>
+      <option value="davivienda">Davivienda</option>
+    </select>
   </div>
 
 </div>
@@ -810,7 +822,10 @@
                 : "Desconocido"
               }} -
               {{ payment.payment_date | date : "dd-MM-yyyy" }}
-              <button class="text-blue-500 ml-2" (click)="editPayment(payment)">
+              <button 
+                class="text-blue-500 ml-2" 
+                (click)="editPayment(payment)"
+              >
                 Editar
               </button>
               <button

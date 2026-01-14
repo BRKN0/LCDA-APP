@@ -110,6 +110,7 @@ export class InvoiceComponent implements OnInit {
   clientSearchQuery: string = '';
   filteredInvoicesList: Invoice[] = [];
   filteredClients: Client[] = [];
+  selectedPaymentMethodFilter: string = 'all';
   clientOrders: Orders[] = [];
   noResultsFound: boolean = false;
   startDate: string = '';
@@ -505,8 +506,25 @@ export class InvoiceComponent implements OnInit {
           (this.showFEDone && invoice.e_invoice_done);
       }
 
+      let matchesPaymentMethod = true;
+
+      if (this.selectedPaymentMethodFilter !== 'all') {
+        const payments = invoice.order?.payments || [];
+
+        matchesPaymentMethod = payments.some(
+          (p) => p.payment_method === this.selectedPaymentMethodFilter
+        );
+      }
+
       return (
-        isDebtFilter && matchesType && matchesVitrine && matchesDateRange && matchesNameSearch && matchesRequiresFE && matchesFEStatus
+        isDebtFilter && 
+        matchesType && 
+        matchesVitrine && 
+        matchesDateRange && 
+        matchesNameSearch && 
+        matchesRequiresFE && 
+        matchesFEStatus && 
+        matchesPaymentMethod
       );
     });
 
@@ -2567,6 +2585,7 @@ export class InvoiceComponent implements OnInit {
     this.showFEDone = true;
     this.showNonVitrineSales = true;
     this.showVitrineSales = true;
+    this.selectedPaymentMethodFilter = 'all';
 
     // Recargar la lista completa
     this.updateFilteredInvoices();

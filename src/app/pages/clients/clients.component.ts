@@ -471,13 +471,23 @@ export class ClientsComponent implements OnInit {
 
   toggleClientDetails() {
     this.showDetails = !this.showDetails;
-    this.modalExpanded = !this.modalExpanded;
+
+    if (this.showDetails) {
+      this.showOrders = false;
+      this.showExtractFilters = false;
+    }
+
+    this.modalExpanded = this.showDetails;
   }
 
   toggleExtractFilters() {
     this.showExtractFilters = !this.showExtractFilters;
 
-    if (!this.showExtractFilters) {
+    if (this.showExtractFilters) {
+      this.showOrders = false;
+      this.showDetails = false;
+      this.modalExpanded = false;
+    } else {
       this.resetExtractFilters();
     }
   }
@@ -496,6 +506,9 @@ export class ClientsComponent implements OnInit {
         orders: [...client.orders].sort((a, b) => b.code - a.code)
       };
       this.showOrders = true;
+      this.showDetails = false;
+      this.showExtractFilters = false;
+      this.modalExpanded = false;
       this.currentOrderPage = 1;
       this.newPaymentAmounts = {};
       this.updatePaginatedOrders();
@@ -788,6 +801,19 @@ export class ClientsComponent implements OnInit {
       return false;
     }
 
+    // ===== RESÚMENES DEL EXTRACTO (SOLO SOBRE filteredOrders) =====
+    const totalFacturado = filteredOrders.reduce((sum, order) => {
+      return sum + this.calculateOrderTotal(order);
+    }, 0);
+
+    const totalAbonado = filteredOrders.reduce((sum, order) => {
+      const paid =
+        order.payments?.reduce((pSum, p) => pSum + p.amount, 0) || 0;
+      return sum + paid;
+    }, 0);
+
+    const totalDeuda = Math.max(0, totalFacturado - totalAbonado);
+
     const doc = new jsPDF();
 
     doc.setFontSize(16);
@@ -805,13 +831,13 @@ export class ClientsComponent implements OnInit {
         order.code,
         new Date(order.created_at).toLocaleDateString('es-CO'),
         order.description,
-        `$${this.calculateOrderTotal(order).toFixed(2)}`,
-        debt > 0 ? `$${debt.toFixed(2)}` : '0',
+        `$${this.formatCurrency(this.calculateOrderTotal(order))}`,
+        debt > 0 ? `$${this.formatCurrency(debt)}` : '0',
         order.order_payment_status === 'upToDate' ? 'Al Día' : 'En Mora',
         (order.payments || [])
           .map(
             (p) =>
-              `$${p.amount.toFixed(2)} - ${this.formatPaymentMethod(
+              `$${this.formatCurrency(p.amount)} - ${this.formatPaymentMethod(
                 p.payment_method
               )} - ${p.payment_date
                 ? new Date(p.payment_date).toLocaleDateString('es-CO')
@@ -823,17 +849,45 @@ export class ClientsComponent implements OnInit {
     });
 
 
-    (doc as any).autoTable({
+    const tableResult = (doc as any).autoTable({
       head: [['#', 'Fecha', 'Detalles', 'Total', 'Deuda', 'Estado', 'Abonos']],
       body: orders,
       startY: 40,
     });
 
+    const finalY =
+      typeof tableResult.finalY === 'number'
+        ? tableResult.finalY
+        : (doc as any).lastAutoTable?.finalY || 40;
+
+    let summaryY = finalY + 10;
+
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Resumen del extracto', 10, summaryY);
+
+    summaryY += 6;
+    doc.setFont('helvetica', 'normal');
+
+    doc.text(`Total facturado: $${this.formatCurrency(totalFacturado)}`, 10, summaryY);
+    summaryY += 5;
+
+    doc.text(`Total abonado: $${this.formatCurrency(totalAbonado)}`, 10, summaryY);
+    summaryY += 5;
+
+    doc.text(`Saldo pendiente: $${this.formatCurrency(totalDeuda)}`, 10, summaryY);
     doc.save(
       `Extracto-${this.selectedClient.name}.pdf`
     );
 
     return true;
+  }
+
+  formatCurrency(value: number): string {
+    return value.toLocaleString('es-CO', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
   }
 
   downloadExtract() {
