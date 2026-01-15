@@ -327,6 +327,33 @@
             Limpiar Filtros
           </button>
         </div>
+        <!-- Orders summary -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-3 rounded bg-gray-100">
+          <div>
+            <p class="text-sm text-gray-500">Total facturado</p>
+            <p class="text-lg font-semibold">
+              ${{ ordersSummary.totalBilled | number:'1.2-2' }}
+            </p>
+          </div>
+
+          <div>
+            <p class="text-sm text-gray-500">Total pagado</p>
+            <p class="text-lg font-semibold text-green-600">
+              ${{ ordersSummary.totalPaid | number:'1.2-2' }}
+            </p>
+          </div>
+
+          <div>
+            <p class="text-sm text-gray-500">Saldo pendiente</p>
+            <p
+              class="text-lg font-semibold"
+              [class.text-red-600]="ordersSummary.outstandingBalance > 0"
+              [class.text-green-600]="ordersSummary.outstandingBalance === 0"
+            >
+              ${{ ordersSummary.outstandingBalance | number:'1.2-2' }}
+            </p>
+          </div>
+        </div>
         <table class="w-full border-collapse">
           <thead>
             <tr class="bg-gray-100">

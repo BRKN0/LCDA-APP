@@ -66,7 +66,12 @@
       </label>
     </div>
 
-    <button class="btn-clear" (click)="clearFilters()">Limpiar</button>
+    <div class="flex space-x-2">
+      <button class="btn-clear" (click)="clearFilters()">Limpiar</button>
+      <button class="btn-primary" (click)="toggleDailySummary()">
+        Resumen contable
+      </button>
+    </div>
   </div>
 
   <!-- Fila 2: Factura electrónica + Buscador -->
@@ -134,40 +139,71 @@
   </div>
 
   <!-- Fila 3: Rango de fechas -->
-  <div class="flex items-center space-x-4">
-    <div>
-      <label for="startDate" class="mr-2 font-semibold">Desde:</label>
-      <input
-        type="date"
-        id="startDate"
-        [(ngModel)]="startDate"
-        (ngModelChange)="updateFilteredInvoices()"
-        class="form-input"
-      />
+  <div class="flex items-center justify-between space-x-4">
+
+    <div class="flex items-center space-x-4">
+      <div>
+        <label for="startDate" class="mr-2 font-semibold">Desde:</label>
+        <input
+          type="date"
+          id="startDate"
+          [(ngModel)]="startDate"
+          (ngModelChange)="updateFilteredInvoices()"
+          class="form-input"
+        />
+      </div>
+
+      <div>
+        <label for="endDate" class="mr-2 font-semibold">Hasta:</label>
+        <input
+          type="date"
+          id="endDate"
+          [(ngModel)]="endDate"
+          (ngModelChange)="updateFilteredInvoices()"
+          class="form-input"
+        />
+      </div>
+
+      <select
+        [(ngModel)]="selectedPaymentMethodFilter"
+        (change)="updateFilteredInvoices()"
+        class="input"
+      >
+        <option value="all">Todos los métodos</option>
+        <option value="cash">Efectivo</option>
+        <option value="nequi">Nequi</option>
+        <option value="bancolombia">Bancolombia</option>
+        <option value="davivienda">Davivienda</option>
+      </select>
     </div>
 
-    <div>
-      <label for="endDate" class="mr-2 font-semibold">Hasta:</label>
-      <input
-        type="date"
-        id="endDate"
-        [(ngModel)]="endDate"
-        (ngModelChange)="updateFilteredInvoices()"
-        class="form-input"
-      />
-    </div>
+    <div class="flex items-center space-x-4">
+      <div>
+        <label for="paymentDateStart" class="mr-2 font-semibold">
+          Pago desde:
+        </label>
+        <input
+          type="date"
+          id="paymentDateStart"
+          [(ngModel)]="paymentDateStart"
+          (ngModelChange)="updateFilteredInvoices()"
+          class="form-input"
+        />
+      </div>
 
-    <select
-      [(ngModel)]="selectedPaymentMethodFilter"
-      (change)="updateFilteredInvoices()"
-      class="input"
-    >
-      <option value="all">Todos los métodos</option>
-      <option value="cash">Efectivo</option>
-      <option value="nequi">Nequi</option>
-      <option value="bancolombia">Bancolombia</option>
-      <option value="davivienda">Davivienda</option>
-    </select>
+      <div>
+        <label for="paymentDateEnd" class="mr-2 font-semibold">
+          Pago hasta:
+        </label>
+        <input
+          type="date"
+          id="paymentDateEnd"
+          [(ngModel)]="paymentDateEnd"
+          (ngModelChange)="updateFilteredInvoices()"
+          class="form-input"
+        />
+      </div>
+    </div>
   </div>
 
 </div>
@@ -957,3 +993,101 @@
     </div>
   </div>
 </div>
+
+<!-- DAILY SUMMARY MODAL -->
+<div *ngIf="showDailySummary" class="modal-overlay">
+  <div class="modal-content" style="height: auto !important;">
+
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-xl font-bold">
+        {{ startDate || endDate ? 'Resumen contable' : 'Resumen contable total' }}
+      </h2>
+    </div>
+
+    <!-- Rango aplicado (si hay filtros activos) -->
+    <div
+      class="mb-6 text-sm text-gray-600"
+      *ngIf="startDate || endDate"
+    >
+      <strong>Rango aplicado:</strong>
+      {{ startDate || 'Inicio' }} – {{ endDate || 'Hoy' }}
+    </div>
+
+    <!-- Summary cards -->
+    <div class="grid grid-cols-2 gap-4">
+
+      <!-- Total scheduled -->
+      <div class="p-4 border rounded-lg bg-gray-50">
+        <p class="text-sm text-gray-600">
+          Total agendado
+        </p>
+        <p class="text-xl font-bold text-blue-700">
+          ${{ dailySummary.totalScheduled | number:'1.2-2' }}
+        </p>
+      </div>
+
+      <!-- Total paid -->
+      <div class="p-4 border rounded-lg bg-green-50">
+        <p class="text-sm text-gray-600">
+          Dinero recibido
+        </p>
+        <p class="text-xl font-bold text-green-700">
+          ${{ dailySummary.totalPaid | number:'1.2-2' }}
+        </p>
+      </div>
+
+      <!-- Daily debt -->
+      <div class="p-4 border rounded-lg bg-yellow-50">
+        <p class="text-sm text-gray-600">
+          {{ startDate || endDate
+              ? 'Deuda generada en el rango'
+              : 'Deuda generada en total' }}
+        </p>
+        <p
+          class="text-xl font-bold"
+          [class.text-red-600]="dailySummary.rangeDebt > 0"
+          [class.text-green-600]="dailySummary.rangeDebt <= 0"
+        >
+          ${{ dailySummary.rangeDebt | number:'1.2-2' }}
+        </p>
+      </div>
+
+      <!-- Pending debt -->
+      <div class="p-4 border rounded-lg bg-red-50">
+        <p class="text-sm text-gray-600">
+          Deuda pendiente acumulada
+        </p>
+        <p class="text-xl font-bold text-red-700">
+          ${{ dailySummary.pendingDebt | number:'1.2-2' }}
+        </p>
+      </div>
+
+    </div>
+
+    <!-- Invoice count -->
+    <div class="mt-6 p-4 border rounded-lg bg-gray-100">
+      <p class="text-sm text-gray-600">
+        {{ startDate || endDate
+            ? 'Facturas creadas en el rango'
+            : 'Facturas creadas en total' }}
+      </p>
+      <p class="text-lg font-bold">
+        {{ dailySummary.invoiceCount }}
+      </p>
+    </div>
+
+    <!-- Footer note -->
+    <div class="mt-6 text-sm text-gray-500 italic">
+      Este resumen se calcula según los filtros activos.
+    </div>
+
+    <div class="flex justify-end">
+      <button class="btn-danger" (click)="toggleDailySummary()">
+          Cerrar
+      </button>
+    </div>
+
+  </div>
+</div>
+
