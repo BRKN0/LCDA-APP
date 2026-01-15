@@ -115,6 +115,8 @@ export class InvoiceComponent implements OnInit {
   noResultsFound: boolean = false;
   startDate: string = '';
   endDate: string = '';
+  paymentDateStart: string = '';
+  paymentDateEnd: string = '';
   isEditing = false;
   isSaving = false;
   showModal = false;
@@ -158,6 +160,15 @@ export class InvoiceComponent implements OnInit {
     address: '',
     status: '',
   };
+  showDailySummary: boolean = false;
+  dailySummary = {
+    totalScheduled: 0,
+    totalPaid: 0,
+    rangeDebt: 0,
+    pendingDebt: 0,
+    invoiceCount: 0
+  };
+
   private pct(n: number | null | undefined, digits = 0): string {
     const v = Number(n ?? 0);
     return `${(v * 100).toFixed(digits)}%`;
@@ -509,11 +520,60 @@ export class InvoiceComponent implements OnInit {
       let matchesPaymentMethod = true;
 
       if (this.selectedPaymentMethodFilter !== 'all') {
+        const hasRange = this.startDate || this.endDate;
+
+        const start = hasRange && this.startDate
+          ? new Date(this.startDate + 'T00:00:00')
+          : null;
+
+        const end = hasRange && this.endDate
+          ? new Date(this.endDate + 'T23:59:59')
+          : null;
+          
         const payments = invoice.order?.payments || [];
 
-        matchesPaymentMethod = payments.some(
-          (p) => p.payment_method === this.selectedPaymentMethodFilter
-        );
+        matchesPaymentMethod = payments.some(p => {
+          if (!p.payment_date) return false;
+
+          const paymentDate = new Date(p.payment_date);
+
+          const inRange =
+            !hasRange ||
+            (
+              (!start || paymentDate >= start) &&
+              (!end || paymentDate <= end)
+            );
+
+          return (
+            inRange &&
+            p.payment_method === this.selectedPaymentMethodFilter
+          );
+        });
+      }
+
+      let matchesPaymentDate = true;
+
+      if (this.paymentDateStart || this.paymentDateEnd) {
+        const paymentStart = this.paymentDateStart
+          ? new Date(this.paymentDateStart + 'T00:00:00')
+          : null;
+
+        const paymentEnd = this.paymentDateEnd
+          ? new Date(this.paymentDateEnd + 'T23:59:59')
+          : null;
+
+        const payments = invoice.order?.payments || [];
+
+        matchesPaymentDate = payments.some(p => {
+          if (!p.payment_date) return false;
+
+          const paymentDate = new Date(p.payment_date);
+
+          return (
+            (!paymentStart || paymentDate >= paymentStart) &&
+            (!paymentEnd || paymentDate <= paymentEnd)
+          );
+        });
       }
 
       return (
@@ -524,13 +584,18 @@ export class InvoiceComponent implements OnInit {
         matchesNameSearch && 
         matchesRequiresFE && 
         matchesFEStatus && 
-        matchesPaymentMethod
+        matchesPaymentMethod &&
+        matchesPaymentDate
       );
     });
 
     this.noResultsFound = this.filteredInvoicesList.length === 0;
     this.currentPage = 1;
     this.updatePaginatedInvoices();
+
+    if (this.showDailySummary) {
+      this.calculateSummary();
+    }
   }
 
   async calculateInvoiceValues(invoice: Invoice): Promise<{
@@ -2449,6 +2514,103 @@ export class InvoiceComponent implements OnInit {
     }
   }
 
+  calculateSummary(): void {
+    const invoices = this.filteredInvoicesList;
+
+    let totalScheduled = 0;
+    let rangeDebt = 0;
+
+    invoices.forEach(invoice => {
+      const total = invoice.order.total || 0;
+      const paid = this.getTotalPayments(invoice.order);
+      const pending = total - paid;
+
+      totalScheduled += total;
+
+      if (pending > 0) {
+        rangeDebt += pending;
+      }
+    });
+
+    this.dailySummary = {
+      totalScheduled,
+      totalPaid: this.calculateMoneyReceived(),
+      rangeDebt,
+      pendingDebt: this.calculateGlobalPendingDebt(),
+      invoiceCount: invoices.length
+    };
+  }
+
+  calculateMoneyReceived(): number {
+    const hasPaymentRange = this.paymentDateStart || this.paymentDateEnd;
+    const hasCreationRange = this.startDate || this.endDate;
+
+    const start = hasPaymentRange && this.paymentDateStart
+      ? new Date(this.paymentDateStart + 'T00:00:00')
+      : null;
+
+    const end = hasPaymentRange && this.paymentDateEnd
+      ? new Date(this.paymentDateEnd + 'T23:59:59')
+      : null;
+
+    const invoicesToUse = hasPaymentRange
+      ? this.invoices
+      : hasCreationRange
+        ? this.filteredInvoicesList
+        : this.invoices;
+
+    let total = 0;
+
+    invoicesToUse.forEach(invoice => {
+      invoice.order.payments?.forEach(payment => {
+        if (!payment.payment_date) return;
+
+        // Filtro por método
+        if (
+          this.selectedPaymentMethodFilter !== 'all' &&
+          payment.payment_method !== this.selectedPaymentMethodFilter
+        ) {
+          return;
+        }
+
+        // Filtro por fecha de pago (solo si está activo)
+        if (hasPaymentRange) {
+          const paymentDate = new Date(payment.payment_date);
+
+          const inRange =
+            (!start || paymentDate >= start) &&
+            (!end || paymentDate <= end);
+
+          if (!inRange) return;
+        }
+
+        total += payment.amount;
+      });
+    });
+
+    return total;
+  }
+
+
+  calculateGlobalPendingDebt(): number {
+    return this.invoices.reduce((sum, invoice) => {
+      const total = invoice.order.total || 0;
+      const paid = this.getTotalPayments(invoice.order);
+      const pending = total - paid;
+
+      return pending > 0 ? sum + pending : sum;
+    }, 0);
+  }
+
+
+  toggleDailySummary(): void {
+    this.showDailySummary = !this.showDailySummary;
+
+    if (this.showDailySummary) {
+      this.calculateSummary();
+    }
+  }
+
   private calculateDueDate(
     deliveryDate: string | Date,
     paymentTerm: number | null
@@ -2575,6 +2737,8 @@ export class InvoiceComponent implements OnInit {
     this.nameSearchQuery = '';
     this.startDate = '';
     this.endDate = '';
+    this.paymentDateStart = '';
+    this.paymentDateEnd = '';
     this.showPrints = true;
     this.showCuts = true;
     this.showSales = true;

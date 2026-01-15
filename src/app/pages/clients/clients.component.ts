@@ -129,6 +129,11 @@ export class ClientsComponent implements OnInit {
     retefuente: false,
     applies_ica_retention: false,*/
   };
+  ordersSummary = {
+    totalBilled: 0,
+    totalPaid: 0,
+    outstandingBalance: 0,
+  };
   showAddClientForm = false;
   IVA_RATE = 0.19;
 
@@ -757,6 +762,25 @@ export class ClientsComponent implements OnInit {
     }
   }
 
+  private calculateOrdersSummary(orders: Orders[]): void {
+    const totalBilled = orders.reduce(
+      (sum, order) => sum + this.calculateOrderTotal(order),
+      0
+    );
+
+    const totalPaid = orders.reduce((sum, order) => {
+      const paid =
+        order.payments?.reduce((pSum, p) => pSum + p.amount, 0) || 0;
+      return sum + paid;
+    }, 0);
+
+    this.ordersSummary = {
+      totalBilled,
+      totalPaid,
+      outstandingBalance: Math.max(0, totalBilled - totalPaid),
+    };
+  }
+
   closeModal(): void {
     this.showModal = false;
     this.isEditing = false;
@@ -1035,6 +1059,8 @@ export class ClientsComponent implements OnInit {
       this.totalOrderPages = Math.ceil(
         filteredOrders.length / this.itemsPerOrderPage
       );
+      
+      this.calculateOrdersSummary(filteredOrders);
     } else {
       this.paginatedOrders = [];
       this.totalOrderPages = 0;
@@ -1082,9 +1108,9 @@ export class ClientsComponent implements OnInit {
   }
 
   get submitButtonText(): string {
-  if (this.isSaving) return 'Guardando...';
-  return this.isEditing ? 'Actualizar' : 'Guardar';
-}
+    if (this.isSaving) return 'Guardando...';
+    return this.isEditing ? 'Actualizar' : 'Guardar';
+  }
 
 
 }

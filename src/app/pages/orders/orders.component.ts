@@ -401,28 +401,28 @@ export class OrdersComponent implements OnInit {
 
     try {
 
-    const clientToSave = {
-      ...this.newClient,
-      name: this.newClient.name.toUpperCase().trim(),
-    };
+      const clientToSave = {
+        ...this.newClient,
+        name: this.newClient.name.toUpperCase().trim(),
+      };
 
-    const { data, error } = await this.supabase
-      .from('clients')
-      .insert([clientToSave]);
+      const { data, error } = await this.supabase
+        .from('clients')
+        .insert([clientToSave]);
 
-    if (error) {
-      console.error('Error añadiendo el cliente:', error);
-      alert('Error al añadir el cliente.');
-      return;
+      if (error) {
+        console.error('Error añadiendo el cliente:', error);
+        alert('Error al añadir el cliente.');
+        return;
+      }
+
+      alert('Cliente añadido correctamente.');
+      this.closeAddClientModal();
+      await this.getClients();
+
+    }finally {
+      this.isSavingClient = false;
     }
-
-    alert('Cliente añadido correctamente.');
-    this.closeAddClientModal();
-    await this.getClients();
-
-  }finally {
-    this.isSavingClient = false;
-  }
 
   }
 
@@ -1177,7 +1177,7 @@ export class OrdersComponent implements OnInit {
         is_vitrine: newOrderForm.is_vitrine ?? false,
         name: newOrderForm.name,
         client_type: newOrderForm.client_type,
-        description: newOrderForm.description,
+        description: newOrderForm.description?.toUpperCase() || '',
         order_payment_status: newOrderForm.order_payment_status || 'overdue',
         created_at: new Date().toISOString(),
         created_time: this.getCurrentTimeHHMM(),
