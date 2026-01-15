@@ -779,28 +779,37 @@ export class ExpensesComponent implements OnInit {
     );
     if (error) throw error;
   }
-
+  // decomposes combined characters, removes accent, replaces spaces with underscores, and removes special characters
+  private normalizeFileName(fileName: string): string {
+    return fileName
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, '_')
+      .replace(/[^a-zA-Z0-9._-]/g, '');
+  }
   private async handleFileUploadForExpense(
     expenseId: string
   ): Promise<{ invoicePath?: string; proofPath?: string }> {
     const sanitize = (name: string) => name.replace(/[^a-zA-Z0-9.-]/g, '_');
     let results: { invoicePath?: string; proofPath?: string } = {};
 
-    // 1. Invoice
+    // invoice
     if (this.selectedInvoiceFile) {
       const file = this.selectedInvoiceFile;
+      const safeName = this.normalizeFileName(file.name);
       const filePath = `${expenseId}/invoice/${Date.now()}_${sanitize(
-        file.name
+        safeName
       )}`;
       await this.uploadExpenseFileToStorage(filePath, file);
       results.invoicePath = filePath;
     }
 
-    // 2. Proof of Payment
+    // proof of payment
     if (this.selectedProofFile) {
       const file = this.selectedProofFile;
+      const safeName = this.normalizeFileName(file.name);
       const filePath = `${expenseId}/proof/${Date.now()}_${sanitize(
-        file.name
+        safeName
       )}`;
       await this.uploadExpenseFileToStorage(filePath, file);
       results.proofPath = filePath;

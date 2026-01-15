@@ -149,6 +149,7 @@ interface VariableMap {
   styleUrls: ['./orders.component.scss'],
 })
 export class OrdersComponent implements OnInit, OnDestroy {
+  // finance and calculations
   variables: VariableMap = {
     iva: 0,
     utility_margin: 0,
@@ -170,79 +171,71 @@ export class OrdersComponent implements OnInit, OnDestroy {
     finalPerMinute: 0,
     intermediaryPerMinute: 0,
   };
-  private roleSubscription: Subscription | null = null;
   variablesMap: Record<string, number> = {};
   originalMap: Record<string, number> = {};
-  clients: Client[] = [];
-  notificationToInsert: Partial<Notifications> = {};
-  orderToInsert: Partial<Orders> = {};
-  notificationDesc: string = '';
+
+  // auth and user info
   userId: string | null = null;
   userRole: string | null = null;
-  showModal: boolean = false;
-  order_role_filter: string = '';
-  isEditing: boolean = false;
-  isSavingOrder: boolean = false;
-  isSavingClient: boolean = false;
-  orders: Orders[] = [];
-  selectedOrderTypeDetail: any | null = null;
-  order: Orders | null = null;
-  filteredOrdersList: Orders[] = [];
+  order_role_filter: string = ''; // Filter applied based on user role
+
+  // data collections
+  orders: Orders[] = []; // Master list
+  filteredOrdersList: Orders[] = []; // List after filters applied
+  paginatedOrders: Orders[] = []; // List currently shown on page
+  clients: Client[] = [];
+  filteredClients: Client[] = [];
+  allMaterials: any[] = [];
+
+  // selection and details
   selectedOrder: Orders | null = null;
-  selectedOrderDetails: Orders[] | null = null;
-  noResultsFound: boolean = false;
-  loading: boolean = true;
-  loadingDetails: boolean = true;
-  searchQuery: string = '';
-  searchByNameQuery: string = '';
+  selectedOrderDetails: Orders[] | null = null; // Full details fetched on demand
+  selectedOrderTypeDetail: any | null = null; // Specific details (Prints/Cuts/Sales)
+  order: Orders | null = null; // Temp reference
+  selectedPayment: Payment | null = null;
+
+  // search and filters
+  searchQuery: string = ''; // Search by Code
+  searchByNameQuery: string = ''; // Search by Client Name
   startDate: string = '';
   endDate: string = '';
+  selectedScheduler: string = '';
+
+  // checkbox filters
   showPrints: boolean = true;
   showCuts: boolean = true;
   showSales: boolean = true;
+  vitrineFilterMode: 'all' | 'only' | 'exclude' = 'all';
+
+  // status filters
   showInProgress = true;
   showFinished = true;
   showDelivered = true;
-  vitrineFilterMode: 'all' | 'only' | 'exclude' = 'all';
-  requires_e_invoice: boolean = false;
+
+  noResultsFound: boolean = false;
+  private searchSubject = new Subject<void>();
+
+  // pagination
   currentPage: number = 1;
   itemsPerPage: number = 10;
   totalPages: number = 1;
-  paginatedOrders: Orders[] = [];
-  newPaymentAmount: number = 0;
-  showEditPayment: boolean = false;
-  selectedPayment: Payment | null = null;
-  notificationMessage: string | null = null;
-  private searchSubject = new Subject<void>();
+
+  // forms and modals state visibility Flags
+  showModal: boolean = false; // Main Order Modal
   showAddClientModal = false;
-  filteredClients: Client[] = [];
-  newOrder: Partial<Orders> = {};
-  newCut: Partial<Cuts> = {};
-  newPrint: Partial<Prints> = {};
-  allMaterials: any[] = [];
-  selectedCategory: string = '';
-  selectedType: string = '';
-  selectedCaliber: string = '';
-  selectedColor: string = '';
-  selectedFile: File | null = null;
-  uploadedFileName: string | null = null;
-  uploadedFilePath: string | null = null;
-  selectedInvoiceFile: File | null = null;
-  selectedSecondaryFile: File | null = null;
+  showEditPayment: boolean = false;
   showStockWarningModal = false;
   stockWarningMessage = '';
-  selectedScheduler: string = '';
-  extraChargeDescription: string = '';
-  extraChargeAmount: number = 0;
-  extraChargeType: 'fixed' | 'percentage' = 'fixed';
-  initialPaymentType: 'none' | 'full' | 'partial' = 'none';
-  initialPaymentAmount: number = 0;
-  initialPaymentMethod: string = '';
-  tempCutTime: number = 0;
-  private destroy$ = new Subject<void>(); // Signal to kill subscriptions
 
-  // variable to prevent double loading
-  private isOrdersLoaded = false;
+  // operation state flags
+  isEditing: boolean = false;
+  isSavingOrder: boolean = false;
+  isSavingClient: boolean = false;
+  loading: boolean = true; // Main table loader
+  loadingDetails: boolean = true; // Details modal loader
+
+  // form models
+  newOrder: Partial<Orders> = {};
   newClient = {
     name: '',
     email: '',
@@ -252,12 +245,51 @@ export class OrdersComponent implements OnInit, OnDestroy {
     address: '',
     status: '',
   };
+  // partials (unused?)
+  newCut: Partial<Cuts> = {};
+  newPrint: Partial<Prints> = {};
+
+  // form specific fields
+  requires_e_invoice: boolean = false;
+  tempCutTime: number = 0;
+
+  // form helpers for extra charges and initial payments
+  extraChargeDescription: string = '';
+  extraChargeAmount: number = 0;
+  extraChargeType: 'fixed' | 'percentage' = 'fixed';
+
+  initialPaymentType: 'none' | 'full' | 'partial' = 'none';
+  initialPaymentAmount: number = 0;
+  initialPaymentMethod: string = '';
+  newPaymentAmount: number = 0;
+
+  // file uploads
+  selectedFile: File | null = null;
+  uploadedFileName: string | null = null;
+  uploadedFilePath: string | null = null;
+  selectedInvoiceFile: File | null = null;
+  selectedSecondaryFile: File | null = null;
+
+  // dropdown selections for materials inside forms
+  selectedCategory: string = '';
+  selectedType: string = '';
+  selectedCaliber: string = '';
+  selectedColor: string = '';
+
+  // notifications
+  notificationMessage: string | null = null; // Toast message
+  notificationToInsert: Partial<Notifications> = {};
+  notificationDesc: string = '';
+  orderToInsert: Partial<Orders> = {};
+
+  // lifecycle and subscriptions
+  private destroy$ = new Subject<void>();
+  private isOrdersLoaded = false; // prevents double loading on auth events
 
   constructor(
     private readonly supabase: SupabaseService,
     private readonly zone: NgZone,
-    private readonly roleService: RoleService,
-    private readonly routerOutlet: RouterOutlet
+    private readonly roleService: RoleService
   ) {}
 
   async ngOnInit(): Promise<void> {
@@ -1910,10 +1942,19 @@ export class OrdersComponent implements OnInit, OnDestroy {
     this.selectedScheduler = '';
     this.updateFilteredOrders();
   }
+  // decomposes combined characters, removes accent, replaces spaces with underscores, and removes special characters
+  private normalizeFileName(fileName: string): string {
+    return fileName
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, '_')
+      .replace(/[^a-zA-Z0-9._-]/g, '');
+  }
   private async handleFileUploadForOrder(orderId: string): Promise<void> {
     if (this.selectedFile) {
       const file = this.selectedFile;
-      const filePath = `${orderId}/work/${Date.now()}_${file.name}`;
+      const safeName = this.normalizeFileName(file.name);
+      const filePath = `${orderId}/work/${Date.now()}_${safeName}`;
 
       await this.uploadOrderFile(orderId, filePath, file);
 
@@ -1928,7 +1969,8 @@ export class OrdersComponent implements OnInit, OnDestroy {
 
     if (this.selectedInvoiceFile) {
       const file = this.selectedInvoiceFile;
-      const filePath = `${orderId}/invoice/${Date.now()}_${file.name}`;
+      const safeName = this.normalizeFileName(file.name);
+      const filePath = `${orderId}/invoice/${Date.now()}_${safeName}`;
 
       await this.uploadOrderFile(orderId, filePath, file);
 
@@ -1941,9 +1983,11 @@ export class OrdersComponent implements OnInit, OnDestroy {
       this.selectedInvoiceFile = null;
     }
 
-    // Subir archivo secundario si aplica
+    // secondary file upload if applicable
     if (this.selectedSecondaryFile && this.newOrder.secondary_process) {
-      const secondaryPath = `${orderId}/secondary/${this.selectedSecondaryFile.name}`;
+      const file = this.selectedSecondaryFile;
+      const safeName = this.normalizeFileName(file.name);
+      const secondaryPath = `${orderId}/secondary/${safeName}`;
 
       await this.uploadOrderFile(
         orderId,
