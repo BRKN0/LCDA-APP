@@ -76,7 +76,7 @@ interface QuotationItem {
 @Component({
   selector: 'app-quotation',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterOutlet, MainBannerComponent],
+  imports: [CommonModule, FormsModule, RouterOutlet],
   templateUrl: './quotation.component.html',
   styleUrls: ['./quotation.component.scss'],
 })

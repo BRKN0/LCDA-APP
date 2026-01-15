@@ -35,7 +35,6 @@ interface ThirdParty {
   selector: 'app-third-parties',
   imports: [
     CommonModule,
-    MainBannerComponent,
     FormsModule,
     RouterOutlet,
     ReactiveFormsModule,

@@ -22,7 +22,7 @@ interface Product {
 @Component({
   selector: 'app-product',
   standalone: true,
-  imports: [MainBannerComponent, CommonModule, FormsModule, RouterOutlet],
+  imports: [CommonModule, FormsModule, RouterOutlet],
   templateUrl: './product.component.html',
   styleUrl: './product.component.scss',
 })

@@ -144,7 +144,7 @@ interface VariableMap {
 @Component({
   selector: 'app-orders',
   standalone: true,
-  imports: [CommonModule, MainBannerComponent, FormsModule, RouterOutlet],
+  imports: [CommonModule, FormsModule, RouterOutlet],
   templateUrl: './orders.component.html',
   styleUrls: ['./orders.component.scss'],
 })

@@ -1,14 +1,14 @@
 import { Component, OnInit } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { RouterOutlet, Router } from '@angular/router';
 import { SupabaseService } from './services/supabase.service';
-import { Router } from '@angular/router';
 import { map } from 'rxjs';
 import { CommonModule } from '@angular/common';
+import { MainBannerComponent } from './pages/main-banner/main-banner.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, CommonModule],
+  imports: [RouterOutlet, CommonModule, MainBannerComponent],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
 })
@@ -16,7 +16,7 @@ export class AppComponent implements OnInit {
   isLoggedIn$;
   constructor(
     private readonly supabase: SupabaseService,
-    private readonly router: Router
+    public readonly router: Router,
   ) {
     this.isLoggedIn$ = this.supabase
       .authChanges$()

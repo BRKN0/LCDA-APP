@@ -33,7 +33,7 @@ interface Providers {
 @Component({
   selector: 'app-providers',
   standalone: true,
-  imports: [CommonModule, MainBannerComponent, FormsModule, RouterOutlet],
+  imports: [CommonModule, FormsModule, RouterOutlet],
   templateUrl: './providers.component.html',
   styleUrls: ['./providers.component.scss'],
 })

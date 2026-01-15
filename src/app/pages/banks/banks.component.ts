@@ -16,7 +16,7 @@ interface Bank {
 }
 @Component({
   selector: 'app-banks',
-  imports: [CommonModule, MainBannerComponent, FormsModule, RouterOutlet],
+  imports: [CommonModule, FormsModule, RouterOutlet],
   templateUrl: './banks.component.html',
   styleUrl: './banks.component.scss',
 })

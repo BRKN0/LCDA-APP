@@ -38,7 +38,7 @@ interface VariableMap {
 @Component({
   selector: 'app-control-panel',
   standalone: true,
-  imports: [CommonModule, MainBannerComponent, FormsModule, RouterOutlet],
+  imports: [CommonModule, FormsModule, RouterOutlet],
   templateUrl: './control-panel.component.html',
   styleUrl: './control-panel.component.scss',
 })

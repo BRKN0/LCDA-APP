@@ -22,7 +22,7 @@ interface Notifications {
 @Component({
   selector: 'app-notifications',
   standalone: true,
-  imports: [CommonModule, MainBannerComponent, FormsModule, RouterOutlet],
+  imports: [CommonModule, FormsModule, RouterOutlet],
   templateUrl: './notifications.component.html',
   styleUrls: ['./notifications.component.scss'],
 })

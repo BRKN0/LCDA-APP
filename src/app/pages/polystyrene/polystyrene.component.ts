@@ -39,7 +39,7 @@ interface PolystyreneCalculationResult {
 @Component({
   selector: 'app-polystyrene',
   standalone: true,
-  imports: [CommonModule, MainBannerComponent, FormsModule, RouterOutlet],
+  imports: [CommonModule, FormsModule, RouterOutlet],
   templateUrl: './polystyrene.component.html',
   styleUrl: './polystyrene.component.scss',
 })

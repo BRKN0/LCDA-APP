@@ -1,6 +1,5 @@
-import { Component, OnInit, NgZone, HostListener, } from '@angular/core';
+import { Component, OnInit, NgZone } from '@angular/core';
 import { RoleService } from '../../services/role.service';
-import { MainBannerComponent } from '../main-banner/main-banner.component';
 import { SupabaseService } from '../../services/supabase.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -11,9 +10,10 @@ import { CarouselComponent } from '../carousel/carousel.component';
 
 @Component({
   selector: 'app-home',
-  imports: [MainBannerComponent, CommonModule, FormsModule, RouterOutlet, CarouselComponent],
+  standalone: true,
+  imports: [CommonModule, FormsModule, RouterOutlet, CarouselComponent],
   templateUrl: './home.component.html',
-  styleUrl: './home.component.scss',
+  styleUrls: ['./home.component.scss'],
 })
 export class HomeComponent implements OnInit {
   userEmail: string | undefined = '';

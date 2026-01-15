@@ -84,7 +84,7 @@ interface Payment {
 @Component({
   selector: 'app-invoice',
   standalone: true,
-  imports: [CommonModule, MainBannerComponent, FormsModule, RouterOutlet],
+  imports: [CommonModule, FormsModule, RouterOutlet],
   templateUrl: './invoice.component.html',
   styleUrls: ['./invoice.component.scss'],
 })

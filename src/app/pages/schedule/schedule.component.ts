@@ -55,7 +55,7 @@ interface Block {
 }
 @Component({
   selector: 'app-schedule',
-  imports: [CommonModule, MainBannerComponent, FormsModule, RouterOutlet],
+  imports: [CommonModule, FormsModule, RouterOutlet],
   templateUrl: './schedule.component.html',
   styleUrls: ['./schedule.component.scss'],
 })

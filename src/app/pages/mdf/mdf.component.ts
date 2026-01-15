@@ -41,7 +41,7 @@ interface CalculationResult {
 @Component({
   selector: 'app-mdf',
   standalone: true,
-  imports: [CommonModule, FormsModule, MainBannerComponent, RouterOutlet],
+  imports: [CommonModule, FormsModule, RouterOutlet],
   templateUrl: './mdf.component.html',
   styleUrl: './mdf.component.scss'
 })

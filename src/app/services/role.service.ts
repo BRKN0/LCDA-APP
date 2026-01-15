@@ -7,28 +7,31 @@ import { SupabaseService } from './supabase.service';
 export class RoleService {
   private roleSubject = new BehaviorSubject<string | null>(null);
   role$ = this.roleSubject.asObservable();
-  private hasFetchedRole = false;
-  
+
   constructor(private readonly supabase: SupabaseService) {}
-  
 
   async fetchAndSetUserRole(userId: string): Promise<void> {
-    if (this.hasFetchedRole) return;
+    if (!userId) {
+      this.resetRole();
+      return;
+    }
 
     try {
+      // fetch role id
       const { data: userData, error: userError } = await this.supabase
         .from('users')
         .select('id_role')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (userError || !userData) {
         console.log('error fetching user role id', userError);
+        this.roleSubject.next(null);
         return;
       }
 
       const roleId = userData.id_role;
-
+      // fetch role name
       const { data: roleData, error: roleError } = await this.supabase
         .from('roles')
         .select('name')
@@ -39,15 +42,15 @@ export class RoleService {
         console.log('error fetching user role name', roleError);
         return;
       }
-
+      // update observable
       this.roleSubject.next(roleData.name);
-      this.hasFetchedRole = true;
     } catch (err) {
       console.error('Error fetching user role:', err);
+      this.roleSubject.next(null);
     }
   }
 
-  // Optional getter to retrieve the current role synchronously
+  // getter in case there's a need for synchronous access
   get currentRole(): string | null {
     return this.roleSubject.value;
   }
@@ -57,5 +60,8 @@ export class RoleService {
 
   getCurrentRole() {
     return this.roleSubject.getValue();
+  }
+  resetRole() {
+    this.roleSubject.next(null);
   }
 }

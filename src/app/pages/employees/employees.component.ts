@@ -59,7 +59,7 @@ interface Employee_benefits {
 @Component({
   selector: 'app-employees',
   standalone: true,
-  imports: [CommonModule, FormsModule, MainBannerComponent, RouterOutlet],
+  imports: [CommonModule, FormsModule, RouterOutlet],
   templateUrl: './employees.component.html',
   styleUrl: './employees.component.scss',
 })

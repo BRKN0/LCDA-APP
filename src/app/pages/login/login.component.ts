@@ -44,19 +44,19 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    // Primero verificar el hash ANTES de subscribirse
+    // first check the hash BEFORE subscribing
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const type = hashParams.get('type');
     const accessToken = hashParams.get('access_token');
 
     if (type === 'recovery' && accessToken) {
-      // Flujo de recuperación
+      // recovery flow
       this.isResetPasswordMode = true;
       this.isRecoveryMode = false;
       this.isRegisterMode = false;
       this.message = 'Por favor, ingresa tu nueva contraseña';
 
-      // Suscribirse pero sin redirigir
+      // subscribe without redirecting
       this.authSubscription = this.supabase.authChanges$().subscribe({
         next: (session) => {
           if (session && !this.isResetPasswordMode) {
@@ -70,7 +70,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Flujo normal
+
     this.authSubscription = this.supabase.authChanges$().subscribe({
       next: (session) => {
         if (!session) return;

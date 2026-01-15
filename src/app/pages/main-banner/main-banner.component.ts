@@ -1,18 +1,17 @@
 import { Component, HostListener, OnInit, NgZone } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
 import { RoleService } from '../../services/role.service';
 import { SupabaseService } from '../../services/supabase.service';
 import { Router } from '@angular/router';
-import { map, firstValueFrom } from 'rxjs';
+import { map, firstValueFrom, Subscription } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-main-banner',
   standalone: true,
-  imports: [RouterOutlet, CommonModule, RouterOutlet, FormsModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './main-banner.component.html',
-  styleUrl: './main-banner.component.scss',
+  styleUrls: ['./main-banner.component.scss'],
 })
 export class MainBannerComponent implements OnInit {
   isLoggedIn$;
@@ -26,6 +25,8 @@ export class MainBannerComponent implements OnInit {
   inventoryDropdownOpen = false;
   quotationDropdownOpen = false;
   newNotification = false;
+  private authTimer: any;
+  private roleSubscription: Subscription | null = null;
   constructor(
     private readonly supabase: SupabaseService,
     private readonly roleService: RoleService,
@@ -110,31 +111,73 @@ export class MainBannerComponent implements OnInit {
   }
 
   async ngOnInit(): Promise<void> {
+    this.roleService.role$.subscribe((role) => {
+      this.zone.run(() => {
+        if (this.userRole !== role) {
+          console.log('UI Role Update:', role);
+          this.userRole = role;
+
+          if (role) {
+            this.getNotifications();
+          } else {
+            this.newNotification = false;
+          }
+        }
+      });
+    });
+
+    // auth logic
     this.supabase.authChanges(async (_, session) => {
-      if (session && !this.userId) {
+      // cancel any previous pending execution and wait 300ms before handling
+      if (this.authTimer) clearTimeout(this.authTimer);
+      this.authTimer = setTimeout(() => {
+        this.handleAuthChange(session);
+      }, 300);
+    });
+  }
+
+  // helper to handle the auth logic once
+  private async handleAuthChange(session: any) {
+    if (session) {
+      if (this.userId !== session.user.id) {
+        this.userId = session.user.id;
+
         this.zone.run(async () => {
-          this.userId = session.user.id;
           this.userEmail = session.user.email;
 
-          const { data, error } = await this.supabase
-            .from('admins')
-            .select('user_id')
-            .eq('user_id', this.userId.trim())
-            .maybeSingle();
+          // reset states
+          this.userAdmin = false;
+          this.roleService.resetRole();
 
-          if (data != undefined) {
-            this.userAdmin = true;
-          } else {
-            this.userAdmin = false;
-          }
-          this.roleService.fetchAndSetUserRole(this.userId);
-          this.roleService.role$.subscribe((role) => {
-            this.userRole = role;
-            this.getNotifications();
-          });
+          // run both checks in parallel
+          const [adminCheck, _] = await Promise.all([
+            // check admin and fetch role
+            this.supabase
+              .from('admins')
+              .select('user_id')
+              .eq('user_id', this.userId!.trim())
+              .maybeSingle(),
+
+            this.roleService.fetchAndSetUserRole(this.userId!),
+          ]);
+
+          this.userAdmin = adminCheck.data != undefined;
+
         });
       }
-    });
+    } else {
+      // logged out
+      if (this.userId !== null) {
+        this.zone.run(() => {
+          this.userId = null;
+          this.userEmail = '';
+          this.userAdmin = false;
+          this.newNotification = false;
+          this.roleService.resetRole();
+          this.closeDropdowns();
+        });
+      }
+    }
   }
   async getNotifications() {
     if (!this.userId || !this.userRole) return;

@@ -67,7 +67,7 @@ interface Payment {
 @Component({
   selector: 'app-clients',
   standalone: true,
-  imports: [CommonModule, MainBannerComponent, FormsModule, RouterOutlet],
+  imports: [CommonModule, FormsModule, RouterOutlet],
   templateUrl: './clients.component.html',
   styleUrls: ['./clients.component.scss'],
 })

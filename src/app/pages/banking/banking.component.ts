@@ -30,7 +30,7 @@ interface Bank {
 @Component({
   selector: 'app-banking',
   standalone: true,
-  imports: [CommonModule, MainBannerComponent, FormsModule, RouterOutlet],
+  imports: [CommonModule, FormsModule, RouterOutlet],
   templateUrl: './banking.component.html',
   styleUrls: ['./banking.component.scss'],
 })

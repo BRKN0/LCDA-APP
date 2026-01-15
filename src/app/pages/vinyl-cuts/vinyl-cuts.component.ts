@@ -20,7 +20,7 @@ interface VinylCut {
 @Component({
   selector: 'app-vinyl-cuts',
   standalone: true,
-  imports: [MainBannerComponent, CommonModule, FormsModule, RouterOutlet],
+  imports: [CommonModule, FormsModule, RouterOutlet],
   templateUrl: './vinyl-cuts.component.html',
   styleUrl: './vinyl-cuts.component.scss'
 })

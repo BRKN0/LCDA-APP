@@ -45,7 +45,7 @@ interface StandardSize {
 @Component({
   selector: 'app-acrylics',
   standalone: true,
-  imports: [CommonModule, FormsModule, MainBannerComponent, RouterOutlet],
+  imports: [CommonModule, FormsModule, RouterOutlet],
   templateUrl: './acrylics.component.html',
   styleUrl: './acrylics.component.scss'
 })
