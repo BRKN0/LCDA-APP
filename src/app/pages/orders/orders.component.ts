@@ -339,8 +339,8 @@ export class OrdersComponent implements OnInit {
       }
       n--;
     } while (swapped);
-    this.updateFilteredOrders();
     this.loading = false;
+    this.updateFilteredOrders();
   }
 
   async getClients(): Promise<void> {
