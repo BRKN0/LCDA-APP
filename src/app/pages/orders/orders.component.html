@@ -45,20 +45,20 @@
       Vitrina
     </label>
     <label>
-      <input type="checkbox" 
-      [(ngModel)]="showInProgress" 
+      <input type="checkbox"
+      [(ngModel)]="showInProgress"
       (change)="updateFilteredOrders()" />
       En proceso
     </label>
     <label>
-      <input type="checkbox" 
-      [(ngModel)]="showFinished" 
+      <input type="checkbox"
+      [(ngModel)]="showFinished"
       (change)="updateFilteredOrders()" />
       Terminado
     </label>
     <label>
-      <input type="checkbox" 
-      [(ngModel)]="showDelivered" 
+      <input type="checkbox"
+      [(ngModel)]="showDelivered"
       (change)="updateFilteredOrders()" />
       Entregado
     </label>
@@ -989,6 +989,15 @@
             required
             (change)="updateOrderTotalWithExtras()"
           />
+          <label class="flex items-center gap-2 mt-2">
+            <input
+              type="checkbox"
+              name="include_iva"
+              [(ngModel)]="newOrder.include_iva"
+              (change)="updateOrderTotalWithExtras()"
+            />
+            Incluir IVA ({{ variables.iva }}%)
+          </label>
           <label class="flex items-center gap-2">
             <input
               type="checkbox"
