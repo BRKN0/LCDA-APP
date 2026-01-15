@@ -474,7 +474,13 @@
           name="includeIva"
           class="form-checkbox mt-1"
           [checked]="selectedInvoice.include_iva || false"
+          [disabled]="ivaAlreadyIncluded"
         />
+
+        <!-- AGREGAR ESTE SPAN -->
+        <span *ngIf="ivaAlreadyIncluded" class="text-green-600 text-sm ml-2">
+          ✓ IVA ya incluido desde el pedido
+        </span>
       </div>
       <div class="mb-4" *ngIf="selectedInvoice">
         <label class="block text-gray-700">Plazo de Pago (días)</label>
@@ -556,8 +562,8 @@
         <button type="button" class="btn-danger" (click)="closeModal()">
           Cancelar
         </button>
-        <button 
-        type="submit" 
+        <button
+        type="submit"
         class="btn-success px-4 py-2 rounded-md"
         [disabled]="isSaving"
         >
@@ -858,8 +864,8 @@
                 : "Desconocido"
               }} -
               {{ payment.payment_date | date : "dd-MM-yyyy" }}
-              <button 
-                class="text-blue-500 ml-2" 
+              <button
+                class="text-blue-500 ml-2"
                 (click)="editPayment(payment)"
               >
                 Editar
