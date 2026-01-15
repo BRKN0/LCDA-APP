@@ -392,6 +392,7 @@ export class OrdersComponent implements OnInit {
   }
 
   async saveNewClient(): Promise<void> {
+    if (this.isSavingClient) return;
     if (!this.newClient.name) {
       alert('Por favor, escriba un nombre para el cliente.');
       return;
