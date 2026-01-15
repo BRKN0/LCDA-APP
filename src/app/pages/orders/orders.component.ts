@@ -49,6 +49,7 @@ interface Orders {
   pending_quantity?: number;
   discount?: number;
   discount_type?: 'percentage' | 'fixed';
+  include_iva?: boolean;
 }
 
 interface Client {
@@ -338,8 +339,8 @@ export class OrdersComponent implements OnInit {
       }
       n--;
     } while (swapped);
-    this.updateFilteredOrders();
     this.loading = false;
+    this.updateFilteredOrders();
   }
 
   async getClients(): Promise<void> {
@@ -1052,6 +1053,7 @@ export class OrdersComponent implements OnInit {
         discount: 0,
         discount_type: 'fixed',
         requires_e_invoice: false,
+        include_iva: false,
       };
       this.selectedCategory = '';
       this.selectedType = '';
@@ -1170,7 +1172,11 @@ export class OrdersComponent implements OnInit {
       const baseTotal = parseFloat(newOrderForm.unitary_value as string) || 0;
       const extras =
         newOrderForm.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
-      const total = baseTotal + extras;
+      let total = baseTotal + extras;
+      if (newOrderForm.include_iva) {
+        const ivaAmount = total * (this.variables.iva / 100);
+        total = total + ivaAmount;
+      }
 
       this.newOrder = {
         order_type: newOrderForm.order_type,
@@ -1203,6 +1209,7 @@ export class OrdersComponent implements OnInit {
         extra_charges: newOrderForm.extra_charges || [],
         base_total: baseTotal,
         requires_e_invoice: newOrderForm.requires_e_invoice ?? false,
+        include_iva: newOrderForm.include_iva ?? false,
       };
 
       if (this.newOrder.order_type === 'laser') {
@@ -1570,8 +1577,17 @@ export class OrdersComponent implements OnInit {
     const baseTotal = Number(this.newOrder.unitary_value) || 0;
     const extras =
       this.newOrder.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
+    const subtotal = baseTotal + extras;
+    // Calcular total con o sin IVA
+    if (this.newOrder.include_iva) {
+      const ivaAmount = subtotal * (this.variables.iva / 100);
+      this.newOrder.total = subtotal + ivaAmount;
+      this.newOrder.iva = ivaAmount; // Guardar el monto del IVA
+    } else {
+      this.newOrder.total = subtotal;
+      this.newOrder.iva = 0;
+    }
 
-    this.newOrder.total = baseTotal + extras;
     this.newOrder.subtotal = baseTotal;
     this.newOrder.base_total = baseTotal;
   }
