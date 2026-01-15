@@ -1,9 +1,8 @@
-import { Component, OnInit, NgZone } from '@angular/core';
+import { Component, OnInit, NgZone, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MainBannerComponent } from '../main-banner/main-banner.component';
 import { SupabaseService } from '../../services/supabase.service';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
+import { Subject, Subscription, takeUntil } from 'rxjs';
 import { RoleService } from '../../services/role.service';
 import { RouterOutlet } from '@angular/router';
 
@@ -148,7 +147,7 @@ interface VariableMap {
   templateUrl: './orders.component.html',
   styleUrls: ['./orders.component.scss'],
 })
-export class OrdersComponent implements OnInit {
+export class OrdersComponent implements OnInit, OnDestroy {
   variables: VariableMap = {
     iva: 0,
     utility_margin: 0,
@@ -170,6 +169,7 @@ export class OrdersComponent implements OnInit {
     finalPerMinute: 0,
     intermediaryPerMinute: 0,
   };
+  private roleSubscription: Subscription | null = null;
   variablesMap: Record<string, number> = {};
   originalMap: Record<string, number> = {};
   clients: Client[] = [];
@@ -238,7 +238,10 @@ export class OrdersComponent implements OnInit {
   initialPaymentAmount: number = 0;
   initialPaymentMethod: string = '';
   tempCutTime: number = 0;
+  private destroy$ = new Subject<void>(); // Signal to kill subscriptions
 
+  // variable to prevent double loading
+  private isOrdersLoaded = false;
   newClient = {
     name: '',
     email: '',
@@ -254,30 +257,43 @@ export class OrdersComponent implements OnInit {
     private readonly zone: NgZone,
     private readonly roleService: RoleService,
     private readonly routerOutlet: RouterOutlet
-  ) { }
+  ) {}
 
   async ngOnInit(): Promise<void> {
+    // listen for auth changes once
     this.supabase.authChanges((_, session) => {
       if (session) {
         this.zone.run(() => {
-          this.userId = session.user.id;
-          this.roleService.fetchAndSetUserRole(this.userId);
-          this.roleService.role$.subscribe((role) => {
-            this.userRole = role;
-            if (role) {
-              this.getOrders();
-            }
-          });
-          this.getClients();
-          this.getMaterials();
-          this.getVariables();
+          // if the user changed, reset the "loaded" flag
+          if (this.userId !== session.user.id) {
+            this.userId = session.user.id;
+            this.isOrdersLoaded = false;
+
+            // load auxiliary data in parallel
+            this.getClients();
+            this.getMaterials();
+            this.getVariables();
+
+            // fetch Role
+            this.roleService.fetchAndSetUserRole(this.userId);
+          }
         });
-      } else {
-        console.error('Usuario no autenticado.');
-        this.orders = [];
-        this.filteredOrdersList = [];
       }
     });
+
+    // subscribe to role separately to prevent duplicate calls
+    this.roleService.role$.pipe(takeUntil(this.destroy$)).subscribe((role) => {
+      this.zone.run(() => {
+        this.userRole = role;
+        if (role && !this.isOrdersLoaded) {
+          this.getOrders();
+        }
+      });
+    });
+  }
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
   async getVariables() {
     this.loading = true;
@@ -292,8 +308,17 @@ export class OrdersComponent implements OnInit {
     this.loading = false;
   }
   async getOrders(): Promise<void> {
+    // prevent overlapping calls
+    if (this.loading && this.orders.length > 0) return;
     this.loading = true;
-    let query = this.supabase.from('orders').select('*, payments(*)');
+    // SELECT ONLY THE COLUMNS NEEDED FOR THE TABLE
+    let query = this.supabase.from('orders').select(`
+        id_order, code, order_type, name, scheduler, 
+        order_payment_status, order_completion_status, order_confirmed_status, order_delivery_status,
+        created_at, created_time, delivery_date, is_immediate,
+        total, client_type, secondary_process, secondary_completed, is_vitrine,
+        payments(amount) 
+      `);
 
     if (this.userRole !== 'admin' && this.userRole !== 'scheduler') {
       switch (this.userRole) {
@@ -321,25 +346,10 @@ export class OrdersComponent implements OnInit {
       return;
     }
     this.orders = data as Orders[];
-
-    let n = this.orders.length;
-    let swapped: boolean;
-
-    do {
-      swapped = false;
-      for (let i = 0; i < n - 1; i++) {
-        if (this.orders[i].code < this.orders[i + 1].code) {
-          [this.orders[i], this.orders[i + 1]] = [
-            this.orders[i + 1],
-            this.orders[i],
-          ];
-          swapped = true;
-        }
-      }
-      n--;
-    } while (swapped);
+    this.orders.sort((a, b) => b.code - a.code);
     this.updateFilteredOrders();
     this.loading = false;
+    this.isOrdersLoaded = true;
   }
 
   async getClients(): Promise<void> {
@@ -401,7 +411,6 @@ export class OrdersComponent implements OnInit {
     this.isSavingClient = true;
 
     try {
-
       const clientToSave = {
         ...this.newClient,
         name: this.newClient.name.toUpperCase().trim(),
@@ -420,11 +429,9 @@ export class OrdersComponent implements OnInit {
       alert('Cliente añadido correctamente.');
       this.closeAddClientModal();
       await this.getClients();
-
-    }finally {
+    } finally {
       this.isSavingClient = false;
     }
-
   }
 
   showNotification(message: string) {
@@ -717,7 +724,10 @@ export class OrdersComponent implements OnInit {
       this.vitrineFilterMode = 'only';
     }
     const allTypeCheckboxesOff =
-      !this.showPrints && !this.showCuts && !this.showSales && this.vitrineFilterMode !== 'only';
+      !this.showPrints &&
+      !this.showCuts &&
+      !this.showSales &&
+      this.vitrineFilterMode !== 'only';
 
     this.filteredOrdersList = this.orders.filter((order) => {
       const normalizeDate = (d: Date) =>
@@ -754,7 +764,8 @@ export class OrdersComponent implements OnInit {
 
       const matchesStatus =
         allStatusCheckboxesOff ||
-        (this.showInProgress && order.order_completion_status === 'inProgress') ||
+        (this.showInProgress &&
+          order.order_completion_status === 'inProgress') ||
         (this.showFinished && order.order_completion_status === 'finished') ||
         (this.showDelivered && order.order_completion_status === 'delivered');
 
@@ -783,13 +794,17 @@ export class OrdersComponent implements OnInit {
       }
 
       return (
-        matchesType && matchesDateRange && matchesNameSearch && matchesScheduler && matchesStatus && matchesVitrine
+        matchesType &&
+        matchesDateRange &&
+        matchesNameSearch &&
+        matchesScheduler &&
+        matchesStatus &&
+        matchesVitrine
       );
     });
 
     if (this.userRole !== 'admin' && this.userRole !== 'scheduler') {
       this.filteredOrdersList = this.filteredOrdersList.sort((a, b) => {
-
         const aInProgress = a.order_completion_status === 'inProgress';
         const bInProgress = b.order_completion_status === 'inProgress';
 
@@ -827,53 +842,76 @@ export class OrdersComponent implements OnInit {
     this.loadingDetails = true;
     this.selectedOrderTypeDetail = [];
 
-    if (order.order_type === 'print') {
-      const { data, error } = await this.supabase
-        .from('prints')
+    try {
+      // fetch the full details order data from the database
+      const { data: fullOrderData, error: orderError } = await this.supabase
+        .from('orders')
         .select('*')
-        .eq('id_order', order.id_order);
+        .eq('id_order', order.id_order)
+        .single();
 
-      if (error) {
-        console.log(error);
-      } else {
-        this.selectedOrderTypeDetail = data;
+      if (orderError || !fullOrderData) {
+        console.error('Error loading full order details:', orderError);
+        this.showNotification('Error al cargar los detalles del pedido');
+        this.loadingDetails = false;
+        return;
       }
-    } else if (order.order_type === 'laser') {
-      const { data, error } = await this.supabase
-        .from('cuts')
-        .select('*')
-        .eq('id_order', order.id_order);
 
-      if (error) {
-        console.log(error);
-      } else {
-        this.selectedOrderTypeDetail = data;
-      }
-    } else if (
-      order.order_type === 'venta' ||
-      order.order_type === 'sale' ||
-      order.order_type === 'sales'
-    ) {
-      const { data, error } = await this.supabase
-        .from('sales')
-        .select('*')
-        .eq('id_order', order.id_order);
+      // fetch the specific details based on type
+      if (fullOrderData.order_type === 'print') {
+        const { data, error } = await this.supabase
+          .from('prints')
+          .select('*')
+          .eq('id_order', order.id_order);
 
-      if (error) {
-        console.log(error);
-      } else {
-        this.selectedOrderTypeDetail = data || [];
+        if (error) {
+          console.error('Error fetching prints:', error);
+        } else {
+          this.selectedOrderTypeDetail = data;
+        }
+      } else if (fullOrderData.order_type === 'laser') {
+        const { data, error } = await this.supabase
+          .from('cuts')
+          .select('*')
+          .eq('id_order', order.id_order);
+
+        if (error) {
+          console.error('Error fetching cuts:', error);
+        } else {
+          this.selectedOrderTypeDetail = data;
+        }
+      } else if (
+        fullOrderData.order_type === 'venta' ||
+        fullOrderData.order_type === 'sale' ||
+        fullOrderData.order_type === 'sales'
+      ) {
+        const { data, error } = await this.supabase
+          .from('sales')
+          .select('*')
+          .eq('id_order', order.id_order);
+
+        if (error) {
+          console.error('Error fetching sales:', error);
+        } else {
+          this.selectedOrderTypeDetail = data || [];
+        }
       }
+
+      // update the component state with the full data
+      this.selectedOrder = fullOrderData as Orders;
+
+      this.selectedOrderDetails = [
+        {
+          ...fullOrderData,
+          // ensure extra_charges is an array to prevent UI errors
+          extra_charges: fullOrderData.extra_charges || [],
+        },
+      ];
+    } catch (err) {
+      console.error('Unexpected error in selectOrder:', err);
+    } finally {
+      this.loadingDetails = false;
     }
-
-    this.selectedOrderDetails = [
-      {
-        ...order,
-        extra_charges: order.extra_charges || [],
-      },
-    ];
-    this.selectedOrder = order;
-    this.loadingDetails = false;
   }
 
   getUniqueCategories(): string[] {
@@ -939,7 +977,8 @@ export class OrdersComponent implements OnInit {
     if (
       order.secondary_process &&
       !order.secondary_completed &&
-      (newCompletionStatus === 'finished' || newCompletionStatus === 'delivered')
+      (newCompletionStatus === 'finished' ||
+        newCompletionStatus === 'delivered')
     ) {
       alert(
         'Este pedido tiene un proceso secundario pendiente y no puede ser completado aún.'
@@ -952,12 +991,11 @@ export class OrdersComponent implements OnInit {
       newCompletionStatus === 'finished'
         ? 'Completado'
         : newCompletionStatus === 'delivered'
-          ? 'Completado'
-          : 'toBeDelivered';
+        ? 'Completado'
+        : 'toBeDelivered';
 
     const newConfirmedStatus =
-      newCompletionStatus === 'finished' ||
-        newCompletionStatus === 'delivered'
+      newCompletionStatus === 'finished' || newCompletionStatus === 'delivered'
         ? 'confirmed'
         : 'notConfirmed';
 
@@ -1319,7 +1357,11 @@ export class OrdersComponent implements OnInit {
         const { data: insertedOrderData, error: insertError } =
           await this.supabase.from('orders').insert([this.newOrder]).select();
 
-        if (insertError || !insertedOrderData || insertedOrderData.length === 0) {
+        if (
+          insertError ||
+          !insertedOrderData ||
+          insertedOrderData.length === 0
+        ) {
           console.error('Error al insertar el pedido:', insertError);
           alert('Error al crear el pedido.');
           return;
@@ -1745,7 +1787,9 @@ export class OrdersComponent implements OnInit {
 
     // get the file name from the path
     const fileName = filePath.split('/').pop() || 'archivo';
-    const downloadUrl = `${data.signedUrl}&download=${encodeURIComponent(fileName)}`;
+    const downloadUrl = `${data.signedUrl}&download=${encodeURIComponent(
+      fileName
+    )}`;
 
     // trigger the download
     const anchor = document.createElement('a');
@@ -1885,7 +1929,11 @@ export class OrdersComponent implements OnInit {
     if (this.selectedSecondaryFile && this.newOrder.secondary_process) {
       const secondaryPath = `${orderId}/secondary/${this.selectedSecondaryFile.name}`;
 
-      await this.uploadOrderFile(orderId, secondaryPath, this.selectedSecondaryFile);
+      await this.uploadOrderFile(
+        orderId,
+        secondaryPath,
+        this.selectedSecondaryFile
+      );
 
       await this.supabase
         .from('orders')
@@ -1898,9 +1946,8 @@ export class OrdersComponent implements OnInit {
 
     this.uploadedFileName = null;
   }
-get submitButtonText(): string {
-  if (this.isSavingOrder || this.isSavingClient  ) return 'Guardando...';
-  return this.isEditing ? 'Actualizar' : 'Guardar';
-}
-
+  get submitButtonText(): string {
+    if (this.isSavingOrder || this.isSavingClient) return 'Guardando...';
+    return this.isEditing ? 'Actualizar' : 'Guardar';
+  }
 }
