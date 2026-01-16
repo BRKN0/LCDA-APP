@@ -311,9 +311,10 @@
             <button
               *ngIf="userRole == 'admin' || userRole === 'scheduler'"
               class="btn-delete"
-              (click)="deleteOrder(order)"
+               [disabled]="deletingOrderId === order.id_order"
+              (click)="deleteOrder(order); $event.stopPropagation()"
             >
-              Eliminar
+              {{ deletingOrderId === order.id_order ? 'Eliminando...' : 'Eliminar' }}
             </button>
           </td>
         </tr>

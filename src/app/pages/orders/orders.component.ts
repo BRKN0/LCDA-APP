@@ -290,7 +290,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
     private readonly supabase: SupabaseService,
     private readonly zone: NgZone,
     private readonly roleService: RoleService
-  ) {}
+  ) { }
 
   async ngOnInit(): Promise<void> {
     // listen for auth changes once
@@ -690,10 +690,14 @@ export class OrdersComponent implements OnInit, OnDestroy {
     The database trigger will update the client's debt and cascade delete prints, cuts, sales, invoices, etc.
     Don't do that in here to avoid race conditions and lag PLEASE.
   */
+  deletingOrderId: string | null = null;
   async deleteOrder(order: Orders): Promise<void> {
-    if (!confirm(`¿Eliminar orden #${order.code}?`)) {
-      return;
-    }
+    if (this.deletingOrderId === order.id_order) return;
+
+    const confirmed = confirm(`¿Eliminar orden #${order.code}?`);
+    if (!confirmed) return;
+
+    this.deletingOrderId = order.id_order;
 
     try {
       const { error } = await this.supabase
@@ -708,12 +712,17 @@ export class OrdersComponent implements OnInit, OnDestroy {
       }
 
       // Update local state
-      this.orders = this.orders.filter((o) => o.id_order !== order.id_order);
+      this.orders = this.orders.filter(
+        (o) => o.id_order !== order.id_order
+      );
       this.updateFilteredOrders();
-      this.showNotification('Orden eliminada y deuda ajustada correctamente.');
+
+      this.showNotification('Orden eliminada correctamente.');
     } catch (error) {
       console.error('Error inesperado al eliminar la orden:', error);
       this.showNotification('Ocurrió un error inesperado.');
+    } finally {
+      this.deletingOrderId = null;
     }
   }
 
@@ -1024,8 +1033,8 @@ export class OrdersComponent implements OnInit, OnDestroy {
       newCompletionStatus === 'finished'
         ? 'Completado'
         : newCompletionStatus === 'delivered'
-        ? 'Completado'
-        : 'toBeDelivered';
+          ? 'Completado'
+          : 'toBeDelivered';
 
     const newConfirmedStatus =
       newCompletionStatus === 'finished' || newCompletionStatus === 'delivered'

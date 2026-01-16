@@ -191,9 +191,10 @@
             </button>
             <button
               class="btn-delete text-xs px-2 py-1"
-              (click)="deleteExpense(expense)"
+              [disabled]="deletingExpenseId === expense.id_expenses"
+              (click)="deleteExpense(expense) ; $event.stopPropagation()"
             >
-              Eliminar
+               {{ deletingExpenseId === expense.id_expenses ? 'Eliminando...' : 'Eliminar' }}
             </button>
           </div>
         </td>

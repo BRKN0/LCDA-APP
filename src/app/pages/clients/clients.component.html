@@ -116,8 +116,9 @@
             <button
               class="btn-delete"
               (click)="deleteClient(client); $event.stopPropagation()"
+              [disabled]="deletingClientId === client.id_client"
             >
-              Eliminar
+               {{ deletingClientId === client.id_client ? 'Eliminando...' : 'Eliminar' }}
             </button>
           </td>
         </tr>

@@ -678,88 +678,88 @@ export class ClientsComponent implements OnInit {
 
   async saveClient(): Promise<void> {
     if (this.isSaving) return;
-    if (!this.selectedClientData) return;
 
-    if (!this.selectedClientData.name) {
-      alert('Por favor, digite nombre del cliente.');
-      return;
-    }
     this.isSaving = true;
-    const clientToSave = {
-      name: this.selectedClientData.name?.toUpperCase().trim() || null,
-      document_type: this.selectedClientData.document_type,
-      document_number: this.selectedClientData.document_number || null,
-      cellphone: this.selectedClientData.cellphone,
-      status: this.selectedClientData.status || 'upToDate',
-      nit: this.selectedClientData.nit || null,
-      company_name: this.selectedClientData.company_name || null,
-      email: this.selectedClientData.email,
-      debt: this.selectedClientData.debt || 0,
-      address: this.selectedClientData.address,
-      city: this.selectedClientData.city,
-      province: this.selectedClientData.province,
-      postal_code: this.selectedClientData.postal_code,
-      /*tax_regime: this.selectedClientData.tax_regime,
-      is_declarante: this.selectedClientData.is_declarante || false,
-      retefuente: this.selectedClientData.retefuente || false,
-      applies_ica_retention: this.selectedClientData.applies_ica_retention || false,*/
-      credit_limit: this.selectedClientData.credit_limit,
-      default_discount: this.selectedClientData.default_discount || 0
-    };
 
     try {
+      if (!this.selectedClientData) return;
+
+      if (!this.selectedClientData.name) {
+        alert('Por favor, digite nombre del cliente.');
+        return;
+      }
+
+      const clientToSave = {
+        name: this.selectedClientData.name?.toUpperCase().trim() || null,
+        document_type: this.selectedClientData.document_type,
+        document_number: this.selectedClientData.document_number || null,
+        cellphone: this.selectedClientData.cellphone,
+        status: this.selectedClientData.status || 'upToDate',
+        nit: this.selectedClientData.nit || null,
+        company_name: this.selectedClientData.company_name || null,
+        email: this.selectedClientData.email,
+        debt: this.selectedClientData.debt || 0,
+        address: this.selectedClientData.address,
+        city: this.selectedClientData.city,
+        province: this.selectedClientData.province,
+        postal_code: this.selectedClientData.postal_code,
+        /*tax_regime: this.selectedClientData.tax_regime,
+        is_declarante: this.selectedClientData.is_declarante || false,
+        retefuente: this.selectedClientData.retefuente || false,
+        applies_ica_retention: this.selectedClientData.applies_ica_retention || false,*/
+        credit_limit: this.selectedClientData.credit_limit,
+        default_discount: this.selectedClientData.default_discount || 0
+      };
+
       if (this.isEditing) {
+
         const { error } = await this.supabase
           .from('clients')
           .update(clientToSave)
-          .eq('id_client', this.selectedClientData.id_client);
+          .eq('id_client', this.selectedClientData.id_client)
 
-        if (error) {
-          console.error('Error actualizando cliente:', error);
-          return;
-        }
+        if (error) throw error;
         alert('Cliente actualizado correctamente');
       } else {
         const { error } = await this.supabase
           .from('clients')
           .insert([clientToSave]);
 
-        if (error) {
-          console.error('Error añadiendo cliente:', error);
-          return;
-        }
-        alert('Cliente añadido correctamente');
+        if (error) throw error;
+        alert('Cliente añadido correctamente')
       }
 
       this.getClients();
       this.closeModal();
     } catch (error) {
-      console.error('Error inesperado al guardar cliente:', error);
-    } finally{
-      this.isSaving=false;
+      console.error('Error al guardar cliente:', error);
+    } finally {
+      this.isSaving = false;
     }
   }
 
+  deletingClientId: string | null = null;
+
   async deleteClient(client: Client): Promise<void> {
-    if (
-      confirm(`¿Eliminar el cliente ${client.company_name || client.name}?`)
-    ) {
-      try {
-        const { error } = await this.supabase
-          .from('clients')
-          .delete()
-          .eq('id_client', client.id_client);
+    
+    if (this.deletingClientId === client.id_client) return;
 
-        if (error) {
-          console.error('Error eliminando cliente:', error);
-          return;
-        }
+    const confirmed = confirm(
+      `¿Eliminar el cliente ${client.company_name || client.name}?`
+    );
+    if (!confirmed) return;
 
-        alert('Cliente eliminado correctamente');
-        this.getClients();
-      } catch (error) {
-        console.error('Error inesperado al eliminar cliente:', error);
-      }
+    this.deletingClientId = client.id_client;
+
+    try {
+      await this.supabase
+        .from('clients')
+        .delete()
+        .eq('id_client', client.id_client);
+
+      this.getClients();
+    } finally {
+      this.deletingClientId = null;
     }
   }
 
@@ -1060,7 +1060,7 @@ export class ClientsComponent implements OnInit {
       this.totalOrderPages = Math.ceil(
         filteredOrders.length / this.itemsPerOrderPage
       );
-      
+
       this.calculateOrdersSummary(filteredOrders);
     } else {
       this.paginatedOrders = [];

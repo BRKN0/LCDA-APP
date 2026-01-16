@@ -122,7 +122,7 @@ export class ExpensesComponent implements OnInit {
     phone_number: '',
   };
 
-  constructor(private readonly supabase: SupabaseService) {}
+  constructor(private readonly supabase: SupabaseService) { }
 
   ngOnInit(): void {
     this.getExpenses();
@@ -269,31 +269,30 @@ export class ExpensesComponent implements OnInit {
     if (this.isSaving) return;
     this.isSaving = true;
 
-    // Validations
-    if (!this.selectedExpense.payment_date) {
-      alert('Por favor, seleccione una fecha.');
-      this.isSaving = false;
-      return;
-    }
-    if (!this.selectedExpense.category) {
-      alert('Por favor, seleccione una categoría.');
-      this.isSaving = false;
-      return;
-    }
-    if (
-      this.selectedExpense.payment_status === 'PENDING' &&
-      !this.selectedExpense.payment_due_date
-    ) {
-      alert(
-        'Si el estado es "Pendiente", debe seleccionar una Fecha Límite de Pago.'
-      );
-      this.isSaving = false;
-      return;
-    }
-
     let rollbackProviderId: string | null = null;
 
     try {
+      // Validations
+      if (!this.selectedExpense.payment_date) {
+        alert('Por favor, seleccione una fecha.');
+        return;
+      }
+
+      if (!this.selectedExpense.category) {
+        alert('Por favor, seleccione una categoría.');
+        return;
+      }
+
+      if (
+        this.selectedExpense.payment_status === 'PENDING' &&
+        !this.selectedExpense.payment_due_date
+      ) {
+        alert(
+          'Si el estado es "Pendiente", debe seleccionar una Fecha Límite de Pago.'
+        );
+        return;
+      }
+
       let finalProviderId = this.selectedExpense.id_provider;
       let finalProviderName = '';
 
@@ -305,7 +304,6 @@ export class ExpensesComponent implements OnInit {
           );
         }
 
-        // Determine the name to save immediately
         finalProviderName =
           this.newProviderData.company_name || this.newProviderData.name;
 
@@ -328,7 +326,6 @@ export class ExpensesComponent implements OnInit {
         finalProviderId = provData.id_provider;
         rollbackProviderId = provData.id_provider;
       } else if (finalProviderId) {
-        // Find the selected provider in the list to get the name
         const selectedProv = this.providersList.find(
           (p) => p.id_provider === finalProviderId
         );
@@ -336,12 +333,12 @@ export class ExpensesComponent implements OnInit {
           finalProviderName = selectedProv.company_name || selectedProv.name;
         }
       }
+
       if (
         this.selectedExpense.category === 'UTILITIES' &&
         !this.selectedExpense.service_type
       ) {
         alert('Debe seleccionar el tipo de servicio.');
-        this.isSaving = false;
         return;
       }
 
@@ -356,12 +353,8 @@ export class ExpensesComponent implements OnInit {
         description: this.selectedExpense.description,
         cost: this.selectedExpense.cost,
         code: this.selectedExpense.code,
-
-        // Link ID (can be null if deleted later)
         id_provider: finalProviderId || null,
-        // Snapshot Name
         provider_name: finalProviderName || null,
-
         payment_status: this.selectedExpense.payment_status,
         payment_due_date:
           this.selectedExpense.payment_status === 'PENDING'
@@ -370,6 +363,7 @@ export class ExpensesComponent implements OnInit {
       };
 
       let savedExpenseId: string | null = null;
+
       if (this.isEditing) {
         const { error } = await this.supabase
           .from('expenses')
@@ -388,12 +382,13 @@ export class ExpensesComponent implements OnInit {
         if (error) throw error;
         savedExpenseId = newExpense.id_expenses;
       }
+
       if (!savedExpenseId) {
         throw new Error('No se pudo obtener el ID del registro guardado.');
       }
-      const uploadResults = await this.handleFileUploadForExpense(
-        savedExpenseId
-      );
+
+      const uploadResults = await this.handleFileUploadForExpense(savedExpenseId);
+
       if (uploadResults.invoicePath || uploadResults.proofPath) {
         const finalUpdate: any = {};
         if (uploadResults.invoicePath)
@@ -406,29 +401,28 @@ export class ExpensesComponent implements OnInit {
           .update(finalUpdate)
           .eq('id_expenses', savedExpenseId);
 
-        if (finalError) {
-          console.error('Error saving file paths to DB:', finalError);
-          throw new Error(
-            'Gasto guardado pero no se pudieron registrar los archivos en la BD.'
-          );
-        }
+        if (finalError) throw finalError;
       }
+
       alert(this.isEditing ? 'Egreso actualizado' : 'Egreso añadido');
+
       this.selectedInvoiceFile = null;
       this.selectedProofFile = null;
+
       if (rollbackProviderId) await this.getProviders();
 
       this.getExpenses();
       this.closeModal();
     } catch (err: any) {
       console.error(err);
-      // Rollback orphaned provider
+
       if (rollbackProviderId) {
         await this.supabase
           .from('providers')
           .delete()
           .eq('id_provider', rollbackProviderId);
       }
+
       alert('Error: ' + err.message);
     } finally {
       this.isSaving = false;
@@ -675,29 +669,41 @@ export class ExpensesComponent implements OnInit {
       proof_of_payment_path: null,
     };
   }
+  deletingExpenseId: string | null = null;
 
-  deleteExpense(expense: ExpensesItem): void {
-    if (
-      confirm(
-        `¿Eliminar el egreso de categoría ${
-          expense.category || 'sin categoría'
-        }?`
-      )
-    ) {
-      this.supabase
+  async deleteExpense(expense: ExpensesItem): Promise<void> {
+
+    if (this.deletingExpenseId === expense.id_expenses) return;
+
+    const confirmed = confirm(
+      `¿Eliminar el egreso de categoría ${expense.category || 'sin categoría'
+      }?`
+    );
+
+    if (!confirmed) return;
+
+    this.deletingExpenseId = expense.id_expenses;
+
+    try {
+      const { error } = await this.supabase
         .from('expenses')
         .delete()
-        .eq('id_expenses', expense.id_expenses)
-        .then(({ error }) => {
-          if (error) {
-            console.error('Error eliminando:', error);
-          } else {
-            alert('Egreso eliminado');
-            this.getExpenses();
-          }
-        });
+        .eq('id_expenses', expense.id_expenses);
+
+      if (error) {
+        console.error('Error eliminando:', error);
+        return;
+      }
+
+      alert('Egreso eliminado');
+      this.getExpenses();
+    } catch (error) {
+      console.error('Error inesperado al eliminar:', error);
+    } finally {
+      this.deletingExpenseId = null;
     }
   }
+
 
   // Pagination Methods
   paginateItems<T>(items: T[], page: number, itemsPerPage: number): T[] {
@@ -848,10 +854,10 @@ export class ExpensesComponent implements OnInit {
     document.body.removeChild(anchor);
   }
 
-get submitButtonText(): string {
-  if (this.isSaving) return 'Guardando...';
-  return this.isEditing ? 'Actualizar' : 'Guardar';
-}
+  get submitButtonText(): string {
+    if (this.isSaving) return 'Guardando...';
+    return this.isEditing ? 'Actualizar' : 'Guardar';
+  }
 
 
 }
