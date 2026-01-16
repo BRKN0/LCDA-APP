@@ -1158,27 +1158,44 @@ export class OrdersComponent implements OnInit, OnDestroy {
     this.updateFilteredOrders();
   }
 
-  async editOrder(order: Orders): Promise<void> {
+ async editOrder(order: Orders): Promise<void> {
     this.isEditing = true;
+
+    // fetch full order details
+    const { data: fullOrder, error } = await this.supabase
+      .from('orders')
+      .select('*')
+      .eq('id_order', order.id_order)
+      .single();
+
+    if (error || !fullOrder) {
+      console.error('Error loading order for editing:', error);
+      this.showNotification('Error al cargar los datos del pedido');
+      return;
+    }
+
     this.showModal = true;
     await this.getMaterials();
 
-    this.newOrder = { ...order };
+    // populate form with full order data
+    this.newOrder = { ...fullOrder } as Orders;
 
-    // Normalize date
-    this.newOrder.delivery_date = order.delivery_date
-      ? order.delivery_date.slice(0, 10)
+    // normalize date
+    this.newOrder.delivery_date = fullOrder.delivery_date
+      ? fullOrder.delivery_date.slice(0, 10)
       : '';
 
-    if (order.order_type === 'laser') {
-      this.tempCutTime = Number(order.cutting_time) || 0;
+    if (fullOrder.order_type === 'laser') {
+      this.tempCutTime = Number(fullOrder.cutting_time) || 0;
     } else {
-      this.tempCutTime = 0; // Limpiar para otros tipos
+      this.tempCutTime = 0;
     }
+
     // in case extra_charges is not an array
     const extrasArray = Array.isArray(this.newOrder.extra_charges)
       ? this.newOrder.extra_charges
       : [];
+    this.newOrder.extra_charges = extrasArray;
 
     if (!this.newOrder.base_total || isNaN(Number(this.newOrder.base_total))) {
       if (this.newOrder.subtotal && !isNaN(Number(this.newOrder.subtotal))) {
@@ -1192,6 +1209,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
       }
     }
 
+    // reset dropdowns
     this.selectedCategory = '';
     this.selectedType = '';
     this.selectedCaliber = '';
