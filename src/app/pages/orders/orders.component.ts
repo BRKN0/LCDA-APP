@@ -354,11 +354,11 @@ export class OrdersComponent implements OnInit, OnDestroy {
     this.loading = true;
     // SELECT ONLY THE COLUMNS NEEDED FOR THE TABLE
     let query = this.supabase.from('orders').select(`
-        id_order, code, order_type, name, scheduler, 
+        id_order, code, order_type, name, scheduler,
         order_payment_status, order_completion_status, order_confirmed_status, order_delivery_status,
         created_at, created_time, delivery_date, is_immediate,
         total, client_type, secondary_process, secondary_completed, is_vitrine,
-        payments(amount) 
+        payments(amount)
       `);
 
     if (this.userRole !== 'admin' && this.userRole !== 'scheduler') {
@@ -1223,21 +1223,21 @@ export class OrdersComponent implements OnInit, OnDestroy {
   async editOrder(order: Orders): Promise<void> {
     this.isEditing = true;
 
-    // fetch full order details
-    const { data: fullOrder, error } = await this.supabase
-      .from('orders')
-      .select('*')
-      .eq('id_order', order.id_order)
-      .single();
+  // fetch full order details
+  const { data: fullOrder, error } = await this.supabase
+    .from('orders')
+    .select('*')
+    .eq('id_order', order.id_order)
+    .single();
 
-    if (error || !fullOrder) {
-      console.error('Error loading order for editing:', error);
-      this.showNotification('Error al cargar los datos del pedido');
-      return;
-    }
+  if (error || !fullOrder) {
+    console.error('Error loading order for editing:', error);
+    this.showNotification('Error al cargar los datos del pedido');
+    return;
+  }
 
-    this.showModal = true;
-    await this.getMaterials();
+  this.showModal = true;
+  await this.getMaterials();
 
     // populate form with full order data
     this.newOrder = { ...fullOrder } as Orders;
@@ -1256,34 +1256,34 @@ export class OrdersComponent implements OnInit, OnDestroy {
       }
     }
 
-    // normalize date
-    this.newOrder.delivery_date = fullOrder.delivery_date
-      ? fullOrder.delivery_date.slice(0, 10)
-      : '';
+  // normalize date
+  this.newOrder.delivery_date = fullOrder.delivery_date
+    ? fullOrder.delivery_date.slice(0, 10)
+    : '';
 
-    if (fullOrder.order_type === 'laser') {
-      this.tempCutTime = Number(fullOrder.cutting_time) || 0;
+  if (fullOrder.order_type === 'laser') {
+    this.tempCutTime = Number(fullOrder.cutting_time) || 0;
+  } else {
+    this.tempCutTime = 0;
+  }
+
+  // in case extra_charges is not an array
+  const extrasArray = Array.isArray(this.newOrder.extra_charges)
+    ? this.newOrder.extra_charges
+    : [];
+  this.newOrder.extra_charges = extrasArray;
+
+  if (!this.newOrder.base_total || isNaN(Number(this.newOrder.base_total))) {
+    if (this.newOrder.subtotal && !isNaN(Number(this.newOrder.subtotal))) {
+      this.newOrder.base_total = Number(this.newOrder.subtotal);
     } else {
-      this.tempCutTime = 0;
+      const extrasSum = extrasArray.reduce(
+        (sum: number, c: any) => sum + (Number(c?.amount) || 0),
+        0
+      );
+      this.newOrder.base_total = Number(this.newOrder.total || 0) - extrasSum;
     }
-
-    // in case extra_charges is not an array
-    const extrasArray = Array.isArray(this.newOrder.extra_charges)
-      ? this.newOrder.extra_charges
-      : [];
-    this.newOrder.extra_charges = extrasArray;
-
-    if (!this.newOrder.base_total || isNaN(Number(this.newOrder.base_total))) {
-      if (this.newOrder.subtotal && !isNaN(Number(this.newOrder.subtotal))) {
-        this.newOrder.base_total = Number(this.newOrder.subtotal);
-      } else {
-        const extrasSum = extrasArray.reduce(
-          (sum: number, c: any) => sum + (Number(c?.amount) || 0),
-          0
-        );
-        this.newOrder.base_total = Number(this.newOrder.total || 0) - extrasSum;
-      }
-    }
+  }
 
     // reset dropdowns
     this.selectedCategory = '';
@@ -1304,219 +1304,161 @@ export class OrdersComponent implements OnInit, OnDestroy {
   }
 
   async addOrder(newOrderForm: Partial<Orders>): Promise<void> {
-    this.isSavingOrder = true;
-    try {
-      const selectedClient = this.clients.find(
-        (client) => client.id_client === newOrderForm.id_client
-      );
-      newOrderForm.name = selectedClient ? selectedClient.name : '';
+  this.isSavingOrder = true;
+  try {
+    const selectedClient = this.clients.find(
+      (client) => client.id_client === newOrderForm.id_client
+    );
+    newOrderForm.name = selectedClient ? selectedClient.name : '';
 
-      const { data: clientData, error: clientError } = await this.supabase
-        .from('clients')
-        .select('debt, credit_limit')
-        .eq('id_client', newOrderForm.id_client)
-        .single();
+    const { data: clientData, error: clientError } = await this.supabase
+      .from('clients')
+      .select('debt, credit_limit')
+      .eq('id_client', newOrderForm.id_client)
+      .single();
 
-      if (clientError || !clientData) {
-        console.error('Error al obtener detalles del cliente:', clientError);
-        alert('Error al verificar el cliente.');
-        return;
-      }
+    if (clientError || !clientData) {
+      console.error('Error al obtener detalles del cliente:', clientError);
+      alert('Error al verificar el cliente.');
+      return;
+    }
 
-      const currentDebt = clientData.debt || 0;
-      const creditLimit = clientData.credit_limit || 0;
-      const orderAmount = parseFloat(newOrderForm.total as string) || 0;
-      const newDebt = currentDebt + orderAmount;
+    const currentDebt = clientData.debt || 0;
+    const creditLimit = clientData.credit_limit || 0;
+    const orderAmount = parseFloat(newOrderForm.total as string) || 0;
+    const newDebt = currentDebt + orderAmount;
 
-      if (creditLimit > 0 && newDebt > creditLimit) {
-        const confirmMessage = `El cliente ha excedido su límite de crédito por lo que su deuda actual aumentará en el caso de que el pedido sea autorizado.
+    if (creditLimit > 0 && newDebt > creditLimit) {
+      const confirmMessage = `El cliente ha excedido su límite de crédito por lo que su deuda actual aumentará en el caso de que el pedido sea autorizado.
 
       ¿Desea autorizar este pedido de todas formas?`;
 
-        if (!confirm(confirmMessage)) {
-          return;
-        }
+      if (!confirm(confirmMessage)) {
+        return;
       }
+    }
 
-      if (this.newOrder.order_type === '') {
-        alert('Por favor, seleccione un tipo de pedido.');
+    if (this.newOrder.order_type === '') {
+      alert('Por favor, seleccione un tipo de pedido.');
+      return;
+    }
+
+    const baseTotal = parseFloat(newOrderForm.unitary_value as string) || 0;
+    const extras =
+      newOrderForm.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
+    let total = baseTotal + extras;
+    if (newOrderForm.include_iva) {
+      const ivaAmount = total * (this.variables.iva / 100);
+      total = total + ivaAmount;
+    }
+
+    this.newOrder = {
+      order_type: newOrderForm.order_type,
+      secondary_process: newOrderForm.secondary_process ?? null,
+      is_vitrine: newOrderForm.is_vitrine ?? false,
+      name: newOrderForm.name,
+      client_type: newOrderForm.client_type,
+      description: newOrderForm.description?.toUpperCase() || '',
+      order_payment_status: newOrderForm.order_payment_status || 'overdue',
+      created_at: new Date().toISOString(),
+      created_time: this.getCurrentTimeHHMM(),
+      delivery_date: newOrderForm.delivery_date,
+      is_immediate: newOrderForm.is_immediate || false,
+      order_quantity: newOrderForm.order_quantity,
+      unitary_value: baseTotal,
+      iva: newOrderForm.iva || 0,
+      subtotal: baseTotal,
+      total: total,
+      amount: newOrderForm.amount || 0,
+      cutting_time: newOrderForm.cutting_time || 0,
+      id_client: newOrderForm.id_client,
+      order_confirmed_status: newOrderForm.order_confirmed_status,
+      order_completion_status: newOrderForm.order_completion_status,
+      order_delivery_status: newOrderForm.order_delivery_status,
+      secondary_completed: newOrderForm.secondary_completed || false,
+      notes: newOrderForm.notes,
+      file_path: newOrderForm.file_path,
+      invoice_file: newOrderForm.invoice_file,
+      second_file: newOrderForm.second_file,
+      extra_charges: newOrderForm.extra_charges || [],
+      base_total: baseTotal,
+      requires_e_invoice: newOrderForm.requires_e_invoice ?? false,
+      include_iva: newOrderForm.include_iva ?? false,
+    };
+
+    if (this.newOrder.order_type === 'laser') {
+      this.newOrder.cutting_time = this.tempCutTime || 0;
+    }
+
+    const deliveryDate = newOrderForm.delivery_date
+      ? new Date(newOrderForm.delivery_date)
+      : new Date();
+    const paymentTerm = 30;
+    const currentDate = new Date();
+    const dueDate = new Date(currentDate);
+    dueDate.setDate(dueDate.getDate() + paymentTerm);
+
+    if (this.isEditing) {
+      if (!newOrderForm.id_order) {
+        console.error('ID del pedido no definido para actualizar.');
+        alert('Error: No se puede actualizar un pedido sin ID.');
         return;
       }
 
-      const baseTotal = parseFloat(newOrderForm.unitary_value as string) || 0;
-      const extras =
-        newOrderForm.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
-      let total = baseTotal + extras;
-      if (newOrderForm.include_iva) {
-        const ivaAmount = total * (this.variables.iva / 100);
-        total = total + ivaAmount;
-      }
-
-      this.newOrder = {
-        order_type: newOrderForm.order_type,
-        secondary_process: newOrderForm.secondary_process ?? null,
-        is_vitrine: newOrderForm.is_vitrine ?? false,
-        name: newOrderForm.name,
-        client_type: newOrderForm.client_type,
-        description: newOrderForm.description?.toUpperCase() || '',
-        order_payment_status: newOrderForm.order_payment_status || 'overdue',
-        created_at: new Date().toISOString(),
-        created_time: this.getCurrentTimeHHMM(),
-        delivery_date: newOrderForm.delivery_date,
-        is_immediate: newOrderForm.is_immediate || false,
-        order_quantity: newOrderForm.order_quantity,
-        unitary_value: baseTotal,
-        iva: newOrderForm.iva || 0,
-        subtotal: baseTotal,
-        total: total,
-        amount: newOrderForm.amount || 0,
-        cutting_time: newOrderForm.cutting_time || 0,
-        id_client: newOrderForm.id_client,
-        order_confirmed_status: newOrderForm.order_confirmed_status,
-        order_completion_status: newOrderForm.order_completion_status,
-        order_delivery_status: newOrderForm.order_delivery_status,
-        secondary_completed: newOrderForm.secondary_completed || false,
-        notes: newOrderForm.notes,
-        file_path: newOrderForm.file_path,
-        invoice_file: newOrderForm.invoice_file,
-        second_file: newOrderForm.second_file,
-        extra_charges: newOrderForm.extra_charges || [],
-        base_total: baseTotal,
-        requires_e_invoice: newOrderForm.requires_e_invoice ?? false,
-        include_iva: newOrderForm.include_iva ?? false,
-      };
+      this.newOrder.id_order = newOrderForm.id_order;
 
       if (this.newOrder.order_type === 'laser') {
         this.newOrder.cutting_time = this.tempCutTime || 0;
       }
 
-      const deliveryDate = newOrderForm.delivery_date
-        ? new Date(newOrderForm.delivery_date)
-        : new Date();
-      const paymentTerm = 30;
-      const currentDate = new Date();
-      const dueDate = new Date(currentDate);
-      dueDate.setDate(dueDate.getDate() + paymentTerm);
+      await this.handleFileUploadForOrder(this.newOrder.id_order!);
+      this.selectedFile = null;
+      this.uploadedFileName = null;
 
-      if (this.isEditing) {
-        if (!newOrderForm.id_order) {
-          console.error('ID del pedido no definido para actualizar.');
-          alert('Error: No se puede actualizar un pedido sin ID.');
-          return;
-        }
+      // scheduler is set only on order creation
+      delete (this.newOrder as any).scheduler;
 
-        this.newOrder.id_order = newOrderForm.id_order;
+      const { error } = await this.supabase
+        .from('orders')
+        .update([this.newOrder])
+        .eq('id_order', this.newOrder.id_order);
 
-        if (this.newOrder.order_type === 'laser') {
-          this.newOrder.cutting_time = this.tempCutTime || 0;
-        }
+      if (error) {
+        console.error('Error al actualizar el pedido:', error);
+        alert('Error al actualizar el pedido.');
+        return;
+      }
 
-        await this.handleFileUploadForOrder(this.newOrder.id_order!);
-        this.selectedFile = null;
-        this.uploadedFileName = null;
+      // Se sincroniza include_iva con Invoices
+      await this.supabase
+        .from('invoices')
+        .update({ include_iva: this.newOrder.include_iva })
+        .eq('id_order', this.newOrder.id_order);
 
-        // scheduler is set only on order creation
-        delete (this.newOrder as any).scheduler;
+      if (this.newOrder.order_type === 'laser') {
+        const { data: existingCut } = await this.supabase
+          .from('cuts')
+          .select('id')
+          .eq('id_order', this.newOrder.id_order)
+          .maybeSingle();
 
-        const { error } = await this.supabase
-          .from('orders')
-          .update([this.newOrder])
-          .eq('id_order', this.newOrder.id_order);
-
-        if (error) {
-          console.error('Error al actualizar el pedido:', error);
-          alert('Error al actualizar el pedido.');
-          return;
-        }
-
-        if (this.newOrder.order_type === 'laser') {
-          const { data: existingCut } = await this.supabase
+        if (existingCut) {
+          const { error: updateCutError } = await this.supabase
             .from('cuts')
-            .select('id')
-            .eq('id_order', this.newOrder.id_order)
-            .maybeSingle();
-
-          if (existingCut) {
-            const { error: updateCutError } = await this.supabase
-              .from('cuts')
-              .update({
-                cutting_time: this.tempCutTime,
-                unit_price: Number(this.newOrder.unitary_value) || 0,
-              })
-              .eq('id_order', this.newOrder.id_order);
-
-            if (updateCutError) {
-              console.error('Error al actualizar tabla cuts:', updateCutError);
-            } else {
-              console.log('Registro actualizado en tabla cuts');
-            }
-          } else {
-            const cutRecord = {
-              id_order: this.newOrder.id_order,
-              category: 'Corte Laser',
-              material_type: 'General',
-              color: null,
-              caliber: null,
-              height: null,
-              width: null,
-              quantity: 1,
+            .update({
               cutting_time: this.tempCutTime,
               unit_price: Number(this.newOrder.unitary_value) || 0,
-            };
+            })
+            .eq('id_order', this.newOrder.id_order);
 
-            const { error: insertCutError } = await this.supabase
-              .from('cuts')
-              .insert([cutRecord]);
-
-            if (insertCutError) {
-              console.error('Error al insertar en tabla cuts:', insertCutError);
-            } else {
-              console.log('Registro insertado en tabla cuts');
-            }
+          if (updateCutError) {
+            console.error('Error al actualizar tabla cuts:', updateCutError);
+          } else {
+            console.log('Registro actualizado en tabla cuts');
           }
-        }
-
-        alert('Pedido actualizado correctamente.');
-        this.showModal = false;
-        await this.getOrders();
-      } else {
-        const { data: maxCodeData, error: maxCodeError } = await this.supabase
-          .from('orders')
-          .select('code')
-          .order('code', { ascending: false })
-          .limit(1);
-
-        if (maxCodeError) {
-          console.error('Error al obtener el código máximo:', maxCodeError);
-          alert('Error al generar el código del pedido.');
-          return;
-        }
-
-        const maxCode =
-          maxCodeData && maxCodeData.length > 0 ? maxCodeData[0].code : 0;
-        this.newOrder.code = maxCode + 1;
-
-        this.newOrder.scheduler = (await this.getUserName()) || 'Desconocido';
-        const { data: insertedOrderData, error: insertError } =
-          await this.supabase.from('orders').insert([this.newOrder]).select();
-
-        if (
-          insertError ||
-          !insertedOrderData ||
-          insertedOrderData.length === 0
-        ) {
-          console.error('Error al insertar el pedido:', insertError);
-          alert('Error al crear el pedido.');
-          return;
-        }
-
-        const insertedOrder = insertedOrderData[0];
-
-        await this.createInitialPaymentForOrder(insertedOrder, total);
-
-        if (this.newOrder.order_type === 'laser' && this.tempCutTime > 0) {
+        } else {
           const cutRecord = {
-            id_order: insertedOrder.id_order,
+            id_order: this.newOrder.id_order,
             category: 'Corte Laser',
             material_type: 'General',
             color: null,
@@ -1528,82 +1470,146 @@ export class OrdersComponent implements OnInit, OnDestroy {
             unit_price: Number(this.newOrder.unitary_value) || 0,
           };
 
-          const { error: cutError } = await this.supabase
+          const { error: insertCutError } = await this.supabase
             .from('cuts')
             .insert([cutRecord]);
 
-          if (cutError) {
-            console.error('Error al insertar en tabla cuts:', cutError);
+          if (insertCutError) {
+            console.error('Error al insertar en tabla cuts:', insertCutError);
           } else {
-            console.log('Registro insertado correctamente en tabla cuts');
+            console.log('Registro insertado en tabla cuts');
           }
         }
-
-        await this.handleFileUploadForOrder(insertedOrder.id_order);
-        this.selectedFile = null;
-        this.uploadedFileName = null;
-
-        const newClientDebt = currentDebt + orderAmount;
-        const { error: updateDebtError } = await this.supabase
-          .from('clients')
-          .update({
-            debt: newClientDebt,
-            status: newClientDebt > 0 ? 'overdue' : 'upToDate',
-          })
-          .eq('id_client', newOrderForm.id_client);
-
-        if (updateDebtError) {
-          console.error(
-            'Error al actualizar la deuda del cliente:',
-            updateDebtError
-          );
-        }
-
-        this.notificationToInsert = {
-          type: 'order',
-          description: `Nuevo pedido creado: ${this.newOrder.code}`,
-          id_order: insertedOrder.id_order,
-          due_date: this.newOrder.delivery_date,
-          id_user: this.userId,
-        };
-
-        const { error: notificationError } = await this.supabase
-          .from('notifications')
-          .insert([this.notificationToInsert]);
-
-        if (notificationError) {
-          console.error('Error al crear la notificación:', notificationError);
-        }
-
-        const invoiceData = {
-          id_order: insertedOrder.id_order,
-          code: this.newOrder.code?.toString() || '',
-          payment_term: paymentTerm,
-          include_iva: false,
-          due_date: dueDate.toISOString().split('T')[0],
-          created_at: new Date().toISOString(),
-          invoice_status: 'overdue',
-        };
-
-        const { error: invoiceError } = await this.supabase
-          .from('invoices')
-          .insert([invoiceData]);
-
-        if (invoiceError) {
-          console.error('Error al crear la factura:', invoiceError);
-        }
-
-        alert('Pedido creado correctamente.');
-        this.showModal = false;
-        await this.getOrders();
       }
-    } catch (error) {
-      console.error('Error inesperado al guardar el pedido:', error);
-      alert('Ocurrió un error inesperado al guardar el pedido.');
-    } finally {
-      this.isSavingOrder = false;
+
+      alert('Pedido actualizado correctamente.');
+      this.showModal = false;
+      await this.getOrders();
+    } else {
+      const { data: maxCodeData, error: maxCodeError } = await this.supabase
+        .from('orders')
+        .select('code')
+        .order('code', { ascending: false })
+        .limit(1);
+
+      if (maxCodeError) {
+        console.error('Error al obtener el código máximo:', maxCodeError);
+        alert('Error al generar el código del pedido.');
+        return;
+      }
+
+      const maxCode =
+        maxCodeData && maxCodeData.length > 0 ? maxCodeData[0].code : 0;
+      this.newOrder.code = maxCode + 1;
+
+      this.newOrder.scheduler = (await this.getUserName()) || 'Desconocido';
+      const { data: insertedOrderData, error: insertError } =
+        await this.supabase.from('orders').insert([this.newOrder]).select();
+
+      if (
+        insertError ||
+        !insertedOrderData ||
+        insertedOrderData.length === 0
+      ) {
+        console.error('Error al insertar el pedido:', insertError);
+        alert('Error al crear el pedido.');
+        return;
+      }
+
+      const insertedOrder = insertedOrderData[0];
+
+      await this.createInitialPaymentForOrder(insertedOrder, total);
+
+      if (this.newOrder.order_type === 'laser' && this.tempCutTime > 0) {
+        const cutRecord = {
+          id_order: insertedOrder.id_order,
+          category: 'Corte Laser',
+          material_type: 'General',
+          color: null,
+          caliber: null,
+          height: null,
+          width: null,
+          quantity: 1,
+          cutting_time: this.tempCutTime,
+          unit_price: Number(this.newOrder.unitary_value) || 0,
+        };
+
+        const { error: cutError } = await this.supabase
+          .from('cuts')
+          .insert([cutRecord]);
+
+        if (cutError) {
+          console.error('Error al insertar en tabla cuts:', cutError);
+        } else {
+          console.log('Registro insertado correctamente en tabla cuts');
+        }
+      }
+
+      await this.handleFileUploadForOrder(insertedOrder.id_order);
+      this.selectedFile = null;
+      this.uploadedFileName = null;
+
+      const newClientDebt = currentDebt + orderAmount;
+      const { error: updateDebtError } = await this.supabase
+        .from('clients')
+        .update({
+          debt: newClientDebt,
+          status: newClientDebt > 0 ? 'overdue' : 'upToDate',
+        })
+        .eq('id_client', newOrderForm.id_client);
+
+      if (updateDebtError) {
+        console.error(
+          'Error al actualizar la deuda del cliente:',
+          updateDebtError
+        );
+      }
+
+      this.notificationToInsert = {
+        type: 'order',
+        description: `Nuevo pedido creado: ${this.newOrder.code}`,
+        id_order: insertedOrder.id_order,
+        due_date: this.newOrder.delivery_date,
+        id_user: this.userId,
+      };
+
+      const { error: notificationError } = await this.supabase
+        .from('notifications')
+        .insert([this.notificationToInsert]);
+
+      if (notificationError) {
+        console.error('Error al crear la notificación:', notificationError);
+      }
+
+      const invoiceData = {
+        id_order: insertedOrder.id_order,
+        code: this.newOrder.code?.toString() || '',
+        payment_term: paymentTerm,
+        include_iva: this.newOrder.include_iva ?? false,
+        due_date: dueDate.toISOString().split('T')[0],
+        created_at: new Date().toISOString(),
+        invoice_status: 'overdue',
+      };
+
+      const { error: invoiceError } = await this.supabase
+        .from('invoices')
+        .insert([invoiceData]);
+
+      if (invoiceError) {
+        console.error('Error al crear la factura:', invoiceError);
+      }
+
+      alert('Pedido creado correctamente.');
+      this.showModal = false;
+      await this.getOrders();
     }
+  } catch (error) {
+    console.error('Error inesperado al guardar el pedido:', error);
+    alert('Ocurrió un error inesperado al guardar el pedido.');
+  } finally {
+    this.isSavingOrder = false;
   }
+}
 
   async createInitialPaymentForOrder(
     order: Orders,
