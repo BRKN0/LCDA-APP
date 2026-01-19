@@ -1115,7 +1115,7 @@ export class InvoiceComponent implements OnInit {
     }
 
     // Mostrar el payment_term almacenado en la base de datos
-    const paymentTerm = invoice.payment_term ?? 30;
+    const paymentTerm = invoice.payment_term ?? 5;
 
     if (!invoice.due_date) {
       return `${paymentTerm} días`;
@@ -2417,13 +2417,13 @@ export class InvoiceComponent implements OnInit {
   if (this.isEditing && this.selectedInvoice.due_date) {
     // Si estamos editando Y ya tiene duedate, se mantiene
     dueDate = this.selectedInvoice.due_date;
-    paymentTerm = this.selectedInvoice.payment_term ?? 30;
+    paymentTerm = this.selectedInvoice.payment_term ?? 5;
   } else {
     // Si es nueva factura O no tiene duedate, calcularlo
     const currentDate = new Date();
     currentDate.setHours(0, 0, 0, 0);
 
-    paymentTerm = this.selectedInvoice.payment_term ?? 30;
+    paymentTerm = this.selectedInvoice.payment_term ?? 5;
 
     const dueDateCalculated = new Date(currentDate);
     dueDateCalculated.setDate(dueDateCalculated.getDate() + paymentTerm);
