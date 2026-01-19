@@ -1073,28 +1073,23 @@ export class OrdersComponent implements OnInit, OnDestroy {
     }
   }
 
-  async toggleOrderCompletionStatus(order: Orders) {
+async toggleOrderCompletionStatus(order: Orders) {
     const newCompletionStatus = order.order_completion_status;
 
     if (
       order.secondary_process &&
       !order.secondary_completed &&
-      (newCompletionStatus === 'finished' ||
-        newCompletionStatus === 'delivered')
+      (newCompletionStatus === 'finished' || newCompletionStatus === 'delivered')
     ) {
-      alert(
-        'Este pedido tiene un proceso secundario pendiente y no puede ser completado aún.'
-      );
+      alert('Este pedido tiene un proceso secundario pendiente y no puede ser completado aún.');
       order.order_completion_status = 'inProgress';
       return;
     }
 
     const newDeliveryStatus =
-      newCompletionStatus === 'finished'
+      newCompletionStatus === 'finished' || newCompletionStatus === 'delivered'
         ? 'Completado'
-        : newCompletionStatus === 'delivered'
-          ? 'Completado'
-          : 'toBeDelivered';
+        : 'toBeDelivered';
 
     const newConfirmedStatus =
       newCompletionStatus === 'finished' || newCompletionStatus === 'delivered'
@@ -1109,12 +1104,10 @@ export class OrdersComponent implements OnInit, OnDestroy {
         order_confirmed_status: newConfirmedStatus,
       })
       .eq('id_order', order.id_order);
+
     if (error) {
       console.error('Error actualizando estado:', error);
-      order.order_completion_status =
-        order.order_completion_status === 'finished'
-          ? 'inProgress'
-          : 'finished';
+      order.order_completion_status = order.order_completion_status === 'finished' ? 'inProgress' : 'finished';
     } else {
       order.order_delivery_status = newDeliveryStatus;
       order.order_confirmed_status = newConfirmedStatus;
@@ -1132,18 +1125,8 @@ export class OrdersComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // the db trigger handles the 'process' notification automatically
     order.secondary_completed = true;
-
-    // Crear notificación
-    const notification = {
-      type: 'process',
-      description: `Secondary process completed for order ${order.code}`,
-      id_order: order.id_order,
-      due_date: order.delivery_date,
-      id_user: this.userId,
-    };
-
-    await this.supabase.from('notifications').insert([notification]);
   }
 
   async toggleOrderPaymentStatus(order: Orders) {
@@ -1303,13 +1286,15 @@ export class OrdersComponent implements OnInit, OnDestroy {
     return error || !data ? null : data.user_name;
   }
 
-  async addOrder(newOrderForm: Partial<Orders>): Promise<void> {
-  this.isSavingOrder = true;
-  try {
-    const selectedClient = this.clients.find(
-      (client) => client.id_client === newOrderForm.id_client
-    );
-    newOrderForm.name = selectedClient ? selectedClient.name : '';
+ async addOrder(newOrderForm: Partial<Orders>): Promise<void> {
+    this.isSavingOrder = true;
+
+    try {
+      // client validation
+      const selectedClient = this.clients.find(
+        (client) => client.id_client === newOrderForm.id_client
+      );
+      newOrderForm.name = selectedClient ? selectedClient.name : '';
 
     const { data: clientData, error: clientError } = await this.supabase
       .from('clients')
@@ -1343,69 +1328,77 @@ export class OrdersComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const baseTotal = parseFloat(newOrderForm.unitary_value as string) || 0;
-    const extras =
-      newOrderForm.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
-    let total = baseTotal + extras;
-    if (newOrderForm.include_iva) {
-      const ivaAmount = total * (this.variables.iva / 100);
-      total = total + ivaAmount;
-    }
+      // calculations
+      const baseTotal = parseFloat(newOrderForm.unitary_value as string) || 0;
+      const extras = newOrderForm.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
+      let total = baseTotal + extras;
+      
+      if (newOrderForm.include_iva) {
+        const ivaAmount = total * (this.variables.iva / 100);
+        total = total + ivaAmount;
+      }
 
-    this.newOrder = {
-      order_type: newOrderForm.order_type,
-      secondary_process: newOrderForm.secondary_process ?? null,
-      is_vitrine: newOrderForm.is_vitrine ?? false,
-      name: newOrderForm.name,
-      client_type: newOrderForm.client_type,
-      description: newOrderForm.description?.toUpperCase() || '',
-      order_payment_status: newOrderForm.order_payment_status || 'overdue',
-      created_at: new Date().toISOString(),
-      created_time: this.getCurrentTimeHHMM(),
-      delivery_date: newOrderForm.delivery_date,
-      is_immediate: newOrderForm.is_immediate || false,
-      order_quantity: newOrderForm.order_quantity,
-      unitary_value: baseTotal,
-      iva: newOrderForm.iva || 0,
-      subtotal: baseTotal,
-      total: total,
-      amount: newOrderForm.amount || 0,
-      cutting_time: newOrderForm.cutting_time || 0,
-      id_client: newOrderForm.id_client,
-      order_confirmed_status: newOrderForm.order_confirmed_status,
-      order_completion_status: newOrderForm.order_completion_status,
-      order_delivery_status: newOrderForm.order_delivery_status,
-      secondary_completed: newOrderForm.secondary_completed || false,
-      notes: newOrderForm.notes,
-      file_path: newOrderForm.file_path,
-      invoice_file: newOrderForm.invoice_file,
-      second_file: newOrderForm.second_file,
-      extra_charges: newOrderForm.extra_charges || [],
-      base_total: baseTotal,
-      requires_e_invoice: newOrderForm.requires_e_invoice ?? false,
-      include_iva: newOrderForm.include_iva ?? false,
-    };
+      // object construction
+      // set code to 0 initially, db ignores it on creation, please do NOT remove or you will break everything AGAIN
+      this.newOrder = {
+        order_type: newOrderForm.order_type!,
+        secondary_process: newOrderForm.secondary_process ?? null,
+        is_vitrine: newOrderForm.is_vitrine ?? false,
+        name: newOrderForm.name!,
+        client_type: newOrderForm.client_type!,
+        description: newOrderForm.description?.toUpperCase() || '',
+        order_payment_status: newOrderForm.order_payment_status || 'overdue',
+        created_at: new Date().toISOString(),
+        created_time: this.getCurrentTimeHHMM(),
+        delivery_date: newOrderForm.delivery_date || new Date().toISOString(), // someone change this line to 'delivery_date: newOrderForm.delivery_date!,' if the user CAN'T leave it empty
+        is_immediate: newOrderForm.is_immediate || false,
+        order_quantity: newOrderForm.order_quantity!,
+        unitary_value: baseTotal,
+        iva: newOrderForm.iva || 0,
+        subtotal: baseTotal,
+        total: total,
+        amount: newOrderForm.amount || 0,
+        cutting_time: newOrderForm.cutting_time || 0,
+        id_client: newOrderForm.id_client!,
+        order_confirmed_status: newOrderForm.order_confirmed_status!,
+        order_completion_status: newOrderForm.order_completion_status!,
+        order_delivery_status: newOrderForm.order_delivery_status!,
+        secondary_completed: newOrderForm.secondary_completed || false,
+        notes: newOrderForm.notes!,
+        file_path: newOrderForm.file_path!,
+        invoice_file: newOrderForm.invoice_file!,
+        second_file: newOrderForm.second_file!,
+        extra_charges: newOrderForm.extra_charges || [],
+        base_total: baseTotal,
+        requires_e_invoice: newOrderForm.requires_e_invoice ?? false,
+        include_iva: newOrderForm.include_iva ?? false,
+        scheduler: (await this.getUserName()) || 'Desconocido',
+        code: 0, 
+        discount: newOrderForm.discount || 0,
+        discount_type: newOrderForm.discount_type || 'percentage'
+      };
 
     if (this.newOrder.order_type === 'laser') {
       this.newOrder.cutting_time = this.tempCutTime || 0;
     }
 
-    const deliveryDate = newOrderForm.delivery_date
-      ? new Date(newOrderForm.delivery_date)
-      : new Date();
-    const paymentTerm = 30;
-    const currentDate = new Date();
-    const dueDate = new Date(currentDate);
-    dueDate.setDate(dueDate.getDate() + paymentTerm);
 
-    if (this.isEditing) {
-      if (!newOrderForm.id_order) {
-        console.error('ID del pedido no definido para actualizar.');
-        alert('Error: No se puede actualizar un pedido sin ID.');
-        return;
-      }
+      const paymentTerm = 30;
+      const currentDate = new Date();
+      const dueDate = new Date(currentDate);
+      dueDate.setDate(dueDate.getDate() + paymentTerm);
 
-      this.newOrder.id_order = newOrderForm.id_order;
+      // logic for editing (update)
+      if (this.isEditing) {
+        if (!newOrderForm.id_order) {
+          console.error('ID del pedido no definido para actualizar.');
+          alert('Error: No se puede actualizar un pedido sin ID.');
+          return;
+        }
+
+        this.newOrder.id_order = newOrderForm.id_order;
+        // keep existing code when editing
+        this.newOrder.code = newOrderForm.code!;
 
       if (this.newOrder.order_type === 'laser') {
         this.newOrder.cutting_time = this.tempCutTime || 0;
@@ -1429,18 +1422,13 @@ export class OrdersComponent implements OnInit, OnDestroy {
         return;
       }
 
-      // Se sincroniza include_iva con Invoices
-      await this.supabase
-        .from('invoices')
-        .update({ include_iva: this.newOrder.include_iva })
-        .eq('id_order', this.newOrder.id_order);
-
-      if (this.newOrder.order_type === 'laser') {
-        const { data: existingCut } = await this.supabase
-          .from('cuts')
-          .select('id')
-          .eq('id_order', this.newOrder.id_order)
-          .maybeSingle();
+        // handle cuts update
+        if (this.newOrder.order_type === 'laser') {
+          const { data: existingCut } = await this.supabase
+            .from('cuts')
+            .select('id')
+            .eq('id_order', this.newOrder.id_order)
+            .maybeSingle();
 
         if (existingCut) {
           const { error: updateCutError } = await this.supabase
@@ -1451,14 +1439,93 @@ export class OrdersComponent implements OnInit, OnDestroy {
             })
             .eq('id_order', this.newOrder.id_order);
 
-          if (updateCutError) {
-            console.error('Error al actualizar tabla cuts:', updateCutError);
+            if (updateCutError) console.error('Error al actualizar tabla cuts:', updateCutError);
           } else {
-            console.log('Registro actualizado en tabla cuts');
+            const cutRecord = {
+              id_order: this.newOrder.id_order,
+              category: 'Corte Laser',
+              material_type: 'General',
+              color: null,
+              caliber: null,
+              height: null,
+              width: null,
+              quantity: 1,
+              cutting_time: this.tempCutTime,
+              unit_price: Number(this.newOrder.unitary_value) || 0,
+            };
+            const { error: insertCutError } = await this.supabase.from('cuts').insert([cutRecord]);
+            if (insertCutError) console.error('Error al insertar en tabla cuts:', insertCutError);
           }
-        } else {
+        }
+
+        alert('Pedido actualizado correctamente.');
+        this.showModal = false;
+        await this.getOrders();
+      } 
+      // logic for creating (insert transaction)
+      else {
+        // prepare json payload for order
+        // we use explicit conversion to ensure type safety for jsonb mapping
+        const orderPayload = {
+          ...this.newOrder,
+          id_client: newOrderForm.id_client,
+          total: total,
+          // ensure specific fields are strictly handled
+          is_vitrine: this.newOrder.is_vitrine || false,
+          secondary_completed: this.newOrder.secondary_completed || false,
+          requires_e_invoice: this.newOrder.requires_e_invoice || false,
+          include_iva: this.newOrder.include_iva || false,
+          extra_charges: this.newOrder.extra_charges || [],
+          // ensure numbers are numbers
+          unitary_value: Number(this.newOrder.unitary_value) || 0,
+          order_quantity: Number(this.newOrder.order_quantity) || 0,
+          iva: Number(this.newOrder.iva) || 0,
+          subtotal: Number(this.newOrder.subtotal) || 0,
+          amount: Number(this.newOrder.amount) || 0,
+          cutting_time: Number(this.newOrder.cutting_time) || 0,
+          base_total: Number(this.newOrder.base_total) || 0,
+          pending_quantity: Number(this.newOrder.pending_quantity) || 0,
+          discount: Number(this.newOrder.discount) || 0
+        };
+
+        // remove code from payload so db generates it
+        delete (orderPayload as any).code;
+
+        // prepare json payload for invoice
+        // code is handled inside the sql function
+        const invoicePayload = {
+          payment_term: paymentTerm,
+          include_iva: this.newOrder.include_iva || false,
+          due_date: dueDate.toISOString().split('T')[0]
+        };
+
+        // call the transaction function
+        const { data, error } = await this.supabase
+          .rpc('create_order_transaction_v3', {
+            order_data: orderPayload,
+            invoice_data: invoicePayload,
+            client_id: newOrderForm.id_client,
+            order_total: parseFloat(total as any) || 0
+          });
+
+        if (error) throw error;
+
+        // handle success data
+        const newOrderId = data.id_order;
+        const generatedCode = data.code; 
+
+        // update local state with the generated code
+        this.newOrder.code = generatedCode;
+
+        // post-transaction operations
+        
+        // initial payment
+        await this.createInitialPaymentForOrder({ ...this.newOrder, id_order: newOrderId } as any, total);
+
+        // laser cuts insertion
+        if (this.newOrder.order_type === 'laser' && this.tempCutTime > 0) {
           const cutRecord = {
-            id_order: this.newOrder.id_order,
+            id_order: newOrderId,
             category: 'Corte Laser',
             material_type: 'General',
             color: null,
@@ -1469,147 +1536,25 @@ export class OrdersComponent implements OnInit, OnDestroy {
             cutting_time: this.tempCutTime,
             unit_price: Number(this.newOrder.unitary_value) || 0,
           };
-
-          const { error: insertCutError } = await this.supabase
-            .from('cuts')
-            .insert([cutRecord]);
-
-          if (insertCutError) {
-            console.error('Error al insertar en tabla cuts:', insertCutError);
-          } else {
-            console.log('Registro insertado en tabla cuts');
-          }
+          
+          const { error: cutError } = await this.supabase.from('cuts').insert([cutRecord]);
+          if (cutError) console.error('Error al insertar en tabla cuts:', cutError);
         }
+
+        // file uploads
+        await this.handleFileUploadForOrder(newOrderId);
+
+        alert(`Pedido #${generatedCode} creado correctamente.`);
+        this.showModal = false;
+        await this.getOrders();
       }
-
-      alert('Pedido actualizado correctamente.');
-      this.showModal = false;
-      await this.getOrders();
-    } else {
-      const { data: maxCodeData, error: maxCodeError } = await this.supabase
-        .from('orders')
-        .select('code')
-        .order('code', { ascending: false })
-        .limit(1);
-
-      if (maxCodeError) {
-        console.error('Error al obtener el código máximo:', maxCodeError);
-        alert('Error al generar el código del pedido.');
-        return;
-      }
-
-      const maxCode =
-        maxCodeData && maxCodeData.length > 0 ? maxCodeData[0].code : 0;
-      this.newOrder.code = maxCode + 1;
-
-      this.newOrder.scheduler = (await this.getUserName()) || 'Desconocido';
-      const { data: insertedOrderData, error: insertError } =
-        await this.supabase.from('orders').insert([this.newOrder]).select();
-
-      if (
-        insertError ||
-        !insertedOrderData ||
-        insertedOrderData.length === 0
-      ) {
-        console.error('Error al insertar el pedido:', insertError);
-        alert('Error al crear el pedido.');
-        return;
-      }
-
-      const insertedOrder = insertedOrderData[0];
-
-      await this.createInitialPaymentForOrder(insertedOrder, total);
-
-      if (this.newOrder.order_type === 'laser' && this.tempCutTime > 0) {
-        const cutRecord = {
-          id_order: insertedOrder.id_order,
-          category: 'Corte Laser',
-          material_type: 'General',
-          color: null,
-          caliber: null,
-          height: null,
-          width: null,
-          quantity: 1,
-          cutting_time: this.tempCutTime,
-          unit_price: Number(this.newOrder.unitary_value) || 0,
-        };
-
-        const { error: cutError } = await this.supabase
-          .from('cuts')
-          .insert([cutRecord]);
-
-        if (cutError) {
-          console.error('Error al insertar en tabla cuts:', cutError);
-        } else {
-          console.log('Registro insertado correctamente en tabla cuts');
-        }
-      }
-
-      await this.handleFileUploadForOrder(insertedOrder.id_order);
-      this.selectedFile = null;
-      this.uploadedFileName = null;
-
-      const newClientDebt = currentDebt + orderAmount;
-      const { error: updateDebtError } = await this.supabase
-        .from('clients')
-        .update({
-          debt: newClientDebt,
-          status: newClientDebt > 0 ? 'overdue' : 'upToDate',
-        })
-        .eq('id_client', newOrderForm.id_client);
-
-      if (updateDebtError) {
-        console.error(
-          'Error al actualizar la deuda del cliente:',
-          updateDebtError
-        );
-      }
-
-      this.notificationToInsert = {
-        type: 'order',
-        description: `Nuevo pedido creado: ${this.newOrder.code}`,
-        id_order: insertedOrder.id_order,
-        due_date: this.newOrder.delivery_date,
-        id_user: this.userId,
-      };
-
-      const { error: notificationError } = await this.supabase
-        .from('notifications')
-        .insert([this.notificationToInsert]);
-
-      if (notificationError) {
-        console.error('Error al crear la notificación:', notificationError);
-      }
-
-      const invoiceData = {
-        id_order: insertedOrder.id_order,
-        code: this.newOrder.code?.toString() || '',
-        payment_term: paymentTerm,
-        include_iva: this.newOrder.include_iva ?? false,
-        due_date: dueDate.toISOString().split('T')[0],
-        created_at: new Date().toISOString(),
-        invoice_status: 'overdue',
-      };
-
-      const { error: invoiceError } = await this.supabase
-        .from('invoices')
-        .insert([invoiceData]);
-
-      if (invoiceError) {
-        console.error('Error al crear la factura:', invoiceError);
-      }
-
-      alert('Pedido creado correctamente.');
-      this.showModal = false;
-      await this.getOrders();
+    } catch (error) {
+      console.error('Error inesperado al guardar el pedido:', error);
+      alert('Ocurrió un error inesperado al guardar el pedido.');
+    } finally {
+      this.isSavingOrder = false;
     }
-  } catch (error) {
-    console.error('Error inesperado al guardar el pedido:', error);
-    alert('Ocurrió un error inesperado al guardar el pedido.');
-  } finally {
-    this.isSavingOrder = false;
   }
-}
 
   async createInitialPaymentForOrder(
     order: Orders,
@@ -1774,46 +1719,6 @@ export class OrdersComponent implements OnInit, OnDestroy {
 
     this.newOrder.subtotal = baseTotal;
     this.newOrder.base_total = baseTotal;
-  }
-
-  async createNotification(addedOrder: Partial<Orders>) {
-    this.notificationDesc =
-      'Nuevo pedido: ' +
-      addedOrder.description +
-      '. Codigo: ' +
-      addedOrder.code;
-    if (addedOrder.order_type == 'print') {
-      this.notificationToInsert = {
-        id_user: null,
-        id_order: addedOrder.id_order,
-        description: this.notificationDesc,
-        type: 'prints',
-        due_date: addedOrder.created_at,
-      };
-      const { error } = await this.supabase
-        .from('notifications')
-        .insert([this.notificationToInsert]);
-      if (error) {
-        console.error('Error creating notification', error);
-        return;
-      }
-    } else if (addedOrder.order_type == 'laser') {
-      this.notificationToInsert = {
-        id_user: null,
-        id_order: addedOrder.id_order,
-        description: this.notificationDesc,
-        type: 'cuts',
-        due_date: addedOrder.created_at,
-      };
-
-      const { error } = await this.supabase
-        .from('notifications')
-        .insert([this.notificationToInsert]);
-      if (error) {
-        console.error('Error creating notification', error);
-        return;
-      }
-    }
   }
 
   paginateItems<T>(items: T[], page: number, itemsPerPage: number): T[] {
