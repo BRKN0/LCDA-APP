@@ -741,7 +741,7 @@ export class ClientsComponent implements OnInit {
   deletingClientId: string | null = null;
 
   async deleteClient(client: Client): Promise<void> {
-    
+
     if (this.deletingClientId === client.id_client) return;
 
     const confirmed = confirm(
@@ -794,6 +794,23 @@ export class ClientsComponent implements OnInit {
     this.extractMessage = null;
   }
 
+  /**
+ * Formatea una fecha sin problemas de zona horaria
+ * @param dateString Fecha en formato ISO (ej: '2026-01-08T00:00:00')
+ * @returns Fecha formateada (ej: '08/01/2026')
+ */
+  formatDateWithoutTimezone(dateString: string): string {
+    if (!dateString) return 'Sin fecha';
+
+    // Extrae solo la parte de la fecha (YYYY-MM-DD)
+    const datePart = dateString.split('T')[0];
+    const [year, month, day] = datePart.split('-');
+
+    // Formato colombiano: DD/MM/YYYY
+    return `${day}/${month}/${year}`;
+  }
+
+
   generatePDF(): boolean {
     if (!this.selectedClient || !this.selectedClient.orders) {
       this.extractMessage = 'No hay datos para generar el extracto.';
@@ -826,6 +843,14 @@ export class ClientsComponent implements OnInit {
       return false;
     }
 
+     filteredOrders.sort((a, b) => {
+      const codeA = a.code || 0;
+      const codeB = b.code || 0;
+      return codeA - codeB;
+    });
+
+    const clientName = this.selectedClient.company_name || this.selectedClient.name;
+
     // ===== RESÚMENES DEL EXTRACTO (SOLO SOBRE filteredOrders) =====
     const totalFacturado = filteredOrders.reduce((sum, order) => {
       return sum + this.calculateOrderTotal(order);
@@ -842,19 +867,56 @@ export class ClientsComponent implements OnInit {
     const doc = new jsPDF();
 
     doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
     doc.text(
-      `Extracto de Cliente: ${this.selectedClient.company_name || this.selectedClient.name
+      `Extracto de Cliente: ${clientName
       }`,
       10,
       10
     );
+
+    let summaryY = 25;
+
+    doc.setFillColor(245, 245, 245);
+    doc.setDrawColor(220, 53, 69);
+    doc.setLineWidth(0.5);
+    doc.rect(10, summaryY - 3, 190, 28, 'FD');
+
+    summaryY += 2;
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(220, 53, 69);
+    doc.text('RESUMEN DEL EXTRACTO', 15, summaryY);
+
+    summaryY += 7;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+
+    doc.text('Total Facturado:', 15, summaryY);
+    doc.setFont('helvetica', 'normal');
+    doc.text(this.formatCurrency(totalFacturado), 60, summaryY);
+
+    summaryY += 6;
+    doc.setFont('helvetica', 'bold');
+    doc.text('Total Abonado:', 15, summaryY);
+    doc.setFont('helvetica', 'normal');
+    doc.text(this.formatCurrency(totalAbonado), 60, summaryY);
+
+    summaryY += 6;
+    doc.setFont('helvetica', 'bold');
+    doc.text('Saldo pendiente:', 15, summaryY);
+    doc.setFont('helvetica', 'normal');
+    doc.text(this.formatCurrency(totalDeuda), 60, summaryY);
+
+    doc.setTextColor(0, 0, 0);
 
     const orders = filteredOrders.map((order: Orders) => {
       const debt = this.getOrderDebt(order);
 
       return [
         order.code,
-        new Date(order.created_at).toLocaleDateString('es-CO'),
+        this.formatDateWithoutTimezone(order.created_at),
         order.description,
         `$${this.formatCurrency(this.calculateOrderTotal(order))}`,
         debt > 0 ? `$${this.formatCurrency(debt)}` : '0',
@@ -865,7 +927,7 @@ export class ClientsComponent implements OnInit {
               `$${this.formatCurrency(p.amount)} - ${this.formatPaymentMethod(
                 p.payment_method
               )} - ${p.payment_date
-                ? new Date(p.payment_date).toLocaleDateString('es-CO')
+                ? this.formatDateWithoutTimezone(p.payment_date)
                 : 'Sin fecha'
               }`
           )
@@ -875,38 +937,60 @@ export class ClientsComponent implements OnInit {
 
 
     const tableResult = (doc as any).autoTable({
-      head: [['#', 'Fecha', 'Detalles', 'Total', 'Deuda', 'Estado', 'Abonos']],
-      body: orders,
-      startY: 40,
-    });
+    head: [['#', 'Fecha', 'Detalles', 'Total', 'Deuda', 'Estado', 'Abonos']],
+    body: orders,
+    startY: summaryY + 10,
+    didDrawPage: (data: any) => {
+      // Se agrega el encabezado en cada página después de la primera
+      if (data.pageNumber > 1) {
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Extracto de Cliente: ${clientName}`, 10, 10);
+      }
+    },
+    margin: { top: 20, right: 10, bottom: 10, left: 10 },
+    didDrawCell: (data: any) => {
+    },
+    styles: {
+      font: 'helvetica',
+      fontSize: 9,
+      cellPadding: 3,
+    },
+    headStyles: {
+      fillColor: [220, 53, 69],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+    },
+    bodyStyles: {
+      textColor: [0, 0, 0],
+    },
+    alternateRowStyles: {
+      fillColor: [240, 240, 240],
+    },
+  });
 
-    const finalY =
-      typeof tableResult.finalY === 'number'
-        ? tableResult.finalY
-        : (doc as any).lastAutoTable?.finalY || 40;
+  // ============ RESUMEN EN LA ÚLTIMA PÁGINA ============
+  const finalY =
+    typeof tableResult.finalY === 'number'
+      ? tableResult.finalY
+      : (doc as any).lastAutoTable?.finalY || 40;
 
-    let summaryY = finalY + 10;
+  let lastPageSummaryY = finalY + 10;
 
-    doc.setFontSize(11);
+  // Se verifica si hay espacio en la página actual, si no, se agrega una nueva página
+  if (lastPageSummaryY > 250) {
+    doc.addPage();
+
+    // Encabezado en la última página si fue agregada
+    doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text('Resumen del extracto', 10, summaryY);
-
-    summaryY += 6;
-    doc.setFont('helvetica', 'normal');
-
-    doc.text(`Total facturado: $${this.formatCurrency(totalFacturado)}`, 10, summaryY);
-    summaryY += 5;
-
-    doc.text(`Total abonado: $${this.formatCurrency(totalAbonado)}`, 10, summaryY);
-    summaryY += 5;
-
-    doc.text(`Saldo pendiente: $${this.formatCurrency(totalDeuda)}`, 10, summaryY);
-    doc.save(
-      `Extracto-${this.selectedClient.name}.pdf`
-    );
-
-    return true;
+    doc.text(`Extracto de Cliente: ${clientName}`, 10, 10);
+    lastPageSummaryY = 25;
   }
+
+  doc.save(`Extracto-${this.selectedClient.name}.pdf`);
+  return true;
+}
 
   formatCurrency(value: number): string {
     return value.toLocaleString('es-CO', {
