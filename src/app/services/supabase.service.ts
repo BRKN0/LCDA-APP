@@ -116,7 +116,16 @@ export class SupabaseService {
   ): Observable<PostgrestSingleResponse<T>> {
     return defer(() => this.supabase.rpc(fn, args, options));
   }
+  /**
+   * rpc calls a remote procedure (stored function) in the database.
+   * @param functionName The name of the function.
+   * @param params The parameters of the function.
+   * @returns Returns a promise that resolves to the result of the function.
+   */
 
+  async rpc(functionName: string, params: any = {}) {
+    return await this.supabase.rpc(functionName, params);
+  }
   /**
    * getProfile returns an observable that emits the profile of a user.
    * @param user The user.

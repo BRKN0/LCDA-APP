@@ -357,7 +357,6 @@
         </div>
         <!-- Notifications Button -->
         <div
-          *ngIf="userRole !== 'scheduler'"
           class="nav-item relative cursor-pointer"
           [ngClass]="{ active: router.url.startsWith('/notifications') }"
           (click)="goToNotifications()"
