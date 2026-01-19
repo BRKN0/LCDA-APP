@@ -68,6 +68,11 @@ interface Client {
   postal_code: string;
 }
 
+interface ClientSearchResult {
+  id_client: string;
+  name: string;
+}
+
 interface Notifications {
   id_notification: string;
   created_at: string;
@@ -200,6 +205,9 @@ export class OrdersComponent implements OnInit, OnDestroy {
   startDate: string = '';
   endDate: string = '';
   selectedScheduler: string = '';
+  clientSearch = '';
+  clientSearchResults: ClientSearchResult[] = [];
+  isSearchingClients = false;
 
   // checkbox filters
   showPrints: boolean = true;
@@ -346,11 +354,11 @@ export class OrdersComponent implements OnInit, OnDestroy {
     this.loading = true;
     // SELECT ONLY THE COLUMNS NEEDED FOR THE TABLE
     let query = this.supabase.from('orders').select(`
-        id_order, code, order_type, name, scheduler, 
+        id_order, code, order_type, name, scheduler,
         order_payment_status, order_completion_status, order_confirmed_status, order_delivery_status,
         created_at, created_time, delivery_date, is_immediate,
         total, client_type, secondary_process, secondary_completed, is_vitrine,
-        payments(amount) 
+        payments(amount)
       `);
 
     if (this.userRole !== 'admin' && this.userRole !== 'scheduler') {
@@ -875,6 +883,58 @@ export class OrdersComponent implements OnInit, OnDestroy {
     this.updatePaginatedOrder();
   }
 
+  async searchClients(term: string): Promise<void> {
+    const value = term.trim().toLowerCase();
+
+    if (value.length < 1) {
+      this.clientSearchResults = [];
+      return;
+    }
+
+    this.isSearchingClients = true;
+
+    const { data, error } = await this.supabase
+      .from('clients')
+      .select('id_client, name')
+      .ilike('name', `%${value}%`)
+      .limit(20); // traemos un poco más para ordenar bien
+
+    this.isSearchingClients = false;
+
+    if (error || !data) {
+      console.error('Error searching clients:', error);
+      this.clientSearchResults = [];
+      return;
+    }
+
+    this.clientSearchResults = data
+      .sort((a, b) => {
+        const aName = a.name.toLowerCase();
+        const bName = b.name.toLowerCase();
+
+        const aStarts = aName.startsWith(value);
+        const bStarts = bName.startsWith(value);
+
+        if (aStarts && !bStarts) return -1;
+        if (!aStarts && bStarts) return 1;
+
+        return aName.localeCompare(bName);
+      })
+      .slice(0, 10);
+  }
+
+  selectClient(client: ClientSearchResult): void {
+    this.newOrder.id_client = client.id_client;
+    this.clientSearch = client.name;
+    this.clientSearchResults = [];
+  }
+
+  closeClientSearchWithDelay(): void {
+    setTimeout(() => {
+      this.clientSearchResults = [];
+    }, 150);
+  }
+
   getUniqueSchedulers(): string[] {
     const schedulers = this.orders.map((o) => o.scheduler).filter(Boolean);
     return Array.from(new Set(schedulers));
@@ -1125,6 +1185,8 @@ async toggleOrderCompletionStatus(order: Orders) {
     }
     this.showModal = !this.showModal;
     if (!this.showModal) {
+      this.clientSearch = '';
+      this.clientSearchResults = [];
       this.getOrders();
     }
   }
@@ -1141,62 +1203,77 @@ async toggleOrderCompletionStatus(order: Orders) {
     this.updateFilteredOrders();
   }
 
- async editOrder(order: Orders): Promise<void> {
+  async editOrder(order: Orders): Promise<void> {
     this.isEditing = true;
 
-    // fetch full order details
-    const { data: fullOrder, error } = await this.supabase
-      .from('orders')
-      .select('*')
-      .eq('id_order', order.id_order)
-      .single();
+  // fetch full order details
+  const { data: fullOrder, error } = await this.supabase
+    .from('orders')
+    .select('*')
+    .eq('id_order', order.id_order)
+    .single();
 
-    if (error || !fullOrder) {
-      console.error('Error loading order for editing:', error);
-      this.showNotification('Error al cargar los datos del pedido');
-      return;
-    }
+  if (error || !fullOrder) {
+    console.error('Error loading order for editing:', error);
+    this.showNotification('Error al cargar los datos del pedido');
+    return;
+  }
 
-    this.showModal = true;
-    await this.getMaterials();
+  this.showModal = true;
+  await this.getMaterials();
 
     // populate form with full order data
     this.newOrder = { ...fullOrder } as Orders;
 
-    // normalize date
-    this.newOrder.delivery_date = fullOrder.delivery_date
-      ? fullOrder.delivery_date.slice(0, 10)
-      : '';
+    if (this.newOrder.id_client) {
+      const { data: client, error: clientError } = await this.supabase
+        .from('clients')
+        .select('name')
+        .eq('id_client', this.newOrder.id_client)
+        .single();
 
-    if (fullOrder.order_type === 'laser') {
-      this.tempCutTime = Number(fullOrder.cutting_time) || 0;
-    } else {
-      this.tempCutTime = 0;
-    }
-
-    // in case extra_charges is not an array
-    const extrasArray = Array.isArray(this.newOrder.extra_charges)
-      ? this.newOrder.extra_charges
-      : [];
-    this.newOrder.extra_charges = extrasArray;
-
-    if (!this.newOrder.base_total || isNaN(Number(this.newOrder.base_total))) {
-      if (this.newOrder.subtotal && !isNaN(Number(this.newOrder.subtotal))) {
-        this.newOrder.base_total = Number(this.newOrder.subtotal);
+      if (!clientError && client) {
+        this.clientSearch = client.name;
       } else {
-        const extrasSum = extrasArray.reduce(
-          (sum: number, c: any) => sum + (Number(c?.amount) || 0),
-          0
-        );
-        this.newOrder.base_total = Number(this.newOrder.total || 0) - extrasSum;
+        this.clientSearch = '';
       }
     }
+
+  // normalize date
+  this.newOrder.delivery_date = fullOrder.delivery_date
+    ? fullOrder.delivery_date.slice(0, 10)
+    : '';
+
+  if (fullOrder.order_type === 'laser') {
+    this.tempCutTime = Number(fullOrder.cutting_time) || 0;
+  } else {
+    this.tempCutTime = 0;
+  }
+
+  // in case extra_charges is not an array
+  const extrasArray = Array.isArray(this.newOrder.extra_charges)
+    ? this.newOrder.extra_charges
+    : [];
+  this.newOrder.extra_charges = extrasArray;
+
+  if (!this.newOrder.base_total || isNaN(Number(this.newOrder.base_total))) {
+    if (this.newOrder.subtotal && !isNaN(Number(this.newOrder.subtotal))) {
+      this.newOrder.base_total = Number(this.newOrder.subtotal);
+    } else {
+      const extrasSum = extrasArray.reduce(
+        (sum: number, c: any) => sum + (Number(c?.amount) || 0),
+        0
+      );
+      this.newOrder.base_total = Number(this.newOrder.total || 0) - extrasSum;
+    }
+  }
 
     // reset dropdowns
     this.selectedCategory = '';
     this.selectedType = '';
     this.selectedCaliber = '';
     this.selectedColor = '';
+    this.clientSearchResults = [];
   }
 
   async getUserName(): Promise<string | null> {
@@ -1219,37 +1296,37 @@ async toggleOrderCompletionStatus(order: Orders) {
       );
       newOrderForm.name = selectedClient ? selectedClient.name : '';
 
-      const { data: clientData, error: clientError } = await this.supabase
-        .from('clients')
-        .select('debt, credit_limit')
-        .eq('id_client', newOrderForm.id_client)
-        .single();
+    const { data: clientData, error: clientError } = await this.supabase
+      .from('clients')
+      .select('debt, credit_limit')
+      .eq('id_client', newOrderForm.id_client)
+      .single();
 
-      if (clientError || !clientData) {
-        console.error('Error al obtener detalles del cliente:', clientError);
-        alert('Error al verificar el cliente.');
-        return;
-      }
+    if (clientError || !clientData) {
+      console.error('Error al obtener detalles del cliente:', clientError);
+      alert('Error al verificar el cliente.');
+      return;
+    }
 
-      const currentDebt = clientData.debt || 0;
-      const creditLimit = clientData.credit_limit || 0;
-      const orderAmount = parseFloat(newOrderForm.total as string) || 0;
-      const newDebt = currentDebt + orderAmount;
+    const currentDebt = clientData.debt || 0;
+    const creditLimit = clientData.credit_limit || 0;
+    const orderAmount = parseFloat(newOrderForm.total as string) || 0;
+    const newDebt = currentDebt + orderAmount;
 
-      if (creditLimit > 0 && newDebt > creditLimit) {
-        const confirmMessage = `El cliente ha excedido su límite de crédito por lo que su deuda actual aumentará en el caso de que el pedido sea autorizado.
+    if (creditLimit > 0 && newDebt > creditLimit) {
+      const confirmMessage = `El cliente ha excedido su límite de crédito por lo que su deuda actual aumentará en el caso de que el pedido sea autorizado.
 
       ¿Desea autorizar este pedido de todas formas?`;
 
-        if (!confirm(confirmMessage)) {
-          return;
-        }
-      }
-
-      if (this.newOrder.order_type === '') {
-        alert('Por favor, seleccione un tipo de pedido.');
+      if (!confirm(confirmMessage)) {
         return;
       }
+    }
+
+    if (this.newOrder.order_type === '') {
+      alert('Por favor, seleccione un tipo de pedido.');
+      return;
+    }
 
       // calculations
       const baseTotal = parseFloat(newOrderForm.unitary_value as string) || 0;
@@ -1301,9 +1378,9 @@ async toggleOrderCompletionStatus(order: Orders) {
         discount_type: newOrderForm.discount_type || 'percentage'
       };
 
-      if (this.newOrder.order_type === 'laser') {
-        this.newOrder.cutting_time = this.tempCutTime || 0;
-      }
+    if (this.newOrder.order_type === 'laser') {
+      this.newOrder.cutting_time = this.tempCutTime || 0;
+    }
 
 
       const paymentTerm = 30;
@@ -1323,27 +1400,27 @@ async toggleOrderCompletionStatus(order: Orders) {
         // keep existing code when editing
         this.newOrder.code = newOrderForm.code!;
 
-        if (this.newOrder.order_type === 'laser') {
-          this.newOrder.cutting_time = this.tempCutTime || 0;
-        }
+      if (this.newOrder.order_type === 'laser') {
+        this.newOrder.cutting_time = this.tempCutTime || 0;
+      }
 
-        await this.handleFileUploadForOrder(this.newOrder.id_order!);
-        this.selectedFile = null;
-        this.uploadedFileName = null;
+      await this.handleFileUploadForOrder(this.newOrder.id_order!);
+      this.selectedFile = null;
+      this.uploadedFileName = null;
 
-        // scheduler is set only on order creation
-        delete (this.newOrder as any).scheduler;
+      // scheduler is set only on order creation
+      delete (this.newOrder as any).scheduler;
 
-        const { error } = await this.supabase
-          .from('orders')
-          .update([this.newOrder])
-          .eq('id_order', this.newOrder.id_order);
+      const { error } = await this.supabase
+        .from('orders')
+        .update([this.newOrder])
+        .eq('id_order', this.newOrder.id_order);
 
-        if (error) {
-          console.error('Error al actualizar el pedido:', error);
-          alert('Error al actualizar el pedido.');
-          return;
-        }
+      if (error) {
+        console.error('Error al actualizar el pedido:', error);
+        alert('Error al actualizar el pedido.');
+        return;
+      }
 
         // handle cuts update
         if (this.newOrder.order_type === 'laser') {
@@ -1353,14 +1430,14 @@ async toggleOrderCompletionStatus(order: Orders) {
             .eq('id_order', this.newOrder.id_order)
             .maybeSingle();
 
-          if (existingCut) {
-            const { error: updateCutError } = await this.supabase
-              .from('cuts')
-              .update({
-                cutting_time: this.tempCutTime,
-                unit_price: Number(this.newOrder.unitary_value) || 0,
-              })
-              .eq('id_order', this.newOrder.id_order);
+        if (existingCut) {
+          const { error: updateCutError } = await this.supabase
+            .from('cuts')
+            .update({
+              cutting_time: this.tempCutTime,
+              unit_price: Number(this.newOrder.unitary_value) || 0,
+            })
+            .eq('id_order', this.newOrder.id_order);
 
             if (updateCutError) console.error('Error al actualizar tabla cuts:', updateCutError);
           } else {

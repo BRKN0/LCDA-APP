@@ -123,7 +123,6 @@ export class InvoiceComponent implements OnInit {
   showModal = false;
   showAddClientModal = false;
   showClientDropdown: boolean = false;
-  ivaAlreadyIncluded: boolean = false;
   selectedInvoice: Invoice | null = null;
   currentPage: number = 1;
   itemsPerPage: number = 10;
@@ -415,7 +414,7 @@ export class InvoiceComponent implements OnInit {
 
     this.invoices = [...data].map((invoice) => {
       // Usar el payment_term guardado en la base de datos, solo calcular si es null
-      let paymentTerm = invoice.payment_term !== null ? invoice.payment_term : 30;
+      let paymentTerm = invoice.payment_term !== null ? invoice.payment_term : 5;
       return {
         ...invoice,
         include_iva: invoice.include_iva ?? false,
@@ -1111,29 +1110,44 @@ export class InvoiceComponent implements OnInit {
       invoice?.order?.order_payment_status?.toLowerCase() === 'uptodate' ||
       this.isZeroish(this.getRemainingBalance(invoice));
 
-    if (isInvoiceUpToDate) return 'Realizado';
+    if (isInvoiceUpToDate) {
+      return 'Realizado';
+    }
 
-    if (!invoice.due_date) return 'Sin plazo definido';
+    // Mostrar el payment_term almacenado en la base de datos
+    const paymentTerm = invoice.payment_term ?? 5;
+
+    if (!invoice.due_date) {
+      return `${paymentTerm} días`;
+    }
+
+    // Calcular días restantes solo para determinar si está vencido
     const dueDate = new Date(invoice.due_date);
     const currentDate = new Date();
-    currentDate.setHours(0, 0, 0, 0); // Normalizar hora actual
-    dueDate.setHours(0, 0, 0, 0); // Normalizar due_date
-    const diffTime = dueDate.getTime() - currentDate.getTime();
-    const remainingDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    currentDate.setHours(0, 0, 0, 0);
+    dueDate.setHours(0, 0, 0, 0);
 
-    const orderStatus = invoice.order.order_completion_status || '';
-    const paymentStatus = invoice.order.order_payment_status || '';
-    const isOrderCompleted = orderStatus.toLowerCase() === 'finished';
-    const isPaymentUpToDate = paymentStatus.toLowerCase() === 'uptodate';
+    const diffTime = dueDate.getTime() - currentDate.getTime();
+    const remainingDays = Math.ceil(diffTime / (1000 / 60 / 60 / 24));
+
+    const orderStatus = invoice.order.order_completion_status;
+    const paymentStatus = invoice.order.order_payment_status;
+
+    const isOrderCompleted = orderStatus?.toLowerCase() === 'finished';
+    const isPaymentUpToDate = paymentStatus?.toLowerCase() === 'uptodate';
 
     if (isOrderCompleted && isPaymentUpToDate) {
       return 'Realizado';
     }
-    if (remainingDays <= 0) {
-      return 'Pendiente';
+
+    // Si está vencido, mostrar "Vencido", sino mostrar el plazo almacenado
+    if (remainingDays < 0) {
+      return 'Vencido';
     }
-    return remainingDays > 0 ? `${remainingDays} días` : 'Pendiente';
+
+    return `${paymentTerm} días`;
   }
+
 
   public getRemainingDeliveryDays(dueDate: string | null): number {
     if (!dueDate) return 0;
@@ -2158,7 +2172,7 @@ export class InvoiceComponent implements OnInit {
       id_order: '',
       code: '',
       include_iva: false,
-      payment_term: 30,
+      payment_term: 5,
       due_date: null,
       classification: 'Bien',
       e_invoice_done: false,
@@ -2195,7 +2209,6 @@ export class InvoiceComponent implements OnInit {
         } as Client,
       } as Orders,
     };
-    this.ivaAlreadyIncluded = false;
     this.isEditing = false;
     this.showModal = true;
     this.clientSearchQuery = '';
@@ -2222,7 +2235,7 @@ export class InvoiceComponent implements OnInit {
     this.selectedInvoice = {
       ...invoice,
       created_at: invoice.created_at,
-      payment_term: invoice.payment_term ?? 30,
+      payment_term: invoice.payment_term ?? 5,
       due_date: invoice.due_date,
       include_iva: currentIncludeIva,
       e_invoice_done: invoice.e_invoice_done ?? false,
@@ -2233,7 +2246,6 @@ export class InvoiceComponent implements OnInit {
         baseTotal: invoice.order.total || invoice.order.amount || 0,
       },
     };
-    this.ivaAlreadyIncluded = currentIncludeIva || false;
     this.isEditing = true;
     this.showModal = true;
     this.clientSearchQuery = invoice.order.client.name;
@@ -2271,9 +2283,6 @@ export class InvoiceComponent implements OnInit {
   }
 
   onIncludeIvaChange(): void {
-    if (this.ivaAlreadyIncluded) {
-      return;
-    }
     if (this.selectedInvoice && this.selectedInvoice.order) {
       const order = this.selectedInvoice.order;
       const baseTotal = order.total || 0;
@@ -2404,16 +2413,22 @@ export class InvoiceComponent implements OnInit {
   let paymentTerm: number | null;
   let dueDate: string | null;
 
-  const currentDate = new Date();
-  currentDate.setHours(0, 0, 0, 0);
+  // Solo calcular dueDate si NO existe o si es una factura nueva
+  if (this.isEditing && this.selectedInvoice.due_date) {
+    // Si estamos editando Y ya tiene duedate, se mantiene
+    dueDate = this.selectedInvoice.due_date;
+    paymentTerm = this.selectedInvoice.payment_term ?? 5;
+  } else {
+    // Si es nueva factura O no tiene duedate, calcularlo
+    const currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0);
 
-  // Asegurarse que payment_term tenga valor, si no establecer 30
-  paymentTerm = this.selectedInvoice.payment_term ?? 30;
+    paymentTerm = this.selectedInvoice.payment_term ?? 5;
 
-  // Calcular due_date basado en payment_term desde la fecha actual
-  const dueDateCalculated = new Date(currentDate);
-  dueDateCalculated.setDate(dueDateCalculated.getDate() + paymentTerm);
-  dueDate = dueDateCalculated.toISOString().split('T')[0];
+    const dueDateCalculated = new Date(currentDate);
+    dueDateCalculated.setDate(dueDateCalculated.getDate() + paymentTerm);
+    dueDate = dueDateCalculated.toISOString().split('T')[0];
+  }
 
   const originalTotal =
     this.selectedInvoice.order.total || orderData.total || 0;
@@ -2485,6 +2500,8 @@ export class InvoiceComponent implements OnInit {
       }
 
       this.showNotification('Factura actualizada correctamente.');
+
+      await this.getInvoices();
     } else {
       const { data, error } = await this.supabase
         .from('invoices')
@@ -2543,9 +2560,10 @@ export class InvoiceComponent implements OnInit {
       }
 
       this.showNotification('Factura añadida correctamente.');
+
+      await this.getInvoices();
     }
 
-    await this.getInvoices();
     await this.loadOrders();
     this.closeModal();
   } catch (error) {

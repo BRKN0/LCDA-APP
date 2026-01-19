@@ -367,14 +367,8 @@
                 : "No especificado"
             }}
           </td>
-          <td
-            [ngClass]="{
-              'text-red-500': isDeliveryOverdue(order),
-              'text-yellow-500': isDeliveryLastDay(order),
-              'text-green-500': hasMultipleDeliveryDays(order)
-            }"
-          >
-            {{ getFormattedDeliveryTime(order) }}
+          <td [ngClass]="getDaysRemainingClass(order)">
+            {{ getDaysRemainingLabel(order) }}
           </td>
           <td>
             <button class="btn-details" (click)="selectOrder(order)">
@@ -901,21 +895,44 @@
             </option>
           </select>
         </div>
-        <div class="mb-4">
-          <label class="block modal-input-item"
-            >Cliente<span class="text-red-500">*</span></label
+        <div class="mb-4 relative">
+          <label class="block modal-input-item">
+            Cliente<span class="text-red-500">*</span>
+          </label>
+
+          <input
+            type="text"
+            class="form-input mt-1 block w-full"
+            placeholder="Escribe el nombre del cliente"
+            [(ngModel)]="clientSearch"
+            (input)="searchClients(clientSearch)"
+            [ngModelOptions]="{ standalone: true }"
+            (blur)="closeClientSearchWithDelay()"
+            autocomplete="off"
+          />
+
+          <!-- Lista de resultados -->
+          <ul
+            *ngIf="clientSearchResults.length > 0"
+            class="absolute z-[9999] w-full bg-white border rounded shadow max-h-48 overflow-y-auto mt-1"
           >
-          <select
-            [(ngModel)]="newOrder.id_client"
-            name="id_client"
-            class="form-select mt-1 block w-full"
-            required
-          >
-            <option value="" disabled selected>Seleccione un cliente</option>
-            <option *ngFor="let client of clients" [value]="client.id_client">
+            <li
+              *ngFor="let client of clientSearchResults"
+              class="p-2 cursor-pointer hover:bg-gray-100"
+              (click)="selectClient(client)"
+            >
               {{ client.name }}
-            </option>
-          </select>
+            </li>
+          </ul>
+
+          <!-- Input oculto para validación del formulario -->
+          <input
+            type="hidden"
+            name="id_client"
+            [(ngModel)]="newOrder.id_client"
+            required
+          />
+
           <button
             *ngIf="!isEditing"
             type="button"
