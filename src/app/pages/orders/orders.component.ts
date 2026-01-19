@@ -68,6 +68,11 @@ interface Client {
   postal_code: string;
 }
 
+interface ClientSearchResult {
+  id_client: string;
+  name: string;
+}
+
 interface Notifications {
   id_notification: string;
   created_at: string;
@@ -200,6 +205,9 @@ export class OrdersComponent implements OnInit, OnDestroy {
   startDate: string = '';
   endDate: string = '';
   selectedScheduler: string = '';
+  clientSearch = '';
+  clientSearchResults: ClientSearchResult[] = [];
+  isSearchingClients = false;
 
   // checkbox filters
   showPrints: boolean = true;
@@ -875,6 +883,58 @@ export class OrdersComponent implements OnInit, OnDestroy {
     this.updatePaginatedOrder();
   }
 
+  async searchClients(term: string): Promise<void> {
+    const value = term.trim().toLowerCase();
+
+    if (value.length < 1) {
+      this.clientSearchResults = [];
+      return;
+    }
+
+    this.isSearchingClients = true;
+
+    const { data, error } = await this.supabase
+      .from('clients')
+      .select('id_client, name')
+      .ilike('name', `%${value}%`)
+      .limit(20); // traemos un poco más para ordenar bien
+
+    this.isSearchingClients = false;
+
+    if (error || !data) {
+      console.error('Error searching clients:', error);
+      this.clientSearchResults = [];
+      return;
+    }
+
+    this.clientSearchResults = data
+      .sort((a, b) => {
+        const aName = a.name.toLowerCase();
+        const bName = b.name.toLowerCase();
+
+        const aStarts = aName.startsWith(value);
+        const bStarts = bName.startsWith(value);
+
+        if (aStarts && !bStarts) return -1;
+        if (!aStarts && bStarts) return 1;
+
+        return aName.localeCompare(bName);
+      })
+      .slice(0, 10);
+  }
+
+  selectClient(client: ClientSearchResult): void {
+    this.newOrder.id_client = client.id_client;
+    this.clientSearch = client.name;
+    this.clientSearchResults = [];
+  }
+
+  closeClientSearchWithDelay(): void {
+    setTimeout(() => {
+      this.clientSearchResults = [];
+    }, 150);
+  }
+
   getUniqueSchedulers(): string[] {
     const schedulers = this.orders.map((o) => o.scheduler).filter(Boolean);
     return Array.from(new Set(schedulers));
@@ -1142,6 +1202,8 @@ export class OrdersComponent implements OnInit, OnDestroy {
     }
     this.showModal = !this.showModal;
     if (!this.showModal) {
+      this.clientSearch = '';
+      this.clientSearchResults = [];
       this.getOrders();
     }
   }
@@ -1158,7 +1220,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
     this.updateFilteredOrders();
   }
 
- async editOrder(order: Orders): Promise<void> {
+  async editOrder(order: Orders): Promise<void> {
     this.isEditing = true;
 
     // fetch full order details
@@ -1179,6 +1241,20 @@ export class OrdersComponent implements OnInit, OnDestroy {
 
     // populate form with full order data
     this.newOrder = { ...fullOrder } as Orders;
+
+    if (this.newOrder.id_client) {
+      const { data: client, error: clientError } = await this.supabase
+        .from('clients')
+        .select('name')
+        .eq('id_client', this.newOrder.id_client)
+        .single();
+
+      if (!clientError && client) {
+        this.clientSearch = client.name;
+      } else {
+        this.clientSearch = '';
+      }
+    }
 
     // normalize date
     this.newOrder.delivery_date = fullOrder.delivery_date
@@ -1214,6 +1290,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
     this.selectedType = '';
     this.selectedCaliber = '';
     this.selectedColor = '';
+    this.clientSearchResults = [];
   }
 
   async getUserName(): Promise<string | null> {

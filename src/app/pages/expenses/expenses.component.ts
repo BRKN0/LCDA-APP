@@ -122,6 +122,12 @@ export class ExpensesComponent implements OnInit {
     phone_number: '',
   };
 
+  // 
+  totalPaid: number = 0;
+  totalPending: number = 0;
+  totalExpenses: number = 0;
+
+
   constructor(private readonly supabase: SupabaseService) { }
 
   ngOnInit(): void {
@@ -249,10 +255,6 @@ export class ExpensesComponent implements OnInit {
       | 'PAID'
       | 'PENDING';
     this.selectedExpense.payment_status = value;
-
-    if (value === 'PAID') {
-      this.selectedExpense.payment_due_date = null;
-    }
   }
   onProviderChange(event: Event): void {
     const value = (event.target as HTMLSelectElement).value;
@@ -582,7 +584,20 @@ export class ExpensesComponent implements OnInit {
     });
 
     // Update paginated expenses after filtering
+    this.calculateTotals();
     this.updatePaginatedExpenses();
+  }
+
+  private calculateTotals(): void {
+    this.totalPaid = this.filteredExpenses
+      .filter(e => e.payment_status === 'PAID')
+      .reduce((sum, e) => sum + Number(e.cost || 0), 0);
+
+    this.totalPending = this.filteredExpenses
+      .filter(e => e.payment_status === 'PENDING')
+      .reduce((sum, e) => sum + Number(e.cost || 0), 0);
+
+    this.totalExpenses = this.totalPaid + this.totalPending;
   }
 
   // Verify if at least one category checkbox is checked
@@ -727,6 +742,7 @@ export class ExpensesComponent implements OnInit {
     // Obtain items for the current page
     this.paginatedExpenses = this.filteredExpenses.slice(startIndex, endIndex);
   }
+
   clearFilters(): void {
     this.startDate = '';
     this.endDate = '';
@@ -737,17 +753,13 @@ export class ExpensesComponent implements OnInit {
 
     this.applyFilters();
   }
+
   async toggleExpenseStatus(expense: ExpensesItem) {
     const oldStatus = expense.payment_status;
     const newStatus = oldStatus === 'PAID' ? 'PENDING' : 'PAID';
     expense.payment_status = newStatus;
 
     const updateData: any = { payment_status: newStatus };
-
-    if (newStatus === 'PAID') {
-      updateData.payment_due_date = null;
-      expense.payment_due_date = null;
-    }
 
     const { error } = await this.supabase
       .from('expenses')
@@ -759,6 +771,8 @@ export class ExpensesComponent implements OnInit {
       expense.payment_status = oldStatus; // Revert UI
       alert('Hubo un error al actualizar el estado.');
     }
+
+    this.calculateTotals();
   }
 
   // File Handlers

@@ -415,7 +415,7 @@ export class InvoiceComponent implements OnInit {
 
     this.invoices = [...data].map((invoice) => {
       // Usar el payment_term guardado en la base de datos, solo calcular si es null
-      let paymentTerm = invoice.payment_term !== null ? invoice.payment_term : 30;
+      let paymentTerm = invoice.payment_term !== null ? invoice.payment_term : 5;
       return {
         ...invoice,
         include_iva: invoice.include_iva ?? false,
@@ -2158,7 +2158,7 @@ export class InvoiceComponent implements OnInit {
       id_order: '',
       code: '',
       include_iva: false,
-      payment_term: 30,
+      payment_term: 5,
       due_date: null,
       classification: 'Bien',
       e_invoice_done: false,
@@ -2222,7 +2222,7 @@ export class InvoiceComponent implements OnInit {
     this.selectedInvoice = {
       ...invoice,
       created_at: invoice.created_at,
-      payment_term: invoice.payment_term ?? 30,
+      payment_term: invoice.payment_term ?? 5,
       due_date: invoice.due_date,
       include_iva: currentIncludeIva,
       e_invoice_done: invoice.e_invoice_done ?? false,
@@ -2407,8 +2407,8 @@ export class InvoiceComponent implements OnInit {
   const currentDate = new Date();
   currentDate.setHours(0, 0, 0, 0);
 
-  // Asegurarse que payment_term tenga valor, si no establecer 30
-  paymentTerm = this.selectedInvoice.payment_term ?? 30;
+  // Asegurarse que payment_term tenga valor, si no establecer 5
+  paymentTerm = this.selectedInvoice.payment_term ?? 5;
 
   // Calcular due_date basado en payment_term desde la fecha actual
   const dueDateCalculated = new Date(currentDate);
