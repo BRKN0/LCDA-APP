@@ -217,8 +217,10 @@ export class ProductComponent implements OnInit, OnDestroy {
   }
 
   saveProduct(): void {
+    this.selectedProduct.category = this.selectedCategory;
+
     if (!this.selectedProduct.name || !this.selectedProduct.category) {
-      alert('Por favor, complete todos los campos requeridos.');
+      alert('Por favor, complete todos los campos requeridos "*".');
       return;
     }
 
@@ -295,15 +297,19 @@ export class ProductComponent implements OnInit, OnDestroy {
   private calculatePrice(cost: number, marginPct: number): number {
     const c = Number(cost) || 0;
     const m = Number(marginPct) || 0;
-    const raw = c * (1 + m / 100);
+
+    if (m >= 100) return 0; // protección básica
+
+    const raw = c / (1 - m / 100);
     return this.roundToStep(raw, this.roundingStep);
   }
 
   private calculateMarginPct(cost: number, price: number): number {
     const c = Number(cost) || 0;
     const p = Number(price) || 0;
-    if (c <= 0) return 0; // evita división por cero; define tu regla aquí
-    const margin = ((p / c) - 1) * 100;
+    if (p <= 0) return 0;
+
+    const margin = ((p - c) / p) * 100;
     return this.roundDecimals(margin, 2);
   }
 

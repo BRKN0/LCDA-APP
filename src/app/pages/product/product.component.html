@@ -341,7 +341,7 @@ barra de navegacion debatible a cambio
         <th class="table-column-std">Stock</th>
         <th class="table-column-std">Costo</th>
         <th class="table-column-std">Precio</th>
-        <th class="table-column-std">% Utilidad</th>
+        <th class="table-column-std">% Margen</th>
         <th class="table-column-std">Acciones</th>
       </tr>
     </thead>
@@ -423,7 +423,8 @@ barra de navegacion debatible a cambio
       </h3>
       <form (ngSubmit)="saveProduct()">
         <div class="mb-4">
-          <label class="block modal-input-item">Nombre</label>
+          <label class="block modal-input-item"
+          >Nombre<span class="text-red-500">*</span></label>
           <input
             [(ngModel)]="selectedProduct.name"
             name="name"
@@ -518,7 +519,7 @@ barra de navegacion debatible a cambio
           <label for="autoPrice" class="modal-input-item">Calcular precio automáticamente (por utilidad)</label>
         </div>
         <div class="mb-4">
-          <label class="block modal-input-item">% Utilidad</label>
+          <label class="block modal-input-item">% Margen de utilidad</label>
           <input
             type="number"
             [(ngModel)]="selectedProduct.utility_margin"
@@ -552,10 +553,10 @@ barra de navegacion debatible a cambio
             (input)="onPriceChange()"
           />
           <small class="text-gray-500" *ngIf="autoPrice">
-            Precio = Costo × (1 + Utilidad/100). Redondeado a {{ roundingStep }}.
+            Precio = Costo ÷ (1 − Utilidad/100). Redondeado a {{ roundingStep }}.
           </small>
           <small class="text-gray-500" *ngIf="!autoPrice">
-            Utilidad(%) = (Precio/Costo − 1) × 100.
+            Utilidad(%) = (Precio − Costo) ÷ Precio × 100.
           </small>
         </div>
 
