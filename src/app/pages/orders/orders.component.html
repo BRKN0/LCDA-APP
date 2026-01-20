@@ -899,15 +899,26 @@
           <label class="block modal-input-item">
             Cliente<span class="text-red-500">*</span>
           </label>
-
+          <small
+            *ngIf="clientTypedButNotSelected"
+            class="text-red-500 block mt-1"
+          >
+            Debes seleccionar el cliente desde la lista
+          </small>
+          <small
+            *ngIf="clientInvalid"
+            class="text-red-600 block mt-1"
+          >
+            Selecciona el cliente haciendo clic en la lista
+          </small>
           <input
             type="text"
             class="form-input mt-1 block w-full"
-            placeholder="Escribe el nombre del cliente"
+            placeholder="Escribe y seleccione al cliente"
             [(ngModel)]="clientSearch"
-            (input)="searchClients(clientSearch)"
+            (input)="onClientInput(clientSearch)"
             [ngModelOptions]="{ standalone: true }"
-            (blur)="closeClientSearchWithDelay()"
+            (blur)="onClientBlur()"
             autocomplete="off"
           />
 
@@ -924,14 +935,6 @@
               {{ client.name }}
             </li>
           </ul>
-
-          <!-- Input oculto para validación del formulario -->
-          <input
-            type="hidden"
-            name="id_client"
-            [(ngModel)]="newOrder.id_client"
-            required
-          />
 
           <button
             *ngIf="!isEditing"

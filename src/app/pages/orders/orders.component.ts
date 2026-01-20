@@ -205,9 +205,12 @@ export class OrdersComponent implements OnInit, OnDestroy {
   startDate: string = '';
   endDate: string = '';
   selectedScheduler: string = '';
-  clientSearch = '';
+  clientSearch: string = '';
   clientSearchResults: ClientSearchResult[] = [];
+  selectedClient: ClientSearchResult | null = null;
   isSearchingClients = false;
+  clientTypedButNotSelected = false;
+  clientInvalid = false;
 
   // checkbox filters
   showPrints: boolean = true;
@@ -897,7 +900,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
       .from('clients')
       .select('id_client, name')
       .ilike('name', `%${value}%`)
-      .limit(20); // traemos un poco más para ordenar bien
+      .limit(20);
 
     this.isSearchingClients = false;
 
@@ -924,15 +927,56 @@ export class OrdersComponent implements OnInit, OnDestroy {
   }
 
   selectClient(client: ClientSearchResult): void {
+    this.selectedClient = client;
     this.newOrder.id_client = client.id_client;
     this.clientSearch = client.name;
     this.clientSearchResults = [];
+    this.clientTypedButNotSelected = false;
+    this.clientInvalid = false;
   }
 
-  closeClientSearchWithDelay(): void {
+  onClientInput(value: string): void {
+    this.clientSearch = value;
+
+    // Invalida selección previa
+    this.selectedClient = null;
+    this.newOrder.id_client = undefined;
+
+    this.clientInvalid = false;
+    this.clientTypedButNotSelected = value.trim().length > 0;
+
+    this.searchClients(value);
+  }
+
+  onClientBlur(): void {
     setTimeout(() => {
+      if (!this.selectedClient) {
+        this.autoSelectExactMatch();
+      }
+
       this.clientSearchResults = [];
     }, 150);
+  }
+
+  autoSelectExactMatch(): void {
+    const value = this.clientSearch?.trim().toLowerCase();
+    if (!value) return;
+
+    const matches = this.clients.filter(
+      c => c.name.trim().toLowerCase() === value
+    );
+
+    if (matches.length === 1) {
+      this.selectClient(matches[0]);
+    }
+  }
+
+  validateClientBeforeSave(): boolean {
+    if (!this.selectedClient || !this.newOrder.id_client) {
+      this.clientInvalid = true;
+      return false;
+    }
+    return true;
   }
 
   getUniqueSchedulers(): string[] {
@@ -1177,6 +1221,9 @@ async toggleOrderCompletionStatus(order: Orders) {
         requires_e_invoice: false,
         include_iva: false,
       };
+      this.clientSearch = '';
+      this.clientSearchResults = [];
+      this.selectedClient = null;
       this.selectedCategory = '';
       this.selectedType = '';
       this.selectedCaliber = '';
@@ -1185,8 +1232,6 @@ async toggleOrderCompletionStatus(order: Orders) {
     }
     this.showModal = !this.showModal;
     if (!this.showModal) {
-      this.clientSearch = '';
-      this.clientSearchResults = [];
       this.getOrders();
     }
   }
@@ -1286,15 +1331,20 @@ async toggleOrderCompletionStatus(order: Orders) {
     return error || !data ? null : data.user_name;
   }
 
- async addOrder(newOrderForm: Partial<Orders>): Promise<void> {
+  async addOrder(newOrderForm: Partial<Orders>): Promise<void> {
     this.isSavingOrder = true;
 
     try {
-      // client validation
-      const selectedClient = this.clients.find(
-        (client) => client.id_client === newOrderForm.id_client
-      );
-      newOrderForm.name = selectedClient ? selectedClient.name : '';
+      if (!this.selectedClient) {
+        this.autoSelectExactMatch();
+      }
+
+      if (!this.selectedClient) {
+        alert('Error interno: cliente no resuelto.');
+        return;
+      }
+
+      newOrderForm.name = this.selectedClient.name;
 
     const { data: clientData, error: clientError } = await this.supabase
       .from('clients')

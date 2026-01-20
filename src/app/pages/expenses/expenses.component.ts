@@ -77,7 +77,7 @@ export class ExpensesComponent implements OnInit {
   filterCategory: string | null = null;
   filterServiceType: string | null = null;
   onlyPending: boolean = false;
-  filterProviderId: string | null = null;
+  filterProviderName: string | null = null;
 
   // Categories
   categoryCheckboxes: { [key: string]: boolean } = {};
@@ -121,6 +121,13 @@ export class ExpensesComponent implements OnInit {
     document_number: '',
     phone_number: '',
   };
+
+  thirdPartySuggestions: string[] = [];
+  isSupplierCategory: boolean = false;
+  payeeSearch: string = '';
+  payeeSearchResults: string[] = [];
+  payeeTypedButNotSelected: boolean = false;
+  payeeJustSelected: boolean = false;
 
   // 
   totalPaid: number = 0;
@@ -243,10 +250,20 @@ export class ExpensesComponent implements OnInit {
     this.selectedExpense.category = value;
 
     this.isServiceCategory = value === 'UTILITIES';
-
     if (!this.isServiceCategory) {
       this.selectedExpense.service_type = null;
       this.newServiceType = '';
+    }
+
+    this.isSupplierCategory = value === 'SUPPLIES';
+
+    if (this.isSupplierCategory) {
+      // estamos en compras → NO texto libre
+      this.selectedExpense.provider_name = null;
+    } else {
+      // NO es proveedor → NO id_provider
+      this.selectedExpense.id_provider = undefined;
+      this.isNewProviderMode = false;
     }
   }
   // Handle Status Change
@@ -266,6 +283,64 @@ export class ExpensesComponent implements OnInit {
       this.selectedExpense.id_provider = value;
     }
   }
+
+  private normalizeProviderName(value: string): string {
+    return value
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, ' ');
+  }
+
+  getUniqueProviderNames(): string[] {
+    return Array.from(
+      new Set(
+        this.expenses
+          .map(e => e.provider_name)
+          .filter((name): name is string => !!name)
+      )
+    ).sort();
+  }
+
+  onProviderInput(value: string): void {
+    this.payeeSearch = value;
+    this.payeeJustSelected = false;
+
+    const normalized = this.normalizeProviderName(value);
+
+    if (!normalized) {
+      this.payeeSearchResults = [];
+      return;
+    }
+
+    this.payeeSearchResults = this.getUniqueProviderNames().filter(name =>
+      name.includes(normalized)
+    );
+
+    this.payeeTypedButNotSelected =
+      this.payeeSearchResults.length > 0 &&
+      !this.payeeSearchResults.includes(normalized);
+  }
+
+  selectProviderName(name: string): void {
+    this.payeeSearch = name;
+    this.selectedExpense.provider_name = name;
+    this.payeeSearchResults = [];
+    this.payeeTypedButNotSelected = false;
+    this.payeeJustSelected = true;
+  }
+
+  onProviderBlur(): void {
+    if (this.payeeJustSelected) return;
+
+    if (this.payeeSearch) {
+      this.selectedExpense.provider_name =
+        this.normalizeProviderName(this.payeeSearch);
+    }
+
+    this.payeeSearchResults = [];
+    this.payeeTypedButNotSelected = false;
+  }
+
   // Save expenses and update checkboxes
   async saveExpense() {
     if (this.isSaving) return;
@@ -296,7 +371,10 @@ export class ExpensesComponent implements OnInit {
       }
 
       let finalProviderId = this.selectedExpense.id_provider;
-      let finalProviderName = '';
+      let finalProviderName = 
+        this.selectedExpense.provider_name
+          ? this.normalizeProviderName(this.selectedExpense.provider_name)
+          : null;
 
       // Create New Provider
       if (this.isNewProviderMode) {
@@ -308,6 +386,8 @@ export class ExpensesComponent implements OnInit {
 
         finalProviderName =
           this.newProviderData.company_name || this.newProviderData.name;
+
+        this.normalizeThirdPartyName();
 
         const { data: provData, error: provError } = await this.supabase
           .from('providers')
@@ -548,6 +628,48 @@ export class ExpensesComponent implements OnInit {
     }
   }
 
+  getThirdParties(): string[] {
+    return Array.from(
+      new Set(
+        this.expenses
+          .map(e => e.provider_name)
+          .filter((name): name is string => !!name && name.trim() !== '')
+      )
+    ).sort();
+  }
+
+  onThirdPartyInput(): void {
+    const value = this.selectedExpense.provider_name?.toLowerCase().trim();
+
+    if (!value || value.length < 2) {
+      this.thirdPartySuggestions = [];
+      return;
+    }
+
+    this.thirdPartySuggestions = this.getThirdParties()
+      .filter(name =>
+        name.toLowerCase().includes(value)
+      )
+      .slice(0, 10);
+  }
+
+  selectThirdParty(name: string): void {
+    this.selectedExpense.provider_name = name;
+    this.thirdPartySuggestions = [];
+  }
+
+  normalizeThirdPartyName(): void {
+    if (!this.selectedExpense.provider_name) return;
+
+    const input = this.selectedExpense.provider_name.trim().toUpperCase();
+
+    const existing = this.getThirdParties().find(
+      name => name.toUpperCase() === input
+    );
+
+    this.selectedExpense.provider_name = existing ?? input;
+  }
+
   applyFilters(): void {
     this.filteredExpenses = this.expenses.filter((e) => {
       // Date range
@@ -562,7 +684,11 @@ export class ExpensesComponent implements OnInit {
       }
 
       // Provider filter
-      if (this.filterProviderId && e.id_provider !== this.filterProviderId) {
+      if (this.filterProviderName &&
+        !e.provider_name?.toLowerCase().includes(
+          this.filterProviderName.toLowerCase()
+        )
+      ) {
         return false;
       }
 
@@ -614,6 +740,7 @@ export class ExpensesComponent implements OnInit {
   }
 
   addNewExpense(): void {
+    this.thirdPartySuggestions = [];
     this.selectedExpense = {
       id_expenses: '',
       payment_date: '',
@@ -632,6 +759,7 @@ export class ExpensesComponent implements OnInit {
       proof_of_payment_path: null,
     };
     this.isServiceCategory = false;
+    this.isSupplierCategory = false;
     this.newServiceType = '';
     this.showOtherCategoryInput = false;
     this.otherCategory = '';
@@ -662,6 +790,7 @@ export class ExpensesComponent implements OnInit {
     this.showOtherCategoryInput = false;
     this.otherCategory = '';
     this.isServiceCategory = false;
+    this.isSupplierCategory = false;
     this.isNewCategoryMode = false;
     this.categoryJustAdded = false;
     this.newServiceType = '';
@@ -748,7 +877,7 @@ export class ExpensesComponent implements OnInit {
     this.endDate = '';
     this.filterCategory = null;
     this.filterServiceType = null;
-    this.filterProviderId = null;
+    this.filterProviderName = null;
     this.onlyPending = false;
 
     this.applyFilters();

@@ -38,15 +38,15 @@
 
     <!-- Proveedor -->
     <div>
-      <label class="block text-sm font-semibold">Proveedor</label>
+      <label class="block text-sm font-semibold">Tercero</label>
       <select
-        [(ngModel)]="filterProviderId"
+        [(ngModel)]="filterProviderName"
         (change)="applyFilters()"
         class="form-select w-56"
       >
         <option value="">Todos</option>
-        <option *ngFor="let prov of providersList" [value]="prov.id_provider">
-          {{ prov.company_name || prov.name }}
+        <option *ngFor="let name of getThirdParties()" [value]="name">
+          {{ name }}
         </option>
       </select>
     </div>
@@ -158,7 +158,7 @@
       <tr>
         <th class="table-column-std">Fecha</th>
         <th class="table-column-std">Categoría</th>
-        <th class="table-column-std">Proveedor</th>
+        <th class="table-column-std">Tercero</th>
         <th class="table-column-std">Anotación</th>
         <th class="table-column-std">Costo</th>
         <th class="table-column-std">Tipo Pago</th>
@@ -422,17 +422,19 @@
         </div>
       </div>
 
+      <!-- SOLO PARA SUPPLIES -->
       <div
+        *ngIf="isSupplierCategory"
         class="bg-blue-50 p-4 rounded-md border border-blue-200 space-y-3 mt-2"
       >
         <h3 class="font-semibold text-blue-800 text-sm">
-          Detalles del Proveedor
+          Proveedor
         </h3>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700"
-            >Proveedor</label
-          >
+          <label class="block text-sm font-medium text-gray-700">
+            Seleccionar proveedor
+          </label>
           <select
             [(ngModel)]="selectedExpense.id_provider"
             (change)="onProviderChange($event)"
@@ -457,15 +459,14 @@
           *ngIf="isNewProviderMode"
           class="pl-2 border-l-2 border-blue-400 space-y-2"
         >
-          <div>
-            <input
-              type="text"
-              [(ngModel)]="newProviderData.company_name"
-              name="new_company"
-              placeholder="Nombre Empresa / Razón Social"
-              class="form-input w-full text-sm rounded-md"
-            />
-          </div>
+          <input
+            type="text"
+            [(ngModel)]="newProviderData.company_name"
+            name="new_company"
+            placeholder="Nombre Empresa / Razón Social"
+            class="form-input w-full text-sm rounded-md"
+          />
+
           <div class="flex gap-2">
             <input
               type="text"
@@ -482,16 +483,51 @@
               class="form-input w-1/2 text-sm rounded-md"
             />
           </div>
-          <div>
-            <input
-              type="text"
-              [(ngModel)]="newProviderData.phone_number"
-              name="new_phone"
-              placeholder="Teléfono"
-              class="form-input w-full text-sm rounded-md"
-            />
-          </div>
+
+          <input
+            type="text"
+            [(ngModel)]="newProviderData.phone_number"
+            name="new_phone"
+            placeholder="Teléfono"
+            class="form-input w-full text-sm rounded-md"
+          />
         </div>
+      </div>
+
+      <!-- PARA CUALQUIER CATEGORÍA QUE NO SEA SUPPLIES -->
+      <div
+        *ngIf="selectedExpense.category && !isSupplierCategory"
+        class="bg-gray-50 p-4 rounded-md border border-gray-200 space-y-2 mt-2"
+      >
+        <h3 class="font-semibold text-gray-700 text-sm">
+          Pagado a
+        </h3>
+        <small *ngIf="thirdPartySuggestions.length === 0 && selectedExpense.provider_name">
+          Se guardará como nuevo tercero
+        </small>
+
+        <input
+          type="text"
+          [(ngModel)]="selectedExpense.provider_name"
+          name="provider_name"
+          placeholder="Nombre de la persona o entidad"
+          class="form-input w-full rounded-md text-sm"
+          (input)="onThirdPartyInput()"
+          autocomplete="off"    
+        />
+
+        <ul
+          *ngIf="thirdPartySuggestions.length > 0"
+          class="absolute z-[9999] w-full bg-white border rounded shadow max-h-40 overflow-y-auto mt-1"
+        >
+          <li
+            *ngFor="let name of thirdPartySuggestions"
+            class="p-2 cursor-pointer hover:bg-gray-100"
+            (click)="selectThirdParty(name)"
+          >
+            {{ name }}
+          </li>
+        </ul>
       </div>
 
       <div class="modal-input-item">
@@ -705,21 +741,30 @@
           <p class="text-xl font-mono font-bold text-gray-900">{{ selectedExpense.cost | currency }}</p>
         </div>
         <div>
-           <label class="block text-xs font-bold text-gray-500 uppercase">Categoría</label>
-           <span class="inline-block bg-gray-100 rounded px-2 py-1 text-sm font-semibold text-gray-700">
-             {{ getCategoryLabel(selectedExpense.category) }}
-             <span *ngIf="selectedExpense.service_type"> - {{selectedExpense.service_type}}</span>
-           </span>
+          <label class="block text-xs font-bold text-gray-500 uppercase">Categoría</label>
+          <span class="inline-block bg-gray-100 rounded px-2 py-1 text-sm font-semibold text-gray-700">
+            {{ getCategoryLabel(selectedExpense.category) }}
+            <span *ngIf="selectedExpense.service_type"> - {{selectedExpense.service_type}}</span>
+          </span>
         </div>
         <div>
-           <label class="block text-xs font-bold text-gray-500 uppercase">Método de Pago</label>
-           <p class="text-gray-900">{{ selectedExpense.type }}</p>
+          <label class="block text-xs font-bold text-gray-500 uppercase">Método de Pago</label>
+          <p class="text-gray-900">
+            {{ 
+              selectedExpense.type === 'cash' ? 'Efectivo' :
+              selectedExpense.type === 'nequi' ? 'Nequi' :
+              selectedExpense.type === 'bancolombia' ? 'Bancolombia' :
+              selectedExpense.type === 'davivienda' ? 'Davivienda' :
+              selectedExpense.type === 'transfer' ? 'Transferencia'
+              : 'Ninguno' 
+            }}
+          </p>
         </div>
       </div>
 
       <div *ngIf="selectedExpense.provider_name" class="bg-blue-50 p-3 rounded border border-blue-100">
-         <label class="block text-xs font-bold text-blue-500 uppercase">Proveedor</label>
-         <p class="text-blue-900 font-medium">{{ selectedExpense.provider_name }}</p>
+        <label class="block text-xs font-bold text-blue-500 uppercase">Tercero</label>
+        <p class="text-blue-900 font-medium">{{ selectedExpense.provider_name }}</p>
       </div>
 
       <div>
@@ -730,14 +775,14 @@
       </div>
 
       <div class="flex items-center gap-2 mt-2">
-         <label class="block text-xs font-bold text-gray-500 uppercase">Estado:</label>
-         <span class="px-2 py-1 text-xs font-bold rounded"
-           [ngClass]="{'bg-green-100 text-green-700': selectedExpense.payment_status === 'PAID', 'bg-red-100 text-red-700': selectedExpense.payment_status === 'PENDING'}">
-            {{ selectedExpense.payment_status === 'PAID' ? 'PAGADO' : 'PENDIENTE' }}
-         </span>
-         <span *ngIf="selectedExpense.payment_status === 'PENDING'" class="text-xs text-red-500 font-semibold">
-           (Vence: {{ selectedExpense.payment_due_date | date: 'dd/MM/yyyy' }})
-         </span>
+        <label class="block text-xs font-bold text-gray-500 uppercase">Estado:</label>
+        <span class="px-2 py-1 text-xs font-bold rounded"
+          [ngClass]="{'bg-green-100 text-green-700': selectedExpense.payment_status === 'PAID', 'bg-red-100 text-red-700': selectedExpense.payment_status === 'PENDING'}">
+          {{ selectedExpense.payment_status === 'PAID' ? 'PAGADO' : 'PENDIENTE' }}
+        </span>
+        <span *ngIf="selectedExpense.payment_status === 'PENDING'" class="text-xs text-red-500 font-semibold">
+          (Vence: {{ selectedExpense.payment_due_date | date: 'dd/MM/yyyy' }})
+        </span>
       </div>
 
       <div class="border-t pt-4 mt-4">
@@ -751,31 +796,31 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           
           <div class="border rounded p-3 flex items-center justify-between bg-gray-50">
-             <div class="flex items-center gap-2">
-               <span class="text-sm font-semibold text-gray-600">Factura / Recibo</span>
-             </div>
-             <button 
-                *ngIf="selectedExpense.invoice_file_path"
-                (click)="downloadFile(selectedExpense.invoice_file_path)"
-                class="btn-primary text-xs px-3 py-1 flex items-center gap-1"
-             >
-                Descargar
-             </button>
-             <span *ngIf="!selectedExpense.invoice_file_path" class="text-xs text-gray-400 italic">No adjuntado</span>
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-semibold text-gray-600">Factura / Recibo</span>
+            </div>
+            <button 
+              *ngIf="selectedExpense.invoice_file_path"
+              (click)="downloadFile(selectedExpense.invoice_file_path)"
+              class="btn-primary text-xs px-3 py-1 flex items-center gap-1"
+            >
+              Descargar
+            </button>
+            <span *ngIf="!selectedExpense.invoice_file_path" class="text-xs text-gray-400 italic">No adjuntado</span>
           </div>
 
           <div class="border rounded p-3 flex items-center justify-between bg-gray-50">
-             <div class="flex items-center gap-2">
-               <span class="text-sm font-semibold text-gray-600">Comprobante Pago</span>
-             </div>
-             <button 
-                *ngIf="selectedExpense.proof_of_payment_path"
-                (click)="downloadFile(selectedExpense.proof_of_payment_path)"
-                class="btn-primary text-xs px-3 py-1 flex items-center gap-1"
-             >
-                Descargar
-             </button>
-             <span *ngIf="!selectedExpense.proof_of_payment_path" class="text-xs text-gray-400 italic">No adjuntado</span>
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-semibold text-gray-600">Comprobante Pago</span>
+            </div>
+            <button 
+              *ngIf="selectedExpense.proof_of_payment_path"
+              (click)="downloadFile(selectedExpense.proof_of_payment_path)"
+              class="btn-primary text-xs px-3 py-1 flex items-center gap-1"
+            >
+              Descargar
+            </button>
+            <span *ngIf="!selectedExpense.proof_of_payment_path" class="text-xs text-gray-400 italic">No adjuntado</span>
           </div>
 
         </div>
