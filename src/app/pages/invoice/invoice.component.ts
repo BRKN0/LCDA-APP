@@ -1,10 +1,10 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, NgZone } from '@angular/core';
-import { MainBannerComponent } from '../main-banner/main-banner.component';
 import { FormsModule } from '@angular/forms';
 import { jsPDF } from 'jspdf';
 import { Router, RouterOutlet } from '@angular/router';
 import { SupabaseService } from '../../services/supabase.service';
+import { RoleService } from '../../services/role.service';
 
 interface Invoice {
   id_invoice: string;
@@ -18,6 +18,20 @@ interface Invoice {
   due_date: string | null;
   classification: string;
   e_invoice_done: boolean;
+}
+
+interface Employee {
+  id_employee: string;
+  name: string;
+  id_user: string;
+  employee_type?: string;
+}
+
+interface InvoicePermission {
+  id: number;
+  id_invoice: string;
+  id_user: string;
+  employee_details?: Employee;
 }
 interface VariableMap {
   iva: number;
@@ -167,8 +181,18 @@ export class InvoiceComponent implements OnInit {
     totalPaid: 0,
     rangeDebt: 0,
     pendingDebt: 0,
-    invoiceCount: 0
+    invoiceCount: 0,
   };
+
+  // permission variables
+  showPermissionModal: boolean = false;
+  schedulers: Employee[] = [];
+  currentPermissions: InvoicePermission[] = [];
+  selectedUserId: string = '';
+  permissionLoading: boolean = false;
+  userRole: string | null = null;
+  userId: string | null = null;
+  canManagePayments: boolean = false;
 
   private pct(n: number | null | undefined, digits = 0): string {
     const v = Number(n ?? 0);
@@ -202,17 +226,26 @@ export class InvoiceComponent implements OnInit {
   constructor(
     private readonly supabase: SupabaseService,
     private readonly zone: NgZone,
-    private readonly router: Router
-  ) { }
+    private readonly router: Router,
+    private readonly roleService: RoleService,
+  ) {}
 
   async ngOnInit(): Promise<void> {
     this.supabase.authChanges((_, session) => {
       if (session) {
         this.zone.run(() => {
-          this.getInvoices();
-          this.getClients();
-          this.loadOrders();
-          this.getVariables();
+          if (this.userId !== session.user.id) {
+            this.userId = session.user.id;
+            this.roleService.fetchAndSetUserRole(this.userId);
+            this.roleService.role$.subscribe((role) => {
+              this.userRole = role;
+            });
+            console.log('user role is: ', this.userRole);
+            this.getInvoices();
+            this.getClients();
+            this.loadOrders();
+            this.getVariables();
+          }
         });
       }
     });
@@ -267,7 +300,6 @@ export class InvoiceComponent implements OnInit {
     this.isSaving = true;
 
     try {
-
       const { data, error } = await this.supabase
         .from('clients')
         .insert([this.newClient]);
@@ -287,7 +319,6 @@ export class InvoiceComponent implements OnInit {
     } finally {
       this.isSaving = false;
     }
-
   }
 
   searchClients(): void {
@@ -296,11 +327,8 @@ export class InvoiceComponent implements OnInit {
       return;
     }
 
-    this.filteredClients = this.clients.filter(
-      (client) =>
-        client.name
-          .toLowerCase()
-          .includes(this.clientSearchQuery.toLowerCase())
+    this.filteredClients = this.clients.filter((client) =>
+      client.name.toLowerCase().includes(this.clientSearchQuery.toLowerCase()),
     );
   }
 
@@ -338,7 +366,7 @@ export class InvoiceComponent implements OnInit {
             invoice.id_order === order.id_order &&
             (!this.isEditing ||
               (this.selectedInvoice &&
-                invoice.id_invoice !== this.selectedInvoice.id_invoice))
+                invoice.id_invoice !== this.selectedInvoice.id_invoice)),
         );
         return matchesClient && matchesType && !isAssigned;
       });
@@ -369,7 +397,7 @@ export class InvoiceComponent implements OnInit {
         orders(*,
           clients(*)
         )
-      `
+      `,
       )
       .eq('code', this.searchQuery.trim());
     this.loading = false;
@@ -414,7 +442,8 @@ export class InvoiceComponent implements OnInit {
 
     this.invoices = [...data].map((invoice) => {
       // Usar el payment_term guardado en la base de datos, solo calcular si es null
-      let paymentTerm = invoice.payment_term !== null ? invoice.payment_term : 5;
+      let paymentTerm =
+        invoice.payment_term !== null ? invoice.payment_term : 5;
       return {
         ...invoice,
         include_iva: invoice.include_iva ?? false,
@@ -523,31 +552,29 @@ export class InvoiceComponent implements OnInit {
       if (this.selectedPaymentMethodFilter !== 'all') {
         const hasRange = this.startDate || this.endDate;
 
-        const start = hasRange && this.startDate
-          ? new Date(this.startDate + 'T00:00:00')
-          : null;
+        const start =
+          hasRange && this.startDate
+            ? new Date(this.startDate + 'T00:00:00')
+            : null;
 
-        const end = hasRange && this.endDate
-          ? new Date(this.endDate + 'T23:59:59')
-          : null;
+        const end =
+          hasRange && this.endDate
+            ? new Date(this.endDate + 'T23:59:59')
+            : null;
 
         const payments = invoice.order?.payments || [];
 
-        matchesPaymentMethod = payments.some(p => {
+        matchesPaymentMethod = payments.some((p) => {
           if (!p.payment_date) return false;
 
           const paymentDate = new Date(p.payment_date);
 
           const inRange =
             !hasRange ||
-            (
-              (!start || paymentDate >= start) &&
-              (!end || paymentDate <= end)
-            );
+            ((!start || paymentDate >= start) && (!end || paymentDate <= end));
 
           return (
-            inRange &&
-            p.payment_method === this.selectedPaymentMethodFilter
+            inRange && p.payment_method === this.selectedPaymentMethodFilter
           );
         });
       }
@@ -565,7 +592,7 @@ export class InvoiceComponent implements OnInit {
 
         const payments = invoice.order?.payments || [];
 
-        matchesPaymentDate = payments.some(p => {
+        matchesPaymentDate = payments.some((p) => {
           if (!p.payment_date) return false;
 
           const paymentDate = new Date(p.payment_date);
@@ -658,12 +685,13 @@ export class InvoiceComponent implements OnInit {
       }
     }*/
 
-    return { subtotal, iva, total/*, reteica, retefuente*/ };
+    return { subtotal, iva, total /*, reteica, retefuente*/ };
   }
 
   async selectInvoice(invoice: Invoice) {
     this.selectedInvoiceDetails = [invoice];
     this.calculatedValues = await this.calculateInvoiceValues(invoice);
+    this.checkPaymentPermissions(invoice.id_invoice);
   }
 
   showNotification(message: string) {
@@ -683,7 +711,7 @@ export class InvoiceComponent implements OnInit {
   async addPayment(
     order: Orders,
     amount: number,
-    paymentMethod: string
+    paymentMethod: string,
   ): Promise<void> {
     if (!order || !order.id_order || amount <= 0) {
       this.showNotification('Por favor, ingrese un monto válido.');
@@ -703,8 +731,8 @@ export class InvoiceComponent implements OnInit {
     if (amount > remainingBalance) {
       this.showNotification(
         `El abono no puede exceder el monto pendiente de $${remainingBalance.toFixed(
-          2
-        )}.`
+          2,
+        )}.`,
       );
       return;
     }
@@ -870,7 +898,7 @@ export class InvoiceComponent implements OnInit {
 
       if (order.payments) {
         const paymentIndex = order.payments.findIndex(
-          (p) => p.id_payment === this.selectedPayment!.id_payment
+          (p) => p.id_payment === this.selectedPayment!.id_payment,
         );
         if (paymentIndex !== -1) {
           order.payments[paymentIndex] = { ...this.selectedPayment };
@@ -966,7 +994,7 @@ export class InvoiceComponent implements OnInit {
 
       if (order.payments) {
         order.payments = order.payments.filter(
-          (p) => p.id_payment !== payment.id_payment
+          (p) => p.id_payment !== payment.id_payment,
         );
 
         const totalPaid = this.getTotalPayments(order);
@@ -1050,9 +1078,7 @@ export class InvoiceComponent implements OnInit {
           due_date: invoice.due_date,
         };
 
-        await this.supabase
-          .from('notifications')
-          .insert([notificationData]);
+        await this.supabase.from('notifications').insert([notificationData]);
       }
     } else if (daysRemaining <= 0) {
       // Si ya venció, eliminar la notificación de "próximo a vencer"
@@ -1063,7 +1089,6 @@ export class InvoiceComponent implements OnInit {
         .eq('type', 'payment_deadline');
     }
   }
-
 
   private async syncInvoicesStatusOnLoad(invoices: Invoice[]): Promise<void> {
     const updates: Array<Promise<void>> = [];
@@ -1097,7 +1122,7 @@ export class InvoiceComponent implements OnInit {
 
           // Verificar notificaciones después de actualizar estado
           await this.checkPaymentDeadlineNotification(inv);
-        })()
+        })(),
       );
     }
 
@@ -1148,7 +1173,6 @@ export class InvoiceComponent implements OnInit {
     return `${paymentTerm} días`;
   }
 
-
   public getRemainingDeliveryDays(dueDate: string | null): number {
     if (!dueDate) return 0;
 
@@ -1176,7 +1200,7 @@ export class InvoiceComponent implements OnInit {
       return;
     }
 
-    const { subtotal, iva, total/*, reteica, retefuente*/ } =
+    const { subtotal, iva, total /*, reteica, retefuente*/ } =
       await this.calculateInvoiceValues(invoice);
     const totalPaid = this.getTotalPayments(invoice.order);
     const remainingBalance = total - totalPaid;
@@ -1493,16 +1517,25 @@ export class InvoiceComponent implements OnInit {
       doc.setFont('helvetica', 'normal');
       invoice.order.payments.forEach((payment) => {
         doc.text(
-          `$${payment.amount} - ${payment.payment_method === 'cash' ? 'Efectivo' :
-            payment.payment_method === 'nequi' ? 'Nequi' :
-              payment.payment_method === 'bancolombia' ? 'Bancolombia' :
-                payment.payment_method === 'Davivienda' ? 'Davivienda' :
-                  payment.payment_method === 'other' ? 'Otro' : 'Desconocido'} - ${payment.payment_date
-            ? new Date(payment.payment_date).toLocaleDateString('es-CO')
-            : ''
+          `$${payment.amount} - ${
+            payment.payment_method === 'cash'
+              ? 'Efectivo'
+              : payment.payment_method === 'nequi'
+                ? 'Nequi'
+                : payment.payment_method === 'bancolombia'
+                  ? 'Bancolombia'
+                  : payment.payment_method === 'Davivienda'
+                    ? 'Davivienda'
+                    : payment.payment_method === 'other'
+                      ? 'Otro'
+                      : 'Desconocido'
+          } - ${
+            payment.payment_date
+              ? new Date(payment.payment_date).toLocaleDateString('es-CO')
+              : ''
           }`,
           10,
-          currentY
+          currentY,
         );
         currentY += 7;
       });
@@ -1554,12 +1587,12 @@ export class InvoiceComponent implements OnInit {
     doc.text(
       'Todos los cheques se extenderán a nombre de Jhon Fredy',
       10,
-      footerStartY
+      footerStartY,
     );
     doc.text(
       'Si tiene cualquier tipo de pregunta acerca de esta cotización, póngase en contacto al número 3004947020',
       10,
-      footerStartY + 10
+      footerStartY + 10,
     );
 
     doc.setFont('helvetica', 'bold');
@@ -1610,14 +1643,14 @@ export class InvoiceComponent implements OnInit {
   updatePaginatedInvoices(): void {
     this.totalPages = Math.max(
       1,
-      Math.ceil(this.filteredInvoicesList.length / this.itemsPerPage)
+      Math.ceil(this.filteredInvoicesList.length / this.itemsPerPage),
     );
     this.currentPage = Math.min(Math.max(this.currentPage, 1), this.totalPages);
     const startIndex = Number((this.currentPage - 1) * this.itemsPerPage);
     const endIndex = startIndex + Number(this.itemsPerPage);
     this.paginatedInvoice = this.filteredInvoicesList.slice(
       startIndex,
-      endIndex
+      endIndex,
     );
   }
 
@@ -1633,7 +1666,7 @@ export class InvoiceComponent implements OnInit {
       return;
     }
 
-    const { subtotal, iva, total/*, reteica, retefuente*/ } =
+    const { subtotal, iva, total /*, reteica, retefuente*/ } =
       await this.calculateInvoiceValues(invoice);
     const totalPaid = this.getTotalPayments(invoice.order);
     const remainingBalance = total - totalPaid;
@@ -1986,7 +2019,7 @@ export class InvoiceComponent implements OnInit {
     doc.text(
       'Todos los cheques se extenderán a nombre de Jhon Fredy',
       10,
-      footerStartY
+      footerStartY,
     );
 
     doc.setFont('helvetica', 'bold');
@@ -2025,7 +2058,7 @@ export class InvoiceComponent implements OnInit {
     doc.text('Descripción del Pedido:', 10, 102);
     const descLines = doc.splitTextToSize(
       order.description || 'Sin descripción',
-      180
+      180,
     );
     doc.text(descLines, 10, 112);
 
@@ -2218,8 +2251,7 @@ export class InvoiceComponent implements OnInit {
     this.updateClientOrders();
   }
 
-  async editInvoice(invoice: Invoice): Promise<void>  {
-
+  async editInvoice(invoice: Invoice): Promise<void> {
     const { data: orderData, error: orderError } = await this.supabase
       .from('orders')
       .select('include_iva')
@@ -2230,7 +2262,8 @@ export class InvoiceComponent implements OnInit {
       console.error('Error al obtener datos del pedido:', orderError);
     }
     // Usar el valor de Orders si existe, si no usar el de la factura
-    const currentIncludeIva = orderData?.include_iva ?? invoice.include_iva ?? false;
+    const currentIncludeIva =
+      orderData?.include_iva ?? invoice.include_iva ?? false;
 
     this.selectedInvoice = {
       ...invoice,
@@ -2250,7 +2283,6 @@ export class InvoiceComponent implements OnInit {
     this.showModal = true;
     this.clientSearchQuery = invoice.order.client.name;
     this.updateClientOrders();
-
   }
 
   getRemainingPaymentDays(invoice: Invoice): number {
@@ -2292,7 +2324,7 @@ export class InvoiceComponent implements OnInit {
         order.baseTotal = baseTotal;
       } else {
         const calculatedBase = Math.round(
-          (order.total || 0) / (1 + (this.IVA_RATE || 0))
+          (order.total || 0) / (1 + (this.IVA_RATE || 0)),
         );
         order.total = calculatedBase;
         order.baseTotal = calculatedBase;
@@ -2325,7 +2357,7 @@ export class InvoiceComponent implements OnInit {
 
     // Update the local order total
     const invoiceIndex = this.invoices.findIndex(
-      (i) => i.id_invoice === this.selectedInvoice!.id_invoice
+      (i) => i.id_invoice === this.selectedInvoice!.id_invoice,
     );
     if (invoiceIndex !== -1) {
       this.invoices[invoiceIndex].order.total =
@@ -2339,7 +2371,7 @@ export class InvoiceComponent implements OnInit {
         : new Date();
       this.selectedInvoice.due_date = new Date(
         deliveryDate.getTime() +
-        this.selectedInvoice.payment_term * 24 * 60 * 60 * 1000
+          this.selectedInvoice.payment_term * 24 * 60 * 60 * 1000,
       ).toISOString();
 
       const { error: dueDateError } = await this.supabase
@@ -2368,211 +2400,210 @@ export class InvoiceComponent implements OnInit {
   }
 
   async saveInvoice(): Promise<void> {
-  if (!this.selectedInvoice) {
-    console.error('No se ha seleccionado ninguna factura.');
-    alert('No se ha seleccionado ninguna factura.');
-    this.closeModal();
-    return;
-  }
-
-  if (!this.selectedInvoice.order.id_client) {
-    alert('Por favor, seleccione un cliente válido.');
-    this.closeModal();
-    return;
-  }
-
-  if (!this.selectedInvoice.order.id_order) {
-    alert('Por favor, seleccione una orden válida.');
-    this.closeModal();
-    return;
-  }
-
-  const orderExists = await this.validateOrderExists(
-    this.selectedInvoice.order.id_order
-  );
-  if (!orderExists) {
-    alert('La orden seleccionada no existe.');
-    this.closeModal();
-    return;
-  }
-
-  const { data: orderData, error: orderError } = await this.supabase
-    .from('orders')
-    .select('delivery_date, total, payments(*)')
-    .eq('id_order', this.selectedInvoice.order.id_order)
-    .single();
-
-  if (orderError || !orderData) {
-    console.error('Error al obtener la orden:', orderError);
-    alert('Error al obtener la orden asociada.');
-    this.closeModal();
-    return;
-  }
-
-  let deliveryDate = orderData.delivery_date || new Date().toISOString();
-  let paymentTerm: number | null;
-  let dueDate: string | null;
-
-  // Solo calcular dueDate si NO existe o si es una factura nueva
-  if (this.isEditing && this.selectedInvoice.due_date) {
-    // Si estamos editando Y ya tiene duedate, se mantiene
-    dueDate = this.selectedInvoice.due_date;
-    paymentTerm = this.selectedInvoice.payment_term ?? 5;
-  } else {
-    // Si es nueva factura O no tiene duedate, calcularlo
-    const currentDate = new Date();
-    currentDate.setHours(0, 0, 0, 0);
-
-    paymentTerm = this.selectedInvoice.payment_term ?? 5;
-
-    const dueDateCalculated = new Date(currentDate);
-    dueDateCalculated.setDate(dueDateCalculated.getDate() + paymentTerm);
-    dueDate = dueDateCalculated.toISOString().split('T')[0];
-  }
-
-  const originalTotal =
-    this.selectedInvoice.order.total || orderData.total || 0;
-  const totalPaid = orderData.payments
-    ? orderData.payments.reduce((sum, p) => sum + p.amount, 0)
-    : 0;
-  const remainingBalance = originalTotal - totalPaid;
-  const newPaymentStatus = remainingBalance <= 0 ? 'upToDate' : 'overdue';
-
-  const invoiceData: Partial<Invoice> = {
-    invoice_status: newPaymentStatus,
-    id_order: this.selectedInvoice.order.id_order,
-    code: this.selectedInvoice.code,
-    include_iva: this.selectedInvoice.include_iva,
-    payment_term: paymentTerm,
-    due_date: dueDate,
-    classification: this.selectedInvoice.classification,
-    e_invoice_done:
-      this.selectedInvoice.order.requires_e_invoice
-        ? this.selectedInvoice.e_invoice_done
-        : false,
-  };
-
-  try {
-    if (this.isEditing) {
-      const originalIncludeIva =
-        (
-          await this.supabase
-            .from('invoices')
-            .select('include_iva')
-            .eq('id_invoice', this.selectedInvoice.id_invoice)
-            .single()
-        ).data?.include_iva ?? false;
-
-      const { error } = await this.supabase
-        .from('invoices')
-        .update(invoiceData)
-        .eq('id_invoice', this.selectedInvoice.id_invoice);
-
-      if (error) {
-        console.error('Error al actualizar la factura:', error);
-        this.showNotification(
-          `Error al actualizar la factura: ${error.message}`
-        );
-        return;
-      }
-
-      // Sincronizar include_iva con Orders
-      const { error: orderUpdateError } = await this.supabase
-        .from('orders')
-        .update({
-          order_payment_status: newPaymentStatus,
-          include_iva: this.selectedInvoice.include_iva
-        })
-        .eq('id_order', this.selectedInvoice.order.id_order);
-
-      if (orderUpdateError) {
-        console.error('Error al actualizar el pedido:', orderUpdateError);
-        this.showNotification('Error al sincronizar IVA con el pedido.');
-      }
-
-      if (this.selectedInvoice.include_iva !== originalIncludeIva) {
-        await this.updateOrderTotal();
-      } else {
-        await this.supabase
-          .from('orders')
-          .update({ total: originalTotal })
-          .eq('id_order', this.selectedInvoice.order.id_order);
-      }
-
-      this.showNotification('Factura actualizada correctamente.');
-
-      await this.getInvoices();
-    } else {
-      const { data, error } = await this.supabase
-        .from('invoices')
-        .insert([invoiceData])
-        .select();
-
-      if (error) {
-        console.error('Error al añadir la factura:', error);
-        this.showNotification(`Error al añadir la factura: ${error.message}`);
-        return;
-      }
-
-      const insertedInvoice = data[0];
-      this.selectedInvoice.id_invoice = insertedInvoice.id_invoice;
-      this.selectedInvoice.code = insertedInvoice.code;
-
-      // Sincronizar include_iva con Orders al crear factura
-      const { error: orderUpdateError } = await this.supabase
-        .from('orders')
-        .update({ include_iva: this.selectedInvoice.include_iva })
-        .eq('id_order', this.selectedInvoice.order.id_order);
-
-      if (orderUpdateError) {
-        console.error('Error al actualizar IVA en Orders:', orderUpdateError);
-        this.showNotification('Error al sincronizar IVA con el pedido.');
-      }
-
-      const { data: clientData, error: clientError } = await this.supabase
-        .from('clients')
-        .select('debt')
-        .eq('id_client', this.selectedInvoice.order.id_client)
-        .single();
-
-      if (clientError || !clientData) {
-        console.error('Error al obtener la deuda del cliente:', clientError);
-        this.showNotification('Error al actualizar la deuda del cliente.');
-        return;
-      }
-
-      const currentDebt = clientData.debt || 0;
-      const newDebt = currentDebt + originalTotal;
-      const newClientStatus = newDebt > 0 ? 'overdue' : 'upToDate';
-
-      const { error: updateClientError } = await this.supabase
-        .from('clients')
-        .update({ debt: newDebt, status: newClientStatus })
-        .eq('id_client', this.selectedInvoice.order.id_client);
-
-      if (updateClientError) {
-        console.error(
-          'Error al actualizar la deuda del cliente:',
-          updateClientError
-        );
-        this.showNotification('Error al actualizar la deuda del cliente.');
-        return;
-      }
-
-      this.showNotification('Factura añadida correctamente.');
-
-      await this.getInvoices();
+    if (!this.selectedInvoice) {
+      console.error('No se ha seleccionado ninguna factura.');
+      alert('No se ha seleccionado ninguna factura.');
+      this.closeModal();
+      return;
     }
 
-    await this.loadOrders();
-    this.closeModal();
-  } catch (error) {
-    console.error('Error inesperado al guardar la factura:', error);
-    this.showNotification(
-      'Ocurrió un error inesperado al guardar la factura.'
+    if (!this.selectedInvoice.order.id_client) {
+      alert('Por favor, seleccione un cliente válido.');
+      this.closeModal();
+      return;
+    }
+
+    if (!this.selectedInvoice.order.id_order) {
+      alert('Por favor, seleccione una orden válida.');
+      this.closeModal();
+      return;
+    }
+
+    const orderExists = await this.validateOrderExists(
+      this.selectedInvoice.order.id_order,
     );
+    if (!orderExists) {
+      alert('La orden seleccionada no existe.');
+      this.closeModal();
+      return;
+    }
+
+    const { data: orderData, error: orderError } = await this.supabase
+      .from('orders')
+      .select('delivery_date, total, payments(*)')
+      .eq('id_order', this.selectedInvoice.order.id_order)
+      .single();
+
+    if (orderError || !orderData) {
+      console.error('Error al obtener la orden:', orderError);
+      alert('Error al obtener la orden asociada.');
+      this.closeModal();
+      return;
+    }
+
+    let deliveryDate = orderData.delivery_date || new Date().toISOString();
+    let paymentTerm: number | null;
+    let dueDate: string | null;
+
+    // Solo calcular dueDate si NO existe o si es una factura nueva
+    if (this.isEditing && this.selectedInvoice.due_date) {
+      // Si estamos editando Y ya tiene duedate, se mantiene
+      dueDate = this.selectedInvoice.due_date;
+      paymentTerm = this.selectedInvoice.payment_term ?? 5;
+    } else {
+      // Si es nueva factura O no tiene duedate, calcularlo
+      const currentDate = new Date();
+      currentDate.setHours(0, 0, 0, 0);
+
+      paymentTerm = this.selectedInvoice.payment_term ?? 5;
+
+      const dueDateCalculated = new Date(currentDate);
+      dueDateCalculated.setDate(dueDateCalculated.getDate() + paymentTerm);
+      dueDate = dueDateCalculated.toISOString().split('T')[0];
+    }
+
+    const originalTotal =
+      this.selectedInvoice.order.total || orderData.total || 0;
+    const totalPaid = orderData.payments
+      ? orderData.payments.reduce((sum, p) => sum + p.amount, 0)
+      : 0;
+    const remainingBalance = originalTotal - totalPaid;
+    const newPaymentStatus = remainingBalance <= 0 ? 'upToDate' : 'overdue';
+
+    const invoiceData: Partial<Invoice> = {
+      invoice_status: newPaymentStatus,
+      id_order: this.selectedInvoice.order.id_order,
+      code: this.selectedInvoice.code,
+      include_iva: this.selectedInvoice.include_iva,
+      payment_term: paymentTerm,
+      due_date: dueDate,
+      classification: this.selectedInvoice.classification,
+      e_invoice_done: this.selectedInvoice.order.requires_e_invoice
+        ? this.selectedInvoice.e_invoice_done
+        : false,
+    };
+
+    try {
+      if (this.isEditing) {
+        const originalIncludeIva =
+          (
+            await this.supabase
+              .from('invoices')
+              .select('include_iva')
+              .eq('id_invoice', this.selectedInvoice.id_invoice)
+              .single()
+          ).data?.include_iva ?? false;
+
+        const { error } = await this.supabase
+          .from('invoices')
+          .update(invoiceData)
+          .eq('id_invoice', this.selectedInvoice.id_invoice);
+
+        if (error) {
+          console.error('Error al actualizar la factura:', error);
+          this.showNotification(
+            `Error al actualizar la factura: ${error.message}`,
+          );
+          return;
+        }
+
+        // Sincronizar include_iva con Orders
+        const { error: orderUpdateError } = await this.supabase
+          .from('orders')
+          .update({
+            order_payment_status: newPaymentStatus,
+            include_iva: this.selectedInvoice.include_iva,
+          })
+          .eq('id_order', this.selectedInvoice.order.id_order);
+
+        if (orderUpdateError) {
+          console.error('Error al actualizar el pedido:', orderUpdateError);
+          this.showNotification('Error al sincronizar IVA con el pedido.');
+        }
+
+        if (this.selectedInvoice.include_iva !== originalIncludeIva) {
+          await this.updateOrderTotal();
+        } else {
+          await this.supabase
+            .from('orders')
+            .update({ total: originalTotal })
+            .eq('id_order', this.selectedInvoice.order.id_order);
+        }
+
+        this.showNotification('Factura actualizada correctamente.');
+
+        await this.getInvoices();
+      } else {
+        const { data, error } = await this.supabase
+          .from('invoices')
+          .insert([invoiceData])
+          .select();
+
+        if (error) {
+          console.error('Error al añadir la factura:', error);
+          this.showNotification(`Error al añadir la factura: ${error.message}`);
+          return;
+        }
+
+        const insertedInvoice = data[0];
+        this.selectedInvoice.id_invoice = insertedInvoice.id_invoice;
+        this.selectedInvoice.code = insertedInvoice.code;
+
+        // Sincronizar include_iva con Orders al crear factura
+        const { error: orderUpdateError } = await this.supabase
+          .from('orders')
+          .update({ include_iva: this.selectedInvoice.include_iva })
+          .eq('id_order', this.selectedInvoice.order.id_order);
+
+        if (orderUpdateError) {
+          console.error('Error al actualizar IVA en Orders:', orderUpdateError);
+          this.showNotification('Error al sincronizar IVA con el pedido.');
+        }
+
+        const { data: clientData, error: clientError } = await this.supabase
+          .from('clients')
+          .select('debt')
+          .eq('id_client', this.selectedInvoice.order.id_client)
+          .single();
+
+        if (clientError || !clientData) {
+          console.error('Error al obtener la deuda del cliente:', clientError);
+          this.showNotification('Error al actualizar la deuda del cliente.');
+          return;
+        }
+
+        const currentDebt = clientData.debt || 0;
+        const newDebt = currentDebt + originalTotal;
+        const newClientStatus = newDebt > 0 ? 'overdue' : 'upToDate';
+
+        const { error: updateClientError } = await this.supabase
+          .from('clients')
+          .update({ debt: newDebt, status: newClientStatus })
+          .eq('id_client', this.selectedInvoice.order.id_client);
+
+        if (updateClientError) {
+          console.error(
+            'Error al actualizar la deuda del cliente:',
+            updateClientError,
+          );
+          this.showNotification('Error al actualizar la deuda del cliente.');
+          return;
+        }
+
+        this.showNotification('Factura añadida correctamente.');
+
+        await this.getInvoices();
+      }
+
+      await this.loadOrders();
+      this.closeModal();
+    } catch (error) {
+      console.error('Error inesperado al guardar la factura:', error);
+      this.showNotification(
+        'Ocurrió un error inesperado al guardar la factura.',
+      );
+    }
   }
-}
 
   calculateSummary(): void {
     const invoices = this.filteredInvoicesList;
@@ -2580,7 +2611,7 @@ export class InvoiceComponent implements OnInit {
     let totalScheduled = 0;
     let rangeDebt = 0;
 
-    invoices.forEach(invoice => {
+    invoices.forEach((invoice) => {
       const total = invoice.order.total || 0;
       const paid = this.getTotalPayments(invoice.order);
       const pending = total - paid;
@@ -2597,7 +2628,7 @@ export class InvoiceComponent implements OnInit {
       totalPaid: this.calculateMoneyReceived(),
       rangeDebt,
       pendingDebt: this.calculateGlobalPendingDebt(),
-      invoiceCount: invoices.length
+      invoiceCount: invoices.length,
     };
   }
 
@@ -2605,13 +2636,15 @@ export class InvoiceComponent implements OnInit {
     const hasPaymentRange = this.paymentDateStart || this.paymentDateEnd;
     const hasCreationRange = this.startDate || this.endDate;
 
-    const start = hasPaymentRange && this.paymentDateStart
-      ? new Date(this.paymentDateStart + 'T00:00:00')
-      : null;
+    const start =
+      hasPaymentRange && this.paymentDateStart
+        ? new Date(this.paymentDateStart + 'T00:00:00')
+        : null;
 
-    const end = hasPaymentRange && this.paymentDateEnd
-      ? new Date(this.paymentDateEnd + 'T23:59:59')
-      : null;
+    const end =
+      hasPaymentRange && this.paymentDateEnd
+        ? new Date(this.paymentDateEnd + 'T23:59:59')
+        : null;
 
     const invoicesToUse = hasPaymentRange
       ? this.invoices
@@ -2621,8 +2654,8 @@ export class InvoiceComponent implements OnInit {
 
     let total = 0;
 
-    invoicesToUse.forEach(invoice => {
-      invoice.order.payments?.forEach(payment => {
+    invoicesToUse.forEach((invoice) => {
+      invoice.order.payments?.forEach((payment) => {
         if (!payment.payment_date) return;
 
         // Filtro por método
@@ -2638,8 +2671,7 @@ export class InvoiceComponent implements OnInit {
           const paymentDate = new Date(payment.payment_date);
 
           const inRange =
-            (!start || paymentDate >= start) &&
-            (!end || paymentDate <= end);
+            (!start || paymentDate >= start) && (!end || paymentDate <= end);
 
           if (!inRange) return;
         }
@@ -2651,7 +2683,6 @@ export class InvoiceComponent implements OnInit {
     return total;
   }
 
-
   calculateGlobalPendingDebt(): number {
     return this.invoices.reduce((sum, invoice) => {
       const total = invoice.order.total || 0;
@@ -2661,7 +2692,6 @@ export class InvoiceComponent implements OnInit {
       return pending > 0 ? sum + pending : sum;
     }, 0);
   }
-
 
   toggleDailySummary(): void {
     this.showDailySummary = !this.showDailySummary;
@@ -2673,7 +2703,7 @@ export class InvoiceComponent implements OnInit {
 
   private calculateDueDate(
     deliveryDate: string | Date,
-    paymentTerm: number | null
+    paymentTerm: number | null,
   ): string | null {
     if (!deliveryDate || paymentTerm === null) return null;
     const baseDate = new Date(deliveryDate);
@@ -2686,7 +2716,7 @@ export class InvoiceComponent implements OnInit {
 
   private calculateDeliveryDate(
     startDate: string,
-    paymentTerm: number
+    paymentTerm: number,
   ): string {
     const baseDate = new Date(startDate);
     const deliveryDate = new Date(baseDate);
@@ -2737,14 +2767,14 @@ export class InvoiceComponent implements OnInit {
       if (updateClientError) {
         console.error(
           'Error al actualizar la deuda del cliente:',
-          updateClientError
+          updateClientError,
         );
         this.showNotification('Error al actualizar la deuda del cliente.');
         return;
       }
 
       this.invoices = this.invoices.filter(
-        (i) => i.id_invoice !== invoice.id_invoice
+        (i) => i.id_invoice !== invoice.id_invoice,
       );
       this.updateFilteredInvoices();
       await this.loadOrders();
@@ -2835,11 +2865,165 @@ export class InvoiceComponent implements OnInit {
   }
 
   get submitButtonText(): string {
-  if (this.isSaving) return 'Guardando...';
-  return this.isEditing ? 'Actualizar' : 'Guardar';
-}
+    if (this.isSaving) return 'Guardando...';
+    return this.isEditing ? 'Actualizar' : 'Guardar';
+  }
+  async getSchedulers() {
+    const { data, error } = await this.supabase
+      .from('employees')
+      .select(
+        `
+         id_employee, 
+         name, 
+         id_user,
+         users!inner (
+           roles!inner ( name )
+         )
+      `,
+      )
+      .eq('users.roles.name', 'scheduler')
+      .not('id_user', 'is', null);
 
+    if (error) {
+      console.error('Error fetching schedulers:', error);
+      // fallback fetch all employees with users if the deep filter fails
+      this.fetchAllEmployeesWithUsers();
+    } else {
+      this.schedulers = data.map((d: any) => ({
+        id_employee: d.id_employee,
+        name: d.name,
+        id_user: d.id_user,
+      }));
+    }
+  }
 
+  // fallback if the deep join above fails
+  async fetchAllEmployeesWithUsers() {
+    const { data } = await this.supabase
+      .from('employees')
+      .select('id_employee, name, id_user')
+      .not('id_user', 'is', null);
 
+    if (data) this.schedulers = data as Employee[];
+  }
 
+  async loadInvoicePermissions(invoiceId: string) {
+    this.permissionLoading = true;
+    this.currentPermissions = [];
+
+    // get permissions
+    const { data: perms, error } = await this.supabase
+      .from('invoice_permissions')
+      .select('*')
+      .eq('id_invoice', invoiceId);
+
+    if (error || !perms || perms.length === 0) {
+      this.permissionLoading = false;
+      return;
+    }
+
+    // get employee names
+    const userIds = perms.map((p: any) => p.id_user);
+    const { data: employees } = await this.supabase
+      .from('employees')
+      .select('id_user, name')
+      .in('id_user', userIds);
+
+    // merge
+    this.currentPermissions = perms.map((p: any) => {
+      const emp = employees?.find((e: any) => e.id_user === p.id_user);
+      return {
+        ...p,
+        employee_details: emp, // employee object for display
+      };
+    });
+
+    this.permissionLoading = false;
+  }
+
+  openPermissionModal(invoice: Invoice) {
+    if (!this.selectedInvoiceDetails) {
+      this.selectedInvoiceDetails = [invoice];
+    }
+    this.showPermissionModal = true;
+    this.getSchedulers();
+    this.loadInvoicePermissions(invoice.id_invoice);
+  }
+
+  closePermissionModal() {
+    this.showPermissionModal = false;
+    this.selectedUserId = '';
+    this.currentPermissions = [];
+  }
+
+  async grantPermission() {
+    if (!this.selectedUserId || !this.selectedInvoiceDetails) return;
+
+    const invoiceId = this.selectedInvoiceDetails[0].id_invoice;
+
+    const { error } = await this.supabase.from('invoice_permissions').insert({
+      id_invoice: invoiceId,
+      id_user: this.selectedUserId,
+    });
+
+    if (error) {
+      console.error(error);
+      // handle the trigger in db
+      if (error.message.includes('scheduler')) {
+        this.showNotification(
+          'Error: El usuario seleccionado no es un Scheduler.',
+        );
+      } else if (error.code === '23505') {
+        this.showNotification('Este usuario ya tiene permiso.');
+      } else {
+        this.showNotification('Error al conceder permiso.');
+      }
+    } else {
+      this.showNotification('Permiso concedido correctamente.');
+      this.loadInvoicePermissions(invoiceId);
+      this.selectedUserId = '';
+    }
+  }
+
+  async revokePermission(userId: string) {
+    if (!this.selectedInvoiceDetails) return;
+    const invoiceId = this.selectedInvoiceDetails[0].id_invoice;
+
+    const { error } = await this.supabase
+      .from('invoice_permissions')
+      .delete()
+      .eq('id_invoice', invoiceId)
+      .eq('id_user', userId);
+
+    if (error) {
+      this.showNotification('Error al revocar permiso.');
+    } else {
+      this.showNotification('Permiso revocado.');
+      this.loadInvoicePermissions(invoiceId);
+    }
+  }
+  async checkPaymentPermissions(invoiceId: string) {
+    this.canManagePayments = false;
+    if (this.userRole === 'admin') {
+      this.canManagePayments = true;
+      return;
+    }
+
+    if (this.userId) {
+      const { data, error } = await this.supabase
+        .from('invoice_permissions')
+        .select('id')
+        .eq('id_invoice', invoiceId)
+        .eq('id_user', this.userId)
+        .maybeSingle();
+
+      if (data) {
+        this.canManagePayments = true;
+      }
+      if (error) {
+        console.error('Error checking payment permissions:', error);
+        return;
+      }
+    }
+  }
 }

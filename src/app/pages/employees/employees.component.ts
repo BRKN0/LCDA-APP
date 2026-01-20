@@ -1,11 +1,9 @@
 import { Component, OnInit, NgZone } from '@angular/core';
-import { MainBannerComponent } from '../main-banner/main-banner.component';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { SupabaseService } from '../../services/supabase.service';
 import { RoleService } from '../../services/role.service';
 import { RouterOutlet } from '@angular/router';
-import { forkJoin } from 'rxjs';
 
 interface User {
   id: string;
@@ -13,7 +11,13 @@ interface User {
   user_name: string;
   id_role: string;
 }
-
+interface InvoiceCard {
+  id_invoice: string;
+  code: string;
+  order_type: string;
+  secondary_process: boolean;
+  client_name: string;
+}
 interface Employee {
   id_employee: string;
   created_at: string;
@@ -113,10 +117,20 @@ export class EmployeesComponent implements OnInit {
   editingLiquId: string | null = null;
   editingBenefitId: string | null = null;
   availableUsers: User[] = [];
+
+  // permissions variables
+  showPermissionsModal: boolean = false;
+  employeePermissions: InvoiceCard[] = [];
+
+  // search variables for invoices
+  invoiceSearchQuery: string = '';
+  invoiceSearchResults: InvoiceCard[] = [];
+  isSearchingInvoices: boolean = false;
+
   constructor(
     private readonly supabase: SupabaseService,
     private readonly zone: NgZone,
-    private readonly roleService: RoleService
+    private readonly roleService: RoleService,
   ) {}
 
   async ngOnInit(): Promise<void> {
@@ -138,7 +152,7 @@ export class EmployeesComponent implements OnInit {
     const { data, error } = await this.supabase
       .from('users')
       .select('id, email, user_name, id_role');
-      
+
     if (error) {
       console.error('Error fetching users:', error);
     } else {
@@ -149,8 +163,8 @@ export class EmployeesComponent implements OnInit {
   // Handle selection of a user in the modal
   onUserSelect(event: any) {
     const userId = event.target.value;
-    const user = this.availableUsers.find(u => u.id === userId);
-    
+    const user = this.availableUsers.find((u) => u.id === userId);
+
     if (user) {
       this.selectedEmployee.id_user = user.id;
       this.selectedEmployee.email = user.email; // Auto-sync email
@@ -183,13 +197,13 @@ export class EmployeesComponent implements OnInit {
 
       return {
         ...employee,
-        employee_type: linkedRole || employee.employee_type, 
-        
+        employee_type: linkedRole || employee.employee_type,
+
         employee_liquidations: Array.isArray(employee.employee_liquidations)
           ? employee.employee_liquidations
           : employee.employee_liquidations
-          ? [employee.employee_liquidations]
-          : [],
+            ? [employee.employee_liquidations]
+            : [],
       };
     }) as Employee[];
 
@@ -317,10 +331,13 @@ export class EmployeesComponent implements OnInit {
 
   updatePaginatedLiquidations(): void {
     const all = this.selectedEmployeeDetails?.employee_liquidations || [];
-    const startIndex = (this.currentLiquidationPage - 1) * this.itemsPerLiquidationPage;
+    const startIndex =
+      (this.currentLiquidationPage - 1) * this.itemsPerLiquidationPage;
     const endIndex = startIndex + this.itemsPerLiquidationPage;
     this.paginatedLiquidations = all.slice(startIndex, endIndex);
-    this.totalLiquidationPages = Math.ceil(all.length / this.itemsPerLiquidationPage);
+    this.totalLiquidationPages = Math.ceil(
+      all.length / this.itemsPerLiquidationPage,
+    );
   }
 
   updatePaginatedBenefits(): void {
@@ -386,7 +403,9 @@ export class EmployeesComponent implements OnInit {
 
       if (roleError || !roleData) {
         console.log(this.selectedEmployee.employee_type);
-        throw new Error('No se encontró el rol especificado en la base de datos.');
+        throw new Error(
+          'No se encontró el rol especificado en la base de datos.',
+        );
       }
 
       // Update the User's Role in public.users
@@ -396,7 +415,9 @@ export class EmployeesComponent implements OnInit {
         .eq('id', this.selectedEmployee.id_user);
 
       if (userUpdateError) {
-        throw new Error('Error actualizando el rol del usuario: ' + userUpdateError.message);
+        throw new Error(
+          'Error actualizando el rol del usuario: ' + userUpdateError.message,
+        );
       }
 
       // Prepare Employee Payload
@@ -435,8 +456,7 @@ export class EmployeesComponent implements OnInit {
 
       alert(this.isEditing ? 'Empleado actualizado' : 'Empleado añadido');
       this.closeModal();
-      this.getEmployees(); 
-
+      this.getEmployees();
     } catch (err: any) {
       console.error('Error saving:', err);
       alert(err.message || 'Ocurrió un error al guardar.');
@@ -472,7 +492,6 @@ export class EmployeesComponent implements OnInit {
 
       alert('Empleado eliminado correctamente');
       this.getEmployees();
-
     } catch (err) {
       console.error('Error eliminando empleado:', err);
       alert('No se pudo eliminar el empleado');
@@ -496,7 +515,7 @@ export class EmployeesComponent implements OnInit {
     // Calcular el número total de páginas
     this.totalPages = Math.max(
       1,
-      Math.ceil(this.filteredEmployees.length / this.itemsPerPage)
+      Math.ceil(this.filteredEmployees.length / this.itemsPerPage),
     );
 
     // Asegurar que currentPage no sea menor que 1 ni mayor que totalPages
@@ -509,7 +528,7 @@ export class EmployeesComponent implements OnInit {
     // Obtener los elementos para la página actual
     this.paginatedEmployees = this.filteredEmployees.slice(
       startIndex,
-      endIndex
+      endIndex,
     );
   }
   openAddLiquidationForm() {
@@ -546,7 +565,10 @@ export class EmployeesComponent implements OnInit {
     await this.supabase.from('employee_liquidations').delete().eq('id', l.id);
 
     // Elimina localmente
-    const index = this.selectedEmployeeDetails?.employee_liquidations?.findIndex(liq => liq.id === l.id);
+    const index =
+      this.selectedEmployeeDetails?.employee_liquidations?.findIndex(
+        (liq) => liq.id === l.id,
+      );
     if (index !== undefined && index !== -1) {
       this.selectedEmployeeDetails?.employee_liquidations?.splice(index, 1);
     }
@@ -559,7 +581,9 @@ export class EmployeesComponent implements OnInit {
 
     await this.supabase.from('employee_benefits').delete().eq('id', b.id);
 
-    const index = this.selectedEmployeeDetails?.employee_benefits?.findIndex(ben => ben.id === b.id);
+    const index = this.selectedEmployeeDetails?.employee_benefits?.findIndex(
+      (ben) => ben.id === b.id,
+    );
     if (index !== undefined && index !== -1) {
       this.selectedEmployeeDetails?.employee_benefits?.splice(index, 1);
     }
@@ -568,95 +592,270 @@ export class EmployeesComponent implements OnInit {
   }
 
   async saveLiquidation() {
-  if (!this.selectedEmployeeDetails?.id_employee) return;
+    if (!this.selectedEmployeeDetails?.id_employee) return;
 
-  const payload = {
-    ...this.liquidationForm,
-    id_employee: this.selectedEmployeeDetails.id_employee,
-  };
+    const payload = {
+      ...this.liquidationForm,
+      id_employee: this.selectedEmployeeDetails.id_employee,
+    };
 
-  let saved: any;
+    let saved: any;
 
-  if (this.isEditingLiquidation && this.editingLiquId) {
-    const { data } = await this.supabase
-      .from('employee_liquidations')
-      .update(payload)
-      .eq('id', this.editingLiquId)
-      .select()
-      .single();
-    saved = data;
-  } else {
-    const { data } = await this.supabase
-      .from('employee_liquidations')
-      .insert([payload])
-      .select()
-      .single();
-    saved = data;
-  }
-
-  // Actualiza localmente
-  if (!this.isEditingLiquidation) {
-    this.selectedEmployeeDetails.employee_liquidations?.push(saved);
-  } else {
-    const index = this.selectedEmployeeDetails.employee_liquidations?.findIndex(l => l.id === this.editingLiquId);
-    if (index !== undefined && index !== -1) {
-      this.selectedEmployeeDetails.employee_liquidations![index] = saved;
+    if (this.isEditingLiquidation && this.editingLiquId) {
+      const { data } = await this.supabase
+        .from('employee_liquidations')
+        .update(payload)
+        .eq('id', this.editingLiquId)
+        .select()
+        .single();
+      saved = data;
+    } else {
+      const { data } = await this.supabase
+        .from('employee_liquidations')
+        .insert([payload])
+        .select()
+        .single();
+      saved = data;
     }
-  }
 
-  this.showAddLiquidation = false;
-  this.updatePaginatedLiquidations();
-}
-
-async saveBenefit() {
-  if (!this.selectedEmployeeDetails?.id_employee) return;
-
-  const payload = {
-    ...this.benefitForm,
-    id_employee: this.selectedEmployeeDetails.id_employee,
-  };
-
-  let saved: any;
-
-  if (this.isEditingBenefit && this.editingBenefitId) {
-    const { data } = await this.supabase
-      .from('employee_benefits')
-      .update(payload)
-      .eq('id', this.editingBenefitId)
-      .select()
-      .single();
-    saved = data;
-  } else {
-    const { data } = await this.supabase
-      .from('employee_benefits')
-      .insert([payload])
-      .select()
-      .single();
-    saved = data;
-  }
-
-  if (!this.isEditingBenefit) {
-    this.selectedEmployeeDetails.employee_benefits?.push(saved);
-  } else {
-    const index = this.selectedEmployeeDetails.employee_benefits?.findIndex(b => b.id === this.editingBenefitId);
-    if (index !== undefined && index !== -1) {
-      this.selectedEmployeeDetails.employee_benefits![index] = saved;
+    // Actualiza localmente
+    if (!this.isEditingLiquidation) {
+      this.selectedEmployeeDetails.employee_liquidations?.push(saved);
+    } else {
+      const index =
+        this.selectedEmployeeDetails.employee_liquidations?.findIndex(
+          (l) => l.id === this.editingLiquId,
+        );
+      if (index !== undefined && index !== -1) {
+        this.selectedEmployeeDetails.employee_liquidations![index] = saved;
+      }
     }
+
+    this.showAddLiquidation = false;
+    this.updatePaginatedLiquidations();
   }
 
-  this.showAddBenefit = false;
-  this.updatePaginatedBenefits();
-}
+  async saveBenefit() {
+    if (!this.selectedEmployeeDetails?.id_employee) return;
+
+    const payload = {
+      ...this.benefitForm,
+      id_employee: this.selectedEmployeeDetails.id_employee,
+    };
+
+    let saved: any;
+
+    if (this.isEditingBenefit && this.editingBenefitId) {
+      const { data } = await this.supabase
+        .from('employee_benefits')
+        .update(payload)
+        .eq('id', this.editingBenefitId)
+        .select()
+        .single();
+      saved = data;
+    } else {
+      const { data } = await this.supabase
+        .from('employee_benefits')
+        .insert([payload])
+        .select()
+        .single();
+      saved = data;
+    }
+
+    if (!this.isEditingBenefit) {
+      this.selectedEmployeeDetails.employee_benefits?.push(saved);
+    } else {
+      const index = this.selectedEmployeeDetails.employee_benefits?.findIndex(
+        (b) => b.id === this.editingBenefitId,
+      );
+      if (index !== undefined && index !== -1) {
+        this.selectedEmployeeDetails.employee_benefits![index] = saved;
+      }
+    }
+
+    this.showAddBenefit = false;
+    this.updatePaginatedBenefits();
+  }
 
   clearFilters(): void {
-    // Limpiar búsqueda
     this.searchQuery = '';
-
-    // Limpiar fechas
     this.startDate = '';
     this.endDate = '';
-
-    // Aplicar filtros vacíos
     this.searchEmployee();
+  }
+  openPermissionsManagement(employee: Employee) {
+    if (!employee.id_user) {
+      alert(
+        'Este empleado no tiene un usuario de sistema vinculado. Edite el empleado y vincule un usuario primero.',
+      );
+      return;
+    }
+    this.selectedEmployeeDetails = employee;
+    this.showPermissionsModal = true;
+    this.loadEmployeePermissions();
+  }
+
+  closePermissionsModal() {
+    this.showPermissionsModal = false;
+    this.invoiceSearchQuery = '';
+    this.invoiceSearchResults = [];
+  }
+  async loadEmployeePermissions() {
+    if (!this.selectedEmployeeDetails?.id_user) return;
+
+    this.loading = true;
+    const { data, error } = await this.supabase
+      .from('invoice_permissions')
+      .select(
+        `
+        id_invoice,
+        invoices (
+          code,
+          orders (
+            order_type,
+            secondary_process,
+            client:id_client ( name )
+          )
+        )
+      `,
+      )
+      .eq('id_user', this.selectedEmployeeDetails.id_user);
+
+    this.loading = false;
+
+    if (error) {
+      console.error('Error fetching permissions', error);
+      return;
+    }
+
+    // map the complex join result for the card
+    this.employeePermissions = (data || []).map((item: any) => ({
+      id_invoice: item.id_invoice,
+      code: item.invoices?.code || 'N/A',
+      order_type: item.invoices?.orders?.order_type || 'Unknown',
+      secondary_process: item.invoices?.orders?.secondary_process || false,
+      client_name: item.invoices?.orders?.client?.name || 'Cliente desconocido',
+    }));
+  }
+  async revokePermission(invoiceId: string) {
+    if (!confirm('¿Quitar acceso a esta factura?')) return;
+    if (!this.selectedEmployeeDetails?.id_user) return;
+
+    const { error } = await this.supabase
+      .from('invoice_permissions')
+      .delete()
+      .eq('id_invoice', invoiceId)
+      .eq('id_user', this.selectedEmployeeDetails.id_user);
+
+    if (error) {
+      console.error('Error revoking permission', error);
+      alert('Error al revocar permiso');
+    } else {
+      // remove locally to update UI instantly
+      this.employeePermissions = this.employeePermissions.filter(
+        (p) => p.id_invoice !== invoiceId,
+      );
+    }
+  }
+  async searchInvoicesToAdd() {
+    const query = this.invoiceSearchQuery.trim();
+    if (query.length < 3) return;
+    this.isSearchingInvoices = true;
+    const searchTerm = `%${query}%`;
+    const isNumeric = /^\d+$/.test(query);
+    const selectQuery = `
+      id_invoice,
+      code,
+      orders (
+        order_type,
+        secondary_process,
+        client:id_client ( name )
+      )
+    `;
+    const promises = [];
+
+    const promiseByName = this.supabase
+      .from('invoices')
+      .select(
+        `
+        id_invoice,
+        code,
+        orders!inner (
+          order_type,
+          secondary_process,
+          client:id_client!inner ( name )
+        )
+      `,
+      )
+      .ilike('orders.client.name', searchTerm)
+      .limit(5);
+
+    promises.push(promiseByName);
+    if (isNumeric) {
+      const promiseByCode = this.supabase
+        .from('invoices')
+        .select(selectQuery)
+        .eq('code', query)
+        .limit(5);
+      promises.push(promiseByCode);
+    }
+    const results = await Promise.all(promises);
+
+    this.isSearchingInvoices = false;
+    const allResults: any[] = [];
+    results.forEach((res) => {
+      if (res.data) allResults.push(...res.data);
+      if (res.error) console.error('Search error:', res.error);
+    });
+    const uniqueInvoices = new Map();
+    allResults.forEach((item: any) => {
+      if (!uniqueInvoices.has(item.id_invoice)) {
+        uniqueInvoices.set(item.id_invoice, {
+          id_invoice: item.id_invoice,
+          code: item.code,
+          order_type: item.orders?.order_type,
+          secondary_process: item.orders?.secondary_process,
+          client_name: item.orders?.client?.name || 'Cliente desconocido',
+        });
+      }
+    });
+
+    this.invoiceSearchResults = Array.from(uniqueInvoices.values());
+  }
+
+  async grantPermission(invoice: InvoiceCard) {
+    if (!this.selectedEmployeeDetails?.id_user) return;
+
+    // check if already exists locally
+    if (
+      this.employeePermissions.some((p) => p.id_invoice === invoice.id_invoice)
+    ) {
+      alert('El empleado ya tiene acceso a esta factura.');
+      return;
+    }
+
+    const { error } = await this.supabase.from('invoice_permissions').insert({
+      id_invoice: invoice.id_invoice,
+      id_user: this.selectedEmployeeDetails.id_user,
+    });
+
+    if (error) {
+      console.error(error);
+      alert('Error al asignar permiso.');
+    } else {
+      // local list
+      this.employeePermissions.push(invoice);
+      this.invoiceSearchQuery = '';
+      this.invoiceSearchResults = [];
+    }
+  }
+
+  // helper to format the type label
+  formatOrderType(type: string, secondary: boolean): string {
+    if (type === 'laser') return secondary ? 'Corte / Impresión' : 'Cortes';
+    if (type === 'print')
+      return secondary ? 'Impresión / Corte' : 'Impresiones';
+    if (type === 'sales') return 'Ventas';
+    return type;
   }
 }

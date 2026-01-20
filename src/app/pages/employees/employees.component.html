@@ -1,14 +1,14 @@
 <router-outlet></router-outlet>
 
 
-<!-- Indicador de carga -->
+<!-- loading indicator -->
 <div *ngIf="loading" class="p-4 text-center text-gray-600">
   <p>Cargando empleados...</p>
 </div>
 
 <div *ngIf="!loading">
   <div class="flex justify-end items-center mb-4 mt-4 ml-2">
-    <!-- Botón Añadir empleado -->
+    <!-- add employee button -->
     <button
       class="btn-add inline-flex items-center space-x-2"
       (click)="addNewEmployee()"
@@ -34,7 +34,7 @@
     </button>
     <button class="btn-clear" (click)="clearFilters()">Limpiar</button>
   </div>
-  <!-- Input de búsqueda -->
+  <!-- search input -->
   <div class="flex items-center justify-center py-4 space-x-4 top-5">
     <div class="relative w-full max-w-md">
       <input
@@ -46,7 +46,7 @@
       />
     </div>
   </div>
-  <!-- filtro fecha -->
+  <!-- date filters -->
   <div class="flex items-center space-x-4">
     <div>
       <label for="startDate" class="mr-2 font-semibold">Desde:</label>
@@ -99,14 +99,6 @@
             (change)="toggleEmployeeType(employee)"
           >
             <option
-              [value]="employee.employee_type"
-              disabled
-              *ngIf="employee.employee_type === 'admin'"
-            >
-              Administrador
-            </option>
-            <!-- Just for testing will remove later -->
-            <option
               *ngFor="let role of availableEmployeeRoles"
               [value]="role.value"
               [selected]="employee.employee_type === role.value"
@@ -130,13 +122,13 @@
     </tbody>
   </table>
 
-  <!-- Mensaje de no resultados para búsqueda por nombre -->
+  <!-- message when no results found -->
   <div *ngIf="noResultsFound" class="p-4 text-center text-gray-600">
     <p>No hay coincidencias con la búsqueda.</p>
   </div>
 
   <div class="flex justify-between items-center mb-4">
-    <!-- Controles de paginación -->
+    <!-- pagination controls -->
     <div class="pagination flex items-center">
       <button
         (click)="currentPage = 1; updatePaginatedEmployees()"
@@ -171,7 +163,7 @@
       </button>
     </div>
 
-    <!-- Selector de elementos por página -->
+    <!-- items per page selector -->
     <div class="items-per-page flex items-center">
       <label for="itemsPerPage" class="mr-2">Elementos por página:</label>
       <select
@@ -187,7 +179,7 @@
     </div>
   </div>
 
-  <!-- Form to add employees -->
+  <!-- form to add employees -->
   <div *ngIf="showModal" class="modal-overlay">
     <div class="modal-content">
       <h3 class="text-lg font-bold mb-4">
@@ -343,7 +335,7 @@
       </form>
     </div>
   </div>
-  <!-- Modal para detalles del empleado -->
+  <!-- modal for employee details -->
   <div
     *ngIf="showDetailsModal && selectedEmployeeDetails"
     class="modal-overlay"
@@ -374,9 +366,19 @@
         <button class="btn-details" (click)="toggleDetails()">
           {{ showDetails ? "Ocultar Detalles" : "Mostrar Detalles" }}
         </button>
+        <button 
+        *ngIf="selectedEmployeeDetails.id_user"
+        (click)="openPermissionsManagement(selectedEmployeeDetails)" 
+        class="bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700 font-medium transition-colors"
+      >
+        Gestionar Facturas
+      </button>
+      <span *ngIf="!selectedEmployeeDetails.id_user" class="text-xs text-red-500 content-center">
+        (Vincule un usuario para asignar facturas)
+      </span>
       </div>
 
-      <!-- Detalles del Empleado -->
+      <!-- employee details -->
       <div *ngIf="showDetails" class="details">
         <p>
           <strong>Tipo de Empleado:</strong>
@@ -400,7 +402,7 @@
         </p>
       </div>
 
-      <!-- Botón para cerrar el modal -->
+      <!-- close button -->
       <div class="flex justify-start mt-4">
         <button class="btn-danger" (click)="closeDetailsModal()">Cerrar</button>
       </div>
@@ -477,7 +479,7 @@
           </select>
         </div>
       </div>
-      <!-- Formulario de agregar/editar liquidación -->
+      <!-- form to add/edit liquidation -->
       <div
         *ngIf="showAddLiquidation"
         class="mt-4 border rounded-lg p-4 bg-white shadow"
@@ -603,7 +605,7 @@
           </select>
         </div>
       </div>
-      <!-- Formulario de agregar/editar prestación -->
+      <!-- form to add/edit benefit -->
       <div
         *ngIf="showAddBenefit"
         class="mt-4 border rounded-lg p-4 bg-white shadow"
@@ -685,6 +687,101 @@
           Cerrar
         </button>
       </div>
+    </div>
+  </div>
+</div>
+<!-- modal for scheduler invoice permissions -->
+<div *ngIf="showPermissionsModal" class="modal-overlay">
+  <div class="modal-content w-full max-w-2xl h-auto max-h-[90vh] flex flex-col">
+    
+    <div class="flex justify-between items-center mb-6 border-b pb-2">
+      <div>
+        <h3 class="text-xl font-bold text-gray-800">Permisos de Facturas</h3>
+        <p class="text-sm text-gray-600">Empleado: <strong>{{ selectedEmployeeDetails?.name }}</strong></p>
+      </div>
+      <button (click)="closePermissionsModal()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+    </div>
+
+    <div class="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
+      <label class="block text-sm font-bold text-gray-700 mb-2">Dar acceso a nueva factura:</label>
+      <div class="relative">
+        <div class="flex gap-2">
+          <input 
+            type="text" 
+            [(ngModel)]="invoiceSearchQuery" 
+            (keyup.enter)="searchInvoicesToAdd()"
+            placeholder="Buscar por código de factura o cliente..." 
+            class="form-input flex-1 border border-gray-300 rounded px-3 py-2"
+          >
+          <button (click)="searchInvoicesToAdd()" class="btn-primary" [disabled]="isSearchingInvoices">
+            {{ isSearchingInvoices ? '...' : 'Buscar' }}
+          </button>
+        </div>
+
+        <div *ngIf="invoiceSearchResults.length > 0" class="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg mt-1 max-h-48 overflow-y-auto">
+          <div 
+            *ngFor="let result of invoiceSearchResults" 
+            class="p-3 hover:bg-purple-50 cursor-pointer border-b flex justify-between items-center"
+            (click)="grantPermission(result)"
+          >
+            <div>
+              <span class="font-bold text-gray-800">#{{ result.code }}</span>
+              <span class="text-xs text-gray-500 ml-2">({{ result.client_name }})</span>
+            </div>
+            <span class="text-xs bg-gray-200 px-2 py-1 rounded">
+              {{ formatOrderType(result.order_type, result.secondary_process) }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex-1 overflow-y-auto">
+      <h4 class="font-bold text-gray-700 mb-3">Facturas Asignadas ({{ employeePermissions.length }})</h4>
+      
+      <div *ngIf="employeePermissions.length === 0" class="text-center py-8 text-gray-400 border-2 border-dashed rounded-lg">
+        Este empleado no tiene facturas asignadas manualmente.
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div 
+          *ngFor="let perm of employeePermissions" 
+          class="relative border border-gray-300 rounded-lg p-3 bg-white shadow-sm hover:shadow-md transition-shadow flex justify-between items-start"
+        >
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="font-bold text-lg text-gray-800">#{{ perm.code }}</span>
+              <span 
+                class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full text-white"
+                [ngClass]="{
+                  'bg-blue-500': perm.order_type === 'print',
+                  'bg-red-500': perm.order_type === 'laser',
+                  'bg-green-500': perm.order_type === 'sales'
+                }"
+              >
+                {{ formatOrderType(perm.order_type, perm.secondary_process) }}
+              </span>
+            </div>
+            <p class="text-sm text-gray-600 truncate max-w-[180px]" title="{{ perm.client_name }}">
+              <span class="font-semibold">Cliente:</span> {{ perm.client_name }}
+            </p>
+          </div>
+
+          <button 
+            (click)="revokePermission(perm.id_invoice)"
+            class="text-gray-400 hover:text-red-600 p-1 rounded-full hover:bg-red-50 transition-colors"
+            title="Revocar Acceso"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex justify-end mt-4 pt-3 border-t">
+      <button class="btn-danger" (click)="closePermissionsModal()">Cerrar</button>
     </div>
   </div>
 </div>

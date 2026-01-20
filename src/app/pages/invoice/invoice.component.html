@@ -1,10 +1,6 @@
 <router-outlet></router-outlet>
 
-
-<!-- Filtros -->
 <div class="mb-4 mt-4 ml-2 space-y-4">
-
-  <!-- Fila 1: Filtros principales + Limpiar -->
   <div class="flex justify-between items-center">
     <div class="flex space-x-2">
       <label>
@@ -41,6 +37,7 @@
         <input
           type="checkbox"
           [(ngModel)]="showVitrineSales"
+          class="form-checkbox"
           (change)="updateFilteredInvoices()"
         />
         Vitrina
@@ -50,6 +47,7 @@
         <input
           type="checkbox"
           [(ngModel)]="showNonVitrineSales"
+          class="form-checkbox"
           (change)="updateFilteredInvoices()"
         />
         No vitrina
@@ -74,10 +72,7 @@
     </div>
   </div>
 
-  <!-- Fila 2: Factura electrónica + Buscador -->
   <div class="flex items-start">
-
-    <!-- Factura electrónica (collapsible) -->
     <details class="ml-1">
       <summary class="cursor-pointer font-semibold text-sm text-gray-700">
         Factura electrónica
@@ -125,7 +120,6 @@
     </details>
   </div>
 
-  <!-- Buscador -->
   <div class="flex justify-center mt-2">
     <div class="w-full max-w-md relative">
       <input
@@ -138,9 +132,7 @@
     </div>
   </div>
 
-  <!-- Fila 3: Rango de fechas -->
   <div class="flex items-center justify-between space-x-4">
-
     <div class="flex items-center space-x-4">
       <div>
         <label for="startDate" class="mr-2 font-semibold">Desde:</label>
@@ -205,10 +197,8 @@
       </div>
     </div>
   </div>
-
 </div>
 
-<!-- Invoice Table -->
 <div class="mt-4">
   <table class="table-std">
     <thead>
@@ -232,28 +222,25 @@
           <span>
             {{
               invoice.order.secondary_process
-                  ? (
-                      invoice.order.order_type === 'laser'
-                        ? 'Corte / Impresión'
-                        : invoice.order.order_type === 'print'
-                        ? 'Impresión / Corte'
-                        : 'Ventas'
-                    )
-                  : (
-                      invoice.order.order_type === 'print'
-                        ? 'Impresiones'
-                        : invoice.order.order_type === 'laser'
-                        ? 'Cortes'
-                        : invoice.order.order_type === 'sales'
-                        ? 'Ventas'
-                        : 'Desconocido'
-                    )
+                ? invoice.order.order_type === "laser"
+                  ? "Corte / Impresión"
+                  : invoice.order.order_type === "print"
+                    ? "Impresión / Corte"
+                    : "Ventas"
+                : invoice.order.order_type === "print"
+                  ? "Impresiones"
+                  : invoice.order.order_type === "laser"
+                    ? "Cortes"
+                    : invoice.order.order_type === "sales"
+                      ? "Ventas"
+                      : "Desconocido"
             }}
           </span>
 
-          <!-- Badge Vitrina -->
           <span
-            *ngIf="invoice.order.order_type === 'sales' && invoice.order.is_vitrine"
+            *ngIf="
+              invoice.order.order_type === 'sales' && invoice.order.is_vitrine
+            "
             class="ml-2 px-2 py-0.5 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800"
           >
             Vitrina
@@ -263,11 +250,13 @@
           {{ invoice.order.client.name }}
         </td>
         <td class="table-column-std">
-          {{ invoice.created_at | date : "dd-MM-yyyy" }}
+          {{ invoice.created_at | date: "dd-MM-yyyy" }}
         </td>
-        <td class="table-column-std">${{ getTotalPayments(invoice.order) | number:'1.2-2'}}</td>
         <td class="table-column-std">
-          ${{ formatNumber(getRemainingBalance(invoice)) | number:'1.2-2'}}
+          ${{ getTotalPayments(invoice.order) | number: "1.2-2" }}
+        </td>
+        <td class="table-column-std">
+          ${{ formatNumber(getRemainingBalance(invoice)) | number: "1.2-2" }}
         </td>
         <td
           class="table-column-std"
@@ -278,18 +267,15 @@
             invoice.invoice_status === "overdue"
               ? "En Mora"
               : invoice.invoice_status === "upToDate"
-              ? "Al Día"
-              : "Desconocido"
+                ? "Al Día"
+                : "Desconocido"
           }}
         </td>
         <td class="table-column-std">
           {{ getRemainingPaymentTerm(invoice) }}
         </td>
         <td class="table-column-std text-center font-semibold">
-          <span
-            *ngIf="!invoice.order.requires_e_invoice"
-            class="text-gray-400"
-          >
+          <span *ngIf="!invoice.order.requires_e_invoice" class="text-gray-400">
             No requiere
           </span>
 
@@ -311,27 +297,19 @@
           <button class="btn-details" (click)="selectInvoice(invoice)">
             Detalles
           </button>
-          <!-- Botón Editar -->
           <button class="btn-edit" (click)="editInvoice(invoice)">
             Editar
           </button>
-          <!-- Botón Eliminar -->
-          <!-- <button class="btn-delete" (click)="deleteInvoice(invoice)">
-            Eliminar
-          </button>
-          -->
         </td>
       </tr>
     </tbody>
   </table>
 
-  <!-- No results found -->
   <div *ngIf="noResultsFound" class="p-4 text-center text-gray-600">
     <p>No hay coincidencias con la búsqueda.</p>
   </div>
 
   <div class="flex justify-between items-center mb-4">
-    <!-- Controles de paginación -->
     <div class="pagination flex items-center">
       <button
         (click)="currentPage = 1; updatePaginatedInvoices()"
@@ -366,7 +344,6 @@
       </button>
     </div>
 
-    <!-- Selector de elementos por página -->
     <div class="items-per-page flex items-center">
       <label for="itemsPerPage" class="mr-2">Elementos por página:</label>
       <select
@@ -383,15 +360,13 @@
   </div>
 </div>
 
-<!-- Modal para añadir/editar facturas -->
 <div *ngIf="showModal" class="modal-overlay">
-  <div class="modal-content" style="height: auto !important;">
+  <div class="modal-content" style="height: auto !important">
     <h3 class="text-lg font-bold mb-4">
-      {{ isEditing ? 'Editar Factura' : 'Añadir Factura' }}
+      {{ isEditing ? "Editar Factura" : "Añadir Factura" }}
     </h3>
 
     <form (ngSubmit)="saveInvoice()">
-      <!--  MODO EDICIÓN -->
       <ng-container *ngIf="isEditing">
         <div class="mb-4" *ngIf="selectedInvoice">
           <label class="block modal-input-item">{{ ivaLabel() }}</label>
@@ -426,7 +401,9 @@
             placeholder="5"
             min="1"
           />
-          <p class="text-sm text-gray-500 mt-1">Plazo de pago predeterminado: 5 días</p>
+          <p class="text-sm text-gray-500 mt-1">
+            Plazo de pago predeterminado: 5 días
+          </p>
         </div>
 
         <div *ngIf="selectedInvoice as invoice">
@@ -441,9 +418,7 @@
         </div>
       </ng-container>
 
-      <!-- Mostrar todos los campos -->
       <ng-container *ngIf="!isEditing">
-        <!-- Campo de selección de cliente -->
         <div class="mb-4">
           <label class="block text-gray-700">
             Cliente<span class="text-red-500">*</span>
@@ -518,7 +493,9 @@
             placeholder="5"
             min="1"
           />
-          <p class="text-sm text-gray-500 mt-1">Plazo de pago predeterminado: 5 días</p>
+          <p class="text-sm text-gray-500 mt-1">
+            Plazo de pago predeterminado: 5 días
+          </p>
         </div>
 
         <div class="mb-4" *ngIf="selectedInvoice">
@@ -568,10 +545,7 @@
             required
           >
             <option value="" disabled selected>Seleccione una orden</option>
-            <option
-              *ngFor="let order of clientOrders"
-              [value]="order.id_order"
-            >
+            <option *ngFor="let order of clientOrders" [value]="order.id_order">
               {{ order.description }} ({{ order.order_type }})
             </option>
           </select>
@@ -608,8 +582,6 @@
   </div>
 </div>
 
-
-<!-- Modal para añadir cliente -->
 <div *ngIf="showAddClientModal" class="modal-overlay">
   <div class="modal-content w-1/2">
     <h2 class="text-xl font-bold mb-4">Añadir Nuevo Cliente</h2>
@@ -708,13 +680,11 @@
   </div>
 </div>
 
-<!-- Show details of the selected invoice in float window -->
 <div
   *ngIf="selectedInvoiceDetails && selectedInvoiceDetails.length > 0"
   class="modal-overlay"
 >
   <div class="modal-content modal-h750">
-    <!-- Notificación -->
     <div
       *ngIf="notificationMessage"
       class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4"
@@ -723,7 +693,6 @@
     </div>
     <h2 class="text-xl font-bold">Detalles de Factura</h2>
 
-    <!-- Printable Invoice Layout -->
     <div class="p-4 border border-gray-300 bg-white invoice-details">
       <div class="flex justify-between mb-4">
         <div>
@@ -732,7 +701,7 @@
           </h3>
           <p>
             <strong>Fecha:</strong>
-            {{ selectedInvoiceDetails[0].created_at | date : "dd-MM-yyyy" }}
+            {{ selectedInvoiceDetails[0].created_at | date: "dd-MM-yyyy" }}
           </p>
           <p
             [class.text-green-600]="
@@ -747,8 +716,8 @@
               selectedInvoiceDetails[0].invoice_status === "overdue"
                 ? "En Mora"
                 : selectedInvoiceDetails[0].invoice_status === "upToDate"
-                ? "Al Día"
-                : "Desconocido"
+                  ? "Al Día"
+                  : "Desconocido"
             }}
           </p>
           <p>
@@ -759,19 +728,15 @@
         <div class="text-right">
           <p>
             <strong>De:</strong>
-            {{ selectedInvoiceDetails[0].order.client.name }}</p>
-          <p>{{ selectedInvoiceDetails[0].order.client.document_number }}</p>
-          <p>
-            {{ selectedInvoiceDetails[0].order.client.address }},
-            <!-- {{ selectedInvoiceDetails[0].order.client.province }}
-            {{ selectedInvoiceDetails[0].order.client.postal_code }} -->
+            {{ selectedInvoiceDetails[0].order.client.name }}
           </p>
+          <p>{{ selectedInvoiceDetails[0].order.client.document_number }}</p>
+          <p>{{ selectedInvoiceDetails[0].order.client.address }},</p>
           <p>{{ selectedInvoiceDetails[0].order.client.email }}</p>
           <p>{{ selectedInvoiceDetails[0].order.client.cellphone }}</p>
         </div>
       </div>
 
-      <!-- Itemized Invoice List -->
       <div class="my-6">
         <h4 class="font-semibold"></h4>
         <ul class="list-none">
@@ -784,17 +749,15 @@
         </ul>
       </div>
 
-      <!-- Totals Section -->
       <div
         class="border-t pt-4 mt-4 space-y-4"
         *ngIf="selectedInvoiceDetails.length && calculatedValues as valores"
       >
-        <!-- Subtotal e IVA -->
         <div class="space-y-2">
           <div class="flex justify-between">
             <p><strong>Subtotal base:</strong></p>
             <p>
-              {{ valores.subtotal | currency : "COP" }}
+              {{ valores.subtotal | currency: "COP" }}
             </p>
           </div>
 
@@ -805,48 +768,19 @@
             <p>
               <strong>{{ ivaLabel() }}:</strong>
             </p>
-            <p>{{ valores.iva | currency : "COP" }}</p>
+            <p>{{ valores.iva | currency: "COP" }}</p>
           </div>
         </div>
-        <!--
-        RETEFUENTE
-        <div class="flex justify-between">
-          <p>
-            <strong>{{ retefuenteLabel(selectedInvoiceDetails[0]) }}:</strong>
-          </p>
-          <p>
-            {{
-              valores.retefuente > 0
-                ? (-valores.retefuente | number : "1.2-2")
-                : "No aplica"
-            }}
-          </p>
-        </div>
 
-        RETEICA
-        <div class="flex justify-between">
-          <p>
-            <strong>{{ reteicaLabel(selectedInvoiceDetails[0]) }}:</strong>
-          </p>
-          <p>
-            {{
-              valores.reteica > 0
-                ? (-valores.reteica | number : "1.2-2")
-                : "No aplica"
-            }}
-          </p>
-        </div>
-        -->
         <div
           class="flex justify-between"
           *ngIf="selectedInvoiceDetails[0].include_iva"
         ></div>
-        <!-- Totales -->
         <div class="border-t pt-4 space-y-2">
           <div class="flex justify-between">
             <p><strong>Total a Facturar:</strong></p>
             <p class="font-bold text-green-600">
-              {{ valores.total | number : "1.2-2" }}
+              {{ valores.total | number: "1.2-2" }}
             </p>
           </div>
 
@@ -855,7 +789,7 @@
             <p>
               {{
                 getTotalPayments(selectedInvoiceDetails[0].order)
-                  | currency : "COP"
+                  | currency: "COP"
               }}
             </p>
           </div>
@@ -864,40 +798,73 @@
             <p><strong>Falta por Pagar:</strong></p>
             <p class="text-red-600 font-semibold">
               {{
-                getRemainingBalance(selectedInvoiceDetails[0])
-                  | currency : "COP"
+                getRemainingBalance(selectedInvoiceDetails[0]) | currency: "COP"
               }}
             </p>
           </div>
         </div>
+      </div>
 
-        <!-- Lista de abonos -->
-        <div
-          *ngIf="
-            selectedInvoiceDetails[0].order.payments &&
-            selectedInvoiceDetails[0].order.payments.length > 0
-          "
-          class="mt-4"
+      <div
+        class="mt-6 border-t border-gray-200 pt-4"
+        *ngIf="userRole === 'admin'"
+      >
+        <div class="flex justify-between items-center mb-2">
+          <h4 class="font-bold text-gray-700">Permisos de Agendador</h4>
+        </div>
+        <p class="text-xs text-gray-500 mb-3">
+          Autorizar a un planificador específico para gestionar los pagos de
+          esta factura.
+        </p>
+        <button
+          class="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 flex items-center gap-2 text-sm shadow-sm transition-colors"
+          (click)="openPermissionModal(selectedInvoiceDetails[0])"
         >
-          <h4 class="font-semibold">Abonos:</h4>
-          <ul>
-            <li
-              *ngFor="let payment of selectedInvoiceDetails[0].order.payments"
-            >
-              ${{ payment.amount }} -
-              {{
-                payment.payment_method === 'cash' ? 'Efectivo' :
-                payment.payment_method === 'nequi' ? 'Nequi' :
-                payment.payment_method === 'bancolombia' ? 'Bancolombia' :
-                payment.payment_method === 'Davivienda' ? 'Davivienda' :
-                payment.payment_method === 'other' ? 'Otro'
-                : "Desconocido"
-              }} -
-              {{ payment.payment_date | date : "dd-MM-yyyy" }}
-              <button
-                class="text-blue-500 ml-2"
-                (click)="editPayment(payment)"
-              >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="w-5 h-5"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"
+            />
+          </svg>
+          Gestionar Permisos
+        </button>
+      </div>
+      <div
+        *ngIf="
+          selectedInvoiceDetails[0].order.payments &&
+          selectedInvoiceDetails[0].order.payments.length > 0
+        "
+        class="mt-4"
+      >
+        <h4 class="font-semibold">Abonos:</h4>
+        <ul>
+          <li *ngFor="let payment of selectedInvoiceDetails[0].order.payments">
+            ${{ payment.amount }} -
+            {{
+              payment.payment_method === "cash"
+                ? "Efectivo"
+                : payment.payment_method === "nequi"
+                  ? "Nequi"
+                  : payment.payment_method === "bancolombia"
+                    ? "Bancolombia"
+                    : payment.payment_method === "Davivienda"
+                      ? "Davivienda"
+                      : payment.payment_method === "other"
+                        ? "Otro"
+                        : "Desconocido"
+            }}
+            -
+            {{ payment.payment_date | date: "dd-MM-yyyy" }}
+            <ng-container *ngIf="canManagePayments">
+              <button class="text-blue-500 ml-2" (click)="editPayment(payment)">
                 Editar
               </button>
               <button
@@ -908,12 +875,13 @@
               >
                 Eliminar
               </button>
-            </li>
-          </ul>
-        </div>
+            </ng-container>
+          </li>
+        </ul>
+      </div>
 
-        <!-- Formulario para añadir abono -->
-        <div class="mt-4">
+      <div class="mt-4">
+        <ng-container *ngIf="canManagePayments">
           <h4 class="font-semibold">Añadir Abono:</h4>
           <div class="mb-4">
             <label class="block text-gray-700">Monto del abono</label>
@@ -940,190 +908,297 @@
               <option value="other">Otro</option>
             </select>
           </div>
-          <div class="flex justify-end mt-4">
-            <button
-              type="button"
-              class="btn-danger justify-start py-2 px-4 mr-2 mt-2 rounded"
-              (click)="closeModal()"
-            >
-              Cancelar
-            </button>
-            <button
-              class="btn-success justify-start py-2 px-4 mr-2 mt-2 rounded"
-              (click)="
-                addPayment(
-                  selectedInvoiceDetails[0].order,
-                  newPaymentAmount,
-                  newPaymentMethod
-                )
-              "
-            >
-              Añadir Abono
-            </button>
-            <!-- Botón para descargar PDF -->
-            <button
-              type="button"
-              class="btn-success justify-between py-2 px-4 mr-2 mt-2 rounded"
-              (click)="generatePdf()"
-            >
-              Descargar Recibo de venta
-            </button>
-            <button
-              type="button"
-              class="btn-success justify-between py-2 px-4 mr-2 mt-2 rounded"
-              (click)="downloadQuotePDF()"
-            >
-              Descargar Cuenta de Cobro
-            </button>
-            <button
-              type="button"
-              class="btn-success justify-between py-2 px-4 mr-2 mt-2 rounded"
-              (click)="downloadDeliveryNotePDF()"
-            >
-              Descargar Remisión
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Modal para editar abono -->
-    <div *ngIf="showEditPayment && selectedPayment" class="modal-overlay">
-      <div class="modal-content w-1/3">
-        <h4 class="text-lg font-bold mb-4">Editar Abono</h4>
-        <div class="mb-4">
-          <label class="block text-gray-700">Monto</label>
-          <input
-            type="number"
-            [(ngModel)]="selectedPayment.amount"
-            name="editPaymentAmount"
-            class="form-input w-full mt-1"
-          />
-        </div>
-        <div class="mb-4">
-          <label class="block text-gray-700">Método de pago</label>
-          <select
-            [(ngModel)]="selectedPayment.payment_method"
-            name="editPaymentMethod"
-            class="form-select w-full mt-1"
+          <button
+            class="text-xs bg-indigo-600 text-white px-4 py-1.5 rounded-lg hover:bg-indigo-700 shadow-sm transition-all"
+            (click)="
+              addPayment(
+                selectedInvoiceDetails[0].order,
+                newPaymentAmount,
+                newPaymentMethod
+              )
+            "
           >
-            <option value="cash">Efectivo</option>
-            <option value="nequi">Nequi</option>
-            <option value="bancolombia">Bancolombia</option>
-            <option value="Davivienda">Davivienda</option>
-            <option value="other">Otro</option>
-          </select>
-        </div>
-        <div class="flex justify-end">
-          <button class="btn-danger" (click)="showEditPayment = false">
+            Añadir Abono
+          </button>
+        </ng-container>
+
+        <div class="flex justify-end mt-4">
+          <button
+            type="button"
+            class="btn-danger justify-start py-2 px-4 mr-2 mt-2 rounded"
+            (click)="closeModal()"
+          >
             Cancelar
           </button>
+
           <button
-            class="btn-success px-4 py-2 rounded-md ml-2"
-            (click)="updatePayment(selectedInvoiceDetails[0].order)"
+            type="button"
+            class="btn-success justify-between py-2 px-4 mr-2 mt-2 rounded"
+            (click)="generatePdf()"
           >
-            Guardar
+            Descargar Recibo de venta
+          </button>
+          <button
+            type="button"
+            class="btn-success justify-between py-2 px-4 mr-2 mt-2 rounded"
+            (click)="downloadQuotePDF()"
+          >
+            Descargar Cuenta de Cobro
+          </button>
+          <button
+            type="button"
+            class="btn-success justify-between py-2 px-4 mr-2 mt-2 rounded"
+            (click)="downloadDeliveryNotePDF()"
+          >
+            Descargar Remisión
           </button>
         </div>
       </div>
     </div>
   </div>
+
+  <div *ngIf="showEditPayment && selectedPayment" class="modal-overlay">
+    <div class="modal-content w-1/3">
+      <h4 class="text-lg font-bold mb-4">Editar Abono</h4>
+      <div class="mb-4">
+        <label class="block text-gray-700">Monto</label>
+        <input
+          type="number"
+          [(ngModel)]="selectedPayment.amount"
+          name="editPaymentAmount"
+          class="form-input w-full mt-1"
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Método de pago</label>
+        <select
+          [(ngModel)]="selectedPayment.payment_method"
+          name="editPaymentMethod"
+          class="form-select w-full mt-1"
+        >
+          <option value="cash">Efectivo</option>
+          <option value="nequi">Nequi</option>
+          <option value="bancolombia">Bancolombia</option>
+          <option value="Davivienda">Davivienda</option>
+          <option value="other">Otro</option>
+        </select>
+      </div>
+      <div class="flex justify-end">
+        <button class="btn-danger" (click)="showEditPayment = false">
+          Cancelar
+        </button>
+        <button
+          class="btn-success px-4 py-2 rounded-md ml-2"
+          (click)="updatePayment(selectedInvoiceDetails[0].order)"
+        >
+          Guardar
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 
-<!-- DAILY SUMMARY MODAL -->
 <div *ngIf="showDailySummary" class="modal-overlay">
-  <div class="modal-content" style="height: auto !important;">
-
-    <!-- Header -->
+  <div class="modal-content" style="height: auto !important">
     <div class="flex justify-between items-center mb-4">
       <h2 class="text-xl font-bold">
-        {{ startDate || endDate ? 'Resumen contable' : 'Resumen contable total' }}
+        {{
+          startDate || endDate ? "Resumen contable" : "Resumen contable total"
+        }}
       </h2>
     </div>
 
-    <!-- Rango aplicado (si hay filtros activos) -->
-    <div
-      class="mb-6 text-sm text-gray-600"
-      *ngIf="startDate || endDate"
-    >
+    <div class="mb-6 text-sm text-gray-600" *ngIf="startDate || endDate">
       <strong>Rango aplicado:</strong>
-      {{ startDate || 'Inicio' }} – {{ endDate || 'Hoy' }}
+      {{ startDate || "Inicio" }} – {{ endDate || "Hoy" }}
     </div>
 
-    <!-- Summary cards -->
     <div class="grid grid-cols-2 gap-4">
-
-      <!-- Total scheduled -->
       <div class="p-4 border rounded-lg bg-gray-50">
-        <p class="text-sm text-gray-600">
-          Total agendado
-        </p>
+        <p class="text-sm text-gray-600">Total agendado</p>
         <p class="text-xl font-bold text-blue-700">
-          ${{ dailySummary.totalScheduled | number:'1.2-2' }}
+          ${{ dailySummary.totalScheduled | number: "1.2-2" }}
         </p>
       </div>
 
-      <!-- Total paid -->
       <div class="p-4 border rounded-lg bg-green-50">
-        <p class="text-sm text-gray-600">
-          Dinero recibido
-        </p>
+        <p class="text-sm text-gray-600">Dinero recibido</p>
         <p class="text-xl font-bold text-green-700">
-          ${{ dailySummary.totalPaid | number:'1.2-2' }}
+          ${{ dailySummary.totalPaid | number: "1.2-2" }}
         </p>
       </div>
 
-      <!-- Daily debt -->
       <div class="p-4 border rounded-lg bg-yellow-50">
         <p class="text-sm text-gray-600">
-          {{ startDate || endDate
-              ? 'Deuda generada en el rango'
-              : 'Deuda generada en total' }}
+          {{
+            startDate || endDate
+              ? "Deuda generada en el rango"
+              : "Deuda generada en total"
+          }}
         </p>
         <p
           class="text-xl font-bold"
           [class.text-red-600]="dailySummary.rangeDebt > 0"
           [class.text-green-600]="dailySummary.rangeDebt <= 0"
         >
-          ${{ dailySummary.rangeDebt | number:'1.2-2' }}
+          ${{ dailySummary.rangeDebt | number: "1.2-2" }}
         </p>
       </div>
 
-      <!-- Pending debt -->
       <div class="p-4 border rounded-lg bg-red-50">
-        <p class="text-sm text-gray-600">
-          Deuda pendiente acumulada
-        </p>
+        <p class="text-sm text-gray-600">Deuda pendiente acumulada</p>
         <p class="text-xl font-bold text-red-700">
-          ${{ dailySummary.pendingDebt | number:'1.2-2' }}
+          ${{ dailySummary.pendingDebt | number: "1.2-2" }}
         </p>
       </div>
-
     </div>
 
-    <!-- Invoice count -->
     <div class="mt-6 p-4 border rounded-lg bg-gray-100">
       <p class="text-sm text-gray-600">
-        {{ startDate || endDate
-            ? 'Facturas creadas en el rango'
-            : 'Facturas creadas en total' }}
+        {{
+          startDate || endDate
+            ? "Facturas creadas en el rango"
+            : "Facturas creadas en total"
+        }}
       </p>
       <p class="text-lg font-bold">
         {{ dailySummary.invoiceCount }}
       </p>
     </div>
 
-    <!-- Footer note -->
     <div class="mt-6 text-sm text-gray-500 italic">
       Este resumen se calcula según los filtros activos.
     </div>
 
     <div class="flex justify-end">
-      <button class="btn-danger" (click)="toggleDailySummary()">
-          Cerrar
-      </button>
+      <button class="btn-danger" (click)="toggleDailySummary()">Cerrar</button>
     </div>
-
   </div>
 </div>
 
+<div *ngIf="showPermissionModal" class="modal-overlay">
+  <div class="modal-content w-full max-w-lg">
+    <div class="flex justify-between items-start mb-4 border-b pb-2">
+      <div>
+        <h3 class="text-xl font-bold text-gray-800">Permisos de Scheduler</h3>
+        <p class="text-sm text-gray-500">
+          Factura #{{ selectedInvoiceDetails?.[0]?.code }}
+        </p>
+      </div>
+      <button
+        (click)="closePermissionModal()"
+        class="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+      >
+        &times;
+      </button>
+    </div>
+
+    <div
+      class="bg-blue-50 border border-blue-100 rounded-lg p-3 mb-6 flex gap-3"
+    >
+      <div class="text-blue-500 mt-0.5">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          class="w-5 h-5"
+        >
+          <path
+            fill-rule="evenodd"
+            d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM9 9a.75.75 0 0 0 0 1.5h.253a.25.25 0 0 1 .244.304l-.459 2.066A1.75 1.75 0 0 0 10.747 15H11a.75.75 0 0 0 0-1.5h-.253a.25.25 0 0 1-.244-.304l.459-2.066A1.75 1.75 0 0 0 9.253 9H9Z"
+            clip-rule="evenodd"
+          />
+        </svg>
+      </div>
+      <p class="text-sm text-blue-800">
+        Los planificadores listados aquí podrán
+        <strong>Gestionar Abonos</strong> en esta factura específica.
+      </p>
+    </div>
+
+    <div class="mb-6">
+      <h4 class="font-bold text-sm text-gray-700 mb-2 uppercase tracking-wide">
+        Agendadores Autorizados
+      </h4>
+
+      <div *ngIf="permissionLoading" class="text-center py-6">
+        <span class="text-gray-400 animate-pulse">Cargando...</span>
+      </div>
+
+      <ul *ngIf="!permissionLoading" class="space-y-2 max-h-48 overflow-y-auto">
+        <li
+          *ngFor="let perm of currentPermissions"
+          class="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-200"
+        >
+          <div class="flex items-center gap-3">
+            <div class="bg-purple-100 text-purple-600 p-2 rounded-full">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="w-4 h-4"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"
+                />
+              </svg>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-gray-800">
+                {{ perm.employee_details?.name || "Empleado desconocido" }}
+              </p>
+              <p class="text-xs text-gray-400">
+                ID Usuario: {{ perm.id_user | slice: 0 : 8 }}...
+              </p>
+            </div>
+          </div>
+          <button
+            (click)="revokePermission(perm.id_user)"
+            class="text-red-500 hover:text-red-700 text-xs font-bold border border-red-200 hover:bg-red-50 px-3 py-1.5 rounded transition-colors"
+          >
+            REVOCAR
+          </button>
+        </li>
+
+        <li
+          *ngIf="currentPermissions.length === 0"
+          class="text-center py-6 border-2 border-dashed border-gray-200 rounded-lg"
+        >
+          <p class="text-sm text-gray-400">
+            No hay permisos individuales asignados.
+          </p>
+        </li>
+      </ul>
+    </div>
+
+    <div class="mt-6 pt-4 border-t border-gray-200">
+      <label class="block text-gray-700 text-sm font-bold mb-2"
+        >Conceder acceso a:</label
+      >
+      <div class="flex gap-2">
+        <div class="relative flex-1">
+          <select
+            [(ngModel)]="selectedUserId"
+            class="form-select w-full border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200 focus:ring-opacity-50"
+          >
+            <option value="" disabled selected>Seleccionar Agendador...</option>
+            <option *ngFor="let emp of schedulers" [value]="emp.id_user">
+              {{ emp.name }}
+            </option>
+          </select>
+        </div>
+        <button
+          (click)="grantPermission()"
+          [disabled]="!selectedUserId"
+          class="bg-blue-600 text-white px-6 py-2 rounded-md font-medium shadow-sm hover:bg-blue-700 disabled:bg-gray-300 disabled:shadow-none transition-all"
+        >
+          Añadir
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
