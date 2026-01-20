@@ -66,9 +66,11 @@
 
     <div class="flex space-x-2">
       <button class="btn-clear" (click)="clearFilters()">Limpiar</button>
-      <button class="btn-primary" (click)="toggleDailySummary()">
-        Resumen contable
-      </button>
+      <div *ngIf="userRole === 'admin'">
+        <button class="btn-primary" (click)="toggleDailySummary()">
+          Resumen contable
+        </button>
+      </div>
     </div>
   </div>
 

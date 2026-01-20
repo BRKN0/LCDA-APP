@@ -349,15 +349,39 @@
               (change)="toggleOrderCompletionStatus(order)"
               [disabled]="!!(
                 order.secondary_process &&
-                !order.secondary_completed &&
-                order.order_completion_status === 'inProgress'
+                (
+                  (userRole === 'cuts_employee' && order.secondary_process === 'print') ||
+                  (userRole === 'prints_employee' && order.secondary_process === 'laser')
+                )
               )"
-              title="Este pedido tiene un proceso secundario pendiente."
             >
               <option value="finished">Terminado</option>
               <option value="delivered">Entregado</option>
               <option value="inProgress">En proceso</option>
             </select>
+            <!-- Botón de proceso secundario -->
+            <button
+              *ngIf="order.secondary_process"
+              class="text-xs px-2 py-1 mt-1 w-full rounded"
+              [ngClass]="{
+                'btn-success': !order.secondary_completed,
+                'bg-gray-300 text-gray-600 cursor-not-allowed': order.secondary_completed
+              }"
+              [disabled]="
+                order.secondary_completed ||
+                !(
+                  userRole == 'admin' ||
+                  userRole == 'scheduler' ||
+                  (userRole === 'cuts_employee' && order.secondary_process === 'laser') ||
+                  (userRole === 'prints_employee' && order.secondary_process === 'print')
+                )
+              "
+              (click)="markSecondaryCompleted(order)"
+            >
+              {{ order.secondary_process === 'laser'
+                ? 'Láser'
+                : 'Impresión' }} completado
+            </button>
           </td>
           <td>{{ order.created_at | date : "dd-MM-yyyy" }}</td>
           <td>
@@ -518,27 +542,6 @@
                   : 'Pendiente'
               }}
             </span>
-          </div>
-          <!-- Botón para marcar proceso secundario como terminado -->
-          <div
-            *ngIf="
-              selectedOrderDetails[0]?.secondary_process &&
-              !selectedOrderDetails[0]?.secondary_completed &&
-              (
-                (userRole === 'cuts_employee' &&
-                  selectedOrderDetails[0].secondary_process === 'laser') ||
-                (userRole === 'prints_employee' &&
-                  selectedOrderDetails[0].secondary_process === 'print')
-              )
-            "
-            class="mt-3"
-          >
-            <button
-              class="btn-success text-xs px-3 py-1"
-              (click)="markSecondaryCompleted(selectedOrderDetails[0])"
-            >
-              Marcar proceso secundario como terminado
-            </button>
           </div>
           <p>
             <strong>Confirmación del pedido:</strong>

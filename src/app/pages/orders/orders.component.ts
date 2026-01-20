@@ -1117,13 +1117,17 @@ export class OrdersComponent implements OnInit, OnDestroy {
     }
   }
 
-async toggleOrderCompletionStatus(order: Orders) {
+  async toggleOrderCompletionStatus(order: Orders) {
     const newCompletionStatus = order.order_completion_status;
+
+    const canOverrideSecondary =
+      this.userRole === 'admin' || this.userRole === 'scheduler';
 
     if (
       order.secondary_process &&
       !order.secondary_completed &&
-      (newCompletionStatus === 'finished' || newCompletionStatus === 'delivered')
+      (newCompletionStatus === 'finished' || newCompletionStatus === 'delivered') &&
+      !canOverrideSecondary
     ) {
       alert('Este pedido tiene un proceso secundario pendiente y no puede ser completado aún.');
       order.order_completion_status = 'inProgress';
@@ -1140,22 +1144,36 @@ async toggleOrderCompletionStatus(order: Orders) {
         ? 'confirmed'
         : 'notConfirmed';
 
+    const updatePayload: any = {
+      order_completion_status: newCompletionStatus,
+      order_delivery_status: newDeliveryStatus,
+      order_confirmed_status: newConfirmedStatus,
+    };
+
+    if (
+      canOverrideSecondary &&
+      order.secondary_process &&
+      !order.secondary_completed &&
+      (newCompletionStatus === 'finished' || newCompletionStatus === 'delivered')
+    ) {
+      updatePayload.secondary_completed = true;
+    }
+
     const { error } = await this.supabase
       .from('orders')
-      .update({
-        order_completion_status: newCompletionStatus,
-        order_delivery_status: newDeliveryStatus,
-        order_confirmed_status: newConfirmedStatus,
-      })
+      .update(updatePayload)
       .eq('id_order', order.id_order);
 
     if (error) {
       console.error('Error actualizando estado:', error);
-      order.order_completion_status = order.order_completion_status === 'finished' ? 'inProgress' : 'finished';
-    } else {
-      order.order_delivery_status = newDeliveryStatus;
-      order.order_confirmed_status = newConfirmedStatus;
+      order.order_completion_status = 'inProgress';
+      return;
     }
+    order.order_delivery_status = newDeliveryStatus;
+    order.order_confirmed_status = newConfirmedStatus;
+    if (updatePayload.secondary_completed) {
+      order.secondary_completed = true;
+    }   
   }
 
   async markSecondaryCompleted(order: Orders) {
