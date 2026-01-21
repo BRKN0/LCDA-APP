@@ -17,9 +17,18 @@ interface ExpensesItem {
   id_provider?: string;
   provider_name?: string | null;
   payment_due_date?: string | null;
-  payment_status: 'PAID' | 'PENDING';
+  payment_status: 'PAID' | 'PENDING' | 'PARTIAL';
   invoice_file_path?: string | null;
   proof_of_payment_path?: string | null;
+  payments?: ExpensePayment[];
+}
+
+interface ExpensePayment {
+  id_expense_payment?: number;
+  id_expenses: string;
+  amount: number;
+  payment_date?: string;
+  payment_method?: string;
 }
 
 @Component({
@@ -129,10 +138,19 @@ export class ExpensesComponent implements OnInit {
   payeeTypedButNotSelected: boolean = false;
   payeeJustSelected: boolean = false;
 
-  // 
+  //
   totalPaid: number = 0;
   totalPending: number = 0;
   totalExpenses: number = 0;
+
+  // Propiedades para la gestión de abonos
+  selectedExpenseForPayment: ExpensesItem | null = null;
+  showPaymentModal: boolean = false;
+  newPaymentAmount: number = 0;
+  newPaymentMethod: string = '';
+  showEditPaymentModal: boolean = false;
+  selectedPayment: ExpensePayment | null = null;
+  notificationMessage: string | null = null;
 
 
   constructor(private readonly supabase: SupabaseService) { }
@@ -371,7 +389,7 @@ export class ExpensesComponent implements OnInit {
       }
 
       let finalProviderId = this.selectedExpense.id_provider;
-      let finalProviderName = 
+      let finalProviderName =
         this.selectedExpense.provider_name
           ? this.normalizeProviderName(this.selectedExpense.provider_name)
           : null;
@@ -511,54 +529,60 @@ export class ExpensesComponent implements OnInit {
     }
   }
 
-  getExpenses(): void {
+  async getExpenses(): Promise<void> {
     this.loading = true;
-    this.supabase
+
+    const { data, error } = await this.supabase
       .from('expenses')
-      .select('*')
-      .then(({ data, error }) => {
-        this.loading = false;
-        if (error) {
-          console.error('Error al cargar los egresos:', error);
-        } else {
-          this.expenses = (data || []).map((item: any) => ({
-            ...item,
-            payment_date: item.payment_date
-              ? new Date(item.payment_date).toISOString().split('T')[0]
-              : '',
-            created_at: item.created_at
-              ? new Date(item.created_at)
-              : new Date(),
-          })) as ExpensesItem[];
-          // sorting orders by code
-          let n = this.expenses.length;
-          let swapped: boolean;
+      .select('*, expense_payments(*)');
 
-          do {
-            swapped = false;
-            for (let i = 0; i < n - 1; i++) {
-              if (this.expenses[i].code < this.expenses[i + 1].code) {
-                [this.expenses[i], this.expenses[i + 1]] = [
-                  this.expenses[i + 1],
-                  this.expenses[i],
-                ];
-                swapped = true;
-              }
-            }
-            n--;
-          } while (swapped);
-          this.filteredExpenses = [...this.expenses];
+    this.loading = false;
 
-          this.uniqueCategories = [
-            ...new Set(this.expenses.map((e) => e.category || '')),
-          ].sort();
+    if (error) {
+      console.error('Error al cargar los egresos:', error);
+      return;
+    }
 
-          this.initializeCategoryCheckboxes();
+    this.expenses = (data || []).map((item: any) => ({
+      ...item,
+      payment_date: item.payment_date
+        ? new Date(item.payment_date).toISOString().split('T')[0]
+        : '',
+      created_at: item.created_at
+        ? new Date(item.created_at)
+        : new Date(),
+      payments: item.expense_payments || [],
+    })) as ExpensesItem[];
 
-          this.applyFilters();
+    // Sorting orders by code
+    let n = this.expenses.length;
+    let swapped: boolean;
+
+    do {
+      swapped = false;
+      for (let i = 0; i < n - 1; i++) {
+        if (this.expenses[i].code < this.expenses[i + 1].code) {
+          [this.expenses[i], this.expenses[i + 1]] = [
+            this.expenses[i + 1],
+            this.expenses[i],
+          ];
+          swapped = true;
         }
-      });
+      }
+      n--;
+    } while (swapped);
+
+    this.uniqueCategories = [
+      ...new Set(this.expenses.map((e) => e.category || '')),
+    ].sort();
+
+    this.initializeCategoryCheckboxes();
+
+    this.filteredExpenses = [...this.expenses];
+
+    this.applyFilters();
   }
+
 
   // Genererate Expenses Kardex
   generateExpensesKardex(): void {
@@ -676,7 +700,8 @@ export class ExpensesComponent implements OnInit {
       const expenseDate = new Date(e.payment_date);
       if (this.startDate && expenseDate < new Date(this.startDate))
         return false;
-      if (this.endDate && expenseDate > new Date(this.endDate)) return false;
+      if (this.endDate && expenseDate > new Date(this.endDate))
+        return false;
 
       // Category
       if (this.filterCategory && e.category !== this.filterCategory) {
@@ -702,7 +727,7 @@ export class ExpensesComponent implements OnInit {
       }
 
       // Only Pending
-      if (this.onlyPending && e.payment_status !== 'PENDING') {
+      if (this.onlyPending && e.payment_status === 'PAID') {
         return false;
       }
 
@@ -714,17 +739,38 @@ export class ExpensesComponent implements OnInit {
     this.updatePaginatedExpenses();
   }
 
+
   private calculateTotals(): void {
-    this.totalPaid = this.filteredExpenses
-      .filter(e => e.payment_status === 'PAID')
-      .reduce((sum, e) => sum + Number(e.cost || 0), 0);
 
-    this.totalPending = this.filteredExpenses
-      .filter(e => e.payment_status === 'PENDING')
-      .reduce((sum, e) => sum + Number(e.cost || 0), 0);
+  let totalPaid = 0;
+  let totalPending = 0;
 
-    this.totalExpenses = this.totalPaid + this.totalPending;
-  }
+  this.filteredExpenses.forEach((expense, index) => {
+    const expenseCost = Number(expense.cost) || 0;
+    const paymentsTotal = this.getTotalPayments(expense);
+
+    // CALCULAMOS EL ESTADO DINÁMICAMENTE SEGÚN ABONOS
+    if (paymentsTotal >= expenseCost) {
+      // Está completamente pagado (con abonos o checkbox)
+      totalPaid += expenseCost;
+    } else if (paymentsTotal > 0) {
+      // Tiene abonos parciales
+      totalPaid += paymentsTotal;
+      totalPending += (expenseCost - paymentsTotal);
+    } else {
+      // No tiene abonos, verificar si fue marcado como pagado con checkbox
+      if (expense.payment_status === 'PAID') {
+        totalPaid += expenseCost;
+      } else {
+        totalPending += expenseCost;
+      }
+    }
+  });
+
+  this.totalPaid = totalPaid;
+  this.totalPending = totalPending;
+  this.totalExpenses = totalPaid + totalPending;
+}
 
   // Verify if at least one category checkbox is checked
   isAnyCategoryChecked(): boolean {
@@ -884,28 +930,29 @@ export class ExpensesComponent implements OnInit {
   }
 
   async toggleExpenseStatus(expense: ExpensesItem) {
-    const oldStatus = expense.payment_status;
-    const newStatus = oldStatus === 'PAID' ? 'PENDING' : 'PAID';
-    expense.payment_status = newStatus;
-
-    const updateData: any = { payment_status: newStatus };
-
-    const { error } = await this.supabase
-      .from('expenses')
-      .update(updateData)
-      .eq('id_expenses', expense.id_expenses);
-
-    if (error) {
-      console.error('Error updating status:', error);
-      expense.payment_status = oldStatus; // Revert UI
-      alert('Hubo un error al actualizar el estado.');
-    }
-
-    this.calculateTotals();
+  if (expense.payments && expense.payments.length > 0) {
+    this.showNotification('Este egreso tiene abonos registrados. Use el botón "Abonos" para gestionar pagos.');
+    return;
   }
 
-  // File Handlers
+  const oldStatus = expense.payment_status;
+  const newStatus = oldStatus === 'PAID' ? 'PENDING' : 'PAID';
 
+  const { error } = await this.supabase
+    .from('expenses')
+    .update({ payment_status: newStatus })
+    .eq('id_expenses', expense.id_expenses);
+
+  if (error) {
+    console.error('Error updating status:', error);
+    alert('Hubo un error al actualizar el estado.');
+    return;
+  }
+
+  await this.reloadAllData();
+}
+
+  // File Handlers
   onInvoiceFileSelected(event: Event) {
     const input = event.target as HTMLInputElement;
     if (input.files?.length) {
@@ -1002,5 +1049,332 @@ export class ExpensesComponent implements OnInit {
     return this.isEditing ? 'Actualizar' : 'Guardar';
   }
 
+  // ============================================
+  // MÉTODOS PARA GESTIÓN DE ABONOS
+  // ============================================
 
+  // Método para obtener el total de pagos realizados
+  getTotalPayments(expense: ExpensesItem): number {
+    return expense.payments && Array.isArray(expense.payments)
+      ? expense.payments.reduce((sum, p) => sum + p.amount, 0)
+      : 0;
+  }
+
+  // Método para calcular el saldo pendiente
+  getRemainingBalance(expense: ExpensesItem): number {
+    const total = Number(expense.cost) || 0;
+    const paid = this.getTotalPayments(expense);
+    return total - paid;
+  }
+
+  // Mostrar notificación temporal
+  showNotification(message: string) {
+    this.notificationMessage = message;
+    setTimeout(() => {
+      this.notificationMessage = null;
+    }, 3000);
+  }
+
+  // Abrir modal de pago
+  openPaymentModal(expense: ExpensesItem) {
+    this.selectedExpenseForPayment = expense;
+    this.newPaymentAmount = 0;
+    this.newPaymentMethod = '';
+    this.showPaymentModal = true;
+  }
+
+  // Cerrar modal de pago
+  closePaymentModal() {
+    this.showPaymentModal = false;
+    this.selectedExpenseForPayment = null;
+    this.newPaymentAmount = 0;
+    this.newPaymentMethod = '';
+  }
+
+  // Agregar un abono
+  async addPayment(expense: ExpensesItem, amount: number): Promise<void> {
+  if (!expense || !expense.id_expenses || amount <= 0) {
+    this.showNotification('Por favor, ingrese un monto válido.');
+    return;
+  }
+
+  if (expense.payment_status === 'PAID' && (!expense.payments || expense.payments.length === 0)) {
+    this.showNotification('Este egreso ya está pagado completamente. No se pueden agregar abonos.');
+    return;
+  }
+
+  const total = Number(expense.cost) || 0;
+  const totalPaid = this.getTotalPayments(expense);
+  const remainingBalance = total - totalPaid;
+
+  if (amount > remainingBalance) {
+    this.showNotification(
+      `El abono no puede exceder el monto pendiente de $${remainingBalance.toFixed(2)}.`
+    );
+    return;
+  }
+
+  try {
+    // 1. Insertar el pago
+    const { data: insertedPayment, error: insertError } = await this.supabase
+      .from('expense_payments')
+      .insert([{
+        id_expenses: expense.id_expenses,
+        amount: amount,
+        payment_method: this.newPaymentMethod,
+      }])
+      .select()
+      .single();
+
+    if (insertError || !insertedPayment) {
+      console.error('Error al insertar pago:', insertError);
+      this.showNotification('Error al añadir el abono.');
+      return;
+    }
+
+    // 2. Calcular nuevo estado
+    const newTotalPaid = totalPaid + amount;
+    let newStatus: 'PAID' | 'PENDING' | 'PARTIAL';
+
+    if (newTotalPaid >= total) {
+      newStatus = 'PAID';
+    } else if (newTotalPaid > 0) {
+      newStatus = 'PARTIAL';
+    } else {
+      newStatus = 'PENDING';
+    }
+
+    // 3. Actualizar el estado en la base de datos
+    const { error: updateError } = await this.supabase
+      .from('expenses')
+      .update({ payment_status: newStatus })
+      .eq('id_expenses', expense.id_expenses);
+
+    if (updateError) {
+      console.error('Error al actualizar estado:', updateError);
+    }
+
+    // 4. Recargar datos
+    await this.reloadAllData();
+
+    this.closePaymentModal();
+    this.showNotification('Abono añadido correctamente.');
+  } catch (error) {
+    console.error('Error inesperado:', error);
+    this.showNotification('Ocurrió un error inesperado.');
+  }
+}
+
+  // Abrir modal para editar pago
+  openEditPaymentModal(payment: ExpensePayment) {
+    this.selectedPayment = { ...payment };
+    this.showEditPaymentModal = true;
+  }
+
+  // Cerrar modal de edición
+  closeEditPaymentModal() {
+    this.showEditPaymentModal = false;
+    this.selectedPayment = null;
+  }
+
+  // Actualizar un abono existente
+  async updatePayment(): Promise<void> {
+  if (!this.selectedPayment || !this.selectedPayment.id_expense_payment) {
+    this.showNotification('No se ha seleccionado un abono válido.');
+    return;
+  }
+
+  const expense = this.expenses.find(e =>
+    e.payments?.some(p => p.id_expense_payment === this.selectedPayment?.id_expense_payment)
+  );
+
+  if (!expense) {
+    this.showNotification('No se encontró el egreso asociado.');
+    return;
+  }
+
+  try {
+    // 1. Actualizar el pago
+    const { error: updateError } = await this.supabase
+      .from('expense_payments')
+      .update({
+        amount: this.selectedPayment.amount,
+        payment_method: this.selectedPayment.payment_method
+      })
+      .eq('id_expense_payment', this.selectedPayment.id_expense_payment);
+
+    if (updateError) {
+      console.error('Error al actualizar pago:', updateError);
+      this.showNotification('Error al actualizar el abono.');
+      return;
+    }
+
+    // 2. Esperar confirmación
+    await new Promise(resolve => setTimeout(resolve, 150));
+
+    if (this.selectedExpenseForPayment && this.selectedPayment) {
+      const paymentIndex = this.selectedExpenseForPayment.payments?.findIndex(
+        p => p.id_expense_payment === this.selectedPayment!.id_expense_payment
+      );
+
+      if (paymentIndex !== undefined && paymentIndex !== -1 && this.selectedExpenseForPayment.payments) {
+        this.selectedExpenseForPayment.payments[paymentIndex] = {
+          ...this.selectedExpenseForPayment.payments[paymentIndex],
+          amount: this.selectedPayment.amount,
+          payment_method: this.selectedPayment.payment_method
+        };
+      }
+    }
+
+    // 3. Obtener todos los pagos actualizados
+    const { data: updatedPayments } = await this.supabase
+      .from('expense_payments')
+      .select('amount')
+      .eq('id_expenses', expense.id_expenses);
+
+    const totalPaid = (updatedPayments || []).reduce((sum, p) => sum + Number(p.amount), 0);
+    const total = Number(expense.cost) || 0;
+
+    // 4. Calcular nuevo estado
+    let newStatus: 'PAID' | 'PENDING' | 'PARTIAL';
+    if (totalPaid >= total) {
+      newStatus = 'PAID';
+    } else if (totalPaid > 0) {
+      newStatus = 'PARTIAL';
+    } else {
+      newStatus = 'PENDING';
+    }
+
+    // 5. Actualizar estado
+    const { error: statusError } = await this.supabase
+      .from('expenses')
+      .update({ payment_status: newStatus })
+      .eq('id_expenses', expense.id_expenses);
+
+    if (statusError) {
+      console.error('Error al actualizar estado:', statusError);
+    }
+
+    // 6. Recargar datos
+    await this.reloadAllData();
+
+    this.closeEditPaymentModal();
+    this.showNotification('Abono actualizado correctamente.');
+  } catch (error) {
+    console.error('Error inesperado:', error);
+    this.showNotification('Ocurrió un error inesperado.');
+  }
+}
+
+  // Eliminar un abono
+  async deletePayment(paymentId: number, expenseId: string): Promise<void> {
+  const confirmed = confirm('¿Eliminar este abono?');
+  if (!confirmed) return;
+
+  try {
+    // 1. Eliminar el pago
+    const { error: deleteError } = await this.supabase
+      .from('expense_payments')
+      .delete()
+      .eq('id_expense_payment', paymentId);
+
+    if (deleteError) {
+      console.error('❌ Error al eliminar:', deleteError);
+      this.showNotification('Error al eliminar el abono.');
+      return;
+    }
+
+    if (this.selectedExpenseForPayment) {
+      this.selectedExpenseForPayment.payments =
+        this.selectedExpenseForPayment.payments?.filter(
+          p => p.id_expense_payment !== paymentId
+        ) || [];
+    }
+
+    // 2. Esperar a que se confirme la eliminación
+    await new Promise(resolve => setTimeout(resolve, 200));
+
+    // 3. Obtener los pagos restantes
+    const { data: remainingPayments, error: paymentsError } = await this.supabase
+      .from('expense_payments')
+      .select('amount')
+      .eq('id_expenses', expenseId);
+
+    // 4. Obtener el costo del egreso
+    const { data: expenseData, error: expenseError } = await this.supabase
+      .from('expenses')
+      .select('cost, payment_status')
+      .eq('id_expenses', expenseId)
+      .single();
+
+    if (expenseData) {
+      const total = Number(expenseData.cost) || 0;
+      const totalPaid = (remainingPayments || []).reduce((sum, p) => sum + Number(p.amount), 0);
+
+      // 5. Calcular nuevo estado
+      let newStatus: 'PAID' | 'PENDING' | 'PARTIAL';
+      if (totalPaid >= total) {
+        newStatus = 'PAID';
+      } else if (totalPaid > 0) {
+        newStatus = 'PARTIAL';
+      } else {
+        newStatus = 'PENDING';
+      }
+
+      // 6. INTENTO DE ACTUALIZAR EL ESTADO
+      const { error: updateError } = await this.supabase
+        .from('expenses')
+        .update({ payment_status: newStatus })
+        .eq('id_expenses', expenseId);
+
+      if (updateError) {
+        console.error('Error al actualizar estado:', updateError);
+      }
+    }
+
+    // 7. Recargar datos
+    await this.reloadAllData();
+
+    this.showNotification('Abono eliminado correctamente.');
+  } catch (error) {
+    console.error('💥 Error inesperado:', error);
+    this.showNotification('Ocurrió un error inesperado.');
+  }
+}
+
+  private async reloadAllData(): Promise<void> {
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    const { data, error } = await this.supabase
+      .from('expenses')
+      .select('*, expense_payments(*)')
+      .order('code', { ascending: false }); // Ordenar en el query
+
+    if (error) {
+      console.error('Error al recargar:', error);
+      return;
+    }
+
+    // Mapear datos
+    this.expenses = (data || []).map((item: any) => ({
+      ...item,
+      payment_date: item.payment_date
+        ? new Date(item.payment_date).toISOString().split('T')[0]
+        : '',
+      created_at: item.created_at ? new Date(item.created_at) : new Date(),
+      payments: item.expense_payments || [],
+    })) as ExpensesItem[];
+
+    // Actualizar categorías
+    this.uniqueCategories = [
+      ...new Set(this.expenses.map((e) => e.category || '')),
+    ].sort();
+
+    this.initializeCategoryCheckboxes();
+
+    this.filteredExpenses = this.expenses.map(e => ({...e}));
+
+    // Aplicar filtros (esto recalcula totales)
+    this.applyFilters();;
+  }
 }

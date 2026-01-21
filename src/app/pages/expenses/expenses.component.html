@@ -189,45 +189,84 @@
           {{ expense.cost | currency }}
         </td>
         <td class="px-4 py-2 border-b">
-          {{ 
+          {{
             expense.type === 'cash' ? 'Efectivo' :
             expense.type === 'nequi' ? 'Nequi' :
             expense.type === 'bancolombia' ? 'Bancolombia' :
             expense.type === 'davivienda' ? 'Davivienda' :
             expense.type === 'transfer' ? 'Transferencia'
-            : 'Ninguno' 
+            : 'Abono'
           }}
         </td>
         <td class="px-4 py-2 border-b text-center">
+        <!-- Si tiene pagos Y está PAGADO completamente -->
+        <div *ngIf="expense.payments && expense.payments.length > 0 && expense.payment_status === 'PAID'" class="text-left">
           <div class="flex items-center justify-start gap-2">
-            <input
-              type="checkbox"
-              [checked]="expense.payment_status === 'PAID'"
-              (change)="toggleExpenseStatus(expense)"
-              class="w-4 h-4 text-green-600 rounded border-gray-300 cursor-pointer focus:ring-green-500"
-            />
+            <span class="text-xs font-bold text-green-600">
+              Pagado
+            </span>
+          </div>
+        </div>
+
+        <!-- Si tiene pagos PERO aún está PENDIENTE o PARTIAL -->
+        <div *ngIf="expense.payments && expense.payments.length > 0 && expense.payment_status !== 'PAID'" class="text-left">
+          <div class="flex items-center justify-start gap-2 mb-1">
             <span
               class="text-xs font-bold"
               [ngClass]="{
-                'text-green-600': expense.payment_status === 'PAID',
+                'text-orange-500': expense.payment_status === 'PARTIAL',
                 'text-red-500': expense.payment_status === 'PENDING'
               }"
             >
-              {{ expense.payment_status === "PAID" ? "Pagado" : "Pendiente" }}
+              {{ expense.payment_status === 'PARTIAL' ? 'Abono' : 'Pendiente' }}
             </span>
           </div>
-          <div
-            *ngIf="
-              expense.payment_status === 'PENDING' && expense.payment_due_date
-            "
-            class="text-xs text-red-400 mt-1 text-left"
-          >
-            Vence: {{ expense.payment_due_date | date : "dd-MM-yyyy" }}
+          <div class="text-xs text-gray-600">
+            Pagado: {{ getTotalPayments(expense) | currency }}
           </div>
-        </td>
+          <div class="text-xs text-red-500 font-semibold">
+            Falta: {{ getRemainingBalance(expense) | currency }}
+          </div>
+        </div>
 
+        <!-- Si NO tiene pagos, usar checkbox tradicional -->
+        <div *ngIf="!expense.payments || expense.payments.length === 0" class="flex items-center justify-start gap-2">
+          <input
+            type="checkbox"
+            [checked]="expense.payment_status === 'PAID'"
+            (change)="toggleExpenseStatus(expense)"
+            class="w-4 h-4 text-green-600 rounded border-gray-300 cursor-pointer focus:ring-green-500"
+          />
+          <span
+            class="text-xs font-bold"
+            [ngClass]="{
+              'text-green-600': expense.payment_status === 'PAID',
+              'text-red-500': expense.payment_status === 'PENDING'
+            }"
+          >
+            {{ expense.payment_status === 'PAID' ? 'Pagado' : 'Pendiente' }}
+          </span>
+        </div>
+
+        <div
+          *ngIf="expense.payment_status === 'PENDING' && expense.payment_due_date"
+          class="text-xs text-red-400 mt-1 text-left"
+        >
+          Vence: {{ expense.payment_due_date | date : 'dd-MM-yyyy' }}
+        </div>
+      </td>
         <td class="px-4 py-2 border-b">
-          <div class="flex gap-2">
+          <div class="flex gap-2 flex-wrap">
+            <button
+              class="btn-success inline-flex items-center space-x-1 px-2 py-1 text-xs"
+              (click)="openPaymentModal(expense)"
+              title="Gestionar Abonos"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
+              <span>Abonos</span>
+            </button>
             <button
               class="btn-details inline-flex items-center space-x-2 px-2 py-1 text-xs"
               (click)="viewExpenseDetails(expense)"
@@ -244,9 +283,9 @@
             <button
               class="btn-delete text-xs px-2 py-1"
               [disabled]="deletingExpenseId === expense.id_expenses"
-              (click)="deleteExpense(expense) ; $event.stopPropagation()"
+              (click)="deleteExpense(expense); $event.stopPropagation()"
             >
-               {{ deletingExpenseId === expense.id_expenses ? 'Eliminando...' : 'Eliminar' }}
+              {{ deletingExpenseId === expense.id_expenses ? 'Eliminando...' : 'Eliminar' }}
             </button>
           </div>
         </td>
@@ -347,7 +386,6 @@
           >
             {{ getCategoryLabel(cat) }}
           </option>
-
           <option value="NEW_CATEGORY_OPTION" class="font-bold text-blue-600">
             + Nueva categoría
           </option>
@@ -466,7 +504,6 @@
             placeholder="Nombre Empresa / Razón Social"
             class="form-input w-full text-sm rounded-md"
           />
-
           <div class="flex gap-2">
             <input
               type="text"
@@ -513,7 +550,7 @@
           placeholder="Nombre de la persona o entidad"
           class="form-input w-full rounded-md text-sm"
           (input)="onThirdPartyInput()"
-          autocomplete="off"    
+          autocomplete="off"
         />
 
         <ul
@@ -676,7 +713,6 @@
             <span class="ml-2 text-sm">Pendiente</span>
           </label>
         </div>
-
         <div
           *ngIf="selectedExpense.payment_status === 'PENDING'"
           class="mt-3 animate-fadeIn"
@@ -716,9 +752,11 @@
     </form>
   </div>
 </div>
+
+<!-- Modal de Detalles -->
 <div *ngIf="showDetailsModal" class="modal-overlay">
   <div class="modal-content bg-white p-6 rounded-lg shadow-xl w-full max-w-2xl modal-h550 overflow-y-auto">
-    
+
     <div class="flex justify-between items-start mb-4 border-b pb-2">
       <h2 class="text-xl font-bold text-gray-800">
         Detalle de Egreso
@@ -750,13 +788,13 @@
         <div>
           <label class="block text-xs font-bold text-gray-500 uppercase">Método de Pago</label>
           <p class="text-gray-900">
-            {{ 
+            {{
               selectedExpense.type === 'cash' ? 'Efectivo' :
               selectedExpense.type === 'nequi' ? 'Nequi' :
               selectedExpense.type === 'bancolombia' ? 'Bancolombia' :
               selectedExpense.type === 'davivienda' ? 'Davivienda' :
               selectedExpense.type === 'transfer' ? 'Transferencia'
-              : 'Ninguno' 
+              : 'Ninguno'
             }}
           </p>
         </div>
@@ -794,12 +832,12 @@
         </h3>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          
+
           <div class="border rounded p-3 flex items-center justify-between bg-gray-50">
             <div class="flex items-center gap-2">
               <span class="text-sm font-semibold text-gray-600">Factura / Recibo</span>
             </div>
-            <button 
+            <button
               *ngIf="selectedExpense.invoice_file_path"
               (click)="downloadFile(selectedExpense.invoice_file_path)"
               class="btn-primary text-xs px-3 py-1 flex items-center gap-1"
@@ -813,7 +851,7 @@
             <div class="flex items-center gap-2">
               <span class="text-sm font-semibold text-gray-600">Comprobante Pago</span>
             </div>
-            <button 
+            <button
               *ngIf="selectedExpense.proof_of_payment_path"
               (click)="downloadFile(selectedExpense.proof_of_payment_path)"
               class="btn-primary text-xs px-3 py-1 flex items-center gap-1"
@@ -833,3 +871,193 @@
     </div>
   </div>
 </div>
+
+<!-- Modal de Gestión de Abonos -->
+<div *ngIf="showPaymentModal && selectedExpenseForPayment" class="modal-overlay">
+  <div class="modal-content bg-white p-6 rounded-lg shadow-xl w-full max-w-2xl modal-h550 overflow-y-auto">
+    <div class="flex justify-between items-start mb-4 border-b pb-2">
+      <h2 class="text-xl font-bold text-gray-800">
+        Gestión de Abonos - {{ getCategoryLabel(selectedExpenseForPayment.category) }}
+      </h2>
+      <button (click)="closePaymentModal()" class="text-gray-500 hover:text-gray-700">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Resumen del Egreso -->
+    <div class="bg-gray-50 p-4 rounded-md mb-4">
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <p class="text-xs font-bold text-gray-500 uppercase">Total del Egreso</p>
+          <p class="text-2xl font-mono font-bold text-gray-900">{{ selectedExpenseForPayment.cost | currency }}</p>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-gray-500 uppercase">Total Pagado</p>
+          <p class="text-2xl font-mono font-bold text-green-600">{{ getTotalPayments(selectedExpenseForPayment) | currency }}</p>
+        </div>
+        <div class="col-span-2">
+          <p class="text-xs font-bold text-gray-500 uppercase">Saldo Pendiente</p>
+          <p class="text-2xl font-mono font-bold text-red-600">{{ getRemainingBalance(selectedExpenseForPayment) | currency }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Formulario para Agregar Abono -->
+    <div
+      class="bg-blue-50 p-4 rounded-md mb-4"
+      *ngIf="getRemainingBalance(selectedExpenseForPayment) > 0 &&
+            (selectedExpenseForPayment.payment_status !== 'PAID' ||
+            (selectedExpenseForPayment.payments && selectedExpenseForPayment.payments.length > 0))"
+    >
+      <h3 class="font-bold text-blue-800 mb-3">Agregar Nuevo Abono</h3>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Monto del Abono</label>
+          <input
+            type="number"
+            [(ngModel)]="newPaymentAmount"
+            [max]="getRemainingBalance(selectedExpenseForPayment)"
+            min="0"
+            step="100"
+            class="form-input mt-1 block w-full rounded-md"
+            placeholder="Ingrese el monto"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Método de Pago</label>
+          <select
+            [(ngModel)]="newPaymentMethod"
+            class="form-select mt-1 block w-full rounded-md"
+          >
+            <option value="" disabled>Seleccione un método</option>
+            <option value="cash">Efectivo</option>
+            <option value="nequi">Nequi</option>
+            <option value="bancolombia">Bancolombia</option>
+            <option value="davivienda">Davivienda</option>
+            <option value="transfer">Transferencia</option>
+          </select>
+        </div>
+        <button
+          type="button"
+          class="btn-success w-full"
+          (click)="addPayment(selectedExpenseForPayment, newPaymentAmount)"
+          [disabled]="!newPaymentAmount || newPaymentAmount <= 0 || !newPaymentMethod"
+        >
+          Registrar Abono
+        </button>
+      </div>
+    </div>
+
+    <!-- Mensaje cuando está pagado SIN abonos previos -->
+    <div
+      *ngIf="selectedExpenseForPayment.payment_status === 'PAID' && (!selectedExpenseForPayment.payments || selectedExpenseForPayment.payments.length === 0)"
+      class="bg-green-50 p-4 rounded-md mb-4 border border-green-200"
+    >
+      <div class="flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-green-600">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+        </svg>
+        <div>
+          <h3 class="font-bold text-green-800">Egreso Pagado Completo</h3>
+          <p class="text-sm text-green-700">Este egreso fue marcado como pagado sin necesidad de abonos parciales.</p>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- Lista de Abonos Registrados -->
+    <div class="border-t pt-4">
+      <h3 class="font-bold text-gray-800 mb-3">Historial de Abonos</h3>
+      <div *ngIf="!selectedExpenseForPayment.payments || selectedExpenseForPayment.payments.length === 0" class="text-center text-gray-500 py-4">
+        No hay abonos registrados
+      </div>
+      <div *ngIf="selectedExpenseForPayment.payments && selectedExpenseForPayment.payments.length > 0" class="space-y-2">
+        <div
+          *ngFor="let payment of selectedExpenseForPayment.payments"
+          class="flex items-center justify-between p-3 bg-gray-50 rounded-md border"
+        >
+          <div class="flex-1">
+            <p class="font-mono font-bold text-gray-900">{{ payment.amount | currency }}</p>
+            <p class="text-xs text-gray-600">
+              {{ payment.payment_date | date : 'dd/MM/yyyy HH:mm' }}
+              <span *ngIf="payment.payment_method"> - {{
+                payment.payment_method === 'cash' ? 'Efectivo' :
+                payment.payment_method === 'nequi' ? 'Nequi' :
+                payment.payment_method === 'bancolombia' ? 'Bancolombia' :
+                payment.payment_method === 'davivienda' ? 'Davivienda' :
+                payment.payment_method === 'transfer' ? 'Transferencia' :
+                payment.payment_method
+              }}</span>
+            </p>
+          </div>
+          <div class="flex gap-2">
+            <button
+              class="btn-edit text-xs px-2 py-1"
+              (click)="openEditPaymentModal(payment)"
+            >
+              Editar
+            </button>
+            <button
+              class="btn-delete text-xs px-2 py-1"
+              (click)="deletePayment(payment.id_expense_payment!, selectedExpenseForPayment.id_expenses)"
+            >
+              Eliminar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex justify-end mt-6">
+      <button class="btn-primary px-6" (click)="closePaymentModal()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Edición de Abono -->
+<div *ngIf="showEditPaymentModal && selectedPayment" class="modal-overlay">
+  <div class="modal-content bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+    <h2 class="text-xl font-bold text-gray-800 mb-4">Editar Abono</h2>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Monto</label>
+        <input
+          type="number"
+          [(ngModel)]="selectedPayment.amount"
+          min="0"
+          step="100"
+          class="form-input mt-1 block w-full rounded-md"
+        />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Método de Pago</label>
+        <select
+          [(ngModel)]="selectedPayment.payment_method"
+          class="form-select mt-1 block w-full rounded-md"
+        >
+          <option value="" disabled>Seleccione un método</option>
+          <option value="cash">Efectivo</option>
+          <option value="nequi">Nequi</option>
+          <option value="bancolombia">Bancolombia</option>
+          <option value="davivienda">Davivienda</option>
+          <option value="transfer">Transferencia</option>
+        </select>
+      </div>
+      <div class="flex justify-end gap-3">
+        <button class="btn-danger" (click)="closeEditPaymentModal()">Cancelar</button>
+        <button class="btn-success" (click)="updatePayment()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Notificación Toast -->
+<div
+  *ngIf="notificationMessage"
+  class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fadeIn"
+>
+  {{ notificationMessage }}
+</div>
+
