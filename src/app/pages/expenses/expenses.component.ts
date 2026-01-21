@@ -1055,10 +1055,20 @@ export class ExpensesComponent implements OnInit {
 
   // Método para obtener el total de pagos realizados
   getTotalPayments(expense: ExpensesItem): number {
-    return expense.payments && Array.isArray(expense.payments)
-      ? expense.payments.reduce((sum, p) => sum + p.amount, 0)
-      : 0;
+    // Si tiene abonos registrados, sumarlos
+    if (expense.payments && Array.isArray(expense.payments) && expense.payments.length > 0) {
+      return expense.payments.reduce((sum, p) => sum + p.amount, 0);
+    }
+
+    // Si NO tiene abonos pero está marcado como PAID, considerar el costo total como pagado
+    if (expense.payment_status === 'PAID') {
+      return Number(expense.cost) || 0;
+    }
+
+    // Si no tiene abonos ni está pagado, retornar 0
+    return 0;
   }
+
 
   // Método para calcular el saldo pendiente
   getRemainingBalance(expense: ExpensesItem): number {
