@@ -751,6 +751,56 @@
         </ul>
       </div>
 
+      <!-- Detalle de productos de vitrina (solo sales + vitrine) -->
+      <div
+        *ngIf="
+          selectedInvoiceDetails[0]?.order?.order_type === 'sales' &&
+          selectedInvoiceDetails[0]?.order?.is_vitrine
+        "
+        class="my-6"
+      >
+        <h4 class="font-semibold text-yellow-600 mb-2">
+          Productos de Vitrina
+        </h4>
+
+        <table
+          *ngIf="vitrineSalesDetails.length > 0"
+          class="w-full text-sm border rounded"
+        >
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="p-2 text-left">Producto</th>
+              <th class="p-2 text-center">Cantidad</th>
+              <th class="p-2 text-right">Precio Unitario</th>
+              <th class="p-2 text-right">Subtotal</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr *ngFor="let item of vitrineSalesDetails">
+              <td class="p-2">
+                {{ item.products?.[0]?.name || 'Producto' }}
+              </td>
+              <td class="p-2 text-center">
+                {{ item.quantity }}
+              </td>
+              <td class="p-2 text-right">
+                {{ item.unit_price | number:'1.2-2' }}
+              </td>
+              <td class="p-2 text-right">
+                {{ item.line_total | number:'1.2-2' }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p
+          *ngIf="vitrineSalesDetails.length === 0"
+          class="text-sm text-gray-500"
+        >
+          No hay productos registrados para esta venta.
+        </p>
+
       <div
         class="border-t pt-4 mt-4 space-y-4"
         *ngIf="selectedInvoiceDetails.length && calculatedValues as valores"
@@ -1084,7 +1134,7 @@
       <div>
         <h3 class="text-xl font-bold text-gray-800">Permisos de Scheduler</h3>
         <p class="text-sm text-gray-500">
-          Factura #{{ selectedInvoiceDetails?.[0]?.code }}
+          Factura #{{ selectedInvoiceDetails[0].code }}
         </p>
       </div>
       <button

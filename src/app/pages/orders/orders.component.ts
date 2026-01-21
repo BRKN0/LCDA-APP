@@ -264,6 +264,30 @@ export class OrdersComponent implements OnInit, OnDestroy {
   requires_e_invoice: boolean = false;
   tempCutTime: number = 0;
 
+  // Vitrine sales items
+  salesItems: {
+    product_id: string;
+    name: string;
+    quantity: number;
+    unit_price: number;
+    subtotal: number;
+    stock?: number;
+  }[] = [];
+
+  allProducts: {
+    id: string;
+    name: string;
+    price: number;
+    cost: number;
+    stock: number;
+    category: string;
+  }[] = [];
+
+  selectedVitrineProductId: string | null = null;
+  vitrineSalesDetails: any[] = [];
+  vitrineProductSearch = '';
+  filteredVitrineProducts: any[] = [];
+
   // form helpers for extra charges and initial payments
   extraChargeDescription: string = '';
   extraChargeAmount: number = 0;
@@ -317,6 +341,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
             this.getClients();
             this.getMaterials();
             this.getVariables();
+            this.getProducts();
 
             // fetch Role
             this.roleService.fetchAndSetUserRole(this.userId);
@@ -710,6 +735,15 @@ export class OrdersComponent implements OnInit, OnDestroy {
 
     this.deletingOrderId = order.id_order;
 
+    // restore stock only for vitrine sales orders
+    if (order.order_type === 'sales' && order.is_vitrine === true) {
+      const ok = await this.resetVitrineSalesForOrder(order.id_order);
+      if (!ok) {
+        alert('Error restoring stock for vitrine sale.');
+        return;
+      }
+    }
+
     try {
       const { error } = await this.supabase
         .from('orders')
@@ -984,6 +1018,277 @@ export class OrdersComponent implements OnInit, OnDestroy {
     return Array.from(new Set(schedulers));
   }
 
+  isVitrineSale(): boolean {
+    return (
+      this.newOrder?.order_type === 'sales' &&
+      this.newOrder?.is_vitrine === true
+    );
+  }
+
+  async getProducts(): Promise<void> {
+    const { data, error } = await this.supabase
+      .from('products')
+      .select('id, name, price, cost, stock, category');
+
+    if (error) {
+      console.error('Error al cargar productos:', error);
+      return;
+    }
+    this.allProducts = data || [];
+  }
+
+  addVitrineProduct(product: any, quantity: number, unitPrice?: number): void {
+    if (!this.isVitrineSale()) {
+      return;
+    }
+
+    if (!product || quantity <= 0) {
+      return;
+    }
+
+    const price = unitPrice !== undefined ? unitPrice : Number(product.price);
+
+    const existingIndex = this.salesItems.findIndex(
+      (i) => i.product_id === product.id
+    );
+
+    if (existingIndex >= 0) {
+      // Update existing item
+      this.salesItems[existingIndex].quantity += quantity;
+      this.salesItems[existingIndex].unit_price = price;
+      this.salesItems[existingIndex].subtotal =
+        this.salesItems[existingIndex].quantity * price;
+    } else {
+      // Add new item
+      this.salesItems.push({
+        product_id: product.id,
+        name: product.name,
+        quantity: quantity,
+        unit_price: price,
+        subtotal: quantity * price,
+        stock: Number(product.stock),
+      });
+    }
+
+    this.recalcVitrineTotals();
+  }
+
+  addSelectedVitrineProduct(): void {
+    if (!this.selectedVitrineProductId) {
+      return;
+    }
+
+    const product = this.allProducts.find(
+      p => p.id === this.selectedVitrineProductId
+    );
+
+    if (!product) {
+      return;
+    }
+
+    this.addVitrineProduct(product, 1);
+    this.selectedVitrineProductId = null;
+  }
+
+  recalcVitrineTotals(): void {
+    let total = 0;
+
+    for (const item of this.salesItems) {
+      const qty = Number(item.quantity) || 0;
+      const price = Number(item.unit_price) || 0;
+
+      item.subtotal = qty * price;
+      total += item.subtotal;
+    }
+
+    // vitrine rules: unitary_value mirrors base_total
+    this.newOrder.base_total = total;
+    this.newOrder.unitary_value = total;
+
+    this.updateOrderTotalWithExtras();
+  }
+
+  validateVitrineBeforeSave(): boolean {
+    if (!this.isVitrineSale()) {
+      return true;
+    }
+
+    if (this.salesItems.length === 0) {
+      alert('Vitrine sale requires at least one product.');
+      this.newOrder.is_vitrine = false;
+      return false;
+    }
+
+    return true;
+  }
+
+  async saveVitrineSales(orderId: string): Promise<boolean> {
+    let hasStockIssues = false;
+    let totalPendingQty = 0;
+
+    for (const item of this.salesItems) {
+      const { data: prodData, error: prodErr } = await this.supabase
+        .from('products')
+        .select('stock, category')
+        .eq('id', item.product_id)
+        .single();
+
+      if (prodErr || !prodData) {
+        alert('Unable to read product stock.');
+        return false;
+      }
+
+      const currentStock = Number(prodData.stock);
+      const requestedQty = item.quantity;
+
+      let fulfilledQty = 0;
+      let pendingQty = 0;
+
+      if (currentStock >= requestedQty) {
+        fulfilledQty = requestedQty;
+      } else {
+        fulfilledQty = currentStock;
+        pendingQty = requestedQty - currentStock;
+        hasStockIssues = true;
+        totalPendingQty += pendingQty;
+      }
+
+      const newStock = Math.max(currentStock - fulfilledQty, 0);
+
+      await this.supabase
+        .from('products')
+        .update({ stock: newStock })
+        .eq('id', item.product_id);
+
+      const saleRow = {
+        id_order: orderId,
+        item_type: 'product',
+        product_id: item.product_id,
+        material_id: null,
+        quantity: requestedQty,
+        fulfilled_quantity: fulfilledQty,
+        pending_quantity: pendingQty,
+        unit_price: item.unit_price,
+        line_total: item.subtotal,
+        category: prodData.category,
+      };
+
+      const { error: insertErr } = await this.supabase
+        .from('sales')
+        .insert([saleRow]);
+
+      if (insertErr) {
+        return false;
+      }
+    }
+
+    const stockStatus = hasStockIssues
+      ? totalPendingQty ===
+        this.salesItems.reduce((s, i) => s + i.quantity, 0)
+        ? 'pending_stock'
+        : 'partially_fulfilled'
+      : 'fulfilled';
+
+    await this.supabase
+      .from('orders')
+      .update({
+        stock_status: stockStatus,
+        pending_quantity: totalPendingQty,
+      })
+      .eq('id_order', orderId);
+    
+    // show warning if there is pending stock
+    if (hasStockIssues && totalPendingQty > 0) {
+      this.stockWarningMessage =
+        `Algunos productos no cuentan con el suficiente stock.\n` +
+        `Cantidad pendiente: ${totalPendingQty}`;
+
+      this.showStockWarningModal = true;
+    }
+
+    return true;
+  }
+
+  async resetVitrineSalesForOrder(orderId: string): Promise<boolean> {
+    // delete existing sales rows for the order
+    const { data: existingSales, error: fetchError } = await this.supabase
+      .from('sales')
+      .select('product_id, fulfilled_quantity')
+      .eq('id_order', orderId);
+
+    if (fetchError) {
+      console.error('Error fetching existing sales:', fetchError);
+      return false;
+    }
+
+    // restore stock based on fulfilled quantities
+    for (const row of existingSales || []) {
+      if (!row.product_id || !row.fulfilled_quantity) continue;
+
+      const { data: product } = await this.supabase
+        .from('products')
+        .select('stock')
+        .eq('id', row.product_id)
+        .single();
+
+      if (product) {
+        const restoredStock =
+          Number(product.stock) + Number(row.fulfilled_quantity);
+
+        await this.supabase
+          .from('products')
+          .update({ stock: restoredStock })
+          .eq('id', row.product_id);
+      }
+    }
+
+    // delete sales rows
+    const { error: deleteError } = await this.supabase
+      .from('sales')
+      .delete()
+      .eq('id_order', orderId);
+
+    if (deleteError) {
+      console.error('Error deleting sales rows:', deleteError);
+      return false;
+    }
+
+    return true;
+  }
+
+  filterVitrineProducts(): void {
+    const query = this.vitrineProductSearch.toLowerCase().trim();
+
+    if (!query) {
+      this.filteredVitrineProducts = [];
+      return;
+    }
+
+    this.filteredVitrineProducts = this.allProducts.filter(p =>
+      p.name.toLowerCase().includes(query)
+    );
+  }
+
+  selectVitrineProduct(product: any): void {
+    this.addVitrineProduct(product, 1);
+    this.vitrineProductSearch = '';
+    this.filteredVitrineProducts = [];
+  }
+
+  removeVitrineItem(index: number): void {
+    if (index < 0 || index >= this.salesItems.length) {
+      return;
+    }
+
+    this.salesItems.splice(index, 1);
+    this.recalcVitrineTotals();
+  }
+
+  closeStockWarningModal(): void {
+    this.showStockWarningModal = false;
+    this.stockWarningMessage = '';
+  }
+
   async selectOrder(order: Orders) {
     this.loadingDetails = true;
     this.selectedOrderTypeDetail = [];
@@ -1053,6 +1358,30 @@ export class OrdersComponent implements OnInit, OnDestroy {
           extra_charges: fullOrderData.extra_charges || [],
         },
       ];
+
+      // load vitrine sales details if order is a vitrine sale
+      this.vitrineSalesDetails = [];
+
+      if (
+        order.order_type === 'sales' &&
+        order.is_vitrine === true
+      ) {
+        const { data, error } = await this.supabase
+          .from('sales')
+          .select(`
+            quantity,
+            unit_price,
+            line_total,
+            products ( name )
+          `)
+          .eq('id_order', order.id_order);
+
+        if (error) {
+          console.error('Error loading vitrine sales details:', error);
+        } else {
+          this.vitrineSalesDetails = data || [];
+        }
+      }
     } catch (err) {
       console.error('Unexpected error in selectOrder:', err);
     } finally {
@@ -1247,6 +1576,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
       this.selectedCaliber = '';
       this.selectedColor = '';
       this.tempCutTime = 0;
+      this.salesItems = [];
     }
     this.showModal = !this.showModal;
     if (!this.showModal) {
@@ -1269,24 +1599,62 @@ export class OrdersComponent implements OnInit, OnDestroy {
   async editOrder(order: Orders): Promise<void> {
     this.isEditing = true;
 
-  // fetch full order details
-  const { data: fullOrder, error } = await this.supabase
-    .from('orders')
-    .select('*')
-    .eq('id_order', order.id_order)
-    .single();
+    // fetch full order details
+    const { data: fullOrder, error } = await this.supabase
+      .from('orders')
+      .select('*')
+      .eq('id_order', order.id_order)
+      .single();
 
-  if (error || !fullOrder) {
-    console.error('Error loading order for editing:', error);
-    this.showNotification('Error al cargar los datos del pedido');
-    return;
-  }
+    if (error || !fullOrder) {
+      console.error('Error loading order for editing:', error);
+      this.showNotification('Error al cargar los datos del pedido');
+      return;
+    }
 
-  this.showModal = true;
-  await this.getMaterials();
+    this.showModal = true;
+    await this.getMaterials();
 
     // populate form with full order data
     this.newOrder = { ...fullOrder } as Orders;
+
+    // load vitrine sales items when editing
+    if (
+      this.newOrder.order_type === 'sales' &&
+      this.newOrder.is_vitrine === true
+    ) {
+      const { data: salesData, error: salesError } = await this.supabase
+        .from('sales')
+        .select('product_id, quantity, unit_price, line_total')
+        .eq('id_order', this.newOrder.id_order);
+
+      if (salesError) {
+        console.error('Error loading vitrine sales:', salesError);
+      } else {
+        this.salesItems = salesData.map((row: any) => ({
+          product_id: row.product_id,
+          name: '',
+          quantity: Number(row.quantity) || 0,
+          unit_price: Number(row.unit_price) || 0,
+          subtotal: Number(row.line_total) || 0,
+        }));
+      }
+    } else {
+      this.salesItems = [];
+    }
+
+    // enrich vitrine items with product names
+    if (this.salesItems.length > 0) {
+      await this.getProducts();
+
+      for (const item of this.salesItems) {
+        const product = this.allProducts.find(p => p.id === item.product_id);
+        if (product) {
+          item.name = product.name;
+          item.stock = product.stock;
+        }
+      }
+    }
 
     if (this.newOrder.id_client) {
       const { data: client, error: clientError } = await this.supabase
@@ -1302,34 +1670,38 @@ export class OrdersComponent implements OnInit, OnDestroy {
       }
     }
 
-  // normalize date
-  this.newOrder.delivery_date = fullOrder.delivery_date
-    ? fullOrder.delivery_date.slice(0, 10)
-    : '';
+    // normalize date
+    this.newOrder.delivery_date = fullOrder.delivery_date
+      ? fullOrder.delivery_date.slice(0, 10)
+      : '';
 
-  if (fullOrder.order_type === 'laser') {
-    this.tempCutTime = Number(fullOrder.cutting_time) || 0;
-  } else {
-    this.tempCutTime = 0;
-  }
-
-  // in case extra_charges is not an array
-  const extrasArray = Array.isArray(this.newOrder.extra_charges)
-    ? this.newOrder.extra_charges
-    : [];
-  this.newOrder.extra_charges = extrasArray;
-
-  if (!this.newOrder.base_total || isNaN(Number(this.newOrder.base_total))) {
-    if (this.newOrder.subtotal && !isNaN(Number(this.newOrder.subtotal))) {
-      this.newOrder.base_total = Number(this.newOrder.subtotal);
+    if (fullOrder.order_type === 'laser') {
+      this.tempCutTime = Number(fullOrder.cutting_time) || 0;
     } else {
-      const extrasSum = extrasArray.reduce(
-        (sum: number, c: any) => sum + (Number(c?.amount) || 0),
-        0
-      );
-      this.newOrder.base_total = Number(this.newOrder.total || 0) - extrasSum;
+      this.tempCutTime = 0;
     }
-  }
+
+    // in case extra_charges is not an array
+    const extrasArray = Array.isArray(this.newOrder.extra_charges)
+      ? this.newOrder.extra_charges
+      : [];
+    this.newOrder.extra_charges = extrasArray;
+
+    if (!this.newOrder.base_total || isNaN(Number(this.newOrder.base_total))) {
+      if (this.newOrder.subtotal && !isNaN(Number(this.newOrder.subtotal))) {
+        this.newOrder.base_total = Number(this.newOrder.subtotal);
+      } else {
+        const extrasSum = extrasArray.reduce(
+          (sum: number, c: any) => sum + (Number(c?.amount) || 0),
+          0
+        );
+        this.newOrder.base_total = Number(this.newOrder.total || 0) - extrasSum;
+      }
+    }
+
+    if (this.isVitrineSale()) {
+      this.recalcVitrineTotals();
+    }
 
     // reset dropdowns
     this.selectedCategory = '';
@@ -1391,15 +1763,42 @@ export class OrdersComponent implements OnInit, OnDestroy {
       }
     }
 
+    // Vitrine validation before creating order
+    if (!this.validateVitrineBeforeSave()) {
+      return;
+    }
+
+    if (this.isVitrineSale()) {
+      this.recalcVitrineTotals();
+    }
+
     if (this.newOrder.order_type === '') {
       alert('Por favor, seleccione un tipo de pedido.');
       return;
     }
 
       // calculations
-      const baseTotal = parseFloat(newOrderForm.unitary_value as string) || 0;
-      const extras = newOrderForm.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
+      let baseTotal = 0;
+
+      // Vitrine logic: base total comes from sales items
+      if (this.isVitrineSale()) {
+        baseTotal = this.salesItems.reduce(
+          (sum, item) => sum + Number(item.subtotal || 0),
+          0
+        );
+      } else {
+        baseTotal = parseFloat(newOrderForm.unitary_value as string) || 0;
+      }
+
+      const extras =
+        newOrderForm.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
+
       let total = baseTotal + extras;
+
+      if (newOrderForm.include_iva) {
+        const ivaAmount = total * (this.variables.iva / 100);
+        total = total + ivaAmount;
+      }
       
       if (newOrderForm.include_iva) {
         const ivaAmount = total * (this.variables.iva / 100);
@@ -1468,27 +1867,42 @@ export class OrdersComponent implements OnInit, OnDestroy {
         // keep existing code when editing
         this.newOrder.code = newOrderForm.code!;
 
-      if (this.newOrder.order_type === 'laser') {
-        this.newOrder.cutting_time = this.tempCutTime || 0;
-      }
+        if (this.newOrder.order_type === 'laser') {
+          this.newOrder.cutting_time = this.tempCutTime || 0;
+        }
 
-      await this.handleFileUploadForOrder(this.newOrder.id_order!);
-      this.selectedFile = null;
-      this.uploadedFileName = null;
+        await this.handleFileUploadForOrder(this.newOrder.id_order!);
+        this.selectedFile = null;
+        this.uploadedFileName = null;
 
-      // scheduler is set only on order creation
-      delete (this.newOrder as any).scheduler;
+        // scheduler is set only on order creation
+        delete (this.newOrder as any).scheduler;
 
-      const { error } = await this.supabase
-        .from('orders')
-        .update([this.newOrder])
-        .eq('id_order', this.newOrder.id_order);
+        const { error } = await this.supabase
+          .from('orders')
+          .update([this.newOrder])
+          .eq('id_order', this.newOrder.id_order);
 
-      if (error) {
-        console.error('Error al actualizar el pedido:', error);
-        alert('Error al actualizar el pedido.');
-        return;
-      }
+        // vitrine edit handling: reset and reinsert sales
+        if (this.isVitrineSale()) {
+          const resetOk = await this.resetVitrineSalesForOrder(this.newOrder.id_order!);
+          if (!resetOk) {
+            alert('Error resetting vitrine sales.');
+            return;
+          }
+
+          const insertOk = await this.saveVitrineSales(this.newOrder.id_order!);
+          if (!insertOk) {
+            alert('Error al actualizar.');
+            return;
+          }
+        }
+
+        if (error) {
+          console.error('Error al actualizar el pedido:', error);
+          alert('Error al actualizar el pedido.');
+          return;
+        }
 
         // handle cuts update
         if (this.newOrder.order_type === 'laser') {
@@ -1589,6 +2003,16 @@ export class OrdersComponent implements OnInit, OnDestroy {
         
         // initial payment
         await this.createInitialPaymentForOrder({ ...this.newOrder, id_order: newOrderId } as any, total);
+
+        // vitrine sales insertion and stock handling
+        if (this.isVitrineSale()) {
+          const ok = await this.saveVitrineSales(newOrderId);
+
+          if (!ok) {
+            alert('Error while saving vitrine products.');
+            return;
+          }
+        }
 
         // laser cuts insertion
         if (this.newOrder.order_type === 'laser' && this.tempCutTime > 0) {

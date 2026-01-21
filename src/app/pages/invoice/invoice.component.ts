@@ -155,6 +155,17 @@ export class InvoiceComponent implements OnInit {
     /*reteica: number;
     retefuente: number;*/
   } | null = null;
+
+  vitrineSalesDetails: {
+    product_id: string | null;
+    quantity: number;
+    unit_price: number;
+    line_total: number;
+    products?: {
+      name: string;
+    }[] | null;
+  }[] = [];
+
   variables: VariableMap = {
     iva: 0,
     utility_margin: 0,
@@ -692,6 +703,16 @@ export class InvoiceComponent implements OnInit {
     this.selectedInvoiceDetails = [invoice];
     this.calculatedValues = await this.calculateInvoiceValues(invoice);
     this.checkPaymentPermissions(invoice.id_invoice);
+
+    const order = invoice.order;
+    if (
+      order?.order_type === 'sales' &&
+      order?.is_vitrine
+    ) {
+      await this.loadVitrineSalesDetails(order.id_order);
+    } else {
+      this.vitrineSalesDetails = [];
+    }
   }
 
   showNotification(message: string) {
@@ -2784,6 +2805,32 @@ export class InvoiceComponent implements OnInit {
       console.error('Error inesperado:', error);
       this.showNotification('Ocurrió un error inesperado.');
     }
+  }
+
+  async loadVitrineSalesDetails(orderId: string): Promise<void> {
+    if (!orderId) {
+      this.vitrineSalesDetails = [];
+      return;
+    }
+
+    const { data, error } = await this.supabase
+      .from('sales')
+      .select(`
+        product_id,
+        quantity,
+        unit_price,
+        line_total,
+        products ( name )
+      `)
+      .eq('id_order', orderId);
+
+    if (error) {
+      console.error('Error loading vitrine sales details:', error);
+      this.vitrineSalesDetails = [];
+      return;
+    }
+
+    this.vitrineSalesDetails = data || [];
   }
 
   async loadOrders(): Promise<void> {
