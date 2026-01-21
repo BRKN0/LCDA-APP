@@ -779,7 +779,7 @@
           <tbody>
             <tr *ngFor="let item of vitrineSalesDetails">
               <td class="p-2">
-                {{ item.products?.[0]?.name || 'Producto' }}
+                {{ item.product_name }}
               </td>
               <td class="p-2 text-center">
                 {{ item.quantity }}
@@ -800,7 +800,7 @@
         >
           No hay productos registrados para esta venta.
         </p>
-
+      </div>
       <div
         class="border-t pt-4 mt-4 space-y-4"
         *ngIf="selectedInvoiceDetails.length && calculatedValues as valores"
@@ -1134,7 +1134,7 @@
       <div>
         <h3 class="text-xl font-bold text-gray-800">Permisos de Scheduler</h3>
         <p class="text-sm text-gray-500">
-          Factura #{{ selectedInvoiceDetails[0].code }}
+          Factura #{{ selectedInvoiceDetails?.[0]?.code }}
         </p>
       </div>
       <button

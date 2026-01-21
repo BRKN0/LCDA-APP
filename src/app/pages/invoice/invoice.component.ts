@@ -27,6 +27,14 @@ interface Employee {
   employee_type?: string;
 }
 
+interface VitrineSaleItem {
+  product_id: string | null;
+  quantity: number;
+  unit_price: number;
+  line_total: number;
+  product_name: string;
+}
+
 interface InvoicePermission {
   id: number;
   id_invoice: string;
@@ -156,15 +164,8 @@ export class InvoiceComponent implements OnInit {
     retefuente: number;*/
   } | null = null;
 
-  vitrineSalesDetails: {
-    product_id: string | null;
-    quantity: number;
-    unit_price: number;
-    line_total: number;
-    products?: {
-      name: string;
-    }[] | null;
-  }[] = [];
+  vitrineSalesDetails: VitrineSaleItem[] = [];
+
 
   variables: VariableMap = {
     iva: 0,
@@ -1209,6 +1210,13 @@ export class InvoiceComponent implements OnInit {
     return value.toFixed(2);
   }
 
+  formatCOP(value: number): string {
+    return value.toLocaleString('es-CO', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
+  }
+
   async generatePdf(): Promise<void> {
     if (!this.selectedInvoiceDetails) {
       alert('Por favor, selecciona una factura primero.');
@@ -1289,9 +1297,9 @@ export class InvoiceComponent implements OnInit {
     y += 10;
 
     // **TABLA DE DETALLES SEGÚN TIPO DE PEDIDO**
-    /*const orderType = invoice.order.order_type;
+    const orderType = invoice.order.order_type;
 
-    if (orderType === 'print') {
+    /*if (orderType === 'print') {
       const { data: printsData, error } = await this.supabase
         .from('prints')
         .select('*')
@@ -1454,80 +1462,49 @@ export class InvoiceComponent implements OnInit {
 
         doc.setFont('helvetica', 'normal');
       }
-    } else if (orderType === 'sales' || orderType === 'sale' || orderType === 'venta') {
+    } else */if (orderType === 'sales' &&
+        invoice.order.is_vitrine &&
+        this.vitrineSalesDetails.length > 0) {
       // TABLA PARA VENTAS (SALES)
-      const { data: salesData, error } = await this.supabase
-        .from('sales')
-        .select('*')
-        .eq('id_order', invoice.order.id_order);
+      doc.setFont('helvetica', 'bold');
+      doc.text('DETALLE DE VENTAS', 10, y);
+      y += 8;
 
-      if (!error && salesData && salesData.length > 0) {
-        doc.setFont('helvetica', 'bold');
-        doc.text('DETALLE DE VENTAS', 10, y);
-        y += 8;
+      const headers = ['Producto', 'Cant', 'Unit', 'Subtotal'];
+      const widths = [100, 20, 30, 30];
+      let x = 10;
 
-        const tableHeaders = ['Detalle', 'Cant', 'Unit', 'Subtotal'];
-        const colWidths = [100, 20, 30, 30];
-        const startX = 10;
+      doc.setFontSize(10);
+      headers.forEach((h, i) => {
+        doc.text(h, x, y);
+        x += widths[i];
+      });
 
-        doc.setFontSize(10);
-        let currentX = startX;
-        tableHeaders.forEach((header, i) => {
-          doc.text(header, currentX, y);
-          currentX += colWidths[i];
-        });
-
-        y += 2;
-        doc.line(startX, y, 190, y);
-        y += 6;
-
-        doc.setFont('helvetica', 'normal');
-
-        for (const sale of salesData) {
-          let detalle = '';
-
-          if (sale.item_type === 'material') {
-            const parts: string[] = [];
-            if (sale.category) parts.push(sale.category);
-            if (sale.material_type) parts.push(sale.material_type);
-            if (sale.caliber) parts.push(sale.caliber);
-            if (sale.color) parts.push(sale.color);
-            detalle = parts.join(' / ') || 'Material';
-          } else if (sale.item_type === 'product') {
-            const { data: productData } = await this.supabase
-              .from('products')
-              .select('name')
-              .eq('id', sale.product_id)
-              .single();
-            detalle = productData?.name || `Producto`;
-          }
-
-          currentX = startX;
-          doc.text(detalle, currentX, y, { maxWidth: colWidths[0] - 5 });
-          currentX += colWidths[0];
-
-          doc.text(String(sale.quantity || 0), currentX, y);
-          currentX += colWidths[1];
-
-          doc.text(`$${Number(sale.unit_price || 0).toFixed(2)}`, currentX, y);
-          currentX += colWidths[2];
-
-          const lineTotal = Number(sale.line_total || 0);
-          doc.text(`$${lineTotal.toFixed(2)}`, currentX, y);
-
-          y += 8;
-        }
-
-        y += 2;
-        doc.line(startX, y, 190, y);
-        y += 5;
-      } else {
-        doc.text('No hay detalles de venta disponibles', 10, y);
-        y += 10;
-      }
+      y += 2;
+      doc.line(10, y, 190, y);
+      y += 6;
 
       doc.setFont('helvetica', 'normal');
-    }*/
+
+      for (const item of this.vitrineSalesDetails) {
+        x = 10;
+
+        doc.text(item.product_name, x, y, { maxWidth: widths[0] - 5 });
+        x += widths[0];
+
+        doc.text(String(item.quantity), x, y);
+        x += widths[1];
+
+        doc.text(this.formatCOP(item.unit_price), x, y);
+        x += widths[2];
+
+        doc.text(this.formatCOP(item.line_total), x, y);
+
+        y += 8;
+      }
+
+      y += 4;
+    }
     // Resumen financiero
     let currentY = y;
 
@@ -1568,12 +1545,12 @@ export class InvoiceComponent implements OnInit {
     doc.setFont('helvetica', 'bold');
 
     doc.text('Subtotal:', summaryX, currentY);
-    doc.text(`$${subtotal.toFixed(2)}`, valueX, currentY, { align: 'left' });
+    doc.text(`$${this.formatCOP(subtotal)}`, valueX, currentY, { align: 'left' });
     currentY += 7;
 
     if (invoice.include_iva) {
       doc.text(this.ivaLabel() + ':', summaryX, currentY);
-      doc.text(`$${iva.toFixed(2)}`, valueX, currentY, { align: 'left' });
+      doc.text(`$${this.formatCOP(iva)}`, valueX, currentY, { align: 'left' });
       currentY += 7;
     }
 
@@ -1593,12 +1570,12 @@ export class InvoiceComponent implements OnInit {
 
     doc.setFontSize(14);
     doc.text('Total:', summaryX, currentY);
-    doc.text(`$${total.toFixed(2)}`, valueX, currentY, { align: 'left' });
+    doc.text(`$${this.formatCOP(total)}`, valueX, currentY, { align: 'left' });
     currentY += 10;
 
     doc.setFont('helvetica', 'bold');
     doc.text('Falta por Pagar:', summaryX, currentY);
-    doc.text(`$${remainingBalance.toFixed(2)}`, valueX + 15, currentY, {
+    doc.text(`$${this.formatCOP(remainingBalance)}`, valueX + 15, currentY, {
       align: 'left',
     });
 
@@ -2830,7 +2807,13 @@ export class InvoiceComponent implements OnInit {
       return;
     }
 
-    this.vitrineSalesDetails = data || [];
+    this.vitrineSalesDetails = (data ?? []).map((item: any) => ({
+      product_id: item.product_id,
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      line_total: item.line_total,
+      product_name: item.products?.name ?? 'Producto',
+    }));
   }
 
   async loadOrders(): Promise<void> {
