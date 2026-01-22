@@ -899,7 +899,7 @@
         <h4 class="font-semibold">Abonos:</h4>
         <ul>
           <li *ngFor="let payment of selectedInvoiceDetails[0].order.payments">
-            ${{ payment.amount }} -
+            ${{ payment.amount | number: "1.2-2"}} -
             {{
               payment.payment_method === "cash"
                 ? "Efectivo"
