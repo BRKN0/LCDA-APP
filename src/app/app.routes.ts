@@ -35,14 +35,14 @@ export const routes: Routes = [
   },
   {
     path: 'inventory',
-    data: { roles: ['admin'] },
+    data: { roles: ['admin', 'scheduler'] },
     children: [
       {
         path: 'materials',
         component: InventoryComponent,
         canMatch: [roleGuard],
       },
-      { path: 'product', component: ProductComponent },
+      { path: 'product', canMatch: [roleGuard], component: ProductComponent },
     ],
   },
   {
