@@ -689,7 +689,7 @@
           </div>
           <div class="flex justify-between" *ngIf="selectedOrderDetails[0].iva">
             <p><strong>IVA</strong></p>
-            <p>{{ selectedOrderDetails[0].iva }}</p>
+            <p>{{ selectedOrderDetails[0].iva | number: "1.2-2"}}</p>
           </div>
           <div
             *ngIf="selectedOrderDetails[0]?.extra_charges?.length"

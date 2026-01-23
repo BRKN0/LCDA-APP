@@ -65,12 +65,12 @@
     </div>
 
     <div class="flex space-x-2">
-      <button class="btn-clear" (click)="clearFilters()">Limpiar</button>
       <div *ngIf="userRole === 'admin'">
         <button class="btn-primary" (click)="toggleDailySummary()">
           Resumen contable
         </button>
       </div>
+      <button class="btn-clear" (click)="clearFilters()">Limpiar</button>
     </div>
   </div>
 
@@ -122,7 +122,7 @@
     </details>
   </div>
 
-  <div class="flex justify-center mt-2">
+  <div class="flex justify-center mt-2 gap-4">
     <div class="w-full max-w-md relative">
       <input
         type="text"
@@ -131,6 +131,20 @@
         (input)="updateFilteredInvoices()"
         class="w-full py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
       />
+    </div>
+    <div class="relative w-full max-w-md">
+      <input
+        type="text"
+        placeholder="Buscar pedido por número..."
+        [(ngModel)]="searchQuery"
+        class="w-full py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
+      />
+      <button
+        class="absolute right-0 top-1/2 transform -translate-y-1/2 bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-700 w-auto"
+        (click)="onSearch()"
+      >
+        Buscar
+      </button>
     </div>
   </div>
 
@@ -932,47 +946,45 @@
         </ul>
       </div>
 
-      <div class="mt-4">
-        <ng-container *ngIf="canManagePayments">
-          <h4 class="font-semibold">Añadir Abono:</h4>
-          <div class="mb-4">
-            <label class="block text-gray-700">Monto del abono</label>
-            <input
-              type="number"
-              placeholder="Monto del abono"
-              [(ngModel)]="newPaymentAmount"
-              name="newPaymentAmount"
-              class="form-input w-full mt-1"
-            />
-          </div>
-          <div class="mb-4">
-            <label class="block text-gray-700">Método de pago</label>
-            <select
-              [(ngModel)]="newPaymentMethod"
-              name="newPaymentMethod"
-              class="form-select w-full mt-1"
-            >
-              <option value="" disabled selected>Seleccione un método</option>
-              <option value="cash">Efectivo</option>
-              <option value="nequi">Nequi</option>
-              <option value="bancolombia">Bancolombia</option>
-              <option value="Davivienda">Davivienda</option>
-              <option value="other">Otro</option>
-            </select>
-          </div>
-          <button
-            class="text-xs bg-indigo-600 text-white px-4 py-1.5 rounded-lg hover:bg-indigo-700 shadow-sm transition-all"
-            (click)="
-              addPayment(
-                selectedInvoiceDetails[0].order,
-                newPaymentAmount,
-                newPaymentMethod
-              )
-            "
+    <div class="mt-4">
+        <h4 class="font-semibold">Añadir Abono:</h4>
+        <div class="mb-4">
+          <label class="block text-gray-700">Monto del abono</label>
+          <input
+            type="number"
+            placeholder="Monto del abono"
+            [(ngModel)]="newPaymentAmount"
+            name="newPaymentAmount"
+            class="form-input w-full mt-1"
+          />
+        </div>
+        <div class="mb-4">
+          <label class="block text-gray-700">Método de pago</label>
+          <select
+            [(ngModel)]="newPaymentMethod"
+            name="newPaymentMethod"
+            class="form-select w-full mt-1"
           >
-            Añadir Abono
-          </button>
-        </ng-container>
+            <option value="" disabled selected>Seleccione un método</option>
+            <option value="cash">Efectivo</option>
+            <option value="nequi">Nequi</option>
+            <option value="bancolombia">Bancolombia</option>
+            <option value="Davivienda">Davivienda</option>
+            <option value="other">Otro</option>
+          </select>
+        </div>
+        <button
+          class="text-xs bg-indigo-600 text-white px-4 py-1.5 rounded-lg hover:bg-indigo-700 shadow-sm transition-all"
+          (click)="
+            addPayment(
+              selectedInvoiceDetails[0].order,
+              newPaymentAmount,
+              newPaymentMethod
+            )
+          "
+        >
+          Añadir Abono
+        </button>
 
         <div class="flex justify-end mt-4">
           <button

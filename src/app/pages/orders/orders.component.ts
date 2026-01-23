@@ -1877,6 +1877,8 @@ export class OrdersComponent implements OnInit, OnDestroy {
 
         // scheduler is set only on order creation
         delete (this.newOrder as any).scheduler;
+        delete (this.newOrder as any).created_at;
+        delete (this.newOrder as any).created_time;
 
         const { error } = await this.supabase
           .from('orders')
