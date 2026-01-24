@@ -1615,6 +1615,11 @@ export class OrdersComponent implements OnInit, OnDestroy {
     }
   }
 
+  closeAddOrderModal(): void {
+    this.isEditing = false;
+    this.showModal = false;
+  }
+
   toggleVitrineFilter(event: Event) {
     const checked = (event.target as HTMLInputElement).checked;
 
@@ -1874,7 +1879,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
     }
 
 
-      const paymentTerm = 30;
+      const paymentTerm = 5;
       const currentDate = new Date();
       const dueDate = new Date(currentDate);
       dueDate.setDate(dueDate.getDate() + paymentTerm);

@@ -194,6 +194,7 @@ export class InvoiceComponent implements OnInit {
     rangeDebt: 0,
     pendingDebt: 0,
     invoiceCount: 0,
+    totalIVA: 0
   };
 
   // permission variables
@@ -2553,6 +2554,7 @@ export class InvoiceComponent implements OnInit {
 
     let totalScheduled = 0;
     let rangeDebt = 0;
+    let totalIVA = 0;
 
     invoices.forEach((invoice) => {
       const total = invoice.order.total || 0;
@@ -2564,20 +2566,24 @@ export class InvoiceComponent implements OnInit {
       if (pending > 0) {
         rangeDebt += pending;
       }
+
+      if (invoice.order.requires_e_invoice) {
+        totalIVA += invoice.order.iva || 0;
+      }
     });
 
     this.dailySummary = {
       totalScheduled,
-      totalPaid: this.calculateMoneyReceived(),
+      totalPaid: this.calculateMoneyReceived(invoices),
       rangeDebt,
       pendingDebt: this.calculateGlobalPendingDebt(),
+      totalIVA,
       invoiceCount: invoices.length,
     };
   }
 
-  calculateMoneyReceived(): number {
+  calculateMoneyReceived(invoicesToUse: any[]): number {
     const hasPaymentRange = this.paymentDateStart || this.paymentDateEnd;
-    const hasCreationRange = this.startDate || this.endDate;
 
     const start =
       hasPaymentRange && this.paymentDateStart
@@ -2589,19 +2595,12 @@ export class InvoiceComponent implements OnInit {
         ? new Date(this.paymentDateEnd + 'T23:59:59')
         : null;
 
-    const invoicesToUse = hasPaymentRange
-      ? this.invoices
-      : hasCreationRange
-        ? this.filteredInvoicesList
-        : this.invoices;
-
     let total = 0;
 
     invoicesToUse.forEach((invoice) => {
-      invoice.order.payments?.forEach((payment) => {
+      invoice.order.payments?.forEach((payment: Payment) => {
         if (!payment.payment_date) return;
 
-        // Filtro por método
         if (
           this.selectedPaymentMethodFilter !== 'all' &&
           payment.payment_method !== this.selectedPaymentMethodFilter
@@ -2609,12 +2608,11 @@ export class InvoiceComponent implements OnInit {
           return;
         }
 
-        // Filtro por fecha de pago (solo si está activo)
         if (hasPaymentRange) {
           const paymentDate = new Date(payment.payment_date);
-
           const inRange =
-            (!start || paymentDate >= start) && (!end || paymentDate <= end);
+            (!start || paymentDate >= start) &&
+            (!end || paymentDate <= end);
 
           if (!inRange) return;
         }

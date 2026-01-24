@@ -67,19 +67,18 @@ export class ProductComponent implements OnInit, OnDestroy {
   ) {}
 
   async ngOnInit(): Promise<void> {
-    this.intervalId = setInterval(() => {
-      this.nextSlide();
-    }, 5000); // Cambia cada 5 segundos (5000 ms)
     this.supabase.authChanges((_, session) => {
       if (session) {
         this.zone.run(() => {
-          this.userId = session.user.id;
-          this.roleService.fetchAndSetUserRole(this.userId);
-          this.roleService.role$.subscribe((role) => {
-            this.userRole = role;
-          });
-          this.getProducts();
-          this.getCategories();
+          if (this.userId !== session.user.id) {
+            this.userId = session.user.id;
+            this.roleService.fetchAndSetUserRole(this.userId);
+            this.roleService.role$.subscribe((role) => {
+              this.userRole = role;
+            });
+            this.getProducts();
+            this.getCategories();
+          }
         });
       }
     });
@@ -381,7 +380,6 @@ export class ProductComponent implements OnInit, OnDestroy {
   closeModal(): void {
     this.showModal = false;
     this.isEditing = false;
-    this.selectedProduct = {};
   }
 
   clearFilters(): void {

@@ -1000,21 +1000,21 @@
             class="btn-success justify-between py-2 px-4 mr-2 mt-2 rounded"
             (click)="generatePdf()"
           >
-            Descargar Recibo de venta
+            Recibo de venta PDF
           </button>
           <button
             type="button"
             class="btn-success justify-between py-2 px-4 mr-2 mt-2 rounded"
             (click)="downloadQuotePDF()"
           >
-            Descargar Cuenta de Cobro
+            Cuenta de Cobro PDF
           </button>
           <button
             type="button"
             class="btn-success justify-between py-2 px-4 mr-2 mt-2 rounded"
             (click)="downloadDeliveryNotePDF()"
           >
-            Descargar Remisión
+            Remisión PDF
           </button>
         </div>
       </div>
@@ -1113,6 +1113,13 @@
         <p class="text-sm text-gray-600">Deuda pendiente acumulada</p>
         <p class="text-xl font-bold text-red-700">
           ${{ dailySummary.pendingDebt | number: "1.2-2" }}
+        </p>
+      </div>
+
+      <div class="p-4 border rounded-lg bg-indigo-50">
+        <p class="text-sm text-gray-600">IVA generado</p>
+        <p class="text-xl font-bold text-indigo-700">
+          ${{ dailySummary.totalIVA | number: "1.2-2" }}
         </p>
       </div>
     </div>
