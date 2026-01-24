@@ -622,9 +622,6 @@
               <strong>Notas:</strong> {{ selectedOrderDetails[0].notes }}
             </p>
             <div *ngIf="selectedOrderDetails[0]?.order_type !== 'sales'"></div>
-            <p *ngIf="selectedOrderDetails[0].iva">
-              <strong>IVA:</strong> {{ selectedOrderDetails[0].iva }}
-            </p>
           </li>
         </ul>
       </div>
@@ -687,10 +684,6 @@
             <p><strong>Subtotal</strong></p>
             <p>{{ selectedOrderDetails[0].subtotal  | number:'1.2-2'}}</p>
           </div>
-          <div class="flex justify-between" *ngIf="selectedOrderDetails[0].iva">
-            <p><strong>IVA</strong></p>
-            <p>{{ selectedOrderDetails[0].iva | number: "1.2-2"}}</p>
-          </div>
           <div
             *ngIf="selectedOrderDetails[0]?.extra_charges?.length"
             class="flex flex-col gap-1 my-2"
@@ -703,6 +696,10 @@
               <span>{{ charge.description }}</span>
               <span>${{ charge.amount  | number:'1.2-2'}}</span>
             </div>
+          </div>
+          <div class="flex justify-between" *ngIf="selectedOrderDetails[0].iva && selectedOrderDetails[0].include_iva">
+            <p><strong>IVA</strong></p>
+            <p>{{ selectedOrderDetails[0].iva | number: "1.2-2"}}</p>
           </div>
           <div class="flex justify-between">
             <p><strong>Total</strong></p>

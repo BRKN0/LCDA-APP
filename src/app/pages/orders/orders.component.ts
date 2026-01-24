@@ -1122,6 +1122,19 @@ export class OrdersComponent implements OnInit, OnDestroy {
     return true;
   }
 
+  private handleSupabaseError(context: string, error: any): false {
+    console.error(`[VITRINE ERROR] ${context}`, error);
+
+    const message =
+      error?.message ||
+      error?.details ||
+      error?.hint ||
+      'Error desconocido en base de datos';
+
+    alert(`${context}\n\n${message}`);
+    return false;
+  }
+
   async saveVitrineSales(orderId: string): Promise<boolean> {
     let hasStockIssues = false;
     let totalPendingQty = 0;
@@ -1134,8 +1147,10 @@ export class OrdersComponent implements OnInit, OnDestroy {
         .single();
 
       if (prodErr || !prodData) {
-        alert('Unable to read product stock.');
-        return false;
+        return this.handleSupabaseError(
+          'No se pudo leer el stock del producto',
+          prodErr
+        );
       }
 
       const currentStock = Number(prodData.stock);
@@ -1155,10 +1170,17 @@ export class OrdersComponent implements OnInit, OnDestroy {
 
       const newStock = Math.max(currentStock - fulfilledQty, 0);
 
-      await this.supabase
+      const { error: updateErr } = await this.supabase
         .from('products')
         .update({ stock: newStock })
         .eq('id', item.product_id);
+
+      if (updateErr) {
+        return this.handleSupabaseError(
+          'No se pudo actualizar el stock del producto',
+          updateErr
+        );
+      }
 
       const saleRow = {
         id_order: orderId,
@@ -1178,7 +1200,10 @@ export class OrdersComponent implements OnInit, OnDestroy {
         .insert([saleRow]);
 
       if (insertErr) {
-        return false;
+        return this.handleSupabaseError(
+          'No se pudo registrar la venta en vitrina',
+          insertErr
+        );
       }
     }
 
@@ -1189,13 +1214,19 @@ export class OrdersComponent implements OnInit, OnDestroy {
         : 'partially_fulfilled'
       : 'fulfilled';
 
-    await this.supabase
+    const { error: orderErr } = await this.supabase
       .from('orders')
       .update({
-        stock_status: stockStatus,
         pending_quantity: totalPendingQty,
       })
       .eq('id_order', orderId);
+
+    if (orderErr) {
+      return this.handleSupabaseError(
+        'No se pudo actualizar el estado de stock del pedido',
+        orderErr
+      );
+    }
     
     // show warning if there is pending stock
     if (hasStockIssues && totalPendingQty > 0) {
@@ -1790,20 +1821,13 @@ export class OrdersComponent implements OnInit, OnDestroy {
         baseTotal = parseFloat(newOrderForm.unitary_value as string) || 0;
       }
 
-      const extras =
-        newOrderForm.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
+      this.newOrder.base_total = baseTotal;
+      this.newOrder.unitary_value = baseTotal;
 
-      let total = baseTotal + extras;
+      this.updateOrderTotalWithExtras();
 
-      if (newOrderForm.include_iva) {
-        const ivaAmount = total * (this.variables.iva / 100);
-        total = total + ivaAmount;
-      }
-      
-      if (newOrderForm.include_iva) {
-        const ivaAmount = total * (this.variables.iva / 100);
-        total = total + ivaAmount;
-      }
+      const total = Number(this.newOrder.total) || 0;
+
 
       // object construction
       // set code to 0 initially, db ignores it on creation, please do NOT remove or you will break everything AGAIN
@@ -1883,6 +1907,13 @@ export class OrdersComponent implements OnInit, OnDestroy {
         const { error } = await this.supabase
           .from('orders')
           .update([this.newOrder])
+          .eq('id_order', this.newOrder.id_order);
+
+        await this.supabase
+          .from('invoices')
+          .update({
+            include_iva: this.newOrder.include_iva ?? false
+          })
           .eq('id_order', this.newOrder.id_order);
 
         // vitrine edit handling: reset and reinsert sales
@@ -2011,7 +2042,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
           const ok = await this.saveVitrineSales(newOrderId);
 
           if (!ok) {
-            alert('Error while saving vitrine products.');
+            console.warn('Fallo en saveVitrineSales, revisar logs.');
             return;
           }
         }

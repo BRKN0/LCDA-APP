@@ -407,7 +407,8 @@ export class InvoiceComponent implements OnInit {
         `
         *,
         orders(*,
-          clients(*)
+          clients(*),
+          payments(*)
         )
       `,
       )
@@ -421,20 +422,21 @@ export class InvoiceComponent implements OnInit {
 
     if (!data || data.length === 0) {
       alert('Factura no encontrada.');
+      this.searchQuery = '';
+      this.updatePaginatedInvoices();
       return;
     }
 
-    this.invoice = {
-      ...data[0],
-      include_iva: data[0].include_iva ?? false,
-      due_date: data[0].due_date,
+    this.filteredInvoicesList = (data || []).map((inv: any) => ({
+      ...inv,
       order: {
-        ...data[0].orders,
-        client: data[0].orders?.clients || null,
+        ...inv.orders,
+        client: inv.orders?.clients || null,
+        payments: inv.orders?.payments || [],
       },
-    } as Invoice;
-
-    this.selectInvoice(this.invoice);
+    }));
+    this.currentPage = 1;
+    this.updatePaginatedInvoices();
   }
 
   async getInvoices() {
@@ -559,41 +561,12 @@ export class InvoiceComponent implements OnInit {
           (this.showFEDone && invoice.e_invoice_done);
       }
 
-      let matchesPaymentMethod = true;
+      let matchesPaymentFilters = true;
 
-      if (this.selectedPaymentMethodFilter !== 'all') {
-        const hasRange = this.startDate || this.endDate;
+      const hasPaymentMethodFilter = this.selectedPaymentMethodFilter !== 'all';
+      const hasPaymentDateFilter = this.paymentDateStart || this.paymentDateEnd;
 
-        const start =
-          hasRange && this.startDate
-            ? new Date(this.startDate + 'T00:00:00')
-            : null;
-
-        const end =
-          hasRange && this.endDate
-            ? new Date(this.endDate + 'T23:59:59')
-            : null;
-
-        const payments = invoice.order?.payments || [];
-
-        matchesPaymentMethod = payments.some((p) => {
-          if (!p.payment_date) return false;
-
-          const paymentDate = new Date(p.payment_date);
-
-          const inRange =
-            !hasRange ||
-            ((!start || paymentDate >= start) && (!end || paymentDate <= end));
-
-          return (
-            inRange && p.payment_method === this.selectedPaymentMethodFilter
-          );
-        });
-      }
-
-      let matchesPaymentDate = true;
-
-      if (this.paymentDateStart || this.paymentDateEnd) {
+      if (hasPaymentMethodFilter || hasPaymentDateFilter) {
         const paymentStart = this.paymentDateStart
           ? new Date(this.paymentDateStart + 'T00:00:00')
           : null;
@@ -604,15 +577,21 @@ export class InvoiceComponent implements OnInit {
 
         const payments = invoice.order?.payments || [];
 
-        matchesPaymentDate = payments.some((p) => {
+        matchesPaymentFilters = payments.some((p) => {
           if (!p.payment_date) return false;
 
           const paymentDate = new Date(p.payment_date);
 
-          return (
-            (!paymentStart || paymentDate >= paymentStart) &&
-            (!paymentEnd || paymentDate <= paymentEnd)
-          );
+          const matchesDate =
+            !hasPaymentDateFilter ||
+            ((!paymentStart || paymentDate >= paymentStart) &&
+              (!paymentEnd || paymentDate <= paymentEnd));
+
+          const matchesMethod =
+            !hasPaymentMethodFilter ||
+            p.payment_method === this.selectedPaymentMethodFilter;
+
+          return matchesDate && matchesMethod;
         });
       }
 
@@ -624,8 +603,7 @@ export class InvoiceComponent implements OnInit {
         matchesNameSearch &&
         matchesRequiresFE &&
         matchesFEStatus &&
-        matchesPaymentMethod &&
-        matchesPaymentDate
+        matchesPaymentFilters
       );
     });
 
@@ -2360,6 +2338,9 @@ export class InvoiceComponent implements OnInit {
   }
 
   async saveInvoice(): Promise<void> {
+
+    this.isSaving = true;
+
     if (!this.selectedInvoice) {
       console.error('No se ha seleccionado ninguna factura.');
       alert('No se ha seleccionado ninguna factura.');
@@ -2562,6 +2543,8 @@ export class InvoiceComponent implements OnInit {
       this.showNotification(
         'Ocurrió un error inesperado al guardar la factura.',
       );
+    }finally {
+      this.isSaving = false;
     }
   }
 

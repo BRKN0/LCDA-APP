@@ -843,7 +843,7 @@ export class ClientsComponent implements OnInit {
       return false;
     }
 
-     filteredOrders.sort((a, b) => {
+    filteredOrders.sort((a, b) => {
       const codeA = a.code || 0;
       const codeB = b.code || 0;
       return codeA - codeB;
@@ -935,62 +935,73 @@ export class ClientsComponent implements OnInit {
       ];
     });
 
+    const downloadDate = this.formatDateWithoutTimezone(new Date().toISOString());
+    const pageWidth = doc.internal.pageSize.getWidth();
 
     const tableResult = (doc as any).autoTable({
-    head: [['#', 'Fecha', 'Detalles', 'Total', 'Deuda', 'Estado', 'Abonos']],
-    body: orders,
-    startY: summaryY + 10,
-    didDrawPage: (data: any) => {
-      // Se agrega el encabezado en cada página después de la primera
-      if (data.pageNumber > 1) {
+      head: [['#', 'Fecha', 'Detalles', 'Total', 'Deuda', 'Estado', 'Abonos']],
+      body: orders,
+      startY: summaryY + 10,
+      didDrawPage: (data: any) => {
         doc.setFontSize(16);
         doc.setFont('helvetica', 'bold');
         doc.text(`Extracto de Cliente: ${clientName}`, 10, 10);
-      }
-    },
-    margin: { top: 20, right: 10, bottom: 10, left: 10 },
-    didDrawCell: (data: any) => {
-    },
-    styles: {
-      font: 'helvetica',
-      fontSize: 9,
-      cellPadding: 3,
-    },
-    headStyles: {
-      fillColor: [220, 53, 69],
-      textColor: [255, 255, 255],
-      fontStyle: 'bold',
-    },
-    bodyStyles: {
-      textColor: [0, 0, 0],
-    },
-    alternateRowStyles: {
-      fillColor: [240, 240, 240],
-    },
-  });
 
-  // ============ RESUMEN EN LA ÚLTIMA PÁGINA ============
-  const finalY =
-    typeof tableResult.finalY === 'number'
-      ? tableResult.finalY
-      : (doc as any).lastAutoTable?.finalY || 40;
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.text(
+          `Fecha: ${downloadDate}`,
+          pageWidth - 10,
+          10,
+          { align: 'right' }
+        );
+      },
+      margin: { top: 25, right: 10, bottom: 25, left: 10 },
+      didDrawCell: (data: any) => {
+      },
+      styles: {
+        font: 'helvetica',
+        fontSize: 9,
+        cellPadding: 3,
+      },
+      headStyles: {
+        fillColor: [220, 53, 69],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+      },
+      bodyStyles: {
+        textColor: [0, 0, 0],
+      },
+      alternateRowStyles: {
+        fillColor: [240, 240, 240],
+      },
+    });
 
-  let lastPageSummaryY = finalY + 10;
+    // ============ RESUMEN EN LA ÚLTIMA PÁGINA ============
+    const finalY =
+      typeof tableResult.finalY === 'number'
+        ? tableResult.finalY
+        : (doc as any).lastAutoTable?.finalY || 40;
 
-  // Se verifica si hay espacio en la página actual, si no, se agrega una nueva página
-  if (lastPageSummaryY > 250) {
-    doc.addPage();
+    let lastPageSummaryY = finalY + 10;
 
-    // Encabezado en la última página si fue agregada
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.text(`Extracto de Cliente: ${clientName}`, 10, 10);
-    lastPageSummaryY = 25;
+    const PAGE_HEIGHT = doc.internal.pageSize.getHeight();
+    const PRINT_SAFE_BOTTOM = PAGE_HEIGHT - 25;
+
+    // Se verifica si hay espacio en la página actual, si no, se agrega una nueva página
+    if (lastPageSummaryY > PRINT_SAFE_BOTTOM) {
+      doc.addPage();
+
+      // Encabezado en la última página si fue agregada
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Extracto de Cliente: ${clientName}`, 10, 10);
+      lastPageSummaryY = 25;
+    }
+
+    doc.save(`Extracto-${this.selectedClient.name}.pdf`);
+    return true;
   }
-
-  doc.save(`Extracto-${this.selectedClient.name}.pdf`);
-  return true;
-}
 
   formatCurrency(value: number): string {
     return value.toLocaleString('es-CO', {
