@@ -380,13 +380,18 @@ export class OrdersComponent implements OnInit, OnDestroy {
     // prevent overlapping calls
     if (this.loading && this.orders.length > 0) return;
     this.loading = true;
+
+    if (!this.clientNameMap.size) {
+      await this.getClients();
+    }
+
     // SELECT ONLY THE COLUMNS NEEDED FOR THE TABLE
     let query = this.supabase.from('orders').select(`
         id_order, code, order_type, name, scheduler,
         order_payment_status, order_completion_status, order_confirmed_status, order_delivery_status,
         created_at, created_time, delivery_date, is_immediate,
         total, client_type, secondary_process, secondary_completed, is_vitrine,
-        payments(amount)
+        payments(amount), id_client
       `);
 
     if (this.userRole !== 'admin' && this.userRole !== 'scheduler') {
@@ -414,13 +419,17 @@ export class OrdersComponent implements OnInit, OnDestroy {
       this.loading = false;
       return;
     }
-    this.orders = data as Orders[];
+    this.orders = (data || []).map(o => ({
+      ...o,
+      _client_name: this.clientNameMap.get(o.id_client) || '—'
+    })) as any;
     this.orders.sort((a, b) => b.code - a.code);
     this.updateFilteredOrders();
     this.loading = false;
     this.isOrdersLoaded = true;
   }
 
+  private clientNameMap = new Map<string, string>();
   async getClients(): Promise<void> {
     const { data, error } = await this.supabase.from('clients').select('*');
     if (error) {
@@ -429,6 +438,16 @@ export class OrdersComponent implements OnInit, OnDestroy {
     }
     this.clients = data;
     this.filteredClients = [...this.clients];
+    this.clientNameMap.clear();
+    for (const c of this.clients) {
+      this.clientNameMap.set(c.id_client, c.name);
+    }
+  }
+  getClientName(order: Orders): string {
+    return (
+      this.clientNameMap.get(order.id_client) ||
+      '—'
+    );
   }
 
   async getMaterials(): Promise<void> {
@@ -830,7 +849,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
 
       const matchesNameSearch =
         !this.searchByNameQuery ||
-        order.name
+        this.getClientName(order)
           .toLowerCase()
           .includes(this.searchByNameQuery.toLowerCase().trim());
 
@@ -1908,6 +1927,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
         delete (this.newOrder as any).scheduler;
         delete (this.newOrder as any).created_at;
         delete (this.newOrder as any).created_time;
+        delete (this.newOrder as any).name;
 
         const { error } = await this.supabase
           .from('orders')

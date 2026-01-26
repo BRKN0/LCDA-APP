@@ -636,6 +636,7 @@ export class InvoiceComponent implements OnInit {
       const denom = 1 + (this.IVA_RATE || 0);
       subtotal = +(gross / denom).toFixed(2);
       iva = +(gross - subtotal).toFixed(2);
+      iva = Number(iva.toFixed(2));
       total = gross;
     } else {
       subtotal = +(order.total || 0).toFixed(2);
@@ -1095,15 +1096,14 @@ export class InvoiceComponent implements OnInit {
     const updates: Array<Promise<void>> = [];
 
     for (const inv of invoices) {
-      const remaining = this.getRemainingBalance(inv); // ya la tienes
+      const remaining = this.getRemainingBalance(inv);
       const newStatus: 'upToDate' | 'overdue' = this.isZeroish(remaining)
         ? 'upToDate'
         : 'overdue';
 
       if (inv.invoice_status === newStatus) {
-        // Aunque el estado no cambie, verificar notificaciones
         await this.checkPaymentDeadlineNotification(inv);
-        continue; // evita escrituras innecesarias
+        continue;
       }
 
       updates.push(

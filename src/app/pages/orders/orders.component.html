@@ -235,7 +235,7 @@
               Vitrina
             </span>
           </td>
-          <td>{{ order.name }}</td>
+          <td>{{ getClientName(order) }}</td>
           <td>
             {{ order.scheduler }}
           </td>
@@ -334,7 +334,7 @@
                 : "Desconocido"
             }}
           </td>
-          <td>{{ order.name }}</td>
+          <td>{{ getClientName(order) }}</td>
 
           <td
             [ngClass]="{
@@ -605,7 +605,7 @@
         <div class="text-right">
           <p>
             <strong>De:</strong>
-            {{ selectedOrderDetails[0].name }}
+            {{ getClientName(selectedOrderDetails[0]) }}
           </p>
         </div>
       </div>
