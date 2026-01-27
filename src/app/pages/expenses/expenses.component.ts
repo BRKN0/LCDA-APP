@@ -429,6 +429,17 @@ export class ExpensesComponent implements OnInit {
       return;
     }
 
+    if (this.categoryMode !== 'SUPPLIES' && this.isNewProviderMode) {
+      console.warn('isNewProviderMode estaba activo en una categoría incorrecta. Corrigiendo...');
+      this.isNewProviderMode = false;
+      this.newProviderData = {
+        company_name: '',
+        name: '',
+        document_number: '',
+        phone_number: '',
+      };
+    }
+
     // ===== VALIDACIONES ESPECÍFICAS POR TIPO =====
 
     // UTILITIES: Debe tener tipo de servicio
@@ -751,21 +762,27 @@ export class ExpensesComponent implements OnInit {
   }
 
   onThirdPartyInput(): void {
-    const value = this.normalizeText(this.selectedExpense.provider_name || '');
+    const value = this.selectedExpense.provider_name?.trim() || '';
 
-    if (!value || value.length < 2) {
-      this.thirdPartySuggestions = [];
+    if (!value) {
+      this.thirdPartySuggestions = this.getThirdParties().slice(0, 10);
       return;
     }
+
+    if (value.length < 2) {
+      this.thirdPartySuggestions = this.getThirdParties().slice(0, 10);
+      return;
+    }
+
+    const normalizedValue = this.normalizeText(value);
 
     this.thirdPartySuggestions = this.getThirdParties()
       .filter(name => {
         const nameNormalized = this.normalizeText(name);
-        return nameNormalized.includes(value);
+        return nameNormalized.includes(normalizedValue);
       })
       .slice(0, 10);
   }
-
 
   selectThirdParty(name: string): void {
     this.selectedExpense.provider_name = name;
@@ -1760,6 +1777,15 @@ setCategoryMode(mode: 'UTILITIES' | 'SUPPLIES' | 'OTHER'): void {
   this.showServiceTypeSuggestions = false;
   this.showProviderSuggestions = false;
   this.showCategorySuggestions = false;
+  this.thirdPartySuggestions = [];
+
+  this.isNewProviderMode = false;
+  this.newProviderData = {
+    company_name: '',
+    name: '',
+    document_number: '',
+    phone_number: '',
+  };
 
   if (mode === 'UTILITIES') {
     this.selectedExpense.category = 'UTILITIES';

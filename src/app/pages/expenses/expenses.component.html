@@ -687,9 +687,9 @@
               placeholder="Nombre de la persona o entidad"
               class="form-input w-full rounded-md text-sm"
               (input)="onThirdPartyInput()"
+              (focus)="onThirdPartyInput()"
               autocomplete="off"
             />
-
             <ul
               *ngIf="thirdPartySuggestions.length > 0"
               class="absolute z-[9999] w-full bg-white border rounded shadow max-h-40 overflow-y-auto mt-1"
