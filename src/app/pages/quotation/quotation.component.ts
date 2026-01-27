@@ -546,7 +546,9 @@ export class QuotationComponent implements OnInit {
     const items = q.items || [];
 
     const totals = this.calculateQuotationTotals(q, items);
-    const doc = new jsPDF();
+    const doc = new jsPDF({
+      compress: true
+    });
     const d = new Date(q.created_at || q.issue_date);
     const day = String(d.getDate()).padStart(2, '0');
     const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -564,7 +566,7 @@ export class QuotationComponent implements OnInit {
     doc.text(`Cotización N°: ${q.code || '-'}`, 10, 28);
 
     const logo = await this.loadImage('/Logo.png');
-    doc.addImage(logo, 'PNG', 150, 10, 35, 20);
+    doc.addImage(logo, 'PNG', 150, 10, 35, 20, undefined, 'FAST');
 
     doc.setFont('helvetica', 'bold');
     doc.text('LA CASA DEL ACRÍLICO', 120, 35);
