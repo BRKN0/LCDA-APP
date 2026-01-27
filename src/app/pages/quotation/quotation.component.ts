@@ -39,24 +39,24 @@ interface Material {
 
 interface Quotation {
   id_quotation: string;
-  consecutive: string;
+  code: string;
   title: string;
   id_client: string | null;
   walk_in: boolean;
   customer_label?: string | null;
   status: QuotationStatus;
-  issue_date: string;            // ISO date (YYYY-MM-DD)
-  currency: string;              // 'COP'
-  include_iva: boolean;          // si se debe aplicar IVA (19%) al total
+  issue_date: string; 
+  currency: string;  
+  include_iva: boolean;   
   global_discount_type: DiscountType;
-  global_discount_value: number; // valor o %
+  global_discount_value: number; 
   notes_public?: string | null;
   notes_private?: string | null;
   created_by?: string;
   created_at?: string;
   updated_at?: string;
-  client?: Client | null;        // JOIN
-  items?: QuotationItem[];       // JOIN
+  client?: Client | null; 
+  items?: QuotationItem[]; 
 }
 
 interface QuotationItem {
@@ -64,11 +64,11 @@ interface QuotationItem {
   id_quotation: string;
   line_number: number;
   id_material?: string | null;
-  description: string;        // visible al cliente
+  description: string;
   quantity: number;
-  unit_price?: number;          // 'und', 'm²', etc.
-  total_price: number;    // total línea SIN IVA
-  notes_admin?: string | null; // NO se imprime
+  unit_price?: number; 
+  total_price: number; 
+  notes_admin?: string | null; 
   metadata?: any;
   unit?: string;
 }
@@ -85,8 +85,8 @@ export class QuotationComponent implements OnInit {
   loading = true;
   quotations: Quotation[] = [];
   filteredQuotations: Quotation[] = [];
-  selectedQuotation: Quotation = this.newEmptyQuotation();          // para crear/editar en modal
-  selectedQuotationDetails: Quotation | null = null;    // para ver detalle/PDF
+  selectedQuotation: Quotation = this.newEmptyQuotation();
+  selectedQuotationDetails: Quotation | null = null;
   showModal = false;
   isEditing = false;
   showDrafts = true;
@@ -111,7 +111,7 @@ export class QuotationComponent implements OnInit {
   // datos auxiliares
   clients: Client[] = [];
   materialsCache: Material[] = [];
-  suggestions: Record<number, Material[]> = {}; // autocompletar por fila
+  suggestions: Record<number, Material[]> = {};
 
   newClient = {
     name: '',
@@ -161,26 +161,19 @@ export class QuotationComponent implements OnInit {
     }
 
     alert('Cliente añadido correctamente.');
-    // refrescar lista de clientes si la usas en selects
+  
     await this.getClients?.();
-
-    // cierra modal y limpia
     this.closeAddClientModal();
 
-    // devuelve PK del nuevo cliente
     return data.id_client;
   }
-
-
-  // IVA fijo (si usas variables globales, cámbialo aquí)
-  readonly IVA_RATE = 0.19;
 
   constructor(private readonly supabase: SupabaseService, private readonly zone: NgZone) {}
 
   private newEmptyQuotation(): Quotation {
     return {
       id_quotation: '',
-      consecutive: '',
+      code: '',
       title: '',
       id_client: null,
       walk_in: false,
@@ -230,8 +223,6 @@ export class QuotationComponent implements OnInit {
       client: q.clients ?? null,
       items: (q.quotation_items || []).sort((a: any, b: any) => a.line_number - b.line_number),
     })) as Quotation[];
-
-    // ordenar por consecutivo desc como en invoices si lo prefieres
   }
 
   async getClients(): Promise<void> {
@@ -241,7 +232,6 @@ export class QuotationComponent implements OnInit {
     this.filteredClients = [...this.clients];
   }
 
-  // buscador simple de clientes
   searchClients(): void {
     const q = (this.clientSearch || '').toLowerCase().trim();
     if (!q) {
@@ -265,7 +255,6 @@ export class QuotationComponent implements OnInit {
   }
 
   async getSomeMaterials(): Promise<void> {
-    // carga inicial para autocompletar (puedes paginar/limitar)
     const { data, error } = await this.supabase.from('materials').select('id_material, code, type, category, color, caliber').limit(50);
     if (error) { console.error(error); return; }
     this.materialsCache = data as Material[];
@@ -297,18 +286,14 @@ export class QuotationComponent implements OnInit {
     const text = (this.searchText || '').toLowerCase().trim();
 
     this.filteredQuotations = this.quotations.filter(q => {
-      // búsqueda por título, cliente o consecutivo
       const clientName  = (q.client?.company_name || q.client?.name || q.customer_label || '').toLowerCase();
       const title       = (q.title || '').toLowerCase();
-      const consecutive = (q.consecutive != null ? String(q.consecutive) : '').toLowerCase();
 
       const matchesSearch =
         !text ||
         clientName.includes(text) ||
-        title.includes(text) ||
-        consecutive.includes(text);
+        title.includes(text);
 
-      // aquí dejas tal cual tus filtros por fecha, estado, etc.
       const createdAt = q.created_at ? new Date(q.created_at) : new Date(q.issue_date);
       const matchesStartDate = this.startDate ? createdAt >= new Date(this.startDate) : true;
       const matchesEndDate   = this.endDate   ? createdAt <= new Date(this.endDate + 'T23:59:59') : true;
@@ -352,7 +337,7 @@ export class QuotationComponent implements OnInit {
     this.isEditing = false;
     this.showModal = true;
     this.suggestions = {};
-    this.addItem(); // al menos una fila
+    this.addItem();
   }
 
   editQuotation(q: Quotation): void {
@@ -378,7 +363,6 @@ export class QuotationComponent implements OnInit {
     }
 
     try {
-      // nombre del usuario (opcional)
       const userName = (await this.getUserName()) ?? 'Sistema';
 
       // 1) Encabezado
@@ -403,25 +387,24 @@ export class QuotationComponent implements OnInit {
         upsertPayload.created_at = new Date().toISOString();
       }
 
-      // IMPORTANTE: usar la PK real de quotations
       let quotationId = q.id_quotation;
 
       if (this.isEditing && quotationId) {
         const { error } = await this.supabase
           .from('quotations')
           .update(upsertPayload)
-          .eq('id_quotation', quotationId); // <-- columna real
+          .eq('id_quotation', quotationId);
         if (error) throw error;
       } else {
         const { data, error } = await this.supabase
           .from('quotations')
           .insert([upsertPayload])
-          .select('id_quotation') // <-- pedir la columna real
+          .select('id_quotation')
           .single();
         if (error) throw error;
 
-        quotationId = data.id_quotation; // <-- tomar la columna real
-        // sincronizar el estado local para futuros guardados
+        quotationId = data.id_quotation;
+
         this.selectedQuotation.id_quotation = quotationId;
       }
 
@@ -438,7 +421,7 @@ export class QuotationComponent implements OnInit {
           line_number: idx + 1,
           id_material: it.id_material ?? null,
           quantity: qty,
-          description: (it as any).description?.toString().trim() || '', // nombre en DB
+          description: (it as any).description?.toString().trim() || '',
           unit_price: up,
           total_price: total,
           notes_admin: (it as any).notes_admin ?? null,
@@ -465,12 +448,10 @@ export class QuotationComponent implements OnInit {
 
 
   async deleteQuotation(q: Quotation): Promise<void> {
-    if (!confirm(`¿Eliminar la cotización ${q.consecutive || q.title}?`)) return;
+    if (!confirm(`¿Eliminar la cotización ${q.code || q.title}?`)) return;
 
-    // borrar primero los items
     await this.supabase.from('quotation_items').delete().eq('id_quotation', q.id_quotation);
 
-    // borrar encabezado
     const { error } = await this.supabase.from('quotations').delete().eq('id_quotation', q.id_quotation);
     if (error) { console.error(error); alert('Error eliminando la cotización.'); return; }
 
@@ -515,8 +496,8 @@ export class QuotationComponent implements OnInit {
     if (!this.selectedQuotation?.items) return;
     const g = this.selectedQuotation.items[rowIndex];
     g.id_material = m.id_material;
-    g.description = m.type; // visible al cliente (editable)
-    if (!g.quantity) g.quantity = 1; // puedes mapear por material
+    g.description = m.type;
+    if (!g.quantity) g.quantity = 1;
     this.suggestions[rowIndex] = [];
   }
 
@@ -530,6 +511,16 @@ export class QuotationComponent implements OnInit {
     this.selectedQuotationDetails = q;
   }
 
+  private loadImage(url: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = (err) => reject(err);
+      img.src = url;
+    });
+  }
+
   async generateQuotationPdf(): Promise<void> {
     if (!this.selectedQuotationDetails) { alert('Selecciona una cotización.'); return; }
     const q = this.selectedQuotationDetails;
@@ -537,108 +528,200 @@ export class QuotationComponent implements OnInit {
 
     const totals = this.calculateQuotationTotals(q, items);
     const doc = new jsPDF();
-
-    // encabezado
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.text('La Casa del Acrílico', 10, 10);
-
-    doc.setTextColor(200);
-    doc.setFontSize(30);
-    doc.text('Cotización', 190, 10, { align: 'right' });
-    doc.setTextColor(0);
-
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Barrio Blas de Lezo Cl. 21A Mz. 11A - Lt. 12', 10, 30);
     const d = new Date(q.created_at || q.issue_date);
     const day = String(d.getDate()).padStart(2, '0');
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const year = d.getFullYear();
-    doc.text(`Fecha: ${day}-${month}-${year}`, 190, 30, { align: 'right' });
 
-    doc.text('Cartagena de Indias, Colombia', 10, 40);
-    doc.text(`Cotización N°: ${q.consecutive || '-'}`, 190, 40, { align: 'right' });
+    // encabezado
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('COTIZACIÓN', 10, 15);
+
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+
+    doc.text(`Fecha: ${day}-${month}-${year}`, 10, 22);
+    doc.text(`Cotización N°: ${q.code || '-'}`, 10, 28);
+
+    const logo = await this.loadImage('/Logo.png');
+    doc.addImage(logo, 'PNG', 150, 10, 35, 20);
+
+    doc.setFont('helvetica', 'bold');
+    doc.text('LA CASA DEL ACRÍLICO', 120, 35);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text('NIT 901479196-1', 120, 41);
+    doc.text('Barrio Blas de Lezo Cl. 21A Mz.11A Lt.12', 120, 46);
+    doc.text('Cartagena de Indias, Colombia', 120, 51);
+    doc.text('Tel: 300 494 7020', 120, 56);
+    doc.text('lacasadelacrilico21@gmail.com', 120, 61);
+
 
     // destinatario
-    doc.setFont('helvetica', 'bold');
-    doc.text('Cotizar a:', 10, 56);
-    doc.setFont('helvetica', 'normal');
-    let y = 64;
-    if (q.client) {
-      doc.text(`Nombre: ${q.client.name}`, 10, y); y += 6;
-      if (q.client.company_name) { doc.text(`Empresa: ${q.client.company_name}`, 10, y); y += 6; }
-      if (q.client.address) { doc.text(`Dirección: ${q.client.address}`, 10, y); y += 6; }
-      const city = [q.client.city, q.client.province].filter(Boolean).join(', ');
-      if (city) { doc.text(`Ciudad/Prov.: ${city}`, 10, y); y += 6; }
-      if (q.client.email) { doc.text(`E-mail: ${q.client.email}`, 10, y); y += 6; }
-      if (q.client.cellphone) { doc.text(`Teléfono: ${q.client.cellphone}`, 10, y); y += 6; }
-    } else {
-      doc.text(q.customer_label || 'Cliente Mostrador', 10, y);
-      y += 6;
-    }
+    let y = 40;
 
-    y += 6;
     doc.setFont('helvetica', 'bold');
-    doc.text(`Título: ${q.title}`, 10, y);
-    y += 10;
+    doc.setFontSize(11);
+    doc.text('CLIENTE:', 10, y);
+
+    doc.setFont('helvetica', 'normal');
+    y += 6;
+
+    doc.text(q.client?.name || 'Cliente Mostrador', 10, y); y += 5;
+    if (q.client?.nit) { doc.text(`NIT: ${q.client.nit}`, 10, y); y += 5; }
+    if (q.client?.address) { doc.text(`Dirección: ${q.client.address}`, 10, y); y += 5; }
+    if (q.client?.cellphone) { doc.text(`Tel: ${q.client.cellphone}`, 10, y); y += 5; }
+    if (q.client?.email) { doc.text(`Email: ${q.client.email}`, 10, y); y += 5; }
+    doc.setDrawColor(180);
+    doc.line(10, y + 4, 200, y + 4);
+    y += 12;
 
     // Tabla items
     const rowH = 7;
-    const col = { qty: 10, detail: 30, cost: 170 };
+    const col = {
+      index: 10,
+      detail: 20,
+      qty: 125,
+      unit: 150,
+      total: 190
+    };
+    doc.setDrawColor(150);
+    doc.line(10, y, 200, y);
+
+    y += 6;
+
     doc.setFont('helvetica', 'bold');
-    doc.text('CANT', col.qty, y);
-    doc.text('DETALLE', col.detail, y);
-    doc.text('COSTO', col.cost, y, { align: 'right' });
+    doc.setFontSize(11);
+
+    doc.text('N°', col.index, y);
+    doc.text('DESCRIPCIÓN', col.detail, y);
+    doc.text('CANT', col.qty, y, { align: 'right' });
+    doc.text('V. UNIT', col.unit, y, { align: 'right' });
+    doc.text('TOTAL', col.total, y, { align: 'right' });
+
+    y += 2;
+    doc.line(10, y, 200, y);
 
     doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
     let cy = y + rowH;
 
-    for (const it of items) {
-      doc.text(String(it.quantity ?? 1), col.qty, cy);
-      const lines = doc.splitTextToSize(it.description || '-', 130);
+    items.forEach((it, i) => {
+      doc.text(String(i + 1), col.index, cy);
+
+      const lines = doc.splitTextToSize(it.description || '-', 95);
       doc.text(lines, col.detail, cy);
-      doc.text(this.money(it.total_price || 0, q.currency), col.cost, cy, { align: 'right' });
 
-      const linesHeight = (lines.length - 1) * 5.5;
-      cy = cy + rowH + linesHeight;
+      doc.text(String(it.quantity ?? 1), col.qty, cy, { align: 'right' });
 
-      if (cy > 260) { doc.addPage(); cy = 20; }
+      doc.text(
+        this.money(it.unit_price || 0, q.currency),
+        col.unit,
+        cy,
+        { align: 'right' }
+      );
+
+      doc.text(
+        this.money(it.total_price || 0, q.currency),
+        col.total,
+        cy,
+        { align: 'right' }
+      );
+
+      const height = (lines.length - 1) * 5;
+      cy += rowH + height;
+
+      // salto de página
+      if (cy > 260) {
+        doc.addPage();
+        cy = 20;
+      }
+    });
+
+    cy += 8;
+    const totalsLabelX = col.unit - 20;
+    const totalsValueX = col.total;
+
+    // Totales
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text('Subtotal:', totalsLabelX, cy);
+
+    doc.setFont('helvetica', 'normal');
+    doc.text(
+      this.money(totals.subTotal, q.currency),
+      totalsValueX,
+      cy,
+      { align: 'right' }
+    );
+
+    cy += rowH;
+
+    if (q.include_iva) {
+      doc.setFont('helvetica', 'bold');
+      doc.text('IVA (19%):', totalsLabelX, cy);
+
+      doc.setFont('helvetica', 'normal');
+      doc.text(
+        this.money(totals.ivaTotal, q.currency),
+        totalsValueX,
+        cy,
+        { align: 'right' }
+      );
+
+      cy += rowH;
     }
+
+    doc.setDrawColor(150);
+    doc.line(totalsLabelX, cy, totalsValueX, cy);
 
     cy += 6;
 
-    // Totales
-    const sumX = 120;
     doc.setFont('helvetica', 'bold');
-    doc.text('Subtotal:', sumX, cy);
-    doc.setFont('helvetica', 'normal');
-    doc.text(this.money(totals.subTotal, q.currency), sumX + 50, cy, { align: 'right' }); cy += rowH;
-
-    if (totals.globalDiscount > 0) {
-      doc.setFont('helvetica', 'bold'); doc.text('Descuento global:', sumX, cy);
-      doc.setFont('helvetica', 'normal'); doc.text(this.money(totals.globalDiscount, q.currency), sumX + 50, cy, { align: 'right' }); cy += rowH;
-    }
-
-    if (q.include_iva) {
-      doc.setFont('helvetica', 'bold'); doc.text('IVA:', sumX, cy);
-      doc.setFont('helvetica', 'normal'); doc.text(this.money(totals.ivaTotal, q.currency), sumX + 50, cy, { align: 'right' }); cy += rowH;
-    }
-
     doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Total:', sumX, cy);
-    doc.text(this.money(totals.grandTotal, q.currency), sumX + 50, cy, { align: 'right' }); cy += rowH + 8;
+    doc.text('TOTAL:', totalsLabelX, cy);
+
+    doc.text(
+      this.money(totals.grandTotal, q.currency),
+      totalsValueX,
+      cy,
+      { align: 'right' }
+    );
+
+    cy += rowH + 6;
+
+    // Notas
+    cy += 4;
+    doc.setDrawColor(180);
+    doc.line(10, cy, 200, cy);
+    cy += 8;
 
     if (q.notes_public) {
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
-      doc.text('Notas:', 10, cy); cy += 6;
-      doc.setFont('helvetica', 'normal');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text('OBSERVACIONES:', 10, cy);
+
+      cy += 6;
+        doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+
       const noteLines = doc.splitTextToSize(q.notes_public, 180);
       doc.text(noteLines, 10, cy);
+
+      cy += noteLines.length * 5;
     }
 
-    doc.save(`Cotizacion-${q.consecutive || 'sin_consecutivo'}.pdf`);
+
+    doc.save(`Cotizacion ${q.client?.name || q.code}.pdf`);
+  }
+
+  recalculateItem(it: any): void {
+    const qty = Number(it.quantity) || 0;
+    const unit = Number(it.unit_price) || 0;
+    it.total_price = +(qty * unit).toFixed(2);
   }
 
   calculateQuotationTotals(q: Quotation, items: QuotationItem[]) {
@@ -652,7 +735,7 @@ export class QuotationComponent implements OnInit {
     }
 
     const baseAfterDiscount = Math.max(0, +(subTotal - globalDiscount).toFixed(2));
-    const ivaTotal = q.include_iva ? +(baseAfterDiscount * this.IVA_RATE).toFixed(2) : 0;
+    const ivaTotal = q.include_iva ? +(baseAfterDiscount * 0.19).toFixed(2) : 0;
     const grandTotal = +(baseAfterDiscount + ivaTotal).toFixed(2);
 
     return { subTotal, globalDiscount, ivaTotal, grandTotal };
@@ -661,7 +744,6 @@ export class QuotationComponent implements OnInit {
   async convertQuotationToOrder(q: Quotation): Promise<void> {
     if (!q) return;
 
-    // Required client
     if (!q.id_client) {
       alert('Para convertir a pedido, selecciona/crea un cliente.');
       return;
@@ -671,7 +753,6 @@ export class QuotationComponent implements OnInit {
       const items = q.items || [];
       const totals = this.calculateQuotationTotals(q, items);
 
-      // client_name join/lookup
       let clientName: string | null =
         (q as any).client_name || (q as any).client?.name || null;
       if (!clientName) {
@@ -683,11 +764,9 @@ export class QuotationComponent implements OnInit {
         clientName = c?.name || 'Cliente sin nombre';
       }
 
-      // scheduler
       const schedulerName = (await this.getUserName?.()) || 'Desconocido';
 
-      // dominant (for text)
-      const dominant = this.resolveMainMaterial(items); // { label, percent, materialId }
+      const dominant = this.resolveMainMaterial(items);
 
       const formatCOP = (n: number) =>
         n.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 });
@@ -706,7 +785,7 @@ export class QuotationComponent implements OnInit {
 
       const description =
         [
-          `Pedido generado desde la cotización #${q.consecutive || q.id_quotation || '—'}`,
+          `Pedido generado desde la cotización #${q.code || q.id_quotation || '—'}`,
           `Título: ${q.title?.trim() || 'Sin título'}`,
           '',
           'Detalle de ítems:',
@@ -723,7 +802,6 @@ export class QuotationComponent implements OnInit {
       const safeQuantity = orderQuantity > 0 ? orderQuantity : 1;
       const unitaryValue = Number((totals.subTotal / safeQuantity).toFixed(2));
 
-      // extra_charges as array with snapshot (amount: 0)
       const snapshotCharge = {
         kind: 'snapshot',
         label: 'Snapshot de cotización',
@@ -757,16 +835,15 @@ export class QuotationComponent implements OnInit {
       };
       const extra_charges: any[] = [snapshotCharge];
 
-      // Payload Order
       const payloadOrder: any = {
         id_client: q.id_client,
-        name: clientName,                 // nombre del pedido = cliente
-        description,                      // resumen legible
-        subtotal: totals.subTotal,        // sin IVA
-        base_total: totals.subTotal,      // sin IVA
-        iva: 0,                           // SIN IVA en pedidos
-        total: totals.subTotal,           // sin IVA
-        include_iva: false,               // IVA se define en factura
+        name: clientName,                 
+        description,                     
+        subtotal: totals.subTotal,    
+        base_total: totals.subTotal,     
+        iva: 0,                    
+        total: totals.subTotal,      
+        include_iva: false,         
 
         order_type: 'sales',
         order_payment_status: 'overdue',
@@ -781,9 +858,9 @@ export class QuotationComponent implements OnInit {
 
         scheduler: schedulerName,
 
-        notes: `Convertido desde la cotización #${q.consecutive || q.id_quotation}`,
-        created_at: new Date().toISOString().slice(0, 10), // DATE YYYY-MM-DD
-        extra_charges,                                     // ARRAY
+        notes: `Convertido desde la cotización #${q.code || q.id_quotation}`,
+        created_at: new Date().toISOString().slice(0, 10),
+        extra_charges,                                    
       };
 
       // insert order
@@ -801,8 +878,6 @@ export class QuotationComponent implements OnInit {
 
       const order = data[0];
 
-      // create invoice automatically 
-      // is this needed anymore?? this is handled by supabase now
       type InvoiceInsertLocal = {
         created_at: string;
         invoice_status: string;
@@ -813,7 +888,6 @@ export class QuotationComponent implements OnInit {
         classification?: string;
       };
 
-      // prevent dupes for id_order
       const { data: existingInv, error: existErr } = await this.supabase
         .from('invoices')
         .select('id_invoice')
@@ -838,9 +912,9 @@ export class QuotationComponent implements OnInit {
           invoice_status: 'overdue',
           id_order: order.id_order,
           due_date: dueDateISO,
-          include_iva: false,          // IVA solo en facturación
+          include_iva: false,
           payment_term: paymentTermDays,
-          classification: 'sales',     // opcional, consistente
+          classification: 'sales',
         };
 
         const { error: invErr } = await this.supabase
@@ -849,18 +923,16 @@ export class QuotationComponent implements OnInit {
 
         if (invErr) {
           console.error('[convertQuotationToOrder] Error creando factura:', invErr);
-          // no bloqueamos el flujo
         }
       }
 
-      // mark converted quotation
       await this.supabase
         .from('quotations')
         .update({ status: 'converted' })
         .eq('id_quotation', q.id_quotation)
         .throwOnError();
 
-      alert(`Pedido creado (ID: ${order.id_order || '—'}) y factura generada desde la cotización #${q.consecutive || '—'}.`);
+      alert(`Pedido creado (ID: ${order.id_order || '—'}) y factura generada desde la cotización #${q.code || '—'}.`);
       await this.getQuotations();
       this.updateFiltered();
 
@@ -900,7 +972,7 @@ export class QuotationComponent implements OnInit {
 
   private buildOrderDescription(q: Quotation, items: QuotationItem[], totals: any): string {
     const title = q.title?.trim() || 'Sin título';
-    const quotationNum = q.consecutive || q.id_quotation || '—';
+    const quotationNum = q.code || q.id_quotation || '—';
     const lines = items.map((it, idx) => {
       const qty = it.quantity ?? 0;
       const desc = it.description || '';
