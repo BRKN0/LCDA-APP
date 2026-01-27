@@ -370,25 +370,28 @@ export class ExpensesComponent implements OnInit {
     ).sort();
   }
 
-  onProviderInput(value: string): void {
-    this.payeeSearch = value;
-    this.payeeJustSelected = false;
+  onProviderInput(): void {
+  const search = this.normalizeText(this.providerSearch);
 
-    const normalized = this.normalizeProviderName(value);
-
-    if (!normalized) {
-      this.payeeSearchResults = [];
-      return;
-    }
-
-    this.payeeSearchResults = this.getUniqueProviderNames().filter(name =>
-      name.includes(normalized)
-    );
-
-    this.payeeTypedButNotSelected =
-      this.payeeSearchResults.length > 0 &&
-      !this.payeeSearchResults.includes(normalized);
+  // Si está vacío, mostrar todos los proveedores
+  if (!search) {
+    this.showProviderSuggestions = true;
+    this.providerSuggestions = this.providersList;
+    return;
   }
+
+  this.showProviderSuggestions = true;
+
+  this.providerSuggestions = this.providersList.filter(provider => {
+    const companyName = this.normalizeText(provider.company_name || '');
+    const name = this.normalizeText(provider.name || '');
+    const docNumber = this.normalizeText(provider.document_number || '');
+
+    return companyName.includes(search) ||
+           name.includes(search) ||
+           docNumber.includes(search);
+  });
+}
 
   selectProviderName(name: string): void {
     this.payeeSearch = name;
@@ -629,60 +632,41 @@ export class ExpensesComponent implements OnInit {
   }
 
   async getExpenses(): Promise<void> {
-    this.loading = true;
+  this.loading = true;
 
-    const { data, error } = await this.supabase
-      .from('expenses')
-      .select('*, expense_payments(*)');
+  const { data, error } = await this.supabase
+    .from('expenses')
+    .select('*, expense_payments(*)')
+    .order('payment_date', { ascending: false });
 
-    this.loading = false;
+  this.loading = false;
 
-    if (error) {
-      console.error('Error al cargar los egresos:', error);
-      return;
-    }
-
-    this.expenses = (data || []).map((item: any) => ({
-      ...item,
-      payment_date: item.payment_date
-        ? new Date(item.payment_date).toISOString().split('T')[0]
-        : '',
-      created_at: item.created_at
-        ? new Date(item.created_at)
-        : new Date(),
-      payments: item.expense_payments || [],
-    })) as ExpensesItem[];
-
-    // Sorting orders by code
-    let n = this.expenses.length;
-    let swapped: boolean;
-
-    do {
-      swapped = false;
-      for (let i = 0; i < n - 1; i++) {
-        if (this.expenses[i].code < this.expenses[i + 1].code) {
-          [this.expenses[i], this.expenses[i + 1]] = [
-            this.expenses[i + 1],
-            this.expenses[i],
-          ];
-          swapped = true;
-        }
-      }
-      n--;
-    } while (swapped);
-
-    this.uniqueCategories = [
-      ...new Set(this.expenses.map((e) => e.category || '')),
-    ].sort();
-
-    this.initializeCategoryCheckboxes();
-
-    this.filteredExpenses = [...this.expenses];
-
-    this.applyFilters();
+  if (error) {
+    console.error('Error al cargar los egresos:', error);
+    return;
   }
 
+  this.expenses = (data || []).map((item: any) => ({
+    ...item,
+    payment_date: item.payment_date
+      ? new Date(item.payment_date).toISOString().split('T')[0]
+      : '',
+    created_at: item.created_at
+      ? new Date(item.created_at)
+      : new Date(),
+    payments: item.expense_payments || [],
+  })) as ExpensesItem[];
 
+  this.uniqueCategories = [
+    ...new Set(this.expenses.map((e) => e.category || '')),
+  ].sort();
+
+  this.initializeCategoryCheckboxes();
+
+  this.filteredExpenses = [...this.expenses];
+
+  this.applyFilters();
+}
   // Genererate Expenses Kardex
   generateExpensesKardex(): void {
     console.log('Botón Generar Kardex clicado');
@@ -762,27 +746,23 @@ export class ExpensesComponent implements OnInit {
   }
 
   onThirdPartyInput(): void {
-    const value = this.selectedExpense.provider_name?.trim() || '';
+  const value = this.selectedExpense.provider_name?.trim() || '';
 
-    if (!value) {
-      this.thirdPartySuggestions = this.getThirdParties().slice(0, 10);
-      return;
-    }
-
-    if (value.length < 2) {
-      this.thirdPartySuggestions = this.getThirdParties().slice(0, 10);
-      return;
-    }
-
-    const normalizedValue = this.normalizeText(value);
-
-    this.thirdPartySuggestions = this.getThirdParties()
-      .filter(name => {
-        const nameNormalized = this.normalizeText(name);
-        return nameNormalized.includes(normalizedValue);
-      })
-      .slice(0, 10);
+  // Si está vacío, mostrar todos los terceros disponibles
+  if (!value) {
+    this.thirdPartySuggestions = this.getThirdParties().slice(0, 50);
+    return;
   }
+
+  const normalizedValue = this.normalizeText(value);
+
+  this.thirdPartySuggestions = this.getThirdParties()
+    .filter(name => {
+      const nameNormalized = this.normalizeText(name);
+      return nameNormalized.includes(normalizedValue);
+    })
+    .slice(0, 50);
+}
 
   selectThirdParty(name: string): void {
     this.selectedExpense.provider_name = name;
@@ -1532,18 +1512,24 @@ export class ExpensesComponent implements OnInit {
   }
 
   onFilterCategoryInput(): void {
-    const search = this.normalizeText(this.filterCategorySearch);
+  const search = this.normalizeText(this.filterCategorySearch);
 
-    if (!search) {
-      this.filterCategorySuggestions = this.getFilterCategories();
-      return;
-    }
-
-    this.filterCategorySuggestions = this.getFilterCategories().filter(cat => {
-      const labelNormalized = this.normalizeText(this.getCategoryLabel(cat));
-      return labelNormalized.includes(search);
-    });
+  // Si está vacío, mostrar todas las categorías
+  if (!search) {
+    this.filterCategory = null;
+    this.filterCategorySuggestions = this.getFilterCategories();
+    this.showFilterCategorySuggestions = true;
+    this.applyFilters();
+    return;
   }
+
+  this.filterCategorySuggestions = this.getFilterCategories().filter(cat => {
+    const labelNormalized = this.normalizeText(this.getCategoryLabel(cat));
+    return labelNormalized.includes(search);
+  });
+
+  this.showFilterCategorySuggestions = true;
+}
 
   selectFilterCategory(category: string): void {
     if (category === '') {
@@ -1568,19 +1554,24 @@ export class ExpensesComponent implements OnInit {
   }
 
   onFilterServiceTypeInput(): void {
-    const search = this.normalizeText(this.filterServiceTypeSearch);
+  const search = this.normalizeText(this.filterServiceTypeSearch);
 
-    if (!search) {
-      this.filterServiceTypeSuggestions = this.getFilterServiceTypes();
-      return;
-    }
-
-    this.filterServiceTypeSuggestions = this.getFilterServiceTypes().filter(type => {
-      const typeNormalized = this.normalizeText(type);
-      return typeNormalized.includes(search);
-    });
+  // Si está vacío, limpiar filtro Y mostrar todos
+  if (!search) {
+    this.filterServiceType = null;
+    this.filterServiceTypeSuggestions = this.getFilterServiceTypes();
+    this.showFilterServiceTypeSuggestions = true;
+    this.applyFilters();
+    return;
   }
 
+  this.filterServiceTypeSuggestions = this.getFilterServiceTypes().filter(type => {
+    const typeNormalized = this.normalizeText(type);
+    return typeNormalized.includes(search);
+  });
+
+  this.showFilterServiceTypeSuggestions = true;
+}
 
   selectFilterServiceType(type: string): void {
     if (type === '') {
@@ -1598,18 +1589,24 @@ export class ExpensesComponent implements OnInit {
   }
 
   onFilterProviderInput(): void {
-    const search = this.normalizeText(this.filterProviderNameSearch);
+  const search = this.normalizeText(this.filterProviderNameSearch);
 
-    if (!search) {
-      this.filterProviderSuggestions = this.getThirdParties();
-      return;
-    }
-
-    this.filterProviderSuggestions = this.getThirdParties().filter(name => {
-      const nameNormalized = this.normalizeText(name);
-      return nameNormalized.includes(search);
-    });
+  // Si está vacío, limpiar filtro Y mostrar todos
+  if (!search) {
+    this.filterProviderName = null;
+    this.filterProviderSuggestions = this.getThirdParties();
+    this.showFilterProviderSuggestions = true;
+    this.applyFilters();
+    return;
   }
+
+  this.filterProviderSuggestions = this.getThirdParties().filter(name => {
+    const nameNormalized = this.normalizeText(name);
+    return nameNormalized.includes(search);
+  });
+
+  this.showFilterProviderSuggestions = true;
+}
 
   selectFilterProvider(name: string): void {
     if (name === '') {
@@ -1629,8 +1626,10 @@ export class ExpensesComponent implements OnInit {
   onServiceTypeInput(): void {
   const search = this.normalizeText(this.serviceTypeSearch);
 
+  // Si está vacío, mostrar todas las opciones
   if (!search) {
     this.serviceTypeSuggestions = this.getServiceTypes();
+    this.showServiceTypeSuggestions = true;
     return;
   }
 
@@ -1638,6 +1637,8 @@ export class ExpensesComponent implements OnInit {
     const typeNormalized = this.normalizeText(type);
     return typeNormalized.includes(search);
   });
+
+  this.showServiceTypeSuggestions = true;
 
   // Si encuentra una coincidencia exacta, autocompletar
   const exactMatch = this.getServiceTypes().find(type => {
@@ -1710,29 +1711,20 @@ getAllCategorySuggestions(): string[] {
 
 onCategoryInput(): void {
   const search = this.normalizeText(this.categorySearch);
-  this.categoryJustSelected = false;
 
+  // Si está vacío, mostrar todas las categorías
   if (!search) {
     this.categorySuggestions = this.getAllCategorySuggestions();
+    this.showCategorySuggestions = true;
     return;
   }
 
-  // Buscar en categorías existentes
-  const existingMatches = this.getAllCategorySuggestions().filter(cat => {
+  this.categorySuggestions = this.getAllCategorySuggestions().filter(cat => {
     const catNormalized = this.normalizeText(cat);
     return catNormalized.includes(search);
   });
 
-  // Buscar en categorías estándar (excepto UTILITIES y SUPPLIES)
-  const standardMatches = this.standardCategories
-    .filter(c => c.value !== 'UTILITIES' && c.value !== 'SUPPLIES')
-    .filter(cat => {
-      const labelNormalized = this.normalizeText(cat.label);
-      return labelNormalized.includes(search);
-    })
-    .map(c => c.value);
-
-  this.categorySuggestions = Array.from(new Set([...existingMatches, ...standardMatches])).sort();
+  this.showCategorySuggestions = true;
 }
 
 selectCategory(value: string): void {

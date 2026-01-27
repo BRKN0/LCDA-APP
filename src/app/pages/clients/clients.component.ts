@@ -1,4 +1,4 @@
-import { Component, OnInit, NgZone } from '@angular/core';
+import { Component, OnInit, NgZone, HostListener } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { MainBannerComponent } from '../main-banner/main-banner.component';
@@ -7,6 +7,7 @@ import 'jspdf-autotable';
 import { SupabaseService } from '../../services/supabase.service';
 import { RoleService } from '../../services/role.service';
 import { RouterOutlet } from '@angular/router';
+
 
 interface Orders {
   id_order: string;
@@ -71,6 +72,7 @@ interface Payment {
   templateUrl: './clients.component.html',
   styleUrls: ['./clients.component.scss'],
 })
+
 export class ClientsComponent implements OnInit {
   clients: Client[] = [];
   modalExpanded = false;
@@ -136,12 +138,40 @@ export class ClientsComponent implements OnInit {
   };
   showAddClientForm = false;
   IVA_RATE = 0.19;
+  // Variables para el autocompletado de clientes
+  showClientSuggestions = false;
+  clientSuggestions: Client[] = [];
+  clientSelected = false;
 
+  /**
+ * Cierra el dropdown de sugerencias al hacer clic fuera
+ */
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    const clickedInside = target.closest('.search-container');
+
+    if (!clickedInside) {
+      this.showClientSuggestions = false;
+    }
+  }
   constructor(
     private readonly supabase: SupabaseService,
     private readonly zone: NgZone,
     private readonly roleService: RoleService
   ) { }
+
+  /**
+ * Normaliza texto para búsqueda insensible a acentos y mayúsculas
+ */
+  private normalizeText(text: string): string {
+    if (!text) return '';
+    return text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  }
+
 
   async ngOnInit(): Promise<void> {
     this.supabase.authChanges((_, session) => {
@@ -439,22 +469,107 @@ export class ClientsComponent implements OnInit {
 
 
 
-  searchClient() {
-    this.filteredClients = this.clients.filter((client) => {
-      const matchesSearchQuery =
-        client.name.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
-        (client.company_name &&
-          client.company_name
-            .toLowerCase()
-            .includes(this.searchQuery.toLowerCase()));
-      const matchesDebtFilter = !this.filterDebt || client.status === 'overdue';
+searchClient() {
+  // Si el usuario borra el texto, resetear la selección
+  if (!this.searchQuery || this.searchQuery.trim() === '') {
+    this.clientSelected = false;
+  }
 
-      return matchesSearchQuery && matchesDebtFilter;
+  const normalizedSearch = this.normalizeText(this.searchQuery);
+
+  this.filteredClients = this.clients.filter((client) => {
+    // Normalizar nombre del cliente
+    const normalizedClientName = this.normalizeText(client.name);
+
+    // Normalizar nombre de la empresa si existe
+    const normalizedCompanyName = client.company_name
+      ? this.normalizeText(client.company_name)
+      : '';
+
+    // Verificar si coincide con nombre o empresa
+    const matchesSearchQuery =
+      normalizedClientName.includes(normalizedSearch) ||
+      normalizedCompanyName.includes(normalizedSearch);
+
+    // Filtro de deuda (sin cambios)
+    const matchesDebtFilter = !this.filterDebt || client.status === 'overdue';
+
+    return matchesSearchQuery && matchesDebtFilter;
+  });
+
+  // Solo actualizar sugerencias si NO hay cliente seleccionado
+  if (!this.clientSelected) {
+    this.updateClientSuggestions();
+  }
+
+  this.noResultsFound = this.filteredClients.length === 0;
+  this.currentPage = 1;
+  this.updatePaginatedClients();
+}
+
+/**
+ * Actualiza las sugerencias del dropdown de clientes
+ */
+updateClientSuggestions(): void {
+  const value = this.searchQuery.trim();
+
+  // Si está vacío, mostrar los primeros 50 clientes
+  if (!value) {
+    this.clientSuggestions = this.clients.slice(0, 50);
+    this.showClientSuggestions = true;
+    return;
+  }
+
+  const normalizedSearch = this.normalizeText(value);
+
+  // Si está buscando, mostrar TODOS los resultados sin límite
+  this.clientSuggestions = this.clients
+    .filter(client => {
+      const normalizedName = this.normalizeText(client.name);
+      const normalizedCompany = client.company_name
+        ? this.normalizeText(client.company_name)
+        : '';
+
+      return normalizedName.includes(normalizedSearch) ||
+             normalizedCompany.includes(normalizedSearch);
     });
 
-    this.noResultsFound = this.filteredClients.length === 0;
-    this.currentPage = 1;
-    this.updatePaginatedClients();
+  this.showClientSuggestions = this.clientSuggestions.length > 0;
+}
+
+  /**
+ * Maneja el click/focus en el campo de búsqueda
+ */
+onSearchFocus(): void {
+  // Solo mostrar sugerencias si NO hay un cliente seleccionado
+  if (!this.clientSelected) {
+    this.updateClientSuggestions();
+  }
+}
+
+ /**
+ * Selecciona un cliente desde el dropdown
+ */
+  selectClientFromSuggestion(client: Client): void {
+    // Usar el nombre de la empresa si existe, si no el nombre del cliente
+    this.searchQuery = client.company_name && client.company_name.trim() !== ''
+      ? client.company_name
+      : client.name;
+
+    this.showClientSuggestions = false;
+    this.clientSelected = true;
+    this.searchClient();
+  }
+
+  /**
+ * Maneja cuando el usuario escribe en el campo de búsqueda
+ */
+  onSearchInput(): void {
+    // Si el usuario empieza a modificar el texto, resetear la selección
+    if (this.clientSelected) {
+      this.clientSelected = false;
+    }
+    this.searchClient();
   }
 
   openClientModal(client: Client) {
@@ -1197,6 +1312,8 @@ export class ClientsComponent implements OnInit {
   clearFilters(): void {
     this.searchQuery = '';
     this.filterDebt = false;
+    this.clientSelected = false;
+    this.showClientSuggestions = false;
     this.filteredClients = this.clients;
     this.currentPage = 1;
     this.updatePaginatedClients();

@@ -43,14 +43,44 @@
 </div>
 <!-- Search bar and filter by debt -->
 <div class="flex items-center justify-center py-4 space-x-4 top-5">
-  <div class="w-full max-w-md relative">
+  <div class="w-full max-w-md relative search-container">
     <input
       type="text"
-      placeholder="Buscar cliente por nombre..."
+      placeholder="Buscar cliente por nombre o empresa..."
       [(ngModel)]="searchQuery"
-      (ngModelChange)="searchClient()"
+      (input)="onSearchInput()"
+      (focus)="onSearchFocus()"
+      autocomplete="off"
       class="w-full py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
     />
+    <!-- Dropdown de sugerencias -->
+    <div
+      *ngIf="showClientSuggestions && clientSuggestions.length > 0"
+      class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+    >
+      <div
+        *ngFor="let client of clientSuggestions"
+        (click)="selectClientFromSuggestion(client)"
+        class="px-4 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+      >
+        <div class="font-medium text-gray-900">
+          {{ client.company_name && client.company_name.trim() !== '' ? client.company_name : client.name }}
+        </div>
+        <div class="text-sm text-gray-500" *ngIf="client.company_name && client.company_name.trim() !== ''">
+          {{ client.name }}
+        </div>
+        <div class="text-xs text-gray-400">
+          {{ client.document_number || 'Sin documento' }}
+          <span
+            [class.text-green-600]="client.status === 'upToDate'"
+            [class.text-red-600]="client.status === 'overdue'"
+            class="ml-2 font-medium"
+          >
+            {{ client.status === 'upToDate' ? '• Al Día' : '• En Mora' }}
+          </span>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -738,8 +768,8 @@
             <button type="button" class="btn-danger" (click)="closeModal()">
               Cancelar
             </button>
-            <button 
-            type="submit" 
+            <button
+            type="submit"
             class="btn-success"
             [disabled]="isSaving"
             >

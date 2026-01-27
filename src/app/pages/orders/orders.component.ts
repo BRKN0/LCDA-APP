@@ -1,4 +1,4 @@
-import { Component, OnInit, NgZone, OnDestroy } from '@angular/core';
+import { Component, OnInit, NgZone, OnDestroy, HostListener} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SupabaseService } from '../../services/supabase.service';
 import { FormsModule } from '@angular/forms';
@@ -317,6 +317,12 @@ export class OrdersComponent implements OnInit, OnDestroy {
   notificationDesc: string = '';
   orderToInsert: Partial<Orders> = {};
 
+  // Autocompletado para búsqueda de nombre en filtros
+  showNameSearchSuggestions = false;
+  nameSearchSuggestions: Client[] = [];
+  nameSearchSelected = false;
+
+
   // lifecycle and subscriptions
   private destroy$ = new Subject<void>();
   private isOrdersLoaded = false; // prevents double loading on auth events
@@ -326,6 +332,19 @@ export class OrdersComponent implements OnInit, OnDestroy {
     private readonly zone: NgZone,
     private readonly roleService: RoleService
   ) { }
+
+  /**
+  * Cierra dropdowns al hacer clic fuera
+  */
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+
+    // Cerrar dropdown de búsqueda por nombre
+    if (!target.closest('.search-name-filter-container')) {
+      this.showNameSearchSuggestions = false;
+    }
+  }
 
   async ngOnInit(): Promise<void> {
     // listen for auth changes once
@@ -429,6 +448,16 @@ export class OrdersComponent implements OnInit, OnDestroy {
     this.isOrdersLoaded = true;
   }
 
+ /**
+ * Normaliza el texto para la búsqueda de nombres con acentos y mayúsculas
+ */
+private normalizeText(text: string): string {
+  if (!text) return '';
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
   private clientNameMap = new Map<string, string>();
   async getClients(): Promise<void> {
     const { data, error } = await this.supabase.from('clients').select('*');
@@ -847,11 +876,11 @@ export class OrdersComponent implements OnInit, OnDestroy {
         : true;
       const matchesDateRange = matchesStartDate && matchesEndDate;
 
+      const normalizedNameSearch = this.normalizeText(this.searchByNameQuery);
+      const normalizedClientName = this.normalizeText(this.getClientName(order));
       const matchesNameSearch =
         !this.searchByNameQuery ||
-        this.getClientName(order)
-          .toLowerCase()
-          .includes(this.searchByNameQuery.toLowerCase().trim());
+        normalizedClientName.includes(normalizedNameSearch);
 
       const matchesScheduler =
         !this.selectedScheduler || order.scheduler === this.selectedScheduler;
@@ -940,44 +969,45 @@ export class OrdersComponent implements OnInit, OnDestroy {
   }
 
   async searchClients(term: string): Promise<void> {
-    const value = term.trim().toLowerCase();
+  const value = term.trim();
 
-    if (value.length < 1) {
-      this.clientSearchResults = [];
-      return;
-    }
-
-    this.isSearchingClients = true;
-
-    const { data, error } = await this.supabase
-      .from('clients')
-      .select('id_client, name')
-      .ilike('name', `%${value}%`)
-      .limit(20);
-
-    this.isSearchingClients = false;
-
-    if (error || !data) {
-      console.error('Error searching clients:', error);
-      this.clientSearchResults = [];
-      return;
-    }
-
-    this.clientSearchResults = data
-      .sort((a, b) => {
-        const aName = a.name.toLowerCase();
-        const bName = b.name.toLowerCase();
-
-        const aStarts = aName.startsWith(value);
-        const bStarts = bName.startsWith(value);
-
-        if (aStarts && !bStarts) return -1;
-        if (!aStarts && bStarts) return 1;
-
-        return aName.localeCompare(bName);
-      })
-      .slice(0, 10);
+  // Si está vacío, mostrar primeros 10 clientes
+  if (!value) {
+    this.clientSearchResults = this.clients.slice(0, 10).map(c => ({
+      id_client: c.id_client,
+      name: c.name
+    }));
+    return;
   }
+
+  const normalizedValue = this.normalizeText(value);
+
+  this.isSearchingClients = true;
+
+  // Buscar en los clientes locales con normalización
+  this.clientSearchResults = this.clients
+    .filter(c => {
+      const normalizedName = this.normalizeText(c.name);
+      return normalizedName.includes(normalizedValue);
+    })
+    .map(c => ({
+      id_client: c.id_client,
+      name: c.name
+    }))
+    .sort((a, b) => {
+      const aName = this.normalizeText(a.name);
+      const bName = this.normalizeText(b.name);
+      const aStarts = aName.startsWith(normalizedValue);
+      const bStarts = bName.startsWith(normalizedValue);
+
+      if (aStarts && !bStarts) return -1;
+      if (!aStarts && bStarts) return 1;
+      return aName.localeCompare(bName);
+    })
+    .slice(0, 10);
+
+  this.isSearchingClients = false;
+}
 
   selectClient(client: ClientSearchResult): void {
     this.selectedClient = client;
@@ -989,17 +1019,14 @@ export class OrdersComponent implements OnInit, OnDestroy {
   }
 
   onClientInput(value: string): void {
-    this.clientSearch = value;
-
-    // Invalida selección previa
-    this.selectedClient = null;
-    this.newOrder.id_client = undefined;
-
-    this.clientInvalid = false;
-    this.clientTypedButNotSelected = value.trim().length > 0;
-
-    this.searchClients(value);
-  }
+  this.clientSearch = value;
+  // Invalida selección previa
+  this.selectedClient = null;
+  this.newOrder.id_client = undefined;
+  this.clientInvalid = false;
+  this.clientTypedButNotSelected = value.trim().length > 0;
+  this.searchClients(value);
+}
 
   onClientBlur(): void {
     setTimeout(() => {
@@ -2498,6 +2525,74 @@ export class OrdersComponent implements OnInit, OnDestroy {
     );
   }
 
+ /**
+ * Actualiza las sugerencias del dropdown de búsqueda por nombre
+ */
+  updateNameSearchSuggestions(): void {
+    const value = this.searchByNameQuery.trim();
+
+    // Si está vacío, mostrar los primeros 50 clientes únicos
+    if (!value) {
+      const uniqueClients = new Map<string, Client>();
+      this.orders.forEach(order => {
+        const client = this.clients.find(c => c.id_client === order.id_client);
+        if (client && !uniqueClients.has(client.id_client)) {
+          uniqueClients.set(client.id_client, client);
+        }
+      });
+      this.nameSearchSuggestions = Array.from(uniqueClients.values()).slice(0, 50);
+      this.showNameSearchSuggestions = true;
+      return;
+    }
+
+    const normalizedSearch = this.normalizeText(value);
+
+    // Filtrar clientes que coincidan
+    const uniqueClients = new Map<string, Client>();
+    this.orders.forEach(order => {
+      const client = this.clients.find(c => c.id_client === order.id_client);
+      if (client) {
+        const normalizedName = this.normalizeText(client.name);
+        if (normalizedName.includes(normalizedSearch) && !uniqueClients.has(client.id_client)) {
+          uniqueClients.set(client.id_client, client);
+        }
+      }
+    });
+
+    this.nameSearchSuggestions = Array.from(uniqueClients.values());
+    this.showNameSearchSuggestions = this.nameSearchSuggestions.length > 0;
+  }
+
+  /**
+   * Maneja el focus en la búsqueda por nombre
+   */
+  onNameSearchFocus(): void {
+    if (!this.nameSearchSelected) {
+      this.updateNameSearchSuggestions();
+    }
+  }
+
+  /**
+   * Maneja cuando se escribe en la búsqueda por nombre
+   */
+  onNameSearchInput(): void {
+    if (this.nameSearchSelected) {
+      this.nameSearchSelected = false;
+    }
+    this.updateNameSearchSuggestions();
+    this.updateFilteredOrders();
+  }
+
+  /**
+   * Selecciona un cliente desde el dropdown de búsqueda
+   */
+  selectNameSearchClient(client: Client): void {
+    this.searchByNameQuery = client.name;
+    this.showNameSearchSuggestions = false;
+    this.nameSearchSelected = true;
+    this.updateFilteredOrders();
+  }
+
   clearFilters(): void {
     this.startDate = '';
     this.endDate = '';
@@ -2511,6 +2606,9 @@ export class OrdersComponent implements OnInit, OnDestroy {
     this.vitrineFilterMode = 'all';
     this.searchQuery = '';
     this.selectedScheduler = '';
+    this.nameSearchSelected = false;
+    this.showNameSearchSuggestions = false;
+    this.nameSearchSuggestions = [];
     this.updateFilteredOrders();
   }
   // decomposes combined characters, removes accent, replaces spaces with underscores, and removes special characters

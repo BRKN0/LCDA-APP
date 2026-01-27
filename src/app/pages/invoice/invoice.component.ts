@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, NgZone } from '@angular/core';
+import { Component, OnInit, NgZone, HostListener } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { jsPDF } from 'jspdf';
 import { Router, RouterOutlet } from '@angular/router';
@@ -207,6 +207,25 @@ export class InvoiceComponent implements OnInit {
   userId: string | null = null;
   canManagePayments: boolean = false;
 
+  // Variables para autocompletado de clientes en búsqueda
+  showClientNameSuggestions = false;
+  clientNameSuggestions: Client[] = [];
+  clientNameSelected = false;
+
+/**
+* Cierra el dropdown de sugerencias al hacer clic fuera
+*/
+@HostListener('document:click', ['$event'])
+onDocumentClick(event: MouseEvent): void {
+  const target = event.target as HTMLElement;
+  const clickedInside = target.closest('.search-name-container');
+
+  if (!clickedInside) {
+    this.showClientNameSuggestions = false;
+  }
+}
+
+
   private pct(n: number | null | undefined, digits = 0): string {
     const v = Number(n ?? 0);
     return `${(v * 100).toFixed(digits)}%`;
@@ -216,6 +235,16 @@ export class InvoiceComponent implements OnInit {
     return `IVA (${this.pct(this.IVA_RATE, 0)})`;
   }
 
+  /**
+  * Normaliza texto para que no tenga en cuenta algun acento o mayúscula
+  */
+  private normalizeText(text: string): string {
+    if (!text) return '';
+    return text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  }
   /*retefuenteLabel(invoice: Invoice): string {
     const classKey = this.normalizeClassification(invoice.classification);
     const declara = invoice.order.client.is_declarante
@@ -519,11 +548,11 @@ export class InvoiceComponent implements OnInit {
         : true;
       const matchesDateRange = matchesStartDate && matchesEndDate;
 
+      const normalizedNameSearch = this.normalizeText(this.nameSearchQuery);
+      const normalizedClientName = this.normalizeText(invoice.order.client.name);
       const matchesNameSearch =
         !this.nameSearchQuery ||
-        invoice.order.client.name
-          .toLowerCase()
-          .includes(this.nameSearchQuery.toLowerCase());
+        normalizedClientName.includes(normalizedNameSearch);
 
       if (allTypeCheckboxesOff) {
         return matchesDateRange && matchesNameSearch;
@@ -2549,6 +2578,74 @@ export class InvoiceComponent implements OnInit {
     }
   }
 
+/**
+ * Actualiza las sugerencias del dropdown de nombres de clientes
+ */
+updateClientNameSuggestions(): void {
+  const value = this.nameSearchQuery.trim();
+
+  // Si está vacío, muestra los primeros 50 clientes únicos de las facturas
+  if (!value) {
+    const uniqueClients = new Map<string, Client>();
+    this.invoices.forEach(invoice => {
+      if (invoice.order?.client && !uniqueClients.has(invoice.order.client.id_client)) {
+        uniqueClients.set(invoice.order.client.id_client, invoice.order.client);
+      }
+    });
+    this.clientNameSuggestions = Array.from(uniqueClients.values()).slice(0, 50);
+    this.showClientNameSuggestions = true;
+    return;
+  }
+
+  const normalizedSearch = this.normalizeText(value);
+
+  // Filtrar clientes únicos que coincidan
+  const uniqueClients = new Map<string, Client>();
+  this.invoices.forEach(invoice => {
+    if (invoice.order?.client) {
+      const normalizedName = this.normalizeText(invoice.order.client.name);
+
+      if (normalizedName.includes(normalizedSearch) &&
+          !uniqueClients.has(invoice.order.client.id_client)) {
+        uniqueClients.set(invoice.order.client.id_client, invoice.order.client);
+      }
+    }
+  });
+
+  this.clientNameSuggestions = Array.from(uniqueClients.values());
+  this.showClientNameSuggestions = this.clientNameSuggestions.length > 0;
+}
+
+/**
+* Maneja el click/focus en el campo de búsqueda de nombre
+*/
+onNameSearchFocus(): void {
+  if (!this.clientNameSelected) {
+    this.updateClientNameSuggestions();
+  }
+}
+
+/**
+* Maneja cuando el usuario escribe en el campo de búsqueda de nombre
+*/
+onNameSearchInput(): void {
+  if (this.clientNameSelected) {
+    this.clientNameSelected = false;
+  }
+  this.updateClientNameSuggestions();
+  this.updateFilteredInvoices();
+}
+
+/**
+* Selecciona un cliente desde el dropdown de búsqueda
+*/
+selectClientNameFromSuggestion(client: Client): void {
+  this.nameSearchQuery = client.name;
+  this.showClientNameSuggestions = false;
+  this.clientNameSelected = true;
+  this.updateFilteredInvoices();
+}
+
   calculateSummary(): void {
     const invoices = this.filteredInvoicesList;
 
@@ -2813,6 +2910,9 @@ export class InvoiceComponent implements OnInit {
     this.showNonVitrineSales = true;
     this.showVitrineSales = true;
     this.selectedPaymentMethodFilter = 'all';
+    this.clientNameSelected = false;
+    this.showClientNameSuggestions = false;
+    this.clientNameSuggestions = [];
 
     // Recargar la lista completa
     this.updateFilteredInvoices();
@@ -2846,8 +2946,8 @@ export class InvoiceComponent implements OnInit {
       .from('employees')
       .select(
         `
-         id_employee, 
-         name, 
+         id_employee,
+         name,
          id_user,
          users!inner (
            roles!inner ( name )
