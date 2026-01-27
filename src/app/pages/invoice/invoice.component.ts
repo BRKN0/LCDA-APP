@@ -1159,49 +1159,56 @@ onDocumentClick(event: MouseEvent): void {
     await Promise.all(updates);
   }
 
-  public getRemainingPaymentTerm(invoice: Invoice): string {
-    const isInvoiceUpToDate =
-      invoice?.invoice_status?.toLowerCase() === 'uptodate' ||
-      invoice?.order?.order_payment_status?.toLowerCase() === 'uptodate' ||
-      this.isZeroish(this.getRemainingBalance(invoice));
+/**
+ * Obtiene los días RESTANTES del plazo de pago
+ */
+public getRemainingPaymentTerm(invoice: Invoice): string {
+  // Si está pagado completamente, mostrar "Realizado"
+  const isInvoiceUpToDate =
+    invoice?.invoice_status?.toLowerCase() === 'uptodate' ||
+    invoice?.order?.order_payment_status?.toLowerCase() === 'uptodate' ||
+    this.isZeroish(this.getRemainingBalance(invoice));
 
-    if (isInvoiceUpToDate) {
-      return 'Realizado';
-    }
-
-    // Mostrar el payment_term almacenado en la base de datos
-    const paymentTerm = invoice.payment_term ?? 5;
-
-    if (!invoice.due_date) {
-      return `${paymentTerm} días`;
-    }
-
-    // Calcular días restantes solo para determinar si está vencido
-    const dueDate = new Date(invoice.due_date);
-    const currentDate = new Date();
-    currentDate.setHours(0, 0, 0, 0);
-    dueDate.setHours(0, 0, 0, 0);
-
-    const diffTime = dueDate.getTime() - currentDate.getTime();
-    const remainingDays = Math.ceil(diffTime / (1000 / 60 / 60 / 24));
-
-    const orderStatus = invoice.order.order_completion_status;
-    const paymentStatus = invoice.order.order_payment_status;
-
-    const isOrderCompleted = orderStatus?.toLowerCase() === 'finished';
-    const isPaymentUpToDate = paymentStatus?.toLowerCase() === 'uptodate';
-
-    if (isOrderCompleted && isPaymentUpToDate) {
-      return 'Realizado';
-    }
-
-    // Si está vencido, mostrar "Vencido", sino mostrar el plazo almacenado
-    if (remainingDays < 0) {
-      return 'Vencido';
-    }
-
-    return `${paymentTerm} días`;
+  if (isInvoiceUpToDate) {
+    return 'Realizado';
   }
+
+  // Verificar si el pedido ya está completado y pagado
+  const orderStatus = invoice.order.order_completion_status;
+  const paymentStatus = invoice.order.order_payment_status;
+  const isOrderCompleted = orderStatus?.toLowerCase() === 'finished';
+  const isPaymentUpToDate = paymentStatus?.toLowerCase() === 'uptodate';
+
+  if (isOrderCompleted && isPaymentUpToDate) {
+    return 'Realizado';
+  }
+
+  // CALCULAR DÍAS TRANSCURRIDOS DESDE LA CREACIÓN DE LA FACTURA
+  const createdDate = new Date(invoice.created_at);
+  const currentDate = new Date();
+
+  // Normalizar horas para comparar solo fechas
+  createdDate.setHours(0, 0, 0, 0);
+  currentDate.setHours(0, 0, 0, 0);
+
+  const diffTime = currentDate.getTime() - createdDate.getTime();
+  const daysPassed = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+  // El plazo original (por defecto 5 días, pero puede ser modificado)
+  const originalPaymentTerm = invoice.payment_term ?? 5;
+
+  // CALCULAR DÍAS RESTANTES = PLAZO ORIGINAL - DÍAS TRANSCURRIDOS
+  const remainingDays = originalPaymentTerm - daysPassed;
+
+  // Mostrar resultado
+  if (remainingDays < 0) {
+    return 'Vencido';
+  } else if (remainingDays === 0) {
+    return 'Vence hoy';
+  } else {
+    return `${remainingDays} día${remainingDays === 1 ? '' : 's'}`;
+  }
+}
 
   public getRemainingDeliveryDays(dueDate: string | null): number {
     if (!dueDate) return 0;
