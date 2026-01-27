@@ -1,5 +1,6 @@
 <router-outlet></router-outlet>
 
+
 <div class="mb-4 mt-4 ml-2 space-y-4">
   <div class="flex justify-between items-center">
     <div class="flex space-x-2">
@@ -13,6 +14,7 @@
         <span class="ml-2">Impresiones</span>
       </label>
 
+
       <label>
         <input
           type="checkbox"
@@ -22,6 +24,7 @@
         />
         <span class="ml-2">Cortes</span>
       </label>
+
 
       <label>
         <input
@@ -33,6 +36,7 @@
         <span class="ml-2">Ventas</span>
       </label>
 
+
       <label>
         <input
           type="checkbox"
@@ -43,6 +47,7 @@
         Vitrina
       </label>
 
+
       <label>
         <input
           type="checkbox"
@@ -52,6 +57,7 @@
         />
         No vitrina
       </label>
+
 
       <label>
         <input
@@ -64,6 +70,7 @@
       </label>
     </div>
 
+
     <div class="flex space-x-2">
       <div *ngIf="userRole === 'admin'">
         <button class="btn-primary" (click)="toggleDailySummary()">
@@ -74,11 +81,13 @@
     </div>
   </div>
 
+
   <div class="flex items-start">
     <details class="ml-1">
       <summary class="cursor-pointer font-semibold text-sm text-gray-700">
         Factura electrónica
       </summary>
+
 
       <div class="mt-2 ml-4 flex flex-col space-y-1 text-sm">
         <label>
@@ -90,6 +99,7 @@
           Requiere FE
         </label>
 
+
         <label>
           <input
             type="checkbox"
@@ -98,6 +108,7 @@
           />
           No requiere FE
         </label>
+
 
         <div *ngIf="showRequiresFE" class="ml-4 mt-1 flex space-x-4">
           <label>
@@ -108,6 +119,7 @@
             />
             FE pendiente
           </label>
+
 
           <label>
             <input
@@ -122,16 +134,46 @@
     </details>
   </div>
 
+
   <div class="flex justify-center mt-2 gap-4">
-    <div class="w-full max-w-md relative">
+    <div class="w-full max-w-md relative search-name-container">
       <input
         type="text"
-        placeholder="Nombre del cliente"
+        placeholder="Buscar por nombre del cliente..."
         [(ngModel)]="nameSearchQuery"
-        (input)="updateFilteredInvoices()"
+        (input)="onNameSearchInput()"
+        (focus)="onNameSearchFocus()"
+        autocomplete="off"
         class="w-full py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
       />
+
+      <!-- Dropdown de sugerencias de clientes -->
+      <div
+        *ngIf="showClientNameSuggestions && clientNameSuggestions.length > 0"
+        class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+      >
+        <div
+          *ngFor="let client of clientNameSuggestions"
+          (click)="selectClientNameFromSuggestion(client)"
+          class="px-4 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+        >
+          <div class="font-medium text-gray-900">
+            {{ client.name }}
+          </div>
+          <div class="text-xs text-gray-400">
+            {{ client.document_number || 'Sin documento' }}
+            <span
+              [class.text-green-600]="client.status === 'upToDate'"
+              [class.text-red-600]="client.status === 'overdue'"
+              class="ml-2 font-medium"
+            >
+              {{ client.status === 'upToDate' ? '• Al Día' : '• En Mora' }}
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
+
     <div class="relative w-full max-w-md">
       <input
         type="text"
@@ -148,6 +190,7 @@
     </div>
   </div>
 
+
   <div class="flex items-center justify-between space-x-4">
     <div class="flex items-center space-x-4">
       <div>
@@ -161,6 +204,7 @@
         />
       </div>
 
+
       <div>
         <label for="endDate" class="mr-2 font-semibold">Hasta:</label>
         <input
@@ -171,6 +215,7 @@
           class="form-input"
         />
       </div>
+
 
       <select
         [(ngModel)]="selectedPaymentMethodFilter"
@@ -185,6 +230,7 @@
       </select>
     </div>
 
+
     <div class="flex items-center space-x-4">
       <div>
         <label for="paymentDateStart" class="mr-2 font-semibold">
@@ -198,6 +244,7 @@
           class="form-input"
         />
       </div>
+
 
       <div>
         <label for="paymentDateEnd" class="mr-2 font-semibold">

@@ -94,15 +94,44 @@
 <!-- Search bars -->
 <div class="flex items-center justify-center py-4 space-x-4 top-5">
   <!-- Buscar por nombre de cliente -->
-  <div class="relative w-full max-w-md">
+  <div class="relative w-full max-w-md search-name-filter-container">
     <input
       type="text"
       placeholder="Buscar por nombre de cliente..."
       [(ngModel)]="searchByNameQuery"
+      (input)="onNameSearchInput()"
+      (focus)="onNameSearchFocus()"
+      autocomplete="off"
       class="w-full py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
-      (input)="updateFilteredOrders()"
     />
+
+    <!-- Dropdown de sugerencias -->
+    <div
+      *ngIf="showNameSearchSuggestions && nameSearchSuggestions.length > 0"
+      class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+    >
+      <div
+        *ngFor="let client of nameSearchSuggestions"
+        (click)="selectNameSearchClient(client)"
+        class="px-4 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+      >
+        <div class="font-medium text-gray-900">
+          {{ client.name }}
+        </div>
+        <div class="text-xs text-gray-400">
+          {{ client.document_number || 'Sin documento' }}
+          <span
+            [class.text-green-600]="client.status === 'upToDate'"
+            [class.text-red-600]="client.status === 'overdue'"
+            class="ml-2 font-medium"
+          >
+            {{ client.status === 'upToDate' ? '• Al Día' : '• En Mora' }}
+          </span>
+        </div>
+      </div>
+    </div>
   </div>
+
   <!-- Buscar por número de pedido -->
   <div class="relative w-full max-w-md">
     <input
@@ -909,8 +938,8 @@
             Vitrina
           </label>
         </div>
-        <div 
-          *ngIf="newOrder.order_type !== 'sales' && !newOrder.is_vitrine" 
+        <div
+          *ngIf="newOrder.order_type !== 'sales' && !newOrder.is_vitrine"
           class="mb-4"
         >
           <label class="block modal-input-item">
@@ -961,11 +990,11 @@
             placeholder="Escribe y seleccione al cliente"
             [(ngModel)]="clientSearch"
             (input)="onClientInput(clientSearch)"
+            (focus)="searchClients(clientSearch || '')"
             [ngModelOptions]="{ standalone: true }"
             (blur)="onClientBlur()"
             autocomplete="off"
           />
-
           <!-- Lista de resultados -->
           <ul
             *ngIf="clientSearchResults.length > 0"
