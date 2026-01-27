@@ -4,51 +4,105 @@
 <div *ngIf="loading" class="p-4 text-center text-gray-600">
   <p>Cargando egresos...</p>
 </div>
+
+<!-- FILTROS CON AUTOCOMPLETADO -->
 <div class="flex justify-between items-center mb-4 mt-4 ml-2">
   <div class="flex flex-wrap gap-4 items-end mt-4 mb-4">
-    <!-- Categoría -->
-    <div>
+
+    <!-- Categoría con Autocompletado -->
+    <div class="relative">
       <label class="block text-sm font-semibold">Categoría</label>
-      <select
-        [(ngModel)]="filterCategory"
-        (change)="onFilterCategoryChange()"
-        class="form-select w-48"
+      <input
+        type="text"
+        [(ngModel)]="filterCategorySearch"
+        (input)="onFilterCategoryInput()"
+        (focus)="showFilterCategorySuggestions = true; onFilterCategoryInput()"
+        placeholder="Buscar categoría..."
+        class="form-input w-48 border border-gray-300 rounded-md p-2"
+        autocomplete="off"
+      />
+      <ul
+        *ngIf="showFilterCategorySuggestions && filterCategorySuggestions.length > 0"
+        class="absolute z-[9999] w-full bg-white border rounded shadow-lg max-h-60 overflow-y-auto mt-1"
       >
-        <option value="">Todas</option>
-        <option *ngFor="let c of getFilterCategories()" [value]="c">
-          {{ getCategoryLabel(c) }}
-        </option>
-      </select>
+        <li
+          class="p-2 cursor-pointer hover:bg-blue-100 text-sm border-b font-semibold text-blue-600"
+          (click)="selectFilterCategory('')"
+        >
+          ✓ Todas las categorías
+        </li>
+        <li
+          *ngFor="let cat of filterCategorySuggestions"
+          class="p-2 cursor-pointer hover:bg-gray-100 text-sm"
+          (click)="selectFilterCategory(cat)"
+        >
+          {{ getCategoryLabel(cat) }}
+        </li>
+      </ul>
     </div>
 
-    <!-- Tipo de servicio -->
-    <div *ngIf="filterCategory === 'UTILITIES'">
+    <!-- Tipo de servicio (solo si filterCategory === 'UTILITIES') -->
+    <div *ngIf="filterCategory === 'UTILITIES'" class="relative">
       <label class="block text-sm font-semibold">Tipo de servicio</label>
-      <select
-        [(ngModel)]="filterServiceType"
-        (change)="applyFilters()"
-        class="form-select w-48"
+      <input
+        type="text"
+        [(ngModel)]="filterServiceTypeSearch"
+        (input)="onFilterServiceTypeInput()"
+        (focus)="showFilterServiceTypeSuggestions = true; onFilterServiceTypeInput()"
+        placeholder="Buscar tipo..."
+        class="form-input w-48 border border-gray-300 rounded-md p-2"
+        autocomplete="off"
+      />
+      <ul
+        *ngIf="showFilterServiceTypeSuggestions && filterServiceTypeSuggestions.length > 0"
+        class="absolute z-[9999] w-full bg-white border rounded shadow-lg max-h-60 overflow-y-auto mt-1"
       >
-        <option value="">Todos</option>
-        <option *ngFor="let s of getFilterServiceTypes()" [value]="s">
-          {{ s }}
-        </option>
-      </select>
+        <li
+          class="p-2 cursor-pointer hover:bg-blue-100 text-sm border-b font-semibold text-blue-600"
+          (click)="selectFilterServiceType('')"
+        >
+          ✓ Todos los tipos
+        </li>
+        <li
+          *ngFor="let type of filterServiceTypeSuggestions"
+          class="p-2 cursor-pointer hover:bg-gray-100 text-sm"
+          (click)="selectFilterServiceType(type)"
+        >
+          {{ type }}
+        </li>
+      </ul>
     </div>
 
-    <!-- Proveedor -->
-    <div>
+    <!-- Tercero/Proveedor con Autocompletado -->
+    <div class="relative">
       <label class="block text-sm font-semibold">Tercero</label>
-      <select
-        [(ngModel)]="filterProviderName"
-        (change)="applyFilters()"
-        class="form-select w-56"
+      <input
+        type="text"
+        [(ngModel)]="filterProviderNameSearch"
+        (input)="onFilterProviderInput()"
+        (focus)="showFilterProviderSuggestions = true; onFilterProviderInput()"
+        placeholder="Buscar tercero..."
+        class="form-input w-56 border border-gray-300 rounded-md p-2"
+        autocomplete="off"
+      />
+      <ul
+        *ngIf="showFilterProviderSuggestions && filterProviderSuggestions.length > 0"
+        class="absolute z-[9999] w-full bg-white border rounded shadow-lg max-h-60 overflow-y-auto mt-1"
       >
-        <option value="">Todos</option>
-        <option *ngFor="let name of getThirdParties()" [value]="name">
+        <li
+          class="p-2 cursor-pointer hover:bg-blue-100 text-sm border-b font-semibold text-blue-600"
+          (click)="selectFilterProvider('')"
+        >
+          ✓ Todos los terceros
+        </li>
+        <li
+          *ngFor="let name of filterProviderSuggestions"
+          class="p-2 cursor-pointer hover:bg-gray-100 text-sm"
+          (click)="selectFilterProvider(name)"
+        >
           {{ name }}
-        </option>
-      </select>
+        </li>
+      </ul>
     </div>
 
     <!-- Solo pendientes -->
@@ -62,28 +116,22 @@
       <span class="text-sm font-semibold">Solo pendientes</span>
     </div>
   </div>
+
+  <!-- Botones (sin cambios) -->
   <div class="flex space-x-2">
-    <button
-      class="btn-add inline-flex items-center space-x-2"
-      (click)="addNewExpense()"
-    >
-      <svg
-        class="w-5 h-5 inline-block"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="white"
-        stroke-width="2"
-      >
+    <button class="btn-add inline-flex items-center space-x-2" (click)="addNewExpense()">
+      <svg class="w-5 h-5 inline-block" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
         <path d="M12 5v14M5 12h14" />
       </svg>
       <span>Añadir</span>
     </button>
-    <button class="btn-details" (click)="generateExpensesKardex()">
-      Generar Kardex
-    </button>
+    <button class="btn-details" (click)="generateExpensesKardex()">Generar Kardex</button>
     <button class="btn-clear" (click)="clearFilters()">Limpiar</button>
   </div>
 </div>
+
+
+<!-- Filtros de Fecha -->
 <div class="flex items-center space-x-4">
   <div>
     <label for="startDate" class="mr-2 font-semibold">Desde:</label>
@@ -355,10 +403,12 @@
 
     <!-- Formulario -->
     <form (ngSubmit)="saveExpense()" class="space-y-4">
+
+      <!-- Fecha de Egreso -->
       <div class="modal-input-item">
-        <label class="block text-sm font-medium text-gray-700"
-          >Fecha de Egreso <span class="text-red-500">*</span></label
-        >
+        <label class="block text-sm font-medium text-gray-700">
+          Fecha de Egreso <span class="text-red-500">*</span>
+        </label>
         <input
           type="date"
           [(ngModel)]="selectedExpense.payment_date"
@@ -368,135 +418,172 @@
         />
       </div>
 
+      <!-- NUEVO: Selector de Tipo de Categoría con 3 Botones -->
       <div class="modal-input-item">
-        <label class="block text-sm font-medium text-gray-700"
-          >Categoría <span class="text-red-500">*</span></label
-        >
-        <select
-          [(ngModel)]="selectedExpense.category"
-          (change)="onCategoryChange($event)"
-          name="category"
-          class="form-select mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-          required
-        >
-          <option value="" disabled selected>Seleccione...</option>
-          <option
-            *ngFor="let cat of getAllCategories()"
-            [value]="cat"
-          >
-            {{ getCategoryLabel(cat) }}
-          </option>
-          <option value="NEW_CATEGORY_OPTION" class="font-bold text-blue-600">
-            + Nueva categoría
-          </option>
-        </select>
-      </div>
-      <div
-        *ngIf="categoryJustAdded"
-        class="mt-2 text-sm font-semibold text-green-700 bg-green-50 border border-green-200 rounded px-3 py-2 animate-fadeIn"
-      >
-        Categoría <span class="font-bold">{{ selectedExpense.category }}</span> seleccionada
-      </div>
-      <div
-        *ngIf="isNewCategoryMode"
-        class="bg-blue-50 p-4 rounded-md border border-blue-200 space-y-2 mt-2"
-      >
-        <label class="block text-sm font-medium text-blue-800">
-          Nueva Categoría
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          Tipo de Categoría <span class="text-red-500">*</span>
         </label>
-
-        <div class="flex gap-2">
-          <input
-            type="text"
-            [(ngModel)]="newCategory"
-            name="new_category"
-            placeholder="Ej: Seguros, Honorarios, Fletes"
-            class="form-input w-full text-sm rounded-md"
-          />
+        <div class="flex gap-2 flex-wrap">
           <button
             type="button"
-            class="btn-primary text-sm px-3"
-            (click)="confirmNewCategory()"
+            class="px-4 py-2 rounded border transition-all"
+            [class.bg-blue-600]="categoryMode === 'UTILITIES'"
+            [class.text-white]="categoryMode === 'UTILITIES'"
+            [class.border-blue-600]="categoryMode === 'UTILITIES'"
+            [class.bg-white]="categoryMode !== 'UTILITIES'"
+            [class.text-gray-700]="categoryMode !== 'UTILITIES'"
+            [class.border-gray-300]="categoryMode !== 'UTILITIES'"
+            [class.hover:bg-blue-50]="categoryMode !== 'UTILITIES'"
+            (click)="setCategoryMode('UTILITIES')"
           >
-            Usar
+            🔌 Servicios Públicos
           </button>
-        </div>
-      </div>
-      <!-- Tipo de Servicio (solo para SERVICES) -->
-      <div
-        *ngIf="isServiceCategory"
-        class="bg-yellow-50 p-4 rounded-md border border-yellow-200 space-y-3 mt-2"
-      >
-        <h3 class="font-semibold text-yellow-800 text-sm">Tipo de Servicio</h3>
 
-        <!-- Selector -->
-        <select
-          [(ngModel)]="selectedExpense.service_type"
-          name="service_type"
-          class="form-select mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-        >
-          <option value="" disabled>Seleccione tipo de servicio</option>
-          <option *ngFor="let s of getServiceTypes()" [value]="s">
-            {{ s }}
-          </option>
-        </select>
-
-        <!-- Crear nuevo -->
-        <div class="flex gap-2 mt-2">
-          <input
-            type="text"
-            [(ngModel)]="newServiceType"
-            name="new_service_type"
-            placeholder="Nuevo tipo de servicio (Ej: Gas)"
-            class="form-input w-full text-sm rounded-md"
-          />
           <button
             type="button"
-            class="btn-primary text-sm px-3"
-            (click)="confirmNewServiceType()"
+            class="px-4 py-2 rounded border transition-all"
+            [class.bg-green-600]="categoryMode === 'SUPPLIES'"
+            [class.text-white]="categoryMode === 'SUPPLIES'"
+            [class.border-green-600]="categoryMode === 'SUPPLIES'"
+            [class.bg-white]="categoryMode !== 'SUPPLIES'"
+            [class.text-gray-700]="categoryMode !== 'SUPPLIES'"
+            [class.border-gray-300]="categoryMode !== 'SUPPLIES'"
+            [class.hover:bg-green-50]="categoryMode !== 'SUPPLIES'"
+            (click)="setCategoryMode('SUPPLIES')"
           >
-            Usar
+            📦 Proveedores / Insumos
+          </button>
+
+          <button
+            type="button"
+            class="px-4 py-2 rounded border transition-all"
+            [class.bg-purple-600]="categoryMode === 'OTHER'"
+            [class.text-white]="categoryMode === 'OTHER'"
+            [class.border-purple-600]="categoryMode === 'OTHER'"
+            [class.bg-white]="categoryMode !== 'OTHER'"
+            [class.text-gray-700]="categoryMode !== 'OTHER'"
+            [class.border-gray-300]="categoryMode !== 'OTHER'"
+            [class.hover:bg-purple-50]="categoryMode !== 'OTHER'"
+            (click)="setCategoryMode('OTHER')"
+          >
+            📋 Otra Categoría
           </button>
         </div>
       </div>
 
-      <!-- SOLO PARA SUPPLIES -->
+      <!-- ============================================ -->
+      <!-- OPCIÓN 1: SERVICIOS PÚBLICOS (UTILITIES) -->
+      <!-- ============================================ -->
       <div
-        *ngIf="isSupplierCategory"
+        *ngIf="categoryMode === 'UTILITIES'"
         class="bg-blue-50 p-4 rounded-md border border-blue-200 space-y-3 mt-2"
       >
-        <h3 class="font-semibold text-blue-800 text-sm">
-          Proveedor
+        <h3 class="font-semibold text-blue-800 text-sm flex items-center gap-2">
+          <span>🔌</span> Tipo de Servicio Público
         </h3>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-700">
-            Seleccionar proveedor
-          </label>
-          <select
-            [(ngModel)]="selectedExpense.id_provider"
-            (change)="onProviderChange($event)"
-            name="id_provider"
-            class="form-select mt-1 block w-full rounded-md border-gray-300"
+        <!-- Input con Autocompletado -->
+        <div class="relative">
+          <input
+            type="text"
+            [(ngModel)]="serviceTypeSearch"
+            (input)="onServiceTypeInput()"
+            (focus)="showServiceTypeSuggestions = true; onServiceTypeInput()"
+            name="service_type_search"
+            placeholder="Buscar o escribir tipo de servicio (ej: Agua, Luz, Gas)"
+            class="form-input w-full text-sm rounded-md"
+            autocomplete="off"
+          />
+
+          <!-- Lista de sugerencias -->
+          <ul
+            *ngIf="showServiceTypeSuggestions && serviceTypeSuggestions.length > 0"
+            class="absolute z-[9999] w-full bg-white border rounded shadow-lg max-h-40 overflow-y-auto mt-1"
           >
-            <option value="" disabled>Seleccione un proveedor</option>
-            <option value="NEW_PROVIDER_OPTION" class="font-bold text-blue-600">
-              + Nuevo Proveedor
-            </option>
-            <option disabled>----------------</option>
-            <option
-              *ngFor="let prov of providersList"
-              [value]="prov.id_provider"
+            <li
+              *ngFor="let type of serviceTypeSuggestions"
+              class="p-2 cursor-pointer hover:bg-blue-100 text-sm"
+              (click)="selectServiceType(type)"
             >
-              {{ prov.company_name || prov.name }} ({{ prov.document_number }})
-            </option>
-          </select>
+              {{ type }}
+            </li>
+          </ul>
         </div>
 
+        <!-- Botón para crear nuevo tipo -->
+        <button
+          type="button"
+          class="btn-primary text-sm px-3 py-1 w-full"
+          (click)="confirmNewServiceType()"
+          *ngIf="serviceTypeSearch && !isExistingServiceType(serviceTypeSearch)"
+        >
+          ➕ Crear nuevo tipo: "{{ serviceTypeSearch }}"
+        </button>
+
+
+        <p class="text-xs text-blue-600 mt-1">
+          💡 Escribe para buscar entre servicios existentes o crear uno nuevo
+        </p>
+      </div>
+
+      <!-- ============================================ -->
+      <!-- OPCIÓN 2: PROVEEDORES / INSUMOS (SUPPLIES) -->
+      <!-- ============================================ -->
+      <div
+        *ngIf="categoryMode === 'SUPPLIES'"
+        class="bg-green-50 p-4 rounded-md border border-green-200 space-y-3 mt-2"
+      >
+        <h3 class="font-semibold text-green-800 text-sm flex items-center gap-2">
+          <span>📦</span> Seleccionar Proveedor
+        </h3>
+
+        <!-- Input con Autocompletado -->
+        <div class="relative">
+          <input
+            type="text"
+            [(ngModel)]="providerSearch"
+            (input)="onProviderSearchInput()"
+            (focus)="showProviderSuggestions = true; onProviderSearchInput()"
+            name="provider_search"
+            placeholder="Buscar por nombre, empresa o documento..."
+            class="form-input w-full text-sm rounded-md"
+            autocomplete="off"
+            [disabled]="isNewProviderMode"
+          />
+
+          <!-- Lista de sugerencias -->
+          <ul
+            *ngIf="showProviderSuggestions && providerSuggestions.length > 0 && !isNewProviderMode"
+            class="absolute z-[9999] w-full bg-white border rounded shadow-lg max-h-48 overflow-y-auto mt-1"
+          >
+            <li
+              *ngFor="let prov of providerSuggestions"
+              class="p-2 cursor-pointer hover:bg-green-100 text-sm border-b"
+              (click)="selectProvider(prov)"
+            >
+              <div class="font-semibold">{{ prov.company_name || prov.name }}</div>
+              <div class="text-xs text-gray-600">{{ prov.document_number }}</div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Botón para nuevo proveedor -->
+        <button
+          type="button"
+          class="btn-primary text-sm px-3 py-1 w-full"
+          (click)="openNewProviderMode()"
+          *ngIf="!isNewProviderMode"
+        >
+          ➕ Crear Nuevo Proveedor
+        </button>
+
+        <!-- Formulario de Nuevo Proveedor -->
         <div
           *ngIf="isNewProviderMode"
-          class="pl-2 border-l-2 border-blue-400 space-y-2"
+          class="pl-2 border-l-2 border-green-400 space-y-2"
         >
+          <p class="text-xs font-semibold text-green-700">Datos del Nuevo Proveedor:</p>
+
           <input
             type="text"
             [(ngModel)]="newProviderData.company_name"
@@ -504,6 +591,7 @@
             placeholder="Nombre Empresa / Razón Social"
             class="form-input w-full text-sm rounded-md"
           />
+
           <div class="flex gap-2">
             <input
               type="text"
@@ -528,48 +616,104 @@
             placeholder="Teléfono"
             class="form-input w-full text-sm rounded-md"
           />
+
+          <button
+            type="button"
+            class="btn-danger text-sm px-3 py-1"
+            (click)="isNewProviderMode = false; providerSearch = ''"
+          >
+            ❌ Cancelar Nuevo Proveedor
+          </button>
+        </div>
+
+        <p class="text-xs text-green-600 mt-1">
+          💡 Escribe para buscar entre proveedores existentes
+        </p>
+      </div>
+
+      <!-- ============================================ -->
+      <!-- OPCIÓN 3: OTRA CATEGORÍA (OTHER) -->
+      <!-- ============================================ -->
+      <div
+        *ngIf="categoryMode === 'OTHER'"
+        class="bg-purple-50 p-4 rounded-md border border-purple-200 space-y-3 mt-2"
+      >
+        <h3 class="font-semibold text-purple-800 text-sm flex items-center gap-2">
+          <span>📋</span> Categoría del Egreso
+        </h3>
+
+        <!-- Input con Autocompletado -->
+        <div class="relative">
+          <input
+            type="text"
+            [(ngModel)]="categorySearch"
+            (input)="onCategoryInput(); showCategorySuggestions = true"
+            (focus)="showCategorySuggestions = true; onCategoryInput()"
+            (blur)="onCategoryBlur()"
+            name="category_search"
+            placeholder="Ej: Arriendo, Nómina, Honorarios, Seguros..."
+            class="form-input w-full text-sm rounded-md"
+            autocomplete="off"
+          />
+
+          <!-- Lista de sugerencias -->
+          <ul
+            *ngIf="showCategorySuggestions && categorySuggestions.length > 0"
+            class="absolute z-[9999] w-full bg-white border rounded shadow-lg max-h-40 overflow-y-auto mt-1"
+          >
+            <li
+              *ngFor="let cat of categorySuggestions"
+              class="p-2 cursor-pointer hover:bg-purple-100 text-sm"
+              (mousedown)="selectCategory(cat)"
+            >
+              {{ getCategoryLabel(cat) }}
+            </li>
+          </ul>
+        </div>
+
+        <p class="text-xs text-purple-600 mt-1">
+          💡 Escribe el nombre de la categoría. Si no existe, se creará automáticamente
+        </p>
+
+        <!-- Campo "Pagado a" (Tercero) -->
+        <div class="mt-3 pt-3 border-t border-purple-300">
+          <h4 class="font-semibold text-purple-700 text-sm mb-2">Pagado a (Tercero):</h4>
+
+          <div class="relative">
+            <input
+              type="text"
+              [(ngModel)]="selectedExpense.provider_name"
+              name="provider_name"
+              placeholder="Nombre de la persona o entidad"
+              class="form-input w-full rounded-md text-sm"
+              (input)="onThirdPartyInput()"
+              autocomplete="off"
+            />
+
+            <ul
+              *ngIf="thirdPartySuggestions.length > 0"
+              class="absolute z-[9999] w-full bg-white border rounded shadow max-h-40 overflow-y-auto mt-1"
+            >
+              <li
+                *ngFor="let name of thirdPartySuggestions"
+                class="p-2 cursor-pointer hover:bg-gray-100"
+                (click)="selectThirdParty(name)"
+              >
+                {{ name }}
+              </li>
+            </ul>
+          </div>
+
+          <small *ngIf="thirdPartySuggestions.length === 0 && selectedExpense.provider_name" class="text-xs text-purple-500">
+            Se guardará como nuevo tercero
+          </small>
         </div>
       </div>
 
-      <!-- PARA CUALQUIER CATEGORÍA QUE NO SEA SUPPLIES -->
-      <div
-        *ngIf="selectedExpense.category && !isSupplierCategory"
-        class="bg-gray-50 p-4 rounded-md border border-gray-200 space-y-2 mt-2"
-      >
-        <h3 class="font-semibold text-gray-700 text-sm">
-          Pagado a
-        </h3>
-        <small *ngIf="thirdPartySuggestions.length === 0 && selectedExpense.provider_name">
-          Se guardará como nuevo tercero
-        </small>
-
-        <input
-          type="text"
-          [(ngModel)]="selectedExpense.provider_name"
-          name="provider_name"
-          placeholder="Nombre de la persona o entidad"
-          class="form-input w-full rounded-md text-sm"
-          (input)="onThirdPartyInput()"
-          autocomplete="off"
-        />
-
-        <ul
-          *ngIf="thirdPartySuggestions.length > 0"
-          class="absolute z-[9999] w-full bg-white border rounded shadow max-h-40 overflow-y-auto mt-1"
-        >
-          <li
-            *ngFor="let name of thirdPartySuggestions"
-            class="p-2 cursor-pointer hover:bg-gray-100"
-            (click)="selectThirdParty(name)"
-          >
-            {{ name }}
-          </li>
-        </ul>
-      </div>
-
+            <!-- Método de Pago -->
       <div class="modal-input-item">
         <label class="block text-sm font-medium text-gray-700">
-          Método de Pago
+          Método de Pago <span class="text-red-500">*</span>
         </label>
         <select
           [(ngModel)]="selectedExpense.type"
@@ -586,8 +730,9 @@
         </select>
       </div>
 
+      <!-- Anotación -->
       <div class="modal-input-item">
-        <label for="description">Anotación</label>
+        <label for="description">Anotación <span class="text-red-500">*</span></label>
         <textarea
           [(ngModel)]="selectedExpense.description"
           name="description"
@@ -597,8 +742,11 @@
         ></textarea>
       </div>
 
+      <!-- Costo -->
       <div class="modal-input-item">
-        <label class="block text-sm font-medium text-gray-700">Costo</label>
+        <label class="block text-sm font-medium text-gray-700">
+          Costo <span class="text-red-500">*</span>
+        </label>
         <input
           type="number"
           [(ngModel)]="selectedExpense.cost"
@@ -608,15 +756,16 @@
           required
         />
       </div>
-      <div
-        class="bg-gray-50 p-4 rounded-md border border-gray-200 mt-4 space-y-4"
-      >
+
+      <!-- Adjuntos -->
+      <div class="bg-gray-50 p-4 rounded-md border border-gray-200 mt-4 space-y-4">
         <h3 class="font-semibold text-gray-800 text-sm">Adjuntos</h3>
 
+        <!-- Factura / Recibo -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1"
-            >Factura / Recibo</label
-          >
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Factura / Recibo
+          </label>
           <div class="flex items-center gap-2">
             <input
               type="file"
@@ -649,10 +798,11 @@
           </div>
         </div>
 
+        <!-- Comprobante de Pago -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1"
-            >Comprobante de Pago</label
-          >
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Comprobante de Pago
+          </label>
           <div class="flex items-center gap-2">
             <input
               type="file"
@@ -685,6 +835,8 @@
           </div>
         </div>
       </div>
+
+      <!-- Estado de Pago -->
       <div class="bg-gray-50 p-3 rounded border border-gray-200 mt-4">
         <div class="flex gap-4 items-center">
           <span class="text-sm font-bold text-gray-700">Estado de Pago:</span>
@@ -713,13 +865,15 @@
             <span class="ml-2 text-sm">Pendiente</span>
           </label>
         </div>
+
+        <!-- Fecha Límite si está Pendiente -->
         <div
           *ngIf="selectedExpense.payment_status === 'PENDING'"
           class="mt-3 animate-fadeIn"
         >
-          <label class="block text-sm font-medium text-red-700"
-            >Fecha Límite de Pago <span class="text-red-500">*</span></label
-          >
+          <label class="block text-sm font-medium text-red-700">
+            Fecha Límite de Pago <span class="text-red-500">*</span>
+          </label>
           <input
             type="date"
             [(ngModel)]="selectedExpense.payment_due_date"
@@ -733,6 +887,7 @@
         </div>
       </div>
 
+      <!-- Botones de Acción -->
       <div class="flex justify-end gap-3 pt-4 border-t mt-4">
         <button
           type="button"
@@ -744,9 +899,9 @@
         <button
           type="submit"
           class="btn-success px-4 py-2"
-          [disabled]="isSaving"
+          [disabled]="isSaving || !categoryMode"
         >
-           {{ submitButtonText }}
+          {{ submitButtonText }}
         </button>
       </div>
     </form>
