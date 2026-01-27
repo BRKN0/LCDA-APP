@@ -204,6 +204,7 @@
   <table class="table-std w-full">
     <thead>
       <tr>
+        <th class="table-column-std">Código</th>
         <th class="table-column-std">Fecha</th>
         <th class="table-column-std">Categoría</th>
         <th class="table-column-std">Tercero</th>
@@ -217,9 +218,11 @@
     <tbody>
       <tr *ngFor="let expense of paginatedExpenses" class="hover:bg-gray-50">
         <td class="px-4 py-2 border-b">
+          {{ expense.code }}
+        </td>
+        <td class="px-4 py-2 border-b">
           {{ expense.payment_date | date : "dd-MM-yyyy" }}
         </td>
-
         <td class="px-4 py-2 border-b">
           {{
             expense.category === "UTILITIES" && expense.service_type
