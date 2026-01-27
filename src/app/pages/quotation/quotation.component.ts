@@ -345,6 +345,18 @@ export class QuotationComponent implements OnInit {
       ...q,
       items: (q.items || []).map(i => ({ ...i })),
     };
+
+    if (q.client && !q.walk_in) {
+      this.clientSearch =
+        q.client.company_name?.trim() ||
+        q.client.name?.trim() ||
+        '';
+    } else if (q.walk_in) {
+      this.clientSearch = q.customer_label || 'Cliente Mostrador';
+    } else {
+      this.clientSearch = '';
+    }
+    
     this.isEditing = true;
     this.showModal = true;
     this.suggestions = {};
@@ -521,6 +533,13 @@ export class QuotationComponent implements OnInit {
     });
   }
 
+  formatMoneyCOP(value: number): string {
+    return '$' + new Intl.NumberFormat('es-CO', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value || 0);
+  }
+
   async generateQuotationPdf(): Promise<void> {
     if (!this.selectedQuotationDetails) { alert('Selecciona una cotización.'); return; }
     const q = this.selectedQuotationDetails;
@@ -552,8 +571,8 @@ export class QuotationComponent implements OnInit {
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
-    doc.text('NIT 901479196-1', 120, 41);
-    doc.text('Barrio Blas de Lezo Cl. 21A Mz.11A Lt.12', 120, 46);
+    doc.text('NIT: 901479196-1', 120, 41);
+    doc.text('Barrio: Blas de Lezo Cl. 21A Mz.11A Lt.12', 120, 46);
     doc.text('Cartagena de Indias, Colombia', 120, 51);
     doc.text('Tel: 300 494 7020', 120, 56);
     doc.text('lacasadelacrilico21@gmail.com', 120, 61);
@@ -564,16 +583,24 @@ export class QuotationComponent implements OnInit {
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
-    doc.text('CLIENTE:', 10, y);
+    doc.text('DATOS DEL CLIENTE:', 10, y);
 
     doc.setFont('helvetica', 'normal');
     y += 6;
 
     doc.text(q.client?.name || 'Cliente Mostrador', 10, y); y += 5;
-    if (q.client?.nit) { doc.text(`NIT: ${q.client.nit}`, 10, y); y += 5; }
-    if (q.client?.address) { doc.text(`Dirección: ${q.client.address}`, 10, y); y += 5; }
-    if (q.client?.cellphone) { doc.text(`Tel: ${q.client.cellphone}`, 10, y); y += 5; }
-    if (q.client?.email) { doc.text(`Email: ${q.client.email}`, 10, y); y += 5; }
+    if (q.client?.nit) {
+      doc.text(`NIT: ${q.client.nit}`, 10, y); y += 5; 
+    }
+    if (q.client?.address) { 
+      doc.text(`Dirección: ${q.client.address}`, 10, y); y += 5; 
+    }
+    if (q.client?.cellphone) {
+      doc.text(`Tel: ${q.client.cellphone}`, 10, y); y += 5; 
+    }
+    if (q.client?.email) { 
+      doc.text(`Email: ${q.client.email}`, 10, y); y += 5; 
+    }
     doc.setDrawColor(180);
     doc.line(10, y + 4, 200, y + 4);
     y += 12;
@@ -617,14 +644,14 @@ export class QuotationComponent implements OnInit {
       doc.text(String(it.quantity ?? 1), col.qty, cy, { align: 'right' });
 
       doc.text(
-        this.money(it.unit_price || 0, q.currency),
+        this.formatMoneyCOP(it.unit_price || 0),
         col.unit,
         cy,
         { align: 'right' }
       );
 
       doc.text(
-        this.money(it.total_price || 0, q.currency),
+        this.formatMoneyCOP(it.total_price),
         col.total,
         cy,
         { align: 'right' }
@@ -640,7 +667,7 @@ export class QuotationComponent implements OnInit {
       }
     });
 
-    cy += 8;
+    cy += 12;
     const totalsLabelX = col.unit - 20;
     const totalsValueX = col.total;
 
@@ -651,7 +678,7 @@ export class QuotationComponent implements OnInit {
 
     doc.setFont('helvetica', 'normal');
     doc.text(
-      this.money(totals.subTotal, q.currency),
+      this.formatMoneyCOP(totals.subTotal),
       totalsValueX,
       cy,
       { align: 'right' }
@@ -665,7 +692,7 @@ export class QuotationComponent implements OnInit {
 
       doc.setFont('helvetica', 'normal');
       doc.text(
-        this.money(totals.ivaTotal, q.currency),
+        this.formatMoneyCOP(totals.ivaTotal),
         totalsValueX,
         cy,
         { align: 'right' }
@@ -684,7 +711,7 @@ export class QuotationComponent implements OnInit {
     doc.text('TOTAL:', totalsLabelX, cy);
 
     doc.text(
-      this.money(totals.grandTotal, q.currency),
+      this.formatMoneyCOP(totals.grandTotal),
       totalsValueX,
       cy,
       { align: 'right' }
