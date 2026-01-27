@@ -1246,7 +1246,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
         orderErr
       );
     }
-    
+
     // show warning if there is pending stock
     if (hasStockIssues && totalPendingQty > 0) {
       this.stockWarningMessage =
@@ -1552,7 +1552,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
     order.order_confirmed_status = newConfirmedStatus;
     if (updatePayload.secondary_completed) {
       order.secondary_completed = true;
-    }   
+    }
   }
 
   async markSecondaryCompleted(order: Orders) {
@@ -1776,6 +1776,12 @@ export class OrdersComponent implements OnInit, OnDestroy {
     return error || !data ? null : data.user_name;
   }
 
+  private getLocalDateISO(): string {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().split('T')[0];
+  }
+
   async addOrder(newOrderForm: Partial<Orders>): Promise<void> {
     this.isSavingOrder = true;
 
@@ -1863,7 +1869,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
         client_type: newOrderForm.client_type!,
         description: newOrderForm.description?.toUpperCase() || '',
         order_payment_status: newOrderForm.order_payment_status || 'overdue',
-        created_at: new Date().toISOString(),
+        created_at: this.getLocalDateISO(),
         created_time: this.getCurrentTimeHHMM(),
         delivery_date: newOrderForm.delivery_date || new Date().toISOString(), // someone change this line to 'delivery_date: newOrderForm.delivery_date!,' if the user CAN'T leave it empty
         is_immediate: newOrderForm.is_immediate || false,
@@ -1888,7 +1894,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
         requires_e_invoice: newOrderForm.requires_e_invoice ?? false,
         include_iva: newOrderForm.include_iva ?? false,
         scheduler: (await this.getUserName()) || 'Desconocido',
-        code: 0, 
+        code: 0,
         discount: newOrderForm.discount || 0,
         discount_type: newOrderForm.discount_type || 'percentage'
       };
@@ -2001,7 +2007,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
         alert('Pedido actualizado correctamente.');
         this.showModal = false;
         await this.getOrders();
-      } 
+      }
       // logic for creating (insert transaction)
       else {
         // prepare json payload for order
@@ -2052,13 +2058,13 @@ export class OrdersComponent implements OnInit, OnDestroy {
 
         // handle success data
         const newOrderId = data.id_order;
-        const generatedCode = data.code; 
+        const generatedCode = data.code;
 
         // update local state with the generated code
         this.newOrder.code = generatedCode;
 
         // post-transaction operations
-        
+
         // initial payment
         await this.createInitialPaymentForOrder({ ...this.newOrder, id_order: newOrderId } as any, total);
 
@@ -2086,7 +2092,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
             cutting_time: this.tempCutTime,
             unit_price: Number(this.newOrder.unitary_value) || 0,
           };
-          
+
           const { error: cutError } = await this.supabase.from('cuts').insert([cutRecord]);
           if (cutError) console.error('Error al insertar en tabla cuts:', cutError);
         }
