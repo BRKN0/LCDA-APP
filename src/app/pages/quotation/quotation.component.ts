@@ -226,8 +226,12 @@ export class QuotationComponent implements OnInit {
   }
 
   async getClients(): Promise<void> {
-    const { data, error } = await this.supabase.from('clients').select('*').order('name', { ascending: true });
+    const { data, error } = await this.supabase
+      .from('clients')
+      .select('*')
+      .order('name', { ascending: true });
     if (error) { console.error(error); return; }
+
     this.clients = data as Client[];
     this.filteredClients = [...this.clients];
   }
@@ -255,7 +259,10 @@ export class QuotationComponent implements OnInit {
   }
 
   async getSomeMaterials(): Promise<void> {
-    const { data, error } = await this.supabase.from('materials').select('id_material, code, type, category, color, caliber').limit(50);
+    const { data, error } = await this.supabase
+      .from('materials')
+      .select('id_material, code, type, category, color, caliber')
+      .limit(50);
     if (error) { console.error(error); return; }
     this.materialsCache = data as Material[];
   }
@@ -366,10 +373,10 @@ export class QuotationComponent implements OnInit {
     if (!this.selectedQuotation) return;
     const q = this.selectedQuotation;
 
-    if (!q.title || !q.title.trim()) {
+    /*if (!q.title || !q.title.trim()) {
       alert('Escribe un título para la cotización.');
       return;
-    }
+    }*/
     if (q.walk_in && !q.customer_label) {
       q.customer_label = 'Cliente Mostrador';
     }
@@ -389,8 +396,8 @@ export class QuotationComponent implements OnInit {
         include_iva: !!q.include_iva,
         global_discount_type: q.global_discount_type || 'none',
         global_discount_value: q.global_discount_value || 0,
-        notes_public: q.notes_public || null,
-        notes_private: q.notes_private || null,
+        notes_public: q.notes_public?.trim().toUpperCase() || null,
+        notes_private: q.notes_private?.trim().toUpperCase() || null,
         updated_at: new Date().toISOString(),
       };
 
@@ -433,7 +440,7 @@ export class QuotationComponent implements OnInit {
           line_number: idx + 1,
           id_material: it.id_material ?? null,
           quantity: qty,
-          description: (it as any).description?.toString().trim() || '',
+          description: (it as any).description?.toString().trim().toUpperCase() || '',
           unit_price: up,
           total_price: total,
           notes_admin: (it as any).notes_admin ?? null,
@@ -479,7 +486,7 @@ export class QuotationComponent implements OnInit {
       id_quotation: this.selectedQuotation.id_quotation || '',
       line_number: items.length + 1,
       id_material: row?.id_material ?? null,
-      description: row?.description ?? '',
+      description: row?.description?.trim().toUpperCase() || '',
       quantity: row?.quantity ?? 1,
       unit_price: row?.unit_price ?? 0,
       unit: row?.unit ?? 'und',
@@ -969,7 +976,7 @@ export class QuotationComponent implements OnInit {
       console.error('[convertQuotationToOrder] Error:', err);
       alert('Error creando el pedido/factura. Revisa la consola.');
     }
-    }
+  }
 
 
 

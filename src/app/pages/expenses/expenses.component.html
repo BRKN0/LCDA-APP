@@ -491,7 +491,8 @@
             type="text"
             [(ngModel)]="serviceTypeSearch"
             (input)="onServiceTypeInput()"
-            (focus)="showServiceTypeSuggestions = true; onServiceTypeInput()"
+            (focus)="showServiceTypeSuggestions = true; 
+            onServiceTypeInput()"
             name="service_type_search"
             placeholder="Buscar o escribir tipo de servicio (ej: Agua, Luz, Gas)"
             class="form-input w-full text-sm rounded-md"
@@ -577,7 +578,7 @@
           (click)="openNewProviderMode()"
           *ngIf="!isNewProviderMode"
         >
-          ➕ Crear Nuevo Proveedor
+          Crear Nuevo Proveedor
         </button>
 
         <!-- Formulario de Nuevo Proveedor -->
@@ -625,7 +626,7 @@
             class="btn-danger text-sm px-3 py-1"
             (click)="isNewProviderMode = false; providerSearch = ''"
           >
-            ❌ Cancelar Nuevo Proveedor
+            Cancelar Nuevo Proveedor
           </button>
         </div>
 

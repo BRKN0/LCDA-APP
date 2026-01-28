@@ -98,13 +98,13 @@ export class ExpensesComponent implements OnInit {
   newCategory: string = '';
   categoryJustAdded: boolean = false;
   standardCategories = [
-    { value: 'SUPPLIES', label: 'Compra de Insumos / Proveedores' },
-    { value: 'RENT', label: 'Arriendo' },
-    { value: 'UTILITIES', label: 'Servicios Públicos' },
-    { value: 'PAYROLL', label: 'Nómina' },
-    { value: 'MAINTENANCE', label: 'Mantenimiento' },
-    { value: 'TAXES', label: 'Impuestos' },
-    { value: 'MARKETING', label: 'Publicidad' },
+    { value: 'SUPPLIES', label: 'COMPRA DE INSUMOS / PROVEEDORES' },
+    { value: 'RENT', label: 'ARRIENDO' },
+    { value: 'UTILITIES', label: 'SERVICIOS PUBLICOS' },
+    { value: 'PAYROLL', label: 'NOMINA' },
+    { value: 'MAINTENANCE', label: 'MANTENIMIENTO' },
+    { value: 'TAXES', label: 'IMPUESTOS' },
+    { value: 'MARKETING', label: 'PUBLICIDAD' },
   ];
   baseCategories = [
     'SUPPLIES',
@@ -219,6 +219,7 @@ export class ExpensesComponent implements OnInit {
       this.providersList = data;
     }
   }
+  
   resetExpense(): ExpensesItem {
     return {
       id_expenses: '',
@@ -293,12 +294,14 @@ export class ExpensesComponent implements OnInit {
       )
     ).sort();
   }
+
   onFilterCategoryChange(): void {
     if (this.filterCategory !== 'UTILITIES') {
       this.filterServiceType = null;
     }
     this.applyFilters();
   }
+
   initializeCategoryCheckboxes(): void {
     this.uniqueCategories.forEach((category) => {
       this.categoryCheckboxes[category] = true;
@@ -335,6 +338,7 @@ export class ExpensesComponent implements OnInit {
       this.isNewProviderMode = false;
     }
   }
+
   // Handle Status Change
   onStatusChange(event: Event): void {
     const value = (event.target as HTMLSelectElement).value as
@@ -342,6 +346,7 @@ export class ExpensesComponent implements OnInit {
       | 'PENDING';
     this.selectedExpense.payment_status = value;
   }
+
   onProviderChange(event: Event): void {
     const value = (event.target as HTMLSelectElement).value;
     if (value === 'NEW_PROVIDER_OPTION') {
@@ -358,6 +363,10 @@ export class ExpensesComponent implements OnInit {
       .trim()
       .toUpperCase()
       .replace(/\s+/g, ' ');
+  }
+
+  private toUpper(value?: string | null): string | null {
+    return value ? value.trim().toUpperCase() : null;
   }
 
   getUniqueProviderNames(): string[] {
@@ -415,81 +424,81 @@ export class ExpensesComponent implements OnInit {
 
   // Save expenses and update checkboxes
   async saveExpense() {
-  if (this.isSaving) return;
-  this.isSaving = true;
+    if (this.isSaving) return;
+    this.isSaving = true;
 
-  let rollbackProviderId: string | null = null;
+    let rollbackProviderId: string | null = null;
 
-  try {
-    // ===== VALIDACIONES GENERALES =====
-    if (!this.selectedExpense.payment_date) {
-      alert('Por favor, seleccione una fecha.');
-      return;
-    }
-
-    if (!this.categoryMode) {
-      alert('Por favor, seleccione un tipo de categoría (Servicios, Proveedores u Otra).');
-      return;
-    }
-
-    if (this.categoryMode !== 'SUPPLIES' && this.isNewProviderMode) {
-      console.warn('isNewProviderMode estaba activo en una categoría incorrecta. Corrigiendo...');
-      this.isNewProviderMode = false;
-      this.newProviderData = {
-        company_name: '',
-        name: '',
-        document_number: '',
-        phone_number: '',
-      };
-    }
-
-    // ===== VALIDACIONES ESPECÍFICAS POR TIPO =====
-
-    // UTILITIES: Debe tener tipo de servicio
-    if (this.categoryMode === 'UTILITIES') {
-      if (!this.serviceTypeSearch) {
-        alert('Por favor, seleccione o escriba el tipo de servicio público.');
+    try {
+      // ===== VALIDACIONES GENERALES =====
+      if (!this.selectedExpense.payment_date) {
+        alert('Por favor, seleccione una fecha.');
         return;
       }
-      this.selectedExpense.category = 'UTILITIES';
-      this.selectedExpense.service_type = this.serviceTypeSearch.trim().toUpperCase();
-    }
 
-    // SUPPLIES: Debe tener proveedor
-    if (this.categoryMode === 'SUPPLIES') {
-      this.selectedExpense.category = 'SUPPLIES';
-
-      if (this.isNewProviderMode) {
-        if (!this.newProviderData.company_name && !this.newProviderData.name) {
-          alert('Debe ingresar Nombre o Empresa para el nuevo proveedor');
-          return;
-        }
-      } else {
-        if (!this.selectedExpense.id_provider) {
-          alert('Por favor, seleccione un proveedor o cree uno nuevo.');
-          return;
-        }
-      }
-    }
-
-    // OTHER: Debe tener categoría escrita
-    if (this.categoryMode === 'OTHER') {
-      if (!this.categorySearch) {
-        alert('Por favor, escriba el nombre de la categoría.');
+      if (!this.categoryMode) {
+        alert('Por favor, seleccione un tipo de categoría (Servicios, Proveedores u Otra).');
         return;
       }
-      this.selectedExpense.category = this.categorySearch.trim().toUpperCase();
-    }
 
-    if (
-      this.selectedExpense.payment_status === 'PENDING' &&
-      !this.selectedExpense.payment_due_date
-    ) {
-      alert(
-        'Si el estado es "Pendiente", debe seleccionar una Fecha Límite de Pago.'
-      );
-      return;
-    }
+      if (this.categoryMode !== 'SUPPLIES' && this.isNewProviderMode) {
+        console.warn('isNewProviderMode estaba activo en una categoría incorrecta. Corrigiendo...');
+        this.isNewProviderMode = false;
+        this.newProviderData = {
+          company_name: '',
+          name: '',
+          document_number: '',
+          phone_number: '',
+        };
+      }
+
+      // ===== VALIDACIONES ESPECÍFICAS POR TIPO =====
+
+      // UTILITIES: Debe tener tipo de servicio
+      if (this.categoryMode === 'UTILITIES') {
+        if (!this.serviceTypeSearch) {
+          alert('Por favor, seleccione o escriba el tipo de servicio público.');
+          return;
+        }
+        this.selectedExpense.category = 'UTILITIES';
+        this.selectedExpense.service_type = this.serviceTypeSearch.trim().toUpperCase();
+      }
+
+      // SUPPLIES: Debe tener proveedor
+      if (this.categoryMode === 'SUPPLIES') {
+        this.selectedExpense.category = 'SUPPLIES';
+
+        if (this.isNewProviderMode) {
+          if (!this.newProviderData.company_name && !this.newProviderData.name) {
+            alert('Debe ingresar Nombre o Empresa para el nuevo proveedor');
+            return;
+          }
+        } else {
+          if (!this.selectedExpense.id_provider) {
+            alert('Por favor, seleccione un proveedor o cree uno nuevo.');
+            return;
+          }
+        }
+      }
+
+      // OTHER: Debe tener categoría escrita
+      if (this.categoryMode === 'OTHER') {
+        if (!this.categorySearch) {
+          alert('Por favor, escriba el nombre de la categoría.');
+          return;
+        }
+        this.selectedExpense.category = this.categorySearch.trim().toUpperCase();
+      }
+
+      if (
+        this.selectedExpense.payment_status === 'PENDING' &&
+        !this.selectedExpense.payment_due_date
+      ) {
+        alert(
+          'Si el estado es "Pendiente", debe seleccionar una Fecha Límite de Pago.'
+        );
+        return;
+      }
       let finalProviderId = this.selectedExpense.id_provider;
       let finalProviderName =
         this.selectedExpense.provider_name
@@ -546,17 +555,17 @@ export class ExpensesComponent implements OnInit {
 
       const expenseToSave: any = {
         payment_date: this.selectedExpense.payment_date,
-        category: this.selectedExpense.category,
+        category: this.selectedExpense.category?.trim().toUpperCase(),
         service_type:
           this.selectedExpense.category === 'UTILITIES'
-            ? this.selectedExpense.service_type
+            ? this.toUpper(this.selectedExpense.service_type)
             : null,
         type: this.selectedExpense.type,
-        description: this.selectedExpense.description,
+        description: this.toUpper(this.selectedExpense.description),
         cost: this.selectedExpense.cost,
         code: this.selectedExpense.code,
         id_provider: finalProviderId || null,
-        provider_name: finalProviderName || null,
+        provider_name: this.toUpper(finalProviderName),
         payment_status: this.selectedExpense.payment_status,
         payment_due_date:
           this.selectedExpense.payment_status === 'PENDING'
@@ -632,41 +641,46 @@ export class ExpensesComponent implements OnInit {
   }
 
   async getExpenses(): Promise<void> {
-  this.loading = true;
+    this.loading = true;
 
-  const { data, error } = await this.supabase
-    .from('expenses')
-    .select('*, expense_payments(*)')
-    .order('payment_date', { ascending: false });
+    const { data, error } = await this.supabase
+      .from('expenses')
+      .select('*, expense_payments(*)')
+      .order('payment_date', { ascending: false });
 
-  this.loading = false;
+    this.loading = false;
 
-  if (error) {
-    console.error('Error al cargar los egresos:', error);
-    return;
+    if (error) {
+      console.error('Error al cargar los egresos:', error);
+      return;
+    }
+
+    this.expenses = (data || []).map((item: any) => ({
+      ...item,
+      category: item.category?.toUpperCase() || '',
+      description: item.description?.toUpperCase() || '',
+      payment_date: item.payment_date
+        ? new Date(item.payment_date).toISOString().split('T')[0]
+        : '',
+      created_at: item.created_at
+        ? new Date(item.created_at)
+        : new Date(),
+      service_type: this.toUpper(item.service_type),
+      provider_name: this.toUpper(item.provider_name),
+      payments: item.expense_payments || [],
+    })) as ExpensesItem[];
+
+    this.uniqueCategories = [
+      ...new Set(this.expenses.map((e) => e.category || '')),
+    ].sort();
+
+    this.initializeCategoryCheckboxes();
+
+    this.filteredExpenses = [...this.expenses];
+
+    this.applyFilters();
   }
 
-  this.expenses = (data || []).map((item: any) => ({
-    ...item,
-    payment_date: item.payment_date
-      ? new Date(item.payment_date).toISOString().split('T')[0]
-      : '',
-    created_at: item.created_at
-      ? new Date(item.created_at)
-      : new Date(),
-    payments: item.expense_payments || [],
-  })) as ExpensesItem[];
-
-  this.uniqueCategories = [
-    ...new Set(this.expenses.map((e) => e.category || '')),
-  ].sort();
-
-  this.initializeCategoryCheckboxes();
-
-  this.filteredExpenses = [...this.expenses];
-
-  this.applyFilters();
-}
   // Genererate Expenses Kardex
   generateExpensesKardex(): void {
     console.log('Botón Generar Kardex clicado');
@@ -745,24 +759,24 @@ export class ExpensesComponent implements OnInit {
     ).sort();
   }
 
-  onThirdPartyInput(): void {
-  const value = this.selectedExpense.provider_name?.trim() || '';
+    onThirdPartyInput(): void {
+    const value = this.selectedExpense.provider_name?.trim() || '';
 
-  // Si está vacío, mostrar todos los terceros disponibles
-  if (!value) {
-    this.thirdPartySuggestions = this.getThirdParties().slice(0, 50);
-    return;
+    // Si está vacío, mostrar todos los terceros disponibles
+    if (!value) {
+      this.thirdPartySuggestions = this.getThirdParties().slice(0, 50);
+      return;
+    }
+
+    const normalizedValue = this.normalizeText(value);
+
+    this.thirdPartySuggestions = this.getThirdParties()
+      .filter(name => {
+        const nameNormalized = this.normalizeText(name);
+        return nameNormalized.includes(normalizedValue);
+      })
+      .slice(0, 50);
   }
-
-  const normalizedValue = this.normalizeText(value);
-
-  this.thirdPartySuggestions = this.getThirdParties()
-    .filter(name => {
-      const nameNormalized = this.normalizeText(name);
-      return nameNormalized.includes(normalizedValue);
-    })
-    .slice(0, 50);
-}
 
   selectThirdParty(name: string): void {
     this.selectedExpense.provider_name = name;
@@ -1554,24 +1568,24 @@ export class ExpensesComponent implements OnInit {
   }
 
   onFilterServiceTypeInput(): void {
-  const search = this.normalizeText(this.filterServiceTypeSearch);
+    const search = this.normalizeText(this.filterServiceTypeSearch);
 
-  // Si está vacío, limpiar filtro Y mostrar todos
-  if (!search) {
-    this.filterServiceType = null;
-    this.filterServiceTypeSuggestions = this.getFilterServiceTypes();
+    // Si está vacío, limpiar filtro Y mostrar todos
+    if (!search) {
+      this.filterServiceType = null;
+      this.filterServiceTypeSuggestions = this.getFilterServiceTypes();
+      this.showFilterServiceTypeSuggestions = true;
+      this.applyFilters();
+      return;
+    }
+
+    this.filterServiceTypeSuggestions = this.getFilterServiceTypes().filter(type => {
+      const typeNormalized = this.normalizeText(type);
+      return typeNormalized.includes(search);
+    });
+
     this.showFilterServiceTypeSuggestions = true;
-    this.applyFilters();
-    return;
   }
-
-  this.filterServiceTypeSuggestions = this.getFilterServiceTypes().filter(type => {
-    const typeNormalized = this.normalizeText(type);
-    return typeNormalized.includes(search);
-  });
-
-  this.showFilterServiceTypeSuggestions = true;
-}
 
   selectFilterServiceType(type: string): void {
     if (type === '') {
@@ -1624,192 +1638,192 @@ export class ExpensesComponent implements OnInit {
   }
 
   onServiceTypeInput(): void {
-  const search = this.normalizeText(this.serviceTypeSearch);
+    const search = this.normalizeText(this.serviceTypeSearch);
 
-  // Si está vacío, mostrar todas las opciones
-  if (!search) {
-    this.serviceTypeSuggestions = this.getServiceTypes();
+    // Si está vacío, mostrar todas las opciones
+    if (!search) {
+      this.serviceTypeSuggestions = this.getServiceTypes();
+      this.showServiceTypeSuggestions = true;
+      return;
+    }
+
+    this.serviceTypeSuggestions = this.getServiceTypes().filter(type => {
+      const typeNormalized = this.normalizeText(type);
+      return typeNormalized.includes(search);
+    });
+
     this.showServiceTypeSuggestions = true;
-    return;
+
+    // Si encuentra una coincidencia exacta, autocompletar
+    const exactMatch = this.getServiceTypes().find(type => {
+      return this.normalizeText(type) === search;
+    });
+
+    if (exactMatch) {
+      this.selectedExpense.service_type = exactMatch;
+    }
   }
 
-  this.serviceTypeSuggestions = this.getServiceTypes().filter(type => {
-    const typeNormalized = this.normalizeText(type);
-    return typeNormalized.includes(search);
-  });
-
-  this.showServiceTypeSuggestions = true;
-
-  // Si encuentra una coincidencia exacta, autocompletar
-  const exactMatch = this.getServiceTypes().find(type => {
-    return this.normalizeText(type) === search;
-  });
-
-  if (exactMatch) {
-    this.selectedExpense.service_type = exactMatch;
-  }
-}
-
-selectServiceType(type: string): void {
-  this.selectedExpense.service_type = type;
-  this.serviceTypeSearch = type;
-  this.showServiceTypeSuggestions = false;
-  this.serviceTypeSuggestions = [];
-}
-
-// ============================================
-// MÉTODOS PARA MODAL - PROVEEDORES (SUPPLIES)
-// ============================================
-
-onProviderSearchInput(): void {
-  const search = this.normalizeText(this.providerSearch);
-
-  if (!search) {
-    this.providerSuggestions = this.providersList;
-    return;
+  selectServiceType(type: string): void {
+    this.selectedExpense.service_type = type;
+    this.serviceTypeSearch = type;
+    this.showServiceTypeSuggestions = false;
+    this.serviceTypeSuggestions = [];
   }
 
-  this.providerSuggestions = this.providersList.filter(prov => {
-    const companyNormalized = this.normalizeText(prov.company_name || '');
-    const nameNormalized = this.normalizeText(prov.name || '');
-    const docNormalized = this.normalizeText(prov.document_number || '');
+  // ============================================
+  // MÉTODOS PARA MODAL - PROVEEDORES (SUPPLIES)
+  // ============================================
 
-    return companyNormalized.includes(search) ||
-           nameNormalized.includes(search) ||
-           docNormalized.includes(search);
-  });
-}
+  onProviderSearchInput(): void {
+    const search = this.normalizeText(this.providerSearch);
 
-selectProvider(provider: any): void {
-  this.selectedExpense.id_provider = provider.id_provider;
-  this.providerSearch = provider.company_name || provider.name;
-  this.showProviderSuggestions = false;
-  this.providerSuggestions = [];
-  this.isNewProviderMode = false;
-}
+    if (!search) {
+      this.providerSuggestions = this.providersList;
+      return;
+    }
 
-openNewProviderMode(): void {
-  this.isNewProviderMode = true;
-  this.showProviderSuggestions = false;
-  this.providerSearch = '';
-  this.selectedExpense.id_provider = '';
-}
+    this.providerSuggestions = this.providersList.filter(prov => {
+      const companyNormalized = this.normalizeText(prov.company_name || '');
+      const nameNormalized = this.normalizeText(prov.name || '');
+      const docNormalized = this.normalizeText(prov.document_number || '');
 
-// ============================================
-// MÉTODOS PARA MODAL - OTRAS CATEGORÍAS (OTHER)
-// ============================================
+      return companyNormalized.includes(search) ||
+            nameNormalized.includes(search) ||
+            docNormalized.includes(search);
+    });
+  }
 
-getAllCategorySuggestions(): string[] {
-  return Array.from(
-    new Set(
-      this.expenses
-        .map(e => e.category)
-        .filter(c => c && c !== 'UTILITIES' && c !== 'SUPPLIES')
-    )
-  ).sort();
-}
+  selectProvider(provider: any): void {
+    this.selectedExpense.id_provider = provider.id_provider;
+    this.providerSearch = provider.company_name || provider.name;
+    this.showProviderSuggestions = false;
+    this.providerSuggestions = [];
+    this.isNewProviderMode = false;
+  }
 
-onCategoryInput(): void {
-  const search = this.normalizeText(this.categorySearch);
+  openNewProviderMode(): void {
+    this.isNewProviderMode = true;
+    this.showProviderSuggestions = false;
+    this.providerSearch = '';
+    this.selectedExpense.id_provider = '';
+  }
 
-  // Si está vacío, mostrar todas las categorías
-  if (!search) {
-    this.categorySuggestions = this.getAllCategorySuggestions();
+  // ============================================
+  // MÉTODOS PARA MODAL - OTRAS CATEGORÍAS (OTHER)
+  // ============================================
+
+  getAllCategorySuggestions(): string[] {
+    return Array.from(
+      new Set(
+        this.expenses
+          .map(e => e.category)
+          .filter(c => c && c !== 'UTILITIES' && c !== 'SUPPLIES')
+      )
+    ).sort();
+  }
+
+  onCategoryInput(): void {
+    const search = this.normalizeText(this.categorySearch);
+
+    // Si está vacío, mostrar todas las categorías
+    if (!search) {
+      this.categorySuggestions = this.getAllCategorySuggestions();
+      this.showCategorySuggestions = true;
+      return;
+    }
+
+    this.categorySuggestions = this.getAllCategorySuggestions().filter(cat => {
+      const catNormalized = this.normalizeText(cat);
+      return catNormalized.includes(search);
+    });
+
     this.showCategorySuggestions = true;
-    return;
   }
 
-  this.categorySuggestions = this.getAllCategorySuggestions().filter(cat => {
-    const catNormalized = this.normalizeText(cat);
-    return catNormalized.includes(search);
-  });
-
-  this.showCategorySuggestions = true;
-}
-
-selectCategory(value: string): void {
-  const normalized = value.trim().toUpperCase();
-  this.selectedExpense.category = normalized;
-  this.categorySearch = value;
-  this.categorySuggestions = [];
-  this.showCategorySuggestions = false;
-  this.categoryJustSelected = true;
-}
-
-onCategoryBlur(): void {
-  if (this.categoryJustSelected) return;
-
-  if (!this.categorySearch) return;
-
-  const normalized = this.normalizeText(this.categorySearch);
-  this.selectedExpense.category = normalized.toUpperCase();
-  this.categorySearch = normalized.toUpperCase();
-  this.categorySuggestions = [];
-}
-
-// ============================================
-// MÉTODOS PARA MANEJO DE MODOS DE CATEGORÍA
-// ============================================
-
-setCategoryMode(mode: 'UTILITIES' | 'SUPPLIES' | 'OTHER'): void {
-  this.categoryMode = mode;
-
-  // Resetear campos según el modo
-  this.selectedExpense.service_type = null;
-  this.selectedExpense.id_provider = '';
-  this.selectedExpense.provider_name = null;
-  this.selectedExpense.category = '';
-
-  // Resetear búsquedas
-  this.serviceTypeSearch = '';
-  this.providerSearch = '';
-  this.categorySearch = '';
-
-  // Cerrar sugerencias
-  this.showServiceTypeSuggestions = false;
-  this.showProviderSuggestions = false;
-  this.showCategorySuggestions = false;
-  this.thirdPartySuggestions = [];
-
-  this.isNewProviderMode = false;
-  this.newProviderData = {
-    company_name: '',
-    name: '',
-    document_number: '',
-    phone_number: '',
-  };
-
-  if (mode === 'UTILITIES') {
-    this.selectedExpense.category = 'UTILITIES';
-    this.isServiceCategory = true;
-    this.isSupplierCategory = false;
+  selectCategory(value: string): void {
+    const normalized = value.trim().toUpperCase();
+    this.selectedExpense.category = normalized;
+    this.categorySearch = value;
+    this.categorySuggestions = [];
+    this.showCategorySuggestions = false;
+    this.categoryJustSelected = true;
   }
 
-  if (mode === 'SUPPLIES') {
-    this.selectedExpense.category = 'SUPPLIES';
-    this.isSupplierCategory = true;
-    this.isServiceCategory = false;
+  onCategoryBlur(): void {
+    if (this.categoryJustSelected) return;
+
+    if (!this.categorySearch) return;
+
+    const normalized = this.normalizeText(this.categorySearch);
+    this.selectedExpense.category = normalized.toUpperCase();
+    this.categorySearch = normalized.toUpperCase();
+    this.categorySuggestions = [];
   }
 
-  if (mode === 'OTHER') {
-    this.isServiceCategory = false;
-    this.isSupplierCategory = false;
+  // ============================================
+  // MÉTODOS PARA MANEJO DE MODOS DE CATEGORÍA
+  // ============================================
+
+  setCategoryMode(mode: 'UTILITIES' | 'SUPPLIES' | 'OTHER'): void {
+    this.categoryMode = mode;
+
+    // Resetear campos según el modo
+    this.selectedExpense.service_type = null;
+    this.selectedExpense.id_provider = '';
+    this.selectedExpense.provider_name = null;
+    this.selectedExpense.category = '';
+
+    // Resetear búsquedas
+    this.serviceTypeSearch = '';
+    this.providerSearch = '';
+    this.categorySearch = '';
+
+    // Cerrar sugerencias
+    this.showServiceTypeSuggestions = false;
+    this.showProviderSuggestions = false;
+    this.showCategorySuggestions = false;
+    this.thirdPartySuggestions = [];
+
+    this.isNewProviderMode = false;
+    this.newProviderData = {
+      company_name: '',
+      name: '',
+      document_number: '',
+      phone_number: '',
+    };
+
+    if (mode === 'UTILITIES') {
+      this.selectedExpense.category = 'UTILITIES';
+      this.isServiceCategory = true;
+      this.isSupplierCategory = false;
+    }
+
+    if (mode === 'SUPPLIES') {
+      this.selectedExpense.category = 'SUPPLIES';
+      this.isSupplierCategory = true;
+      this.isServiceCategory = false;
+    }
+
+    if (mode === 'OTHER') {
+      this.isServiceCategory = false;
+      this.isSupplierCategory = false;
+    }
   }
-}
 
-  /**
- * Verifica si un tipo de servicio ya existe (ignora mayúsculas y acentos)
- */
-isExistingServiceType(searchText: string): boolean {
-  if (!searchText) return false;
+    /**
+   * Verifica si un tipo de servicio ya existe (ignora mayúsculas y acentos)
+   */
+  isExistingServiceType(searchText: string): boolean {
+    if (!searchText) return false;
 
-  const normalizedSearch = this.normalizeText(searchText);
+    const normalizedSearch = this.normalizeText(searchText);
 
-  return this.getServiceTypes().some(type => {
-    const normalizedType = this.normalizeText(type);
-    return normalizedType === normalizedSearch;
-  });
-}
+    return this.getServiceTypes().some(type => {
+      const normalizedType = this.normalizeText(type);
+      return normalizedType === normalizedSearch;
+    });
+  }
 
   private async reloadAllData(): Promise<void> {
     await new Promise(resolve => setTimeout(resolve, 100));

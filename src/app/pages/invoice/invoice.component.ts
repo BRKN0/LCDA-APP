@@ -2588,40 +2588,40 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
 /**
  * Actualiza las sugerencias del dropdown de nombres de clientes
  */
-updateClientNameSuggestions(): void {
-  const value = this.nameSearchQuery.trim();
+  updateClientNameSuggestions(): void {
+    const value = this.nameSearchQuery.trim();
 
-  // Si está vacío, muestra los primeros 50 clientes únicos de las facturas
-  if (!value) {
+    // Si está vacío, muestra los primeros 50 clientes únicos de las facturas
+    if (!value) {
+      const uniqueClients = new Map<string, Client>();
+      this.invoices.forEach(invoice => {
+        if (invoice.order?.client && !uniqueClients.has(invoice.order.client.id_client)) {
+          uniqueClients.set(invoice.order.client.id_client, invoice.order.client);
+        }
+      });
+      this.clientNameSuggestions = Array.from(uniqueClients.values()).slice(0, 50);
+      this.showClientNameSuggestions = true;
+      return;
+    }
+
+    const normalizedSearch = this.normalizeText(value);
+
+    // Filtrar clientes únicos que coincidan
     const uniqueClients = new Map<string, Client>();
     this.invoices.forEach(invoice => {
-      if (invoice.order?.client && !uniqueClients.has(invoice.order.client.id_client)) {
-        uniqueClients.set(invoice.order.client.id_client, invoice.order.client);
+      if (invoice.order?.client) {
+        const normalizedName = this.normalizeText(invoice.order.client.name);
+
+        if (normalizedName.includes(normalizedSearch) &&
+            !uniqueClients.has(invoice.order.client.id_client)) {
+          uniqueClients.set(invoice.order.client.id_client, invoice.order.client);
+        }
       }
     });
-    this.clientNameSuggestions = Array.from(uniqueClients.values()).slice(0, 50);
-    this.showClientNameSuggestions = true;
-    return;
+
+    this.clientNameSuggestions = Array.from(uniqueClients.values());
+    this.showClientNameSuggestions = this.clientNameSuggestions.length > 0;
   }
-
-  const normalizedSearch = this.normalizeText(value);
-
-  // Filtrar clientes únicos que coincidan
-  const uniqueClients = new Map<string, Client>();
-  this.invoices.forEach(invoice => {
-    if (invoice.order?.client) {
-      const normalizedName = this.normalizeText(invoice.order.client.name);
-
-      if (normalizedName.includes(normalizedSearch) &&
-          !uniqueClients.has(invoice.order.client.id_client)) {
-        uniqueClients.set(invoice.order.client.id_client, invoice.order.client);
-      }
-    }
-  });
-
-  this.clientNameSuggestions = Array.from(uniqueClients.values());
-  this.showClientNameSuggestions = this.clientNameSuggestions.length > 0;
-}
 
 /**
 * Maneja el click/focus en el campo de búsqueda de nombre

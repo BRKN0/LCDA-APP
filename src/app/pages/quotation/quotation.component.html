@@ -283,20 +283,34 @@
           <tbody>
             <tr *ngFor="let it of selectedQuotation.items; let i = index">
               <td class="table-column-std w-24">
-                <input type="number" min="0" step="1" [(ngModel)]="it.quantity" name="qty{{i}}" class="form-input"
-                  (input)="recalculateItem(it)" />
+                <input 
+                  type="number" 
+                  min="0" step="1" 
+                  [(ngModel)]="it.quantity" 
+                  name="qty{{i}}" 
+                  class="form-input"
+                  (input)="recalculateItem(it)" 
+                />
               </td>
               <td class="table-column-std relative">
-                <input type="text" [(ngModel)]="it.description" name="detail{{i}}" class="form-input"
-                  placeholder="Material o servicio" (input)="onDetailInput(i, it.description)" />
+                <input 
+                  type="text" 
+                  [(ngModel)]="it.description" 
+                  name="detail{{i}}" 
+                  class="form-input"
+                  placeholder="Material o servicio" 
+                  (input)="onDetailInput(i, it.description)" 
+                />
                 <ul *ngIf="suggestions[i]?.length"
                   class="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto">
                   <li *ngFor="let m of suggestions[i]" class="p-2 hover:bg-gray-100 cursor-pointer"
                     (click)="selectMaterial(i, m)">
                     {{ m.type }} <small *ngIf="m.code">({{ m.code }})</small>
                   </li>
-                  <li class="p-2 bg-gray-100 hover:bg-gray-200 cursor-pointer" (click)="clearMaterial(i)">Usar texto
-                    escrito</li>
+                  <li class="p-2 bg-gray-100 hover:bg-gray-200 cursor-pointer" 
+                    (click)="clearMaterial(i)"
+                    >Usar texto escrito
+                  </li>
                 </ul>
               </td>
               <td class="table-column-std w-32">
