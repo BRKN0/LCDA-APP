@@ -7,6 +7,7 @@ interface ExpensesItem {
   id_expenses: string;
   created_at: Date;
   payment_date: string;
+  paid_at?: string | null;
   category: string;
   type: string;
   description: string;
@@ -120,6 +121,7 @@ export class ExpensesComponent implements OnInit {
   isServiceCategory: boolean = false;
   availableServiceTypes: string[] = [];
   newServiceType: string = '';
+  serviceTypeJustCreated: boolean = false;
 
   // Providers
   providersList: any[] = [];
@@ -275,6 +277,7 @@ export class ExpensesComponent implements OnInit {
     this.isNewCategoryMode = false;
     this.categoryJustAdded = true;
   }
+
   confirmNewServiceType(): void {
     if (!this.serviceTypeSearch) return;
 
@@ -284,7 +287,10 @@ export class ExpensesComponent implements OnInit {
     this.serviceTypeSearch = normalized;
     this.showServiceTypeSuggestions = false;
     this.serviceTypeSuggestions = [];
+
+    this.serviceTypeJustCreated = true;
   }
+
   getFilterServiceTypes(): string[] {
     return Array.from(
       new Set(
@@ -422,22 +428,67 @@ export class ExpensesComponent implements OnInit {
     this.payeeTypedButNotSelected = false;
   }
 
+  formErrors = {
+    payment_date: false,
+    categoryMode: false,
+    description: false,
+    cost: false,
+    type: false,
+  };
+
+  resetFormErrors(): void {
+    Object.keys(this.formErrors).forEach(
+      key => (this.formErrors[key as keyof typeof this.formErrors] = false)
+    );
+  }
+
   // Save expenses and update checkboxes
   async saveExpense() {
     if (this.isSaving) return;
     this.isSaving = true;
 
+
+
     let rollbackProviderId: string | null = null;
 
     try {
       // ===== VALIDACIONES GENERALES =====
+      this.resetFormErrors();
+
+      let hasError = false;
+
+      // Fecha de egreso
       if (!this.selectedExpense.payment_date) {
-        alert('Por favor, seleccione una fecha.');
-        return;
+        this.formErrors.payment_date = true;
+        hasError = true;
       }
 
+      // Tipo de categoría
       if (!this.categoryMode) {
-        alert('Por favor, seleccione un tipo de categoría (Servicios, Proveedores u Otra).');
+        this.formErrors.categoryMode = true;
+        hasError = true;
+      }
+
+      // Descripción
+      if (!this.selectedExpense.description?.trim()) {
+        this.formErrors.description = true;
+        hasError = true;
+      }
+
+      // Costo
+      if (!this.selectedExpense.cost || this.selectedExpense.cost <= 0) {
+        this.formErrors.cost = true;
+        hasError = true;
+      }
+
+      // Método de pago
+      if (!this.selectedExpense.type) {
+        this.formErrors.type = true;
+        hasError = true;
+      }
+
+      if (hasError) {
+        this.showNotification('Por favor complete los campos obligatorios.');
         return;
       }
 
@@ -507,11 +558,6 @@ export class ExpensesComponent implements OnInit {
 
       // Create New Provider
       if (this.isNewProviderMode) {
-        if (!this.newProviderData.company_name && !this.newProviderData.name) {
-          throw new Error(
-            'Debe ingresar Nombre o Empresa para el nuevo proveedor'
-          );
-        }
 
         finalProviderName =
           this.newProviderData.company_name || this.newProviderData.name;
@@ -553,6 +599,12 @@ export class ExpensesComponent implements OnInit {
         return;
       }
 
+      let paidAt: string | null = null;
+
+      if (this.selectedExpense.payment_status === 'PAID') {
+        paidAt = new Date().toISOString().split('T')[0];
+      }
+
       const expenseToSave: any = {
         payment_date: this.selectedExpense.payment_date,
         category: this.selectedExpense.category?.trim().toUpperCase(),
@@ -571,6 +623,7 @@ export class ExpensesComponent implements OnInit {
           this.selectedExpense.payment_status === 'PENDING'
             ? this.selectedExpense.payment_due_date
             : null,
+        paid_at: paidAt,
       };
 
       let savedExpenseId: string | null = null;
@@ -665,6 +718,7 @@ export class ExpensesComponent implements OnInit {
       created_at: item.created_at
         ? new Date(item.created_at)
         : new Date(),
+      paid_at: item.paid_at ?? null,
       service_type: this.toUpper(item.service_type),
       provider_name: this.toUpper(item.provider_name),
       payments: item.expense_payments || [],
@@ -989,6 +1043,7 @@ export class ExpensesComponent implements OnInit {
     this.isSupplierCategory = false;
     this.isNewCategoryMode = false;
     this.categoryJustAdded = false;
+    this.serviceTypeJustCreated = false;
     this.newServiceType = '';
 
     this.selectedExpense = {
@@ -1268,77 +1323,87 @@ export class ExpensesComponent implements OnInit {
 
   // Agregar un abono
   async addPayment(expense: ExpensesItem, amount: number): Promise<void> {
-  if (!expense || !expense.id_expenses || amount <= 0) {
-    this.showNotification('Por favor, ingrese un monto válido.');
-    return;
-  }
-
-  if (expense.payment_status === 'PAID' && (!expense.payments || expense.payments.length === 0)) {
-    this.showNotification('Este egreso ya está pagado completamente. No se pueden agregar abonos.');
-    return;
-  }
-
-  const total = Number(expense.cost) || 0;
-  const totalPaid = this.getTotalPayments(expense);
-  const remainingBalance = total - totalPaid;
-
-  if (amount > remainingBalance) {
-    this.showNotification(
-      `El abono no puede exceder el monto pendiente de $${remainingBalance.toFixed(2)}.`
-    );
-    return;
-  }
-
-  try {
-    // 1. Insertar el pago
-    const { data: insertedPayment, error: insertError } = await this.supabase
-      .from('expense_payments')
-      .insert([{
-        id_expenses: expense.id_expenses,
-        amount: amount,
-        payment_method: this.newPaymentMethod,
-      }])
-      .select()
-      .single();
-
-    if (insertError || !insertedPayment) {
-      console.error('Error al insertar pago:', insertError);
-      this.showNotification('Error al añadir el abono.');
+    if (!expense || !expense.id_expenses || amount <= 0) {
+      this.showNotification('Por favor, ingrese un monto válido.');
       return;
     }
 
-    // 2. Calcular nuevo estado
-    const newTotalPaid = totalPaid + amount;
-    let newStatus: 'PAID' | 'PENDING' | 'PARTIAL';
-
-    if (newTotalPaid >= total) {
-      newStatus = 'PAID';
-    } else if (newTotalPaid > 0) {
-      newStatus = 'PARTIAL';
-    } else {
-      newStatus = 'PENDING';
+    if (expense.payment_status === 'PAID' && (!expense.payments || expense.payments.length === 0)) {
+      this.showNotification('Este egreso ya está pagado completamente. No se pueden agregar abonos.');
+      return;
     }
 
-    // 3. Actualizar el estado en la base de datos
-    const { error: updateError } = await this.supabase
-      .from('expenses')
-      .update({ payment_status: newStatus })
-      .eq('id_expenses', expense.id_expenses);
+    const total = Number(expense.cost) || 0;
+    const totalPaid = this.getTotalPayments(expense);
+    const remainingBalance = total - totalPaid;
 
-    if (updateError) {
-      console.error('Error al actualizar estado:', updateError);
+    if (amount > remainingBalance) {
+      this.showNotification(
+        `El abono no puede exceder el monto pendiente de $${remainingBalance.toFixed(2)}.`
+      );
+      return;
     }
 
-    // 4. Recargar datos
-    await this.reloadAllData();
+    try {
+      // 1. Insertar el pago
+      const { data: insertedPayment, error: insertError } = await this.supabase
+        .from('expense_payments')
+        .insert([{
+          id_expenses: expense.id_expenses,
+          amount: amount,
+          payment_method: this.newPaymentMethod,
+        }])
+        .select()
+        .single();
 
-    this.closePaymentModal();
-    this.showNotification('Abono añadido correctamente.');
-  } catch (error) {
-    console.error('Error inesperado:', error);
-    this.showNotification('Ocurrió un error inesperado.');
+      if (insertError || !insertedPayment) {
+        console.error('Error al insertar pago:', insertError);
+        this.showNotification('Error al añadir el abono.');
+        return;
+      }
+
+      // 2. Calcular nuevo estado
+      const newTotalPaid = totalPaid + amount;
+      let newStatus: 'PAID' | 'PENDING' | 'PARTIAL';
+
+      if (newTotalPaid >= total) {
+        newStatus = 'PAID';
+      } else if (newTotalPaid > 0) {
+        newStatus = 'PARTIAL';
+      } else {
+        newStatus = 'PENDING';
+      }
+
+      const updatePayload: any = {
+        payment_status: newStatus,
+      };
+
+      updatePayload.paid_at =
+        newStatus === 'PAID'
+          ? new Date().toISOString().split('T')[0]
+          : null;
+
+
+      // 3. Actualizar el estado en la base de datos
+      const { error: updateError } = await this.supabase
+        .from('expenses')
+        .update(updatePayload)
+        .eq('id_expenses', expense.id_expenses);
+
+      if (updateError) {
+        console.error('Error al actualizar estado:', updateError);
+      }
+
+      // 4. Recargar datos
+      await this.reloadAllData();
+
+      this.closePaymentModal();
+      this.showNotification('Abono añadido correctamente.');
+    } catch (error) {
+      console.error('Error inesperado:', error);
+      this.showNotification('Ocurrió un error inesperado.');
+    }
   }
-}
 
   // Abrir modal para editar pago
   openEditPaymentModal(payment: ExpensePayment) {
@@ -1354,139 +1419,63 @@ export class ExpensesComponent implements OnInit {
 
   // Actualizar un abono existente
   async updatePayment(): Promise<void> {
-  if (!this.selectedPayment || !this.selectedPayment.id_expense_payment) {
-    this.showNotification('No se ha seleccionado un abono válido.');
-    return;
-  }
-
-  const expense = this.expenses.find(e =>
-    e.payments?.some(p => p.id_expense_payment === this.selectedPayment?.id_expense_payment)
-  );
-
-  if (!expense) {
-    this.showNotification('No se encontró el egreso asociado.');
-    return;
-  }
-
-  try {
-    // 1. Actualizar el pago
-    const { error: updateError } = await this.supabase
-      .from('expense_payments')
-      .update({
-        amount: this.selectedPayment.amount,
-        payment_method: this.selectedPayment.payment_method
-      })
-      .eq('id_expense_payment', this.selectedPayment.id_expense_payment);
-
-    if (updateError) {
-      console.error('Error al actualizar pago:', updateError);
-      this.showNotification('Error al actualizar el abono.');
+    if (!this.selectedPayment || !this.selectedPayment.id_expense_payment) {
+      this.showNotification('No se ha seleccionado un abono válido.');
       return;
     }
 
-    // 2. Esperar confirmación
-    await new Promise(resolve => setTimeout(resolve, 150));
+    const expense = this.expenses.find(e =>
+      e.payments?.some(p => p.id_expense_payment === this.selectedPayment?.id_expense_payment)
+    );
 
-    if (this.selectedExpenseForPayment && this.selectedPayment) {
-      const paymentIndex = this.selectedExpenseForPayment.payments?.findIndex(
-        p => p.id_expense_payment === this.selectedPayment!.id_expense_payment
-      );
+    if (!expense) {
+      this.showNotification('No se encontró el egreso asociado.');
+      return;
+    }
 
-      if (paymentIndex !== undefined && paymentIndex !== -1 && this.selectedExpenseForPayment.payments) {
-        this.selectedExpenseForPayment.payments[paymentIndex] = {
-          ...this.selectedExpenseForPayment.payments[paymentIndex],
+    try {
+      // 1. Actualizar el pago
+      const { error: updateError } = await this.supabase
+        .from('expense_payments')
+        .update({
           amount: this.selectedPayment.amount,
           payment_method: this.selectedPayment.payment_method
-        };
+        })
+        .eq('id_expense_payment', this.selectedPayment.id_expense_payment);
+
+      if (updateError) {
+        console.error('Error al actualizar pago:', updateError);
+        this.showNotification('Error al actualizar el abono.');
+        return;
       }
-    }
 
-    // 3. Obtener todos los pagos actualizados
-    const { data: updatedPayments } = await this.supabase
-      .from('expense_payments')
-      .select('amount')
-      .eq('id_expenses', expense.id_expenses);
+      // 2. Esperar confirmación
+      await new Promise(resolve => setTimeout(resolve, 150));
 
-    const totalPaid = (updatedPayments || []).reduce((sum, p) => sum + Number(p.amount), 0);
-    const total = Number(expense.cost) || 0;
+      if (this.selectedExpenseForPayment && this.selectedPayment) {
+        const paymentIndex = this.selectedExpenseForPayment.payments?.findIndex(
+          p => p.id_expense_payment === this.selectedPayment!.id_expense_payment
+        );
 
-    // 4. Calcular nuevo estado
-    let newStatus: 'PAID' | 'PENDING' | 'PARTIAL';
-    if (totalPaid >= total) {
-      newStatus = 'PAID';
-    } else if (totalPaid > 0) {
-      newStatus = 'PARTIAL';
-    } else {
-      newStatus = 'PENDING';
-    }
+        if (paymentIndex !== undefined && paymentIndex !== -1 && this.selectedExpenseForPayment.payments) {
+          this.selectedExpenseForPayment.payments[paymentIndex] = {
+            ...this.selectedExpenseForPayment.payments[paymentIndex],
+            amount: this.selectedPayment.amount,
+            payment_method: this.selectedPayment.payment_method
+          };
+        }
+      }
 
-    // 5. Actualizar estado
-    const { error: statusError } = await this.supabase
-      .from('expenses')
-      .update({ payment_status: newStatus })
-      .eq('id_expenses', expense.id_expenses);
+      // 3. Obtener todos los pagos actualizados
+      const { data: updatedPayments } = await this.supabase
+        .from('expense_payments')
+        .select('amount')
+        .eq('id_expenses', expense.id_expenses);
 
-    if (statusError) {
-      console.error('Error al actualizar estado:', statusError);
-    }
+      const totalPaid = (updatedPayments || []).reduce((sum, p) => sum + Number(p.amount), 0);
+      const total = Number(expense.cost) || 0;
 
-    // 6. Recargar datos
-    await this.reloadAllData();
-
-    this.closeEditPaymentModal();
-    this.showNotification('Abono actualizado correctamente.');
-  } catch (error) {
-    console.error('Error inesperado:', error);
-    this.showNotification('Ocurrió un error inesperado.');
-  }
-}
-
-  // Eliminar un abono
-  async deletePayment(paymentId: number, expenseId: string): Promise<void> {
-  const confirmed = confirm('¿Eliminar este abono?');
-  if (!confirmed) return;
-
-  try {
-    // 1. Eliminar el pago
-    const { error: deleteError } = await this.supabase
-      .from('expense_payments')
-      .delete()
-      .eq('id_expense_payment', paymentId);
-
-    if (deleteError) {
-      console.error('❌ Error al eliminar:', deleteError);
-      this.showNotification('Error al eliminar el abono.');
-      return;
-    }
-
-    if (this.selectedExpenseForPayment) {
-      this.selectedExpenseForPayment.payments =
-        this.selectedExpenseForPayment.payments?.filter(
-          p => p.id_expense_payment !== paymentId
-        ) || [];
-    }
-
-    // 2. Esperar a que se confirme la eliminación
-    await new Promise(resolve => setTimeout(resolve, 200));
-
-    // 3. Obtener los pagos restantes
-    const { data: remainingPayments, error: paymentsError } = await this.supabase
-      .from('expense_payments')
-      .select('amount')
-      .eq('id_expenses', expenseId);
-
-    // 4. Obtener el costo del egreso
-    const { data: expenseData, error: expenseError } = await this.supabase
-      .from('expenses')
-      .select('cost, payment_status')
-      .eq('id_expenses', expenseId)
-      .single();
-
-    if (expenseData) {
-      const total = Number(expenseData.cost) || 0;
-      const totalPaid = (remainingPayments || []).reduce((sum, p) => sum + Number(p.amount), 0);
-
-      // 5. Calcular nuevo estado
+      // 4. Calcular nuevo estado
       let newStatus: 'PAID' | 'PENDING' | 'PARTIAL';
       if (totalPaid >= total) {
         newStatus = 'PAID';
@@ -1496,26 +1485,121 @@ export class ExpensesComponent implements OnInit {
         newStatus = 'PENDING';
       }
 
-      // 6. INTENTO DE ACTUALIZAR EL ESTADO
-      const { error: updateError } = await this.supabase
+      const updatePayload: any = {
+        payment_status: newStatus,
+      };
+
+      updatePayload.paid_at =
+        newStatus === 'PAID'
+          ? new Date().toISOString().split('T')[0]
+          : null;
+
+
+      // 5. Actualizar estado
+      const { error: statusError } = await this.supabase
         .from('expenses')
-        .update({ payment_status: newStatus })
+        .update(updatePayload)
+        .eq('id_expenses', expense.id_expenses);
+
+      if (statusError) {
+        console.error('Error al actualizar estado:', statusError);
+      }
+
+      // 6. Recargar datos
+      await this.reloadAllData();
+
+      this.closeEditPaymentModal();
+      this.showNotification('Abono actualizado correctamente.');
+    } catch (error) {
+      console.error('Error inesperado:', error);
+      this.showNotification('Ocurrió un error inesperado.');
+    }
+  }
+
+  // Eliminar un abono
+  async deletePayment(paymentId: number, expenseId: string): Promise<void> {
+    const confirmed = confirm('¿Eliminar este abono?');
+    if (!confirmed) return;
+
+    try {
+      // 1. Eliminar el pago
+      const { error: deleteError } = await this.supabase
+        .from('expense_payments')
+        .delete()
+        .eq('id_expense_payment', paymentId);
+
+      if (deleteError) {
+        console.error('Error al eliminar:', deleteError);
+        this.showNotification('Error al eliminar el abono.');
+        return;
+      }
+
+      if (this.selectedExpenseForPayment) {
+        this.selectedExpenseForPayment.payments =
+          this.selectedExpenseForPayment.payments?.filter(
+            p => p.id_expense_payment !== paymentId
+          ) || [];
+      }
+
+      // 2. Esperar a que se confirme la eliminación
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      // 3. Obtener los pagos restantes
+      const { data: remainingPayments, error: paymentsError } = await this.supabase
+        .from('expense_payments')
+        .select('amount')
         .eq('id_expenses', expenseId);
 
-      if (updateError) {
-        console.error('Error al actualizar estado:', updateError);
+      // 4. Obtener el costo del egreso
+      const { data: expenseData, error: expenseError } = await this.supabase
+        .from('expenses')
+        .select('cost, payment_status')
+        .eq('id_expenses', expenseId)
+        .single();
+
+      if (expenseData) {
+        const total = Number(expenseData.cost) || 0;
+        const totalPaid = (remainingPayments || []).reduce((sum, p) => sum + Number(p.amount), 0);
+
+        // 5. Calcular nuevo estado
+        let newStatus: 'PAID' | 'PENDING' | 'PARTIAL';
+        if (totalPaid >= total) {
+          newStatus = 'PAID';
+        } else if (totalPaid > 0) {
+          newStatus = 'PARTIAL';
+        } else {
+          newStatus = 'PENDING';
+        }
+
+        const updatePayload: any = {
+          payment_status: newStatus,
+        };
+
+        updatePayload.paid_at =
+          newStatus === 'PAID'
+            ? new Date().toISOString().split('T')[0]
+            : null;
+
+        // 6. INTENTO DE ACTUALIZAR EL ESTADO
+        const { error: updateError } = await this.supabase
+          .from('expenses')
+          .update(updatePayload)
+          .eq('id_expenses', expenseId);
+
+        if (updateError) {
+          console.error('Error al actualizar estado:', updateError);
+        }
       }
+
+      // 7. Recargar datos
+      await this.reloadAllData();
+
+      this.showNotification('Abono eliminado correctamente.');
+    } catch (error) {
+      console.error('Error inesperado:', error);
+      this.showNotification('Ocurrió un error inesperado.');
     }
-
-    // 7. Recargar datos
-    await this.reloadAllData();
-
-    this.showNotification('Abono eliminado correctamente.');
-  } catch (error) {
-    console.error('💥 Error inesperado:', error);
-    this.showNotification('Ocurrió un error inesperado.');
   }
-}
 
   private normalizeText(text: string): string {
     return text
@@ -1845,6 +1929,7 @@ export class ExpensesComponent implements OnInit {
         ? new Date(item.payment_date).toISOString().split('T')[0]
         : '',
       created_at: item.created_at ? new Date(item.created_at) : new Date(),
+      paid_at: item.paid_at ?? null,
       payments: item.expense_payments || [],
     })) as ExpensesItem[];
 
