@@ -77,6 +77,8 @@ export class ExpensesComponent implements OnInit {
   isEditing: boolean = false;
   startDate: string = '';
   endDate: string = '';
+  PaidStartDate: string = '';
+  PaidEndDate: string = '';
   isSaving: boolean = false;
   showDetailsModal: boolean = false;
 
@@ -223,6 +225,7 @@ export class ExpensesComponent implements OnInit {
         this.showFilterCategorySuggestions = false;
         this.showFilterServiceTypeSuggestions = false;
         this.showFilterProviderSuggestions = false;
+        this.showFilterMainCategorySuggestions = false;
 
         // Cerrar dropdowns del modal
         this.showServiceTypeSuggestions = false;
@@ -294,6 +297,39 @@ export class ExpensesComponent implements OnInit {
   getFilterCategories(): string[] {
     return Array.from(
       new Set(this.expenses.map((e) => e.category).filter(Boolean))
+    ).sort();
+  }
+  getFilterCategoriesByMainCategory(): string[] {
+    let filtered = this.expenses;
+
+    // Si hay categoría principal seleccionada, filtrar
+    if (this.filterMainCategory) {
+      filtered = filtered.filter(
+        e => e.mainCategory === this.filterMainCategory
+      );
+    }
+
+    return Array.from(
+      new Set(filtered.map(e => e.category).filter(Boolean))
+    ).sort();
+  }
+  getCategorySuggestionsByMainCategory(): string[] {
+    if (!this.selectedExpense.mainCategory) {
+      return this.getAllCategorySuggestions();
+    }
+
+    return Array.from(
+      new Set(
+        this.expenses
+          .filter(
+            e =>
+              e.mainCategory === this.selectedExpense.mainCategory &&
+              e.category &&
+              e.category !== 'UTILITIES' &&
+              e.category !== 'SUPPLIES'
+          )
+          .map(e => e.category)
+      )
     ).sort();
   }
   confirmNewCategory(): void {
@@ -956,7 +992,7 @@ export class ExpensesComponent implements OnInit {
 
   applyFilters(): void {
     this.filteredExpenses = this.expenses.filter((e) => {
-        if (this.filterMainCategory && e.mainCategory !== this.filterMainCategory) {
+      if (this.filterMainCategory && e.mainCategory !== this.filterMainCategory) {
         return false;
       }
       
@@ -966,6 +1002,22 @@ export class ExpensesComponent implements OnInit {
         return false;
       if (this.endDate && expenseDate > new Date(this.endDate))
         return false;
+
+      // paid_at range
+      if (this.PaidStartDate || this.PaidEndDate) {
+        if (!e.paid_at) return false;
+
+        const paidDate = new Date(e.paid_at);
+        if (this.PaidStartDate &&
+            paidDate < new Date(this.PaidStartDate)) {
+          return false;
+        }
+
+        if (this.PaidEndDate &&
+            paidDate > new Date(this.PaidEndDate)) {
+          return false;
+        }
+      }
 
       // Category
       if (this.filterCategory && e.category !== this.filterCategory) {
@@ -1241,6 +1293,8 @@ export class ExpensesComponent implements OnInit {
   clearFilters(): void {
     this.startDate = '';
     this.endDate = '';
+    this.PaidStartDate = '';
+    this.PaidEndDate = '';
     this.filterCategory = null;
     this.filterServiceType = null;
     this.filterProviderName = null;
@@ -1735,13 +1789,13 @@ export class ExpensesComponent implements OnInit {
     // Si está vacío, mostrar todas las categorías
     if (!search) {
       this.filterCategory = null;
-      this.filterCategorySuggestions = this.getFilterCategories();
+      this.filterCategorySuggestions = this.getFilterCategoriesByMainCategory();
       this.showFilterCategorySuggestions = true;
       this.applyFilters();
       return;
     }
 
-    this.filterCategorySuggestions = this.getFilterCategories().filter(cat => {
+    this.filterCategorySuggestions = this.getFilterCategoriesByMainCategory().filter(cat => {
       const labelNormalized = this.normalizeText(this.getCategoryLabel(cat));
       return labelNormalized.includes(search);
     });
@@ -1930,16 +1984,18 @@ export class ExpensesComponent implements OnInit {
   onCategoryInput(): void {
     const search = this.normalizeText(this.categorySearch);
 
+    const baseSuggestions =
+      this.getCategorySuggestionsByMainCategory();
+
     // Si está vacío, mostrar todas las categorías
     if (!search) {
-      this.categorySuggestions = this.getAllCategorySuggestions();
+      this.categorySuggestions = baseSuggestions;
       this.showCategorySuggestions = true;
       return;
     }
 
-    this.categorySuggestions = this.getAllCategorySuggestions().filter(cat => {
-      const catNormalized = this.normalizeText(cat);
-      return catNormalized.includes(search);
+    this.categorySuggestions = baseSuggestions.filter(cat => {
+      this.normalizeText(cat).includes(search)
     });
 
     this.showCategorySuggestions = true;
@@ -2065,5 +2121,20 @@ export class ExpensesComponent implements OnInit {
 
     // Aplicar filtros (esto recalcula totales)
     this.applyFilters();;
+  }
+
+  formatDateEs(date: string | Date): string {
+    if (!date) return '';
+
+    const parsedDate = typeof date === 'string'
+      ? new Date(date)
+      : date;
+
+    return new Intl.DateTimeFormat('es-CO', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    }).format(parsedDate);
   }
 }
