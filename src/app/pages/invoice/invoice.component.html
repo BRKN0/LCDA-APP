@@ -228,6 +228,21 @@
         <option value="bancolombia">Bancolombia</option>
         <option value="davivienda">Davivienda</option>
       </select>
+
+      <select
+        [(ngModel)]="selectedScheduler"
+        (change)="updateFilteredInvoices()"
+        class="input"
+      >
+        <option value="all">Todos los agendadores</option>
+
+        <option
+          *ngFor="let scheduler of availableSchedulers"
+          [value]="scheduler"
+        >
+          {{ scheduler }}
+        </option>
+      </select>
     </div>
 
 

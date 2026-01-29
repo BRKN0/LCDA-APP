@@ -9,9 +9,42 @@
 <div class="flex justify-between items-center mb-4 mt-4 ml-2">
   <div class="flex flex-wrap gap-4 items-end mt-4 mb-4">
 
+    <!-- CATEGORÍA PRINCIPAL -->
+    <div class="relative">
+      <label class="block text-sm font-semibold">Categoría principal</label>
+      <input
+        type="text"
+        [(ngModel)]="filterMainCategorySearch"
+        (input)="onFilterMainCategoryInput()"
+        (focus)="showFilterMainCategorySuggestions = true; onFilterMainCategoryInput()"
+        placeholder="Buscar categoría principal..."
+        class="form-input w-48 border border-gray-300 rounded-md p-2"
+        autocomplete="off"
+      />
+
+      <ul
+        *ngIf="showFilterMainCategorySuggestions && filterMainCategorySuggestions.length > 0"
+        class="absolute z-[9999] w-full bg-white border rounded shadow-lg max-h-60 overflow-y-auto mt-1"
+      >
+        <li
+          class="p-2 cursor-pointer hover:bg-blue-100 text-sm border-b font-semibold text-blue-600"
+          (click)="selectFilterMainCategory('')"
+        >
+          ✓ Todas las categorías principales
+        </li>
+        <li
+          *ngFor="let cat of filterMainCategorySuggestions"
+          class="p-2 cursor-pointer hover:bg-gray-100 text-sm"
+          (click)="selectFilterMainCategory(cat)"
+        >
+          {{ cat }}
+        </li>
+      </ul>
+    </div>
+
     <!-- Categoría con Autocompletado -->
     <div class="relative">
-      <label class="block text-sm font-semibold">Categoría</label>
+      <label class="block text-sm font-semibold">Detalle</label>
       <input
         type="text"
         [(ngModel)]="filterCategorySearch"
@@ -207,6 +240,7 @@
         <th class="table-column-std">Código</th>
         <th class="table-column-std">Fecha</th>
         <th class="table-column-std">Categoría</th>
+        <th class="table-column-std">Detalle</th>
         <th class="table-column-std">Tercero</th>
         <th class="table-column-std">Anotación</th>
         <th class="table-column-std">Costo</th>
@@ -222,6 +256,9 @@
         </td>
         <td class="px-4 py-2 border-b">
           {{ expense.payment_date | date : "dd-MM-yyyy" }}
+        </td>
+        <td class="px-4 py-2 border-b font-semibold text-sm">
+          {{ expense.mainCategory }}
         </td>
         <td class="px-4 py-2 border-b">
           {{
@@ -415,13 +452,56 @@
         />
       </div>
 
+      <!-- CATEGORÍA PRINCIPAL -->
+      <div class="mb-4">
+        <label class="block text-sm font-semibold mb-2">
+          Categoría principal
+        </label>
+
+        <select
+          name="mainCategory"
+          class="w-full input-std"
+          [(ngModel)]="selectedExpense.mainCategory"
+          (change)="onMainCategoryChange()"
+          required
+        >
+          <option disabled value="">Seleccione una categoría</option>
+
+          <option value="OPERATIVO">OPERATIVO</option>
+          <option value="MATERIALES">MATERIALES</option>
+          <option value="TITULAR">TITULAR</option>
+          <option value="IMPUESTO">IMPUESTO</option>
+          <option value="PILA">PILA</option>
+          <option value="PRESTACIONES">PRESTACIONES</option>
+          <option value="BANCO">BANCO</option>
+          <option value="RESERVA">RESERVA</option>
+          <option value="INVERSION">INVERSIÓN</option>
+        </select>
+      </div>
+
       <!-- NUEVO: Selector de Tipo de Categoría con 3 Botones -->
-      <div class="modal-input-item">
+      <div class="modal-input-item" *ngIf="selectedExpense.mainCategory">
         <label class="block text-sm font-medium text-gray-700 mb-2">
-          Tipo de Categoría <span class="text-red-500">*</span>
+          Tipo de subcategoría <span class="text-red-500">*</span>
         </label>
         <div class="flex gap-2 flex-wrap">
           <button
+            type="button"
+            class="px-4 py-2 rounded border transition-all"
+            [class.bg-purple-600]="categoryMode === 'OTHER'"
+            [class.text-white]="categoryMode === 'OTHER'"
+            [class.border-purple-600]="categoryMode === 'OTHER'"
+            [class.bg-white]="categoryMode !== 'OTHER'"
+            [class.text-gray-700]="categoryMode !== 'OTHER'"
+            [class.border-gray-300]="categoryMode !== 'OTHER'"
+            [class.hover:bg-purple-50]="categoryMode !== 'OTHER'"
+            (click)="setCategoryMode('OTHER')"
+          >
+            Otra Categoría
+          </button>
+
+          <button
+            *ngIf="selectedExpense.mainCategory === 'OPERATIVO'"
             type="button"
             class="px-4 py-2 rounded border transition-all"
             [class.bg-blue-600]="categoryMode === 'UTILITIES'"
@@ -437,6 +517,7 @@
           </button>
 
           <button
+            *ngIf="selectedExpense.mainCategory === 'MATERIALES'"
             type="button"
             class="px-4 py-2 rounded border transition-all"
             [class.bg-green-600]="categoryMode === 'SUPPLIES'"
@@ -449,21 +530,6 @@
             (click)="setCategoryMode('SUPPLIES')"
           >
            Proveedores / Insumos
-          </button>
-
-          <button
-            type="button"
-            class="px-4 py-2 rounded border transition-all"
-            [class.bg-purple-600]="categoryMode === 'OTHER'"
-            [class.text-white]="categoryMode === 'OTHER'"
-            [class.border-purple-600]="categoryMode === 'OTHER'"
-            [class.bg-white]="categoryMode !== 'OTHER'"
-            [class.text-gray-700]="categoryMode !== 'OTHER'"
-            [class.border-gray-300]="categoryMode !== 'OTHER'"
-            [class.hover:bg-purple-50]="categoryMode !== 'OTHER'"
-            (click)="setCategoryMode('OTHER')"
-          >
-            Otra Categoría
           </button>
         </div>
       </div>
@@ -751,13 +817,12 @@
 
       <!-- Anotación -->
       <div class="modal-input-item">
-        <label for="description">Anotación <span class="text-red-500">*</span></label>
+        <label for="description">Anotación</label>
         <textarea
           [(ngModel)]="selectedExpense.description"
           name="description"
           rows="2"
           class="form-textarea mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-          required
         ></textarea>
       </div>
 
@@ -898,7 +963,7 @@
             [(ngModel)]="selectedExpense.payment_due_date"
             name="payment_due_date"
             class="form-input mt-1 block w-full rounded-md border-red-300 focus:ring-red-500"
-            required
+            [required]="selectedExpense.payment_status === 'PENDING'"
           />
           <p class="text-xs text-red-500 mt-1 font-semibold">
             Se generará alerta 1 día antes y el mismo día.
@@ -908,7 +973,7 @@
 
       <!-- Método de Pago -->
       <div 
-        *ngIf="selectedExpense.payment_status !== 'PENDING'"
+        *ngIf="selectedExpense.payment_status === 'PAID' || selectedExpense.payment_status === 'PARTIAL'"
         class="modal-input-item"
       >
         <label class="block text-sm font-medium text-gray-700">
@@ -918,9 +983,9 @@
           [(ngModel)]="selectedExpense.type"
           name="type"
           class="form-select mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-          required
+          [required]="selectedExpense.payment_status === 'PAID' || selectedExpense.payment_status === 'PARTIAL'"
         >
-          <option value="" disabled>Seleccione un método</option>
+          <option value="">Seleccione un método</option>
           <option value="cash">Efectivo</option>
           <option value="nequi">Nequi</option>
           <option value="bancolombia">Bancolombia</option>

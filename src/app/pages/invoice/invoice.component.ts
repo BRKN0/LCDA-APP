@@ -74,6 +74,7 @@ interface Orders {
   requires_e_invoice: boolean;
   is_vitrine: boolean;
   include_iva?: boolean;
+  scheduler?: string;
 }
 
 interface Client {
@@ -134,6 +135,8 @@ export class InvoiceComponent implements OnInit {
   filteredInvoicesList: Invoice[] = [];
   filteredClients: Client[] = [];
   selectedPaymentMethodFilter: string = 'all';
+  selectedScheduler: string = 'all';
+  availableSchedulers: string[] = [];
   clientOrders: Orders[] = [];
   noResultsFound: boolean = false;
   startDate: string = '';
@@ -495,6 +498,7 @@ onDocumentClick(event: MouseEvent): void {
         payment_term: paymentTerm, // Usar el valor guardado o calculado solo si es null
         order: {
           ...invoice.orders,
+          scheduler: invoice.orders?.scheduler ?? null,
           total: invoice.orders.total || invoice.orders.amount || 0,
           client: invoice.orders?.clients || null,
           payments: invoice.orders?.payments || [],
@@ -522,9 +526,23 @@ onDocumentClick(event: MouseEvent): void {
 
     this.loading = false;
     this.updateFilteredInvoices();
+    this.buildSchedulerFilter();
     this.syncInvoicesStatusOnLoad(this.invoices).catch((err) => {
       console.error('Error syncing invoice status:', err);
     });
+  }
+
+  private buildSchedulerFilter(): void {
+    const set = new Set<string>();
+
+    this.invoices.forEach(inv => {
+      const scheduler = inv.order?.scheduler;
+      if (scheduler) {
+        set.add(scheduler);
+      }
+    });
+
+    this.availableSchedulers = Array.from(set).sort();
   }
 
   updateFilteredInvoices(): void {
@@ -625,6 +643,11 @@ onDocumentClick(event: MouseEvent): void {
         });
       }
 
+      const matchesScheduler =
+        this.selectedScheduler === 'all'
+          ? true
+          : invoice.order.scheduler === this.selectedScheduler;
+
       return (
         isDebtFilter &&
         matchesType &&
@@ -633,7 +656,8 @@ onDocumentClick(event: MouseEvent): void {
         matchesNameSearch &&
         matchesRequiresFE &&
         matchesFEStatus &&
-        matchesPaymentFilters
+        matchesPaymentFilters &&
+        matchesScheduler
       );
     });
 
@@ -2917,6 +2941,7 @@ selectClientNameFromSuggestion(client: Client): void {
     this.showNonVitrineSales = true;
     this.showVitrineSales = true;
     this.selectedPaymentMethodFilter = 'all';
+    this.selectedScheduler = 'all';
     this.clientNameSelected = false;
     this.showClientNameSuggestions = false;
     this.clientNameSuggestions = [];

@@ -8,6 +8,16 @@ interface ExpensesItem {
   created_at: Date;
   payment_date: string;
   paid_at?: string | null;
+  mainCategory: 
+    | 'OPERATIVO'
+    | 'MATERIALES'
+    | 'TITULAR'
+    | 'IMPUESTO'
+    | 'PILA'
+    | 'PRESTACIONES'
+    | 'BANCO'
+    | 'RESERVA'
+    | 'INVERSION';
   category: string;
   type: string;
   description: string;
@@ -46,6 +56,7 @@ export class ExpensesComponent implements OnInit {
   selectedExpense: ExpensesItem = {
     id_expenses: '',
     payment_date: '',
+    mainCategory: 'OPERATIVO',
     category: '',
     service_type: '',
     type: '',
@@ -88,6 +99,7 @@ export class ExpensesComponent implements OnInit {
   filterServiceType: string | null = null;
   onlyPending: boolean = false;
   filterProviderName: string | null = null;
+  filterMainCategory: string | null = null;
 
   // Categories
   categoryCheckboxes: { [key: string]: boolean } = {};
@@ -100,21 +112,21 @@ export class ExpensesComponent implements OnInit {
   categoryJustAdded: boolean = false;
   standardCategories = [
     { value: 'SUPPLIES', label: 'COMPRA DE INSUMOS / PROVEEDORES' },
-    { value: 'RENT', label: 'ARRIENDO' },
+    { value: 'ARRIENDO', label: 'ARRIENDO' },
     { value: 'UTILITIES', label: 'SERVICIOS PUBLICOS' },
-    { value: 'PAYROLL', label: 'NOMINA' },
-    { value: 'MAINTENANCE', label: 'MANTENIMIENTO' },
-    { value: 'TAXES', label: 'IMPUESTOS' },
-    { value: 'MARKETING', label: 'PUBLICIDAD' },
+    { value: 'NOMINA', label: 'NOMINA' },
+    { value: 'MANTENIMIENTO', label: 'MANTENIMIENTO' },
+    { value: 'IMPUESTOS', label: 'IMPUESTOS' },
+    { value: 'PUBLICIDAD', label: 'PUBLICIDAD' },
   ];
   baseCategories = [
     'SUPPLIES',
-    'RENT',
+    'ARRIENDO',
     'UTILITIES',
-    'PAYROLL',
-    'MAINTENANCE',
-    'TAXES',
-    'MARKETING',
+    'NOMINA',
+    'MANTENIMIENTO',
+    'IMPUESTOS',
+    'PUBLICIDAD',
   ];
 
   // Service categories
@@ -157,6 +169,18 @@ export class ExpensesComponent implements OnInit {
   // Tipos de categoría
   categoryMode: 'UTILITIES' | 'SUPPLIES' | 'OTHER' | null = null;
 
+  mainCategory: 
+  | 'OPERATIVO'
+  | 'MATERIALES'
+  | 'TITULAR'
+  | 'IMPUESTO'
+  | 'PILA'
+  | 'PRESTACIONES'
+  | 'BANCO'
+  | 'RESERVA'
+  | 'INVERSION'
+  | null = null;
+
   // Autocompletado para FILTROS
   filterCategorySearch: string = '';
   filterCategorySuggestions: string[] = [];
@@ -169,6 +193,10 @@ export class ExpensesComponent implements OnInit {
   filterProviderNameSearch: string = '';
   filterProviderSuggestions: string[] = [];
   showFilterProviderSuggestions: boolean = false;
+
+  filterMainCategorySearch: string = '';
+  filterMainCategorySuggestions: string[] = [];
+  showFilterMainCategorySuggestions: boolean = false;
 
   // Autocompletado para MODAL - Tipo de Servicio (UTILITIES)
   serviceTypeSearch: string = '';
@@ -227,6 +255,7 @@ export class ExpensesComponent implements OnInit {
       id_expenses: '',
       payment_date: new Date().toISOString().split('T')[0],
       category: '',
+      mainCategory: 'OPERATIVO',
       service_type: null,
       type: '',
       description: '',
@@ -301,6 +330,58 @@ export class ExpensesComponent implements OnInit {
     ).sort();
   }
 
+  getMainCategories(): string[] {
+    return [
+      'OPERATIVO',
+      'MATERIALES',
+      'TITULAR',
+      'IMPUESTO',
+      'PILA',
+      'PRESTACIONES',
+      'BANCO',
+      'RESERVA',
+      'INVERSION',
+    ];
+  }
+
+  onFilterMainCategoryInput(): void {
+    const search = this.normalizeText(this.filterMainCategorySearch);
+
+    if (!search) {
+      this.filterMainCategory = null;
+      this.filterMainCategorySuggestions = this.getMainCategories();
+      this.showFilterMainCategorySuggestions = true;
+      this.applyFilters();
+      return;
+    }
+
+    this.filterMainCategorySuggestions = this.getMainCategories().filter(cat =>
+      this.normalizeText(cat).includes(search)
+    );
+
+    this.showFilterMainCategorySuggestions = true;
+  }
+
+  selectFilterMainCategory(category: string): void {
+    if (!category) {
+      this.filterMainCategory = null;
+      this.filterMainCategorySearch = '';
+    } else {
+      this.filterMainCategory = category;
+      this.filterMainCategorySearch = category;
+    }
+
+    this.filterCategory = null;
+    this.filterCategorySearch = '';
+    this.filterServiceType = null;
+    this.filterServiceTypeSearch = '';
+
+    this.showFilterMainCategorySuggestions = false;
+    this.filterMainCategorySuggestions = [];
+
+    this.applyFilters();
+  }
+
   onFilterCategoryChange(): void {
     if (this.filterCategory !== 'UTILITIES') {
       this.filterServiceType = null;
@@ -362,6 +443,27 @@ export class ExpensesComponent implements OnInit {
       this.isNewProviderMode = false;
       this.selectedExpense.id_provider = value;
     }
+  }
+
+  onMainCategoryChange(): void {
+    // Regla base: siempre OTHER al cambiar categoría principal
+    this.categoryMode = 'OTHER';
+
+    // Reset de datos dependientes
+    this.selectedExpense.service_type = null;
+    this.selectedExpense.id_provider = '';
+    this.selectedExpense.provider_name = null;
+
+    // Reset de búsquedas
+    this.serviceTypeSearch = '';
+    this.providerSearch = '';
+    this.categorySearch = '';
+
+    // Cerrar sugerencias
+    this.showServiceTypeSuggestions = false;
+    this.showProviderSuggestions = false;
+    this.showCategorySuggestions = false;
+    this.thirdPartySuggestions = [];
   }
 
   private normalizeProviderName(value: string): string {
@@ -469,22 +571,15 @@ export class ExpensesComponent implements OnInit {
         hasError = true;
       }
 
-      // Descripción
-      if (!this.selectedExpense.description?.trim()) {
-        this.formErrors.description = true;
-        hasError = true;
-      }
-
       // Costo
       if (!this.selectedExpense.cost || this.selectedExpense.cost <= 0) {
         this.formErrors.cost = true;
         hasError = true;
       }
 
-      // Método de pago
-      if (!this.selectedExpense.type) {
-        this.formErrors.type = true;
-        hasError = true;
+      if (!this.selectedExpense.mainCategory) {
+        this.showNotification('Debe seleccionar una categoría principal.');
+        return;
       }
 
       if (hasError) {
@@ -545,11 +640,13 @@ export class ExpensesComponent implements OnInit {
         this.selectedExpense.payment_status === 'PENDING' &&
         !this.selectedExpense.payment_due_date
       ) {
-        alert(
-          'Si el estado es "Pendiente", debe seleccionar una Fecha Límite de Pago.'
+        this.formErrors.type = true;
+        this.showNotification(
+          'Debe seleccionar un método de pago cuando el egreso no está pendiente.'
         );
         return;
       }
+
       let finalProviderId = this.selectedExpense.id_provider;
       let finalProviderName =
         this.selectedExpense.provider_name
@@ -599,14 +696,21 @@ export class ExpensesComponent implements OnInit {
         return;
       }
 
-      let paidAt: string | null = null;
+      let paidAt: string | null = this.selectedExpense.paid_at ?? null;
 
-      if (this.selectedExpense.payment_status === 'PAID') {
+      if (
+        this.selectedExpense.payment_status === 'PAID' &&
+        !this.selectedExpense.paid_at
+      ) {
         paidAt = new Date().toISOString().split('T')[0];
+      }
+      if (this.selectedExpense.payment_status !== 'PAID') {
+        paidAt = null;
       }
 
       const expenseToSave: any = {
         payment_date: this.selectedExpense.payment_date,
+        mainCategory: this.selectedExpense.mainCategory,
         category: this.selectedExpense.category?.trim().toUpperCase(),
         service_type:
           this.selectedExpense.category === 'UTILITIES'
@@ -711,6 +815,7 @@ export class ExpensesComponent implements OnInit {
     this.expenses = (data || []).map((item: any) => ({
       ...item,
       category: item.category?.toUpperCase() || '',
+      mainCategory: item.mainCategory,
       description: item.description?.toUpperCase() || '',
       payment_date: item.payment_date
         ? new Date(item.payment_date).toISOString().split('T')[0]
@@ -851,6 +956,10 @@ export class ExpensesComponent implements OnInit {
 
   applyFilters(): void {
     this.filteredExpenses = this.expenses.filter((e) => {
+        if (this.filterMainCategory && e.mainCategory !== this.filterMainCategory) {
+        return false;
+      }
+      
       // Date range
       const expenseDate = new Date(e.payment_date);
       if (this.startDate && expenseDate < new Date(this.startDate))
@@ -945,6 +1054,7 @@ export class ExpensesComponent implements OnInit {
     this.selectedExpense = {
       id_expenses: '',
       payment_date: '',
+      mainCategory: 'OPERATIVO',
       category: '',
       service_type: null,
       type: '',
@@ -959,8 +1069,8 @@ export class ExpensesComponent implements OnInit {
       invoice_file_path: null,
       proof_of_payment_path: null,
     };
+    this.categoryMode = 'OTHER';
     // Resetear estados de categoría
-    this.categoryMode = null;
     this.isServiceCategory = false;
     this.isSupplierCategory = false;
     this.isNewProviderMode = false;
@@ -997,30 +1107,34 @@ export class ExpensesComponent implements OnInit {
   editExpense(expense: ExpensesItem): void {
     this.selectedExpense = { ...expense };
 
+    this.categoryMode = 'OTHER';
+    this.serviceTypeSearch = '';
+    this.providerSearch = '';
+    this.categorySearch = '';
+    this.isNewProviderMode = false;
+
     // Detectar el modo según la categoría
     if (expense.category === 'UTILITIES') {
       this.categoryMode = 'UTILITIES';
-      this.isServiceCategory = true;
-      this.isSupplierCategory = false;
+      this.selectedExpense.category = 'UTILITIES';
       this.serviceTypeSearch = expense.service_type || '';
     } else if (expense.category === 'SUPPLIES') {
       this.categoryMode = 'SUPPLIES';
-      this.isSupplierCategory = true;
-      this.isServiceCategory = false;
+      this.selectedExpense.category = 'SUPPLIES';
 
-      // Buscar el proveedor
       if (expense.id_provider) {
-        const provider = this.providersList.find(p => p.id_provider === expense.id_provider);
-        this.providerSearch = provider?.company_name || provider?.name || '';
+        const provider = this.providersList.find(
+          p => p.id_provider === expense.id_provider
+        );
+        this.providerSearch =
+          provider?.company_name || provider?.name || '';
       }
     } else {
       this.categoryMode = 'OTHER';
-      this.isServiceCategory = false;
-      this.isSupplierCategory = false;
-      this.categorySearch = expense.category || '';
+      this.selectedExpense.category = expense.category || '';
+      this.categorySearch = this.getCategoryLabel(expense.category);
     }
 
-    this.isNewProviderMode = false;
     this.isEditing = true;
     this.showModal = true;
   }
@@ -1049,6 +1163,7 @@ export class ExpensesComponent implements OnInit {
     this.selectedExpense = {
       id_expenses: '',
       payment_date: '',
+      mainCategory: 'OPERATIVO',
       category: '',
       service_type: null,
       type: '',
@@ -1124,53 +1239,57 @@ export class ExpensesComponent implements OnInit {
   }
 
   clearFilters(): void {
-  this.startDate = '';
-  this.endDate = '';
-  this.filterCategory = null;
-  this.filterServiceType = null;
-  this.filterProviderName = null;
-  this.onlyPending = false;
+    this.startDate = '';
+    this.endDate = '';
+    this.filterCategory = null;
+    this.filterServiceType = null;
+    this.filterProviderName = null;
+    this.onlyPending = false;
+    this.filterMainCategory = null;
 
-  // Limpiar campos de búsqueda
-  this.filterCategorySearch = '';
-  this.filterServiceTypeSearch = '';
-  this.filterProviderNameSearch = '';
+    // Limpiar campos de búsqueda
+    this.filterCategorySearch = '';
+    this.filterServiceTypeSearch = '';
+    this.filterProviderNameSearch = '';
+    this.filterMainCategorySearch = '';
 
-  // Limpiar sugerencias
-  this.filterCategorySuggestions = [];
-  this.filterServiceTypeSuggestions = [];
-  this.filterProviderSuggestions = [];
+    // Limpiar sugerencias
+    this.filterCategorySuggestions = [];
+    this.filterServiceTypeSuggestions = [];
+    this.filterProviderSuggestions = [];
+    this.filterMainCategorySuggestions = [];
 
-  // Ocultar dropdowns
-  this.showFilterCategorySuggestions = false;
-  this.showFilterServiceTypeSuggestions = false;
-  this.showFilterProviderSuggestions = false;
+    // Ocultar dropdowns
+    this.showFilterCategorySuggestions = false;
+    this.showFilterServiceTypeSuggestions = false;
+    this.showFilterProviderSuggestions = false;
+    this.showFilterMainCategorySuggestions = false;
 
-  this.applyFilters();
-}
+    this.applyFilters();
+  }
 
   async toggleExpenseStatus(expense: ExpensesItem) {
-  if (expense.payments && expense.payments.length > 0) {
-    this.showNotification('Este egreso tiene abonos registrados. Use el botón "Abonos" para gestionar pagos.');
-    return;
+    if (expense.payments && expense.payments.length > 0) {
+      this.showNotification('Este egreso tiene abonos registrados. Use el botón "Abonos" para gestionar pagos.');
+      return;
+    }
+
+    const oldStatus = expense.payment_status;
+    const newStatus = oldStatus === 'PAID' ? 'PENDING' : 'PAID';
+
+    const { error } = await this.supabase
+      .from('expenses')
+      .update({ payment_status: newStatus })
+      .eq('id_expenses', expense.id_expenses);
+
+    if (error) {
+      console.error('Error updating status:', error);
+      alert('Hubo un error al actualizar el estado.');
+      return;
+    }
+
+    await this.reloadAllData();
   }
-
-  const oldStatus = expense.payment_status;
-  const newStatus = oldStatus === 'PAID' ? 'PENDING' : 'PAID';
-
-  const { error } = await this.supabase
-    .from('expenses')
-    .update({ payment_status: newStatus })
-    .eq('id_expenses', expense.id_expenses);
-
-  if (error) {
-    console.error('Error updating status:', error);
-    alert('Hubo un error al actualizar el estado.');
-    return;
-  }
-
-  await this.reloadAllData();
-}
 
   // File Handlers
   onInvoiceFileSelected(event: Event) {
@@ -1203,6 +1322,7 @@ export class ExpensesComponent implements OnInit {
       .replace(/\s+/g, '_')
       .replace(/[^a-zA-Z0-9._-]/g, '');
   }
+  
   private async handleFileUploadForExpense(
     expenseId: string
   ): Promise<{ invoicePath?: string; proofPath?: string }> {
@@ -1610,24 +1730,24 @@ export class ExpensesComponent implements OnInit {
   }
 
   onFilterCategoryInput(): void {
-  const search = this.normalizeText(this.filterCategorySearch);
+    const search = this.normalizeText(this.filterCategorySearch);
 
-  // Si está vacío, mostrar todas las categorías
-  if (!search) {
-    this.filterCategory = null;
-    this.filterCategorySuggestions = this.getFilterCategories();
+    // Si está vacío, mostrar todas las categorías
+    if (!search) {
+      this.filterCategory = null;
+      this.filterCategorySuggestions = this.getFilterCategories();
+      this.showFilterCategorySuggestions = true;
+      this.applyFilters();
+      return;
+    }
+
+    this.filterCategorySuggestions = this.getFilterCategories().filter(cat => {
+      const labelNormalized = this.normalizeText(this.getCategoryLabel(cat));
+      return labelNormalized.includes(search);
+    });
+
     this.showFilterCategorySuggestions = true;
-    this.applyFilters();
-    return;
   }
-
-  this.filterCategorySuggestions = this.getFilterCategories().filter(cat => {
-    const labelNormalized = this.normalizeText(this.getCategoryLabel(cat));
-    return labelNormalized.includes(search);
-  });
-
-  this.showFilterCategorySuggestions = true;
-}
 
   selectFilterCategory(category: string): void {
     if (category === '') {
@@ -1687,24 +1807,24 @@ export class ExpensesComponent implements OnInit {
   }
 
   onFilterProviderInput(): void {
-  const search = this.normalizeText(this.filterProviderNameSearch);
+    const search = this.normalizeText(this.filterProviderNameSearch);
 
-  // Si está vacío, limpiar filtro Y mostrar todos
-  if (!search) {
-    this.filterProviderName = null;
-    this.filterProviderSuggestions = this.getThirdParties();
+    // Si está vacío, limpiar filtro Y mostrar todos
+    if (!search) {
+      this.filterProviderName = null;
+      this.filterProviderSuggestions = this.getThirdParties();
+      this.showFilterProviderSuggestions = true;
+      this.applyFilters();
+      return;
+    }
+
+    this.filterProviderSuggestions = this.getThirdParties().filter(name => {
+      const nameNormalized = this.normalizeText(name);
+      return nameNormalized.includes(search);
+    });
+
     this.showFilterProviderSuggestions = true;
-    this.applyFilters();
-    return;
   }
-
-  this.filterProviderSuggestions = this.getThirdParties().filter(name => {
-    const nameNormalized = this.normalizeText(name);
-    return nameNormalized.includes(search);
-  });
-
-  this.showFilterProviderSuggestions = true;
-}
 
   selectFilterProvider(name: string): void {
     if (name === '') {
@@ -1929,6 +2049,7 @@ export class ExpensesComponent implements OnInit {
         ? new Date(item.payment_date).toISOString().split('T')[0]
         : '',
       created_at: item.created_at ? new Date(item.created_at) : new Date(),
+      mainCategory: item.mainCategory,
       paid_at: item.paid_at ?? null,
       payments: item.expense_payments || [],
     })) as ExpensesItem[];
