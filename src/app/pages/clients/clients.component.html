@@ -526,11 +526,13 @@
             [(ngModel)]="newPaymentAmount"
             placeholder="Monto del abono global"
             class="border border-gray-300 rounded-md p-2 w-48"
+            [disabled]="isApplyingGlobalPayment"
           />
 
           <select
             [(ngModel)]="selectedPaymentMethod"
             class="border border-gray-300 rounded-md p-2"
+            [disabled]="isApplyingGlobalPayment"
           >
             <option value="cash">Efectivo</option>
             <option value="nequi">Nequi</option>
@@ -541,9 +543,12 @@
 
           <button
             (click)="applyGlobalPaymentToSelectedClient(newPaymentAmount, selectedPaymentMethod)"
+            [disabled]="isApplyingGlobalPayment || !newPaymentAmount || newPaymentAmount <= 0"
+            [class.opacity-50]="isApplyingGlobalPayment"
+            [class.cursor-not-allowed]="isApplyingGlobalPayment"
             class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-md"
           >
-            Aplicar Abono Global
+            {{ isApplyingGlobalPayment ? 'Aplicando...' : 'Aplicar Abono Global' }}
           </button>
         </div>
 

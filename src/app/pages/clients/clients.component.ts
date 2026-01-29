@@ -105,6 +105,7 @@ export class ClientsComponent implements OnInit {
   endDate: string = '';
   onlyWithDebt: boolean = false;
   selectedPaymentMethod: string = 'cash';
+  isApplyingGlobalPayment: boolean = false;
   showExtractFilters = false;
   extractStatusFilter: 'all' | 'overdue' = 'all';
   extractFromDate?: string;
@@ -314,6 +315,10 @@ export class ClientsComponent implements OnInit {
   }
 
   async applyGlobalPaymentToSelectedClient(amount: number, paymentMethod: string) {
+    if (this.isApplyingGlobalPayment) {
+      return;
+    }
+
     if (!this.selectedClient) {
       alert('No hay cliente seleccionado.');
       return;
@@ -323,12 +328,20 @@ export class ClientsComponent implements OnInit {
       alert('Ingrese un monto válido.');
       return;
     }
-
-    await this.allocatePaymentAcrossOrders(this.selectedClient, amount, paymentMethod);
-
+    this.isApplyingGlobalPayment = true;
+    const originalAmount = amount;
     this.newPaymentAmount = 0;
-    this.selectedPaymentMethod = 'cash';
-  }
+
+    try {
+      await this.allocatePaymentAcrossOrders(this.selectedClient, originalAmount, paymentMethod);
+      this.selectedPaymentMethod = 'cash';
+      } catch (error) {
+        console.error('Error aplicando abono global:', error);
+        alert('Ocurrió un error al aplicar el abono.');
+      } finally {
+        this.isApplyingGlobalPayment = false;
+      }
+   }
 
 
   getOrderDebt(order: Orders): number {
