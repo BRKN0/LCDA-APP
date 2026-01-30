@@ -153,13 +153,29 @@
   <!-- Botones (sin cambios) -->
   <div class="flex space-x-2">
     <button class="btn-add inline-flex items-center space-x-2" (click)="addNewExpense()">
-      <svg class="w-5 h-5 inline-block" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+      <svg class="w-5 h-5 inline-block"  
+        viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
         <path d="M12 5v14M5 12h14" />
       </svg>
       <span>Añadir</span>
     </button>
-    <button class="btn-details" (click)="generateExpensesKardex()">Generar Kardex</button>
-    <button class="btn-clear" (click)="clearFilters()">Limpiar</button>
+    <button
+      class="btn-primary"
+      (click)="openBudgetSummary()">
+      Resumen
+    </button>
+    <button 
+      class="btn-details" 
+      (click)="generateExpensesKardex()"
+    >
+      Generar Kardex
+    </button>
+    <button 
+      class="btn-clear" 
+      (click)="clearFilters()"
+    >
+      Limpiar
+    </button>
   </div>
 </div>
 
@@ -1361,6 +1377,123 @@
         <button class="btn-success" (click)="updatePayment()">Guardar</button>
       </div>
     </div>
+  </div>
+</div>
+
+<div
+  class="modal-overlay"
+  *ngIf="showBudgetModal">
+
+  <div class="modal-container bg-white rounded-lg shadow-xl p-6 max-w-5xl">
+
+    <!-- HEADER -->
+    <div class="modal-header">
+      <h2 class="text-xl font-bold">
+        Presupuesto vs Real
+      </h2>
+    </div>
+
+    <!-- INPUT TOTAL RECIBIDO -->
+    <div class="mb-4">
+      <label class="block font-semibold mb-1">
+        Total Recibido
+      </label>
+
+      <input
+        type="number"
+        min="0"
+        class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-black focus:outline-none focus:ring-2 focus:ring-primary"
+        [(ngModel)]="totalRecibido"
+        (ngModelChange)="onTotalRecibidoChange()"
+        placeholder="Ingrese el total recibido"
+      />
+    </div>
+
+    <!-- TABLA -->
+    <div class="mt-4 border border-gray-200 rounded-lg overflow-hidden">
+      <table class="table-std w-full">
+
+        <thead class="bg-gray-100">
+          <tr>
+            <th>Categoría</th>
+            <th>% Presupuestado</th>
+            <th>$ Presupuestado</th>
+            <th>% Real</th>
+            <th>$ Real</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          <tr *ngFor="let row of budgetSummary">
+            <td class="font-semibold">
+              {{ row.category }}
+            </td>
+
+            <td>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                class="w-24 px-2 py-1 border border-gray-300 rounded bg-white text-black text-right"
+                [(ngModel)]="row.editedPercentBudgeted"
+                (ngModelChange)="calculateBudgetSummary()"
+              />
+              <span class="ml-1">%</span>
+            </td>
+
+            <td>
+              {{ (totalRecibido * row.editedPercentBudgeted) | currency:'COP':'symbol':'1.0-0' }}
+            </td>
+
+            <td>
+              {{ row.percentReal * 100 | number:'1.0-2' }}%
+            </td>
+
+            <td>
+              {{ row.amountReal | currency:'COP':'symbol':'1.0-0' }}
+            </td>
+          </tr>
+
+          <!-- EMPTY STATE -->
+          <tr *ngIf="budgetSummary.length === 0">
+            <td colspan="5" class="text-center text-gray-500 py-4">
+              Ingrese un total recibido para ver el resumen.
+            </td>
+          </tr>
+
+        </tbody>
+
+      </table>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="modal-footer mt-4 flex justify-end gap-2">
+      <small class="text-gray-500">
+        Los cambios en porcentajes no se guardan automáticamente.
+      </small>
+
+      <!--
+      <button
+        class="btn-success"
+        (click)="saveBudgetPercentages()">
+        Guardar %
+      </button>
+      -->
+      <button
+        class="btn-danger"
+        (click)="closeBudgetSummary()">
+        Cerrar
+      </button>
+
+      <!-- FUTURO: exportar -->
+      <!--
+      <button class="btn-primary">
+        Descargar
+      </button>
+      -->
+    </div>
+
   </div>
 </div>
 

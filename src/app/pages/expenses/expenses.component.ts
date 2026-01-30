@@ -41,6 +41,44 @@ interface ExpensePayment {
   payment_method?: string;
 }
 
+interface BudgetVariable {
+  id: string;
+  name: string;
+  category: 
+    | 'OPERATIVO'
+    | 'MATERIALES'
+    | 'TITULAR'
+    | 'IMPUESTO'
+    | 'PILA'
+    | 'PRESTACIONES'
+    | 'BANCO'
+    | 'RESERVA'
+    | 'INVERSION';
+  value: number;
+  label?: string;
+}
+
+interface BudgetSummaryRow {
+  category: string;
+  percentBudgeted: number;
+  editedPercentBudgeted: number;
+  amountBudgeted: number;
+  percentReal: number;
+  amountReal: number;
+}
+
+const BUDGET_CATEGORIES = [
+  'OPERATIVO',
+  'MATERIALES',
+  'TITULAR',
+  'IMPUESTO',
+  'PILA',
+  'PRESTACIONES',
+  'BANCO',
+  'RESERVA',
+  'INVERSION',
+] as const;
+
 @Component({
   selector: 'app-expenses',
   standalone: true,
@@ -215,6 +253,15 @@ export class ExpensesComponent implements OnInit {
   categorySuggestions: string[] = [];
   showCategorySuggestions: boolean = false;
   categoryJustSelected: boolean = false;
+
+  // ===== PRESUPUESTO =====
+  totalRecibido: number = 0;
+
+  budgetVariables: BudgetVariable[] = [];
+  budgetSummary: BudgetSummaryRow[] = [];
+
+  showBudgetModal: boolean = false;
+
 
   @HostListener('document:click', ['$event'])
     onDocumentClick(event: MouseEvent): void {
@@ -524,27 +571,27 @@ export class ExpensesComponent implements OnInit {
   }
 
   onProviderInput(): void {
-  const search = this.normalizeText(this.providerSearch);
+    const search = this.normalizeText(this.providerSearch);
 
-  // Si está vacío, mostrar todos los proveedores
-  if (!search) {
+    // Si está vacío, mostrar todos los proveedores
+    if (!search) {
+      this.showProviderSuggestions = true;
+      this.providerSuggestions = this.providersList;
+      return;
+    }
+
     this.showProviderSuggestions = true;
-    this.providerSuggestions = this.providersList;
-    return;
+
+    this.providerSuggestions = this.providersList.filter(provider => {
+      const companyName = this.normalizeText(provider.company_name || '');
+      const name = this.normalizeText(provider.name || '');
+      const docNumber = this.normalizeText(provider.document_number || '');
+
+      return companyName.includes(search) ||
+            name.includes(search) ||
+            docNumber.includes(search);
+    });
   }
-
-  this.showProviderSuggestions = true;
-
-  this.providerSuggestions = this.providersList.filter(provider => {
-    const companyName = this.normalizeText(provider.company_name || '');
-    const name = this.normalizeText(provider.name || '');
-    const docNumber = this.normalizeText(provider.document_number || '');
-
-    return companyName.includes(search) ||
-           name.includes(search) ||
-           docNumber.includes(search);
-  });
-}
 
   selectProviderName(name: string): void {
     this.payeeSearch = name;
@@ -578,6 +625,20 @@ export class ExpensesComponent implements OnInit {
     Object.keys(this.formErrors).forEach(
       key => (this.formErrors[key as keyof typeof this.formErrors] = false)
     );
+  }
+
+  async getBudgetVariables(): Promise<void> {
+    const { data, error } = await this.supabase
+      .from('variables')
+      .select('*')
+      .in('category', BUDGET_CATEGORIES);
+
+    if (error) {
+      console.error('Error cargando variables presupuestales:', error);
+      return;
+    }
+
+    this.budgetVariables = (data || []) as BudgetVariable[];
   }
 
   // Save expenses and update checkboxes
@@ -1995,7 +2056,7 @@ export class ExpensesComponent implements OnInit {
     }
 
     this.categorySuggestions = baseSuggestions.filter(cat => {
-      this.normalizeText(cat).includes(search)
+      return this.normalizeText(cat).includes(search)
     });
 
     this.showCategorySuggestions = true;
@@ -2121,6 +2182,91 @@ export class ExpensesComponent implements OnInit {
 
     // Aplicar filtros (esto recalcula totales)
     this.applyFilters();;
+  }
+
+  calculateBudgetSummary(): void {
+    if (!this.totalRecibido || this.totalRecibido <= 0) {
+      this.budgetSummary = [];
+      return;
+    }
+
+    this.budgetSummary = BUDGET_CATEGORIES.map(category => {
+      const variable = this.budgetVariables.find(
+        v => v.category === category
+      );
+
+      const percentBudgeted = variable?.value ?? 0;
+
+      const amountBudgeted = this.totalRecibido * percentBudgeted;
+
+      const amountReal = this.filteredExpenses
+        .filter(e => e.mainCategory === category)
+        .reduce((sum, e) => sum + this.getTotalPayments(e), 0);
+
+      const percentReal =
+        this.totalRecibido > 0
+          ? amountReal / this.totalRecibido
+          : 0;
+
+      return {
+        category,
+        percentBudgeted,
+        editedPercentBudgeted: percentBudgeted,
+        amountBudgeted,
+        percentReal,
+        amountReal,
+      };
+    });
+  }
+
+  async saveBudgetPercentages(): Promise<void> {
+    const updates = this.budgetSummary.filter(
+      row => row.editedPercentBudgeted !== row.percentBudgeted
+    );
+
+    if (!updates.length) {
+      this.showNotification('No hay cambios para guardar.');
+      return;
+    }
+
+    try {
+      for (const row of updates) {
+        const { error } = await this.supabase
+          .from('variables')
+          .update({ value: row.editedPercentBudgeted })
+          .eq('category', row.category);
+
+        if (error) throw error;
+      }
+
+      this.showNotification('Porcentajes actualizados correctamente.');
+
+      // Recargar variables y recalcular
+      await this.getBudgetVariables();
+      this.calculateBudgetSummary();
+
+    } catch (error) {
+      console.error(error);
+      this.showNotification('Error al guardar los porcentajes.');
+    }
+  }
+
+  async openBudgetSummary(): Promise<void> {
+    if (!this.budgetVariables.length) {
+      await this.getBudgetVariables();
+    }
+
+    this.calculateBudgetSummary();
+    this.showBudgetModal = true;
+  }
+
+  onTotalRecibidoChange(): void {
+    this.calculateBudgetSummary();
+  }
+
+  closeBudgetSummary(): void {
+    this.showBudgetModal = false;
+    this.totalRecibido = 0;
   }
 
   formatDateEs(date: string | Date): string {
