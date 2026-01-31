@@ -2289,10 +2289,13 @@ private normalizeText(text: string): string {
     const baseTotal = Number(this.newOrder.unitary_value) || 0;
     const extras =
       this.newOrder.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
-    const subtotal = baseTotal + extras;
+    
+    const discountAmount = this.getDiscountAmount();
+
+      const subtotal = Math.max(baseTotal + extras - discountAmount, 0);
     // Calcular total con o sin IVA
     if (this.newOrder.include_iva) {
-      const ivaAmount = subtotal * (this.variables.iva / 100);
+      const ivaAmount = Math.round(subtotal * (this.variables.iva / 100));
       this.newOrder.total = subtotal + ivaAmount;
       this.newOrder.iva = ivaAmount; // Guardar el monto del IVA
     } else {
@@ -2302,6 +2305,36 @@ private normalizeText(text: string): string {
 
     this.newOrder.subtotal = baseTotal;
     this.newOrder.base_total = baseTotal;
+  }
+
+  private getDiscountAmount(): number {
+    const base = Number(this.newOrder.base_total) || 0;
+    const discountValue = Number(this.newOrder.discount) || 0;
+
+    if (discountValue <= 0) return 0;
+
+    if (this.newOrder.discount_type === 'percentage') {
+      return Math.round((base * discountValue) / 100);
+    }
+
+    // fixed
+    return Math.round(discountValue);
+  }
+
+  getSelectedOrderDiscountAmount(): number {
+    const order = this.selectedOrderDetails?.[0];
+    if (!order) return 0;
+
+    const base = Number(order.base_total) || 0;
+    const discount = Number(order.discount) || 0;
+
+    if (discount <= 0) return 0;
+
+    if (order.discount_type === 'percentage') {
+      return Math.round((base * discount) / 100);
+    }
+
+    return Math.round(discount);
   }
 
   paginateItems<T>(items: T[], page: number, itemsPerPage: number): T[] {
