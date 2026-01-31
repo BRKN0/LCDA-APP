@@ -92,6 +92,7 @@ export class AcrylicsComponent implements OnInit {
 
   showClientDefaultsModal: boolean = false;
 
+  bulkIncreasePercent: number = 0;
   tableMargin: number = 30;
   tableDiscount: number = 0;
 
@@ -789,7 +790,47 @@ private async updateSingleItem(id: string): Promise<void> {
       // Calibre ASC
       return a.gauge - b.gauge;
     });
-}
+  }
+
+  async applyBulkCostIncrease(): Promise<void> {
+    if (!this.bulkIncreasePercent || this.bulkIncreasePercent <= 0) {
+      alert('Ingrese un porcentaje válido mayor a 0.');
+      return;
+    }
+
+    const confirmed = confirm(
+      `Esta acción aumentará el costo de TODOS los acrílicos en un ${this.bulkIncreasePercent}%.\n\n¿Desea continuar?`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      for (const acrylic of this.acrylicItems) {
+        const newCost = Math.ceil(
+          acrylic.cost_price * (1 + this.bulkIncreasePercent / 100)
+        );
+
+        const { error } = await this.supabase
+          .from('acrylics')
+          .update({ cost_price: newCost })
+          .eq('id_acrylics', acrylic.id_acrylics);
+
+        if (error) {
+          console.error(`Error actualizando acrílico ${acrylic.id_acrylics}`, error);
+        }
+      }
+
+      alert('Costos actualizados correctamente.');
+      this.bulkIncreasePercent = 0;
+      this.loading = true;
+      await this.getAcrylicItems();
+      this.loading = false;
+
+    } catch (error) {
+      console.error('Error en actualización masiva:', error);
+      alert('Ocurrió un error al actualizar los costos.');
+    }
+  }
 
   updatePaginatedAcrylicItems(): void {
     // Filtrar primero por búsqueda de texto
