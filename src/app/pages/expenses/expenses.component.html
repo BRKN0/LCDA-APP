@@ -1420,6 +1420,7 @@
             <th>$ Presupuestado</th>
             <th>% Real</th>
             <th>$ Real</th>
+            <th>$ Diferencia</th>
           </tr>
         </thead>
 
@@ -1437,13 +1438,12 @@
                 step="0.01"
                 class="w-24 px-2 py-1 border border-gray-300 rounded bg-white text-black text-right"
                 [(ngModel)]="row.editedPercentBudgeted"
-                (ngModelChange)="calculateBudgetSummary()"
               />
               <span class="ml-1">%</span>
             </td>
 
             <td>
-              {{ (totalRecibido * row.editedPercentBudgeted) | currency:'COP':'symbol':'1.0-0' }}
+              {{ (totalRecibido * row.editedPercentBudgeted) | number:'1.2-2' }}
             </td>
 
             <td>
@@ -1451,8 +1451,20 @@
             </td>
 
             <td>
-              {{ row.amountReal | currency:'COP':'symbol':'1.0-0' }}
+              {{ row.amountReal | number:'1.2-2' }}
             </td>
+
+            <td
+              class="text-right font-mono"
+              [ngClass]="{
+                'text-red-600 font-bold': row.differenceAmount < 0,
+                'text-green-600 font-bold': row.differenceAmount > 0,
+                'text-gray-600': row.differenceAmount === 0
+              }"
+            >
+              {{ row.differenceAmount | number:'1.2-2' }}
+            </td>
+
           </tr>
 
           <!-- EMPTY STATE -->
@@ -1473,25 +1485,22 @@
         Los cambios en porcentajes no se guardan automáticamente.
       </small>
 
-      <!--
       <button
-        class="btn-success"
+        class="btn-details"
         (click)="saveBudgetPercentages()">
         Guardar %
       </button>
-      -->
+
+      <button class="btn-success"
+        (click)="exportBudgetSummaryToExcel()">
+        Descargar
+      </button>
+
       <button
         class="btn-danger"
         (click)="closeBudgetSummary()">
         Cerrar
       </button>
-
-      <!-- FUTURO: exportar -->
-      <!--
-      <button class="btn-primary">
-        Descargar
-      </button>
-      -->
     </div>
 
   </div>
@@ -1501,6 +1510,11 @@
 <div
   *ngIf="notificationMessage"
   class="fixed top-6 left-1/2 z-[9999] -translate-x-1/2 rounded-lg bg-red-600 px-6 py-3 text-white shadow-xl"
+  [ngClass]="{
+    'bg-green-600': notificationType === 'success',
+    'bg-red-600': notificationType === 'error',
+    'bg-blue-600': notificationType === 'info'
+  }"
 >
   {{ notificationMessage }}
 </div>

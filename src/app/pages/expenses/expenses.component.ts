@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { SupabaseService } from '../../services/supabase.service';
 import { FormsModule } from '@angular/forms';
 import { RouterOutlet } from '@angular/router';
+import * as XLSX from 'xlsx';
 interface ExpensesItem {
   id_expenses: string;
   created_at: Date;
@@ -65,6 +66,7 @@ interface BudgetSummaryRow {
   amountBudgeted: number;
   percentReal: number;
   amountReal: number;
+  differenceAmount: number;
 }
 
 const BUDGET_CATEGORIES = [
@@ -205,6 +207,7 @@ export class ExpensesComponent implements OnInit {
   showEditPaymentModal: boolean = false;
   selectedPayment: ExpensePayment | null = null;
   notificationMessage: string | null = null;
+  notificationType: 'success' | 'error' | 'info' = 'info';
 
   // Tipos de categoría
   categoryMode: 'UTILITIES' | 'SUPPLIES' | 'OTHER' | null = null;
@@ -675,12 +678,12 @@ export class ExpensesComponent implements OnInit {
       }
 
       if (!this.selectedExpense.mainCategory) {
-        this.showNotification('Debe seleccionar una categoría principal.');
+        this.showNotification('Debe seleccionar una categoría principal.', 'info');
         return;
       }
 
       if (hasError) {
-        this.showNotification('Por favor complete los campos obligatorios.');
+        this.showNotification('Por favor complete los campos obligatorios.', 'info');
         return;
       }
 
@@ -739,7 +742,7 @@ export class ExpensesComponent implements OnInit {
       ) {
         this.formErrors.type = true;
         this.showNotification(
-          'Debe seleccionar un método de pago cuando el egreso no está pendiente.'
+          'Debe seleccionar un método de pago cuando el egreso no está pendiente.', 'info'
         );
         return;
       }
@@ -1385,7 +1388,7 @@ export class ExpensesComponent implements OnInit {
 
   async toggleExpenseStatus(expense: ExpensesItem) {
     if (expense.payments && expense.payments.length > 0) {
-      this.showNotification('Este egreso tiene abonos registrados. Use el botón "Abonos" para gestionar pagos.');
+      this.showNotification('Este egreso tiene abonos registrados. Use el botón "Abonos" para gestionar pagos.', 'info');
       return;
     }
 
@@ -1533,8 +1536,11 @@ export class ExpensesComponent implements OnInit {
   }
 
   // Mostrar notificación temporal
-  showNotification(message: string) {
+  showNotification(message: string,
+    type: 'success' | 'error' | 'info' = 'info') {
+
     this.notificationMessage = message;
+    this.notificationType = type;
     setTimeout(() => {
       this.notificationMessage = null;
     }, 3000);
@@ -1559,12 +1565,12 @@ export class ExpensesComponent implements OnInit {
   // Agregar un abono
   async addPayment(expense: ExpensesItem, amount: number): Promise<void> {
     if (!expense || !expense.id_expenses || amount <= 0) {
-      this.showNotification('Por favor, ingrese un monto válido.');
+      this.showNotification('Por favor, ingrese un monto válido.', 'info');
       return;
     }
 
     if (expense.payment_status === 'PAID' && (!expense.payments || expense.payments.length === 0)) {
-      this.showNotification('Este egreso ya está pagado completamente. No se pueden agregar abonos.');
+      this.showNotification('Este egreso ya está pagado completamente. No se pueden agregar abonos.', 'info');
       return;
     }
 
@@ -1574,7 +1580,7 @@ export class ExpensesComponent implements OnInit {
 
     if (amount > remainingBalance) {
       this.showNotification(
-        `El abono no puede exceder el monto pendiente de $${remainingBalance.toFixed(2)}.`
+        `El abono no puede exceder el monto pendiente de $${remainingBalance.toFixed(2)}.`, 'info'
       );
       return;
     }
@@ -1593,7 +1599,7 @@ export class ExpensesComponent implements OnInit {
 
       if (insertError || !insertedPayment) {
         console.error('Error al insertar pago:', insertError);
-        this.showNotification('Error al añadir el abono.');
+        this.showNotification('Error al añadir el abono.', 'error');
         return;
       }
 
@@ -1633,10 +1639,10 @@ export class ExpensesComponent implements OnInit {
       await this.reloadAllData();
 
       this.closePaymentModal();
-      this.showNotification('Abono añadido correctamente.');
+      this.showNotification('Abono añadido correctamente.', 'success');
     } catch (error) {
       console.error('Error inesperado:', error);
-      this.showNotification('Ocurrió un error inesperado.');
+      this.showNotification('Ocurrió un error inesperado.', 'error');
     }
   }
 
@@ -1655,7 +1661,7 @@ export class ExpensesComponent implements OnInit {
   // Actualizar un abono existente
   async updatePayment(): Promise<void> {
     if (!this.selectedPayment || !this.selectedPayment.id_expense_payment) {
-      this.showNotification('No se ha seleccionado un abono válido.');
+      this.showNotification('No se ha seleccionado un abono válido.', 'info');
       return;
     }
 
@@ -1664,7 +1670,7 @@ export class ExpensesComponent implements OnInit {
     );
 
     if (!expense) {
-      this.showNotification('No se encontró el egreso asociado.');
+      this.showNotification('No se encontró el egreso asociado.', 'info');
       return;
     }
 
@@ -1680,7 +1686,7 @@ export class ExpensesComponent implements OnInit {
 
       if (updateError) {
         console.error('Error al actualizar pago:', updateError);
-        this.showNotification('Error al actualizar el abono.');
+        this.showNotification('Error al actualizar el abono.', 'error');
         return;
       }
 
@@ -1744,10 +1750,10 @@ export class ExpensesComponent implements OnInit {
       await this.reloadAllData();
 
       this.closeEditPaymentModal();
-      this.showNotification('Abono actualizado correctamente.');
+      this.showNotification('Abono actualizado correctamente.', 'success');
     } catch (error) {
       console.error('Error inesperado:', error);
-      this.showNotification('Ocurrió un error inesperado.');
+      this.showNotification('Ocurrió un error inesperado.', 'error');
     }
   }
 
@@ -1765,7 +1771,7 @@ export class ExpensesComponent implements OnInit {
 
       if (deleteError) {
         console.error('Error al eliminar:', deleteError);
-        this.showNotification('Error al eliminar el abono.');
+        this.showNotification('Error al eliminar el abono.', 'error');
         return;
       }
 
@@ -1829,10 +1835,10 @@ export class ExpensesComponent implements OnInit {
       // 7. Recargar datos
       await this.reloadAllData();
 
-      this.showNotification('Abono eliminado correctamente.');
+      this.showNotification('Abono eliminado correctamente.', 'success');
     } catch (error) {
       console.error('Error inesperado:', error);
-      this.showNotification('Ocurrió un error inesperado.');
+      this.showNotification('Ocurrió un error inesperado.', 'error');
     }
   }
 
@@ -2208,6 +2214,8 @@ export class ExpensesComponent implements OnInit {
           ? amountReal / this.totalRecibido
           : 0;
 
+      const diff = amountBudgeted - amountReal;
+
       return {
         category,
         percentBudgeted,
@@ -2215,6 +2223,7 @@ export class ExpensesComponent implements OnInit {
         amountBudgeted,
         percentReal,
         amountReal,
+        differenceAmount: diff,
       };
     });
   }
@@ -2225,7 +2234,7 @@ export class ExpensesComponent implements OnInit {
     );
 
     if (!updates.length) {
-      this.showNotification('No hay cambios para guardar.');
+      this.showNotification('No hay cambios para guardar.', 'info');
       return;
     }
 
@@ -2239,7 +2248,7 @@ export class ExpensesComponent implements OnInit {
         if (error) throw error;
       }
 
-      this.showNotification('Porcentajes actualizados correctamente.');
+      this.showNotification('Porcentajes actualizados correctamente.', 'success');
 
       // Recargar variables y recalcular
       await this.getBudgetVariables();
@@ -2247,7 +2256,7 @@ export class ExpensesComponent implements OnInit {
 
     } catch (error) {
       console.error(error);
-      this.showNotification('Error al guardar los porcentajes.');
+      this.showNotification('Error al guardar los porcentajes.', 'error');
     }
   }
 
@@ -2282,5 +2291,57 @@ export class ExpensesComponent implements OnInit {
       month: 'long',
       day: 'numeric'
     }).format(parsedDate);
+  }
+
+  exportBudgetSummaryToExcel(): void {
+    if (!this.budgetSummary || this.budgetSummary.length === 0) {
+      this.showNotification('No hay datos para exportar.', 'info');
+      return;
+    }
+
+    const worksheet: XLSX.WorkSheet = XLSX.utils.aoa_to_sheet([]);
+
+    XLSX.utils.sheet_add_aoa(
+      worksheet,
+      [
+        ['Total Recibido', this.totalRecibido],
+        [] // fila en blanco
+      ],
+      { origin: 'A1' }
+    );
+
+    const worksheetData = this.budgetSummary.map(row => ({
+      'Categoría': row.category,
+      '% Presupuestado': row.editedPercentBudgeted,
+      'Presupuesto ($)': row.amountBudgeted,
+      '% Real': row.percentReal,
+      'Gasto Real ($)': row.amountReal,
+      'Diferencia ($)': row.differenceAmount
+    }));
+
+    XLSX.utils.sheet_add_json(
+      worksheet,
+      worksheetData,
+      { origin: 'A3' }
+    );
+
+    worksheet['!cols'] = [
+      { wch: 20 }, // Categoría
+      { wch: 18 }, // % Presupuestado
+      { wch: 20 }, // Presupuesto $
+      { wch: 12 }, // % Real
+      { wch: 20 }  // Gasto Real $
+    ];
+
+    const workbook: XLSX.WorkBook = {
+      Sheets: { 'Presupuesto vs Real': worksheet },
+      SheetNames: ['Presupuesto vs Real']
+    };
+
+    const fileName = `presupuesto_vs_real_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+    XLSX.writeFile(workbook, fileName);
+
+    this.showNotification('Archivo Excel generado correctamente.', 'success');
   }
 }

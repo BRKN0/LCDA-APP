@@ -333,10 +333,17 @@
             }}
           </td>
           <td>
-            <button class="btn-details" (click)="selectOrder(order)">
+            <button 
+              class="btn-details" 
+              (click)="selectOrder(order)">
               Detalles
             </button>
-            <button class="btn-edit" (click)="editOrder(order)">Editar</button>
+            <button 
+              class="btn-edit" 
+              (click)="editOrder(order)"
+            >
+              Editar
+            </button>
             <button
               *ngIf="userRole == 'admin' || userRole === 'scheduler'"
               class="btn-delete"
