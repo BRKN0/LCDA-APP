@@ -737,6 +737,18 @@ export class ExpensesComponent implements OnInit {
       }
 
       if (
+        (this.selectedExpense.payment_status === 'PAID' ||
+        this.selectedExpense.payment_status === 'PARTIAL') &&
+        !this.selectedExpense.paid_at
+      ) {
+        this.showNotification(
+          'Debe seleccionar la fecha de pago.',
+          'info'
+        );
+        return;
+      }
+
+      if (
         this.selectedExpense.payment_status === 'PENDING' &&
         !this.selectedExpense.payment_due_date
       ) {
@@ -798,12 +810,6 @@ export class ExpensesComponent implements OnInit {
 
       let paidAt: string | null = this.selectedExpense.paid_at ?? null;
 
-      if (
-        this.selectedExpense.payment_status === 'PAID' &&
-        !this.selectedExpense.paid_at
-      ) {
-        paidAt = new Date().toISOString().split('T')[0];
-      }
       if (this.selectedExpense.payment_status !== 'PAID') {
         paidAt = null;
       }
@@ -827,7 +833,11 @@ export class ExpensesComponent implements OnInit {
           this.selectedExpense.payment_status === 'PENDING'
             ? this.selectedExpense.payment_due_date
             : null,
-        paid_at: paidAt,
+        paid_at:
+          this.selectedExpense.payment_status === 'PAID' ||
+          this.selectedExpense.payment_status === 'PARTIAL'
+            ? this.selectedExpense.paid_at
+            : null,
       };
 
       let savedExpenseId: string | null = null;
@@ -903,7 +913,8 @@ export class ExpensesComponent implements OnInit {
     const { data, error } = await this.supabase
       .from('expenses')
       .select('*, expense_payments(*)')
-      .order('payment_date', { ascending: false });
+      .order('payment_date', { ascending: false })
+      .order('code', { ascending: false });
 
     this.loading = false;
 
