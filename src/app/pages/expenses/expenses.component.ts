@@ -9,7 +9,7 @@ interface ExpensesItem {
   created_at: Date;
   payment_date: string;
   paid_at?: string | null;
-  mainCategory: 
+  mainCategory:
     | 'OPERATIVO'
     | 'MATERIALES'
     | 'TITULAR'
@@ -46,7 +46,7 @@ interface ExpensePayment {
 interface BudgetVariable {
   id: string;
   name: string;
-  category: 
+  category:
     | 'OPERATIVO'
     | 'MATERIALES'
     | 'TITULAR'
@@ -211,6 +211,7 @@ export class ExpensesComponent implements OnInit {
   showPaymentModal: boolean = false;
   newPaymentAmount: number = 0;
   newPaymentMethod: string = '';
+  newPaymentDate: string = '';
   showEditPaymentModal: boolean = false;
   selectedPayment: ExpensePayment | null = null;
   notificationMessage: string | null = null;
@@ -219,7 +220,7 @@ export class ExpensesComponent implements OnInit {
   // Tipos de categoría
   categoryMode: 'UTILITIES' | 'SUPPLIES' | 'OTHER' | null = null;
 
-  mainCategory: 
+  mainCategory:
   | 'OPERATIVO'
   | 'MATERIALES'
   | 'TITULAR'
@@ -309,7 +310,7 @@ export class ExpensesComponent implements OnInit {
       this.providersList = data;
     }
   }
-  
+
   resetExpense(): ExpensesItem {
     return {
       id_expenses: '',
@@ -1507,7 +1508,7 @@ export class ExpensesComponent implements OnInit {
       .replace(/\s+/g, '_')
       .replace(/[^a-zA-Z0-9._-]/g, '');
   }
-  
+
   private async handleFileUploadForExpense(
     expenseId: string
   ): Promise<{ invoicePath?: string; proofPath?: string }> {
@@ -1618,6 +1619,7 @@ export class ExpensesComponent implements OnInit {
     this.selectedExpenseForPayment = expense;
     this.newPaymentAmount = 0;
     this.newPaymentMethod = '';
+    this.newPaymentDate = new Date().toISOString().split('T')[0];
     this.showPaymentModal = true;
   }
 
@@ -1641,6 +1643,11 @@ export class ExpensesComponent implements OnInit {
       return;
     }
 
+    if (!this.newPaymentDate) {
+      this.showNotification('Por favor, seleccione la fecha del abono.', 'info');
+      return;
+    }
+
     const total = Number(expense.cost) || 0;
     const totalPaid = this.getTotalPayments(expense);
     const remainingBalance = total - totalPaid;
@@ -1660,6 +1667,7 @@ export class ExpensesComponent implements OnInit {
           id_expenses: expense.id_expenses,
           amount: amount,
           payment_method: this.newPaymentMethod,
+          payment_date: this.newPaymentDate
         }])
         .select()
         .single();
@@ -1715,7 +1723,10 @@ export class ExpensesComponent implements OnInit {
 
   // Abrir modal para editar pago
   openEditPaymentModal(payment: ExpensePayment) {
-    this.selectedPayment = { ...payment };
+    this.selectedPayment = {
+      ...payment,
+      payment_date: payment.payment_date ? payment.payment_date.split('T')[0] : new Date().toISOString().split('T')[0]
+    };
     this.showEditPaymentModal = true;
   }
 
@@ -1729,6 +1740,10 @@ export class ExpensesComponent implements OnInit {
   async updatePayment(): Promise<void> {
     if (!this.selectedPayment || !this.selectedPayment.id_expense_payment) {
       this.showNotification('No se ha seleccionado un abono válido.', 'info');
+      return;
+    }
+    if (!this.selectedPayment!.payment_date) {
+      this.showNotification('Por favor, seleccione la fecha del abono.', 'info');
       return;
     }
 
@@ -1747,7 +1762,8 @@ export class ExpensesComponent implements OnInit {
         .from('expense_payments')
         .update({
           amount: this.selectedPayment.amount,
-          payment_method: this.selectedPayment.payment_method
+          payment_method: this.selectedPayment.payment_method,
+          payment_date: this.selectedPayment!.payment_date
         })
         .eq('id_expense_payment', this.selectedPayment.id_expense_payment);
 
