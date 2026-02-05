@@ -32,6 +32,7 @@ interface ExpensesItem {
   invoice_file_path?: string | null;
   proof_of_payment_path?: string | null;
   payments?: ExpensePayment[];
+  invoice_number?: string | null;
 }
 
 interface ExpensePayment {
@@ -110,6 +111,7 @@ export class ExpensesComponent implements OnInit {
     payment_status: 'PAID',
     invoice_file_path: null,
     proof_of_payment_path: null,
+    invoice_number: '',
   };
   // helpers for modal
   loading: boolean = false;
@@ -119,6 +121,9 @@ export class ExpensesComponent implements OnInit {
   endDate: string = '';
   PaidStartDate: string = '';
   PaidEndDate: string = '';
+  dueStartDate: string = '';
+  dueEndDate: string = '';
+
   isSaving: boolean = false;
   showDetailsModal: boolean = false;
 
@@ -142,6 +147,8 @@ export class ExpensesComponent implements OnInit {
   onlyPending: boolean = false;
   filterProviderName: string | null = null;
   filterMainCategory: string | null = null;
+  filterInvoiceNumber: string = '';
+  filterCodeSearch: string = '';
 
   // Categories
   categoryCheckboxes: { [key: string]: boolean } = {};
@@ -321,6 +328,7 @@ export class ExpensesComponent implements OnInit {
       payment_status: 'PAID',
       invoice_file_path: null,
       proof_of_payment_path: null,
+      invoice_number: '',
     };
   }
   getCategoryLabel(value: string): string {
@@ -838,6 +846,7 @@ export class ExpensesComponent implements OnInit {
           this.selectedExpense.payment_status === 'PARTIAL'
             ? this.selectedExpense.paid_at
             : null,
+        invoice_number: this.selectedExpense.invoice_number,
       };
 
       let savedExpenseId: string | null = null;
@@ -938,6 +947,7 @@ export class ExpensesComponent implements OnInit {
       service_type: this.toUpper(item.service_type),
       provider_name: this.toUpper(item.provider_name),
       payments: item.expense_payments || [],
+      invoice_number: this.toUpper(item.invoice_number),
     })) as ExpensesItem[];
 
     this.uniqueCategories = [
@@ -991,6 +1001,7 @@ export class ExpensesComponent implements OnInit {
           expense.category || 'Sin Categoría',
           expense.type || 'Sin Tipo',
           expense.description || 'Sin Descripción',
+          expense.invoice_number || 'Sin Factura',
           formattedCost,
           expense.created_at.toISOString().split('T')[0] || currentDate,
         ].map((value) => `"${value}"`);
@@ -1070,6 +1081,27 @@ export class ExpensesComponent implements OnInit {
       if (this.filterMainCategory && e.mainCategory !== this.filterMainCategory) {
         return false;
       }
+
+      // invoice number
+      if (this.filterInvoiceNumber) {
+        const search = this.filterInvoiceNumber.toLowerCase();
+        if (!e.invoice_number?.toLowerCase().includes(search)) {
+          return false;
+        }
+      }
+
+      // expenses code
+      if (this.filterCodeSearch) {
+        const search = this.filterCodeSearch.trim();
+
+        if (!/^\d+$/.test(search)) {
+          return false;
+        }
+
+        if (!e.code || e.code !== Number(search)) {
+          return false;
+        }
+      }
       
       // Date range
       const expenseDate = new Date(e.payment_date);
@@ -1090,6 +1122,24 @@ export class ExpensesComponent implements OnInit {
 
         if (this.PaidEndDate &&
             paidDate > new Date(this.PaidEndDate)) {
+          return false;
+        }
+      }
+
+      // payment_due_date range
+      if (this.dueStartDate || this.dueEndDate) {
+
+        if (!e.payment_due_date) return false;
+
+        const dueDate = new Date(e.payment_due_date);
+
+        if (this.dueStartDate &&
+            dueDate < new Date(this.dueStartDate)) {
+          return false;
+        }
+
+        if (this.dueEndDate &&
+            dueDate > new Date(this.dueEndDate)) {
           return false;
         }
       }
@@ -1195,6 +1245,7 @@ export class ExpensesComponent implements OnInit {
       payment_status: 'PAID',
       invoice_file_path: null,
       proof_of_payment_path: null,
+      invoice_number: '',
     };
     this.categoryMode = 'OTHER';
     // Resetear estados de categoría
@@ -1304,6 +1355,7 @@ export class ExpensesComponent implements OnInit {
       payment_status: 'PAID',
       invoice_file_path: null,
       proof_of_payment_path: null,
+      invoice_number: '',
     };
   }
   deletingExpenseId: string | null = null;
@@ -1370,11 +1422,15 @@ export class ExpensesComponent implements OnInit {
     this.endDate = '';
     this.PaidStartDate = '';
     this.PaidEndDate = '';
+    this.dueStartDate = '';
+    this.dueEndDate = '';
     this.filterCategory = null;
     this.filterServiceType = null;
     this.filterProviderName = null;
     this.onlyPending = false;
     this.filterMainCategory = null;
+    this.filterInvoiceNumber = '';
+    this.filterCodeSearch = '';
 
     // Limpiar campos de búsqueda
     this.filterCategorySearch = '';

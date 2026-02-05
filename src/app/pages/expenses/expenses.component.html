@@ -138,6 +138,30 @@
       </ul>
     </div>
 
+    <!-- Filtro por Código del Egreso -->
+    <div>
+      <label class="block text-sm font-semibold">Código</label>
+      <input
+        type="text"
+        [(ngModel)]="filterCodeSearch"
+        (input)="applyFilters()"
+        placeholder="Ej: 421"
+        class="form-input w-28 border border-gray-300 rounded-md p-2"
+      />
+    </div>
+
+    <!-- Filtro por Número de Factura -->
+    <div class="relative">
+      <label class="block text-sm font-semibold">Id Factura</label>
+      <input
+        type="text"
+        [(ngModel)]="filterInvoiceNumber"
+        (input)="applyFilters()"
+        placeholder="Factura..."
+        class="form-input w-48 border border-gray-300 rounded-md p-2"
+      />
+    </div>
+
     <!-- Solo pendientes -->
     <div class="flex items-center gap-2 mt-6">
       <input
@@ -230,6 +254,33 @@
       />
     </div>
   </div>
+  <div class="flex items-center space-x-4 mt-2">
+    <div>
+      <label for="DueStartDate" class="mr-2 font-semibold text-red-700">
+        Vence desde:
+      </label>
+      <input
+        type="date"
+        id="DueStartDate"
+        [(ngModel)]="dueStartDate"
+        (ngModelChange)="applyFilters()"
+        class="border border-red-300 rounded-md p-1"
+      />
+    </div>
+
+    <div>
+      <label for="DueEndDate" class="mr-2 font-semibold text-red-700">
+        Vence hasta:
+      </label>
+      <input
+        type="date"
+        id="DueEndDate"
+        [(ngModel)]="dueEndDate"
+        (ngModelChange)="applyFilters()"
+        class="border border-red-300 rounded-md p-1"
+      />
+    </div>
+  </div>
 </div>
 
 <!-- Resumen de Egresos -->
@@ -316,7 +367,11 @@
         <td class="px-4 py-2 border-b text-sm text-gray-600">
           {{ expense.provider_name || "NO APLICA" }}
         </td>
-        <td class="px-4 py-2 border-b">{{ expense.description }}</td>
+        <td class="px-4 py-2 border-b">{{ expense.description }}
+          <span *ngIf="expense.invoice_number" class="text-sm text-gray-600">
+            (Fact: {{ expense.invoice_number }})
+          </span>
+        </td>
         <td class="px-4 py-2 border-b text-right font-mono">
           {{ expense.cost | currency }}
         </td>
@@ -859,6 +914,20 @@
         </div>
       </div>
 
+      <!-- Número de Factura -->
+      <div class="modal-input-item">
+        <label class="block text-sm font-medium text-gray-700">
+          Número de Factura
+        </label>
+        <input
+          type="text"
+          [(ngModel)]="selectedExpense.invoice_number"
+          name="invoice_number"
+          placeholder="Ej: FAC-1023, 45879"
+          class="form-input mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+        />
+      </div>
+
       <!-- Anotación -->
       <div class="modal-input-item">
         <label for="description">Anotación</label>
@@ -1150,6 +1219,9 @@
         <label class="block text-xs font-bold text-gray-500 uppercase">Anotación / Descripción</label>
         <div class="bg-gray-50 p-3 rounded border border-gray-200 text-gray-800 whitespace-pre-wrap">
           {{ selectedExpense.description }}
+          <span *ngIf="selectedExpense.invoice_number" class="text-sm text-gray-600">
+            (Fact: {{ selectedExpense.invoice_number }})
+          </span>
         </div>
       </div>
 

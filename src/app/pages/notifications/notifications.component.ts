@@ -32,6 +32,7 @@ export class NotificationsComponent implements OnInit {
   paymentDues: Notifications[] = [];
   paymentDeadlines: Notifications[] = [];
   lowStock: Notifications[] = [];
+  expensesCodeMap: Record<string, string> = {};
   loading: boolean = true;
   showAddReminderForm = false;
   showEditReminderForm = false;
@@ -150,7 +151,30 @@ export class NotificationsComponent implements OnInit {
       });
     }
 
+    await this.loadExpenseCodes();
     this.loading = false;
+  }
+
+  async loadExpenseCodes() {
+    const expenseIds = [
+      ...this.paymentDues,
+      ...this.paymentDeadlines
+    ]
+      .map(n => n.id_expenses)
+      .filter(Boolean);
+
+    if (expenseIds.length === 0) return;
+
+    const { data, error } = await this.supabase
+      .from('expenses')
+      .select('id_expenses, code')
+      .in('id_expenses', expenseIds);
+
+    if (!error && data) {
+      data.forEach(e => {
+        this.expensesCodeMap[e.id_expenses] = e.code;
+      });
+    }
   }
 
   getUpdatedDescription(description: string): string {

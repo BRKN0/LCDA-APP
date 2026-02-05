@@ -82,7 +82,11 @@
         class="p-3 bg-red-50 border border-red-100 rounded-lg flex justify-between items-center group"
       >
         <div>
-          <p class="text-sm font-semibold text-red-900">{{ n.description }}</p>
+          <p class="text-sm font-semibold text-red-900">{{ n.description }}
+            <span *ngIf="n.id_expenses && expensesCodeMap[n.id_expenses]">
+              #{{ expensesCodeMap[n.id_expenses] }}
+            </span>
+          </p>
           <p
             class="text-[10px] text-red-500 uppercase tracking-wider font-bold"
           >
