@@ -1287,7 +1287,7 @@ onSearchFocus(): void {
       this.calculateOrdersSummary(filteredOrders);
     } else {
       this.paginatedOrders = [];
-      this.totalOrderPages = 0;
+      this.totalOrderPages = 1;
     }
   }
 

@@ -1113,18 +1113,41 @@ export class ExpensesComponent implements OnInit {
 
       // paid_at range
       if (this.PaidStartDate || this.PaidEndDate) {
-        if (!e.paid_at) return false;
+        const start = this.PaidStartDate
+          ? new Date(this.PaidStartDate)
+          : null;
 
-        const paidDate = new Date(e.paid_at);
-        if (this.PaidStartDate &&
-            paidDate < new Date(this.PaidStartDate)) {
-          return false;
+        const end = this.PaidEndDate
+          ? new Date(this.PaidEndDate)
+          : null;
+
+        let matchesPaymentDate = false;
+
+        if (e.paid_at) {
+          const paidAtDate = new Date(e.paid_at);
+
+          const afterStart = !start || paidAtDate >= start;
+          const beforeEnd = !end || paidAtDate <= end;
+
+          if (afterStart && beforeEnd) {
+            matchesPaymentDate = true;
+          }
         }
 
-        if (this.PaidEndDate &&
-            paidDate > new Date(this.PaidEndDate)) {
-          return false;
+        if (!matchesPaymentDate && e.payments?.length) {
+          matchesPaymentDate = e.payments.some(p => {
+            if (!p.payment_date) return false;
+
+            const paymentDate = new Date(p.payment_date);
+
+            const afterStart = !start || paymentDate >= start;
+            const beforeEnd = !end || paymentDate <= end;
+
+            return afterStart && beforeEnd;
+          });
         }
+
+        if (!matchesPaymentDate) return false;
       }
 
       // payment_due_date range
@@ -1184,35 +1207,35 @@ export class ExpensesComponent implements OnInit {
 
   private calculateTotals(): void {
 
-  let totalPaid = 0;
-  let totalPending = 0;
+    let totalPaid = 0;
+    let totalPending = 0;
 
-  this.filteredExpenses.forEach((expense, index) => {
-    const expenseCost = Number(expense.cost) || 0;
-    const paymentsTotal = this.getTotalPayments(expense);
+    this.filteredExpenses.forEach((expense, index) => {
+      const expenseCost = Number(expense.cost) || 0;
+      const paymentsTotal = this.getTotalPayments(expense);
 
-    // CALCULAMOS EL ESTADO DINÁMICAMENTE SEGÚN ABONOS
-    if (paymentsTotal >= expenseCost) {
-      // Está completamente pagado (con abonos o checkbox)
-      totalPaid += expenseCost;
-    } else if (paymentsTotal > 0) {
-      // Tiene abonos parciales
-      totalPaid += paymentsTotal;
-      totalPending += (expenseCost - paymentsTotal);
-    } else {
-      // No tiene abonos, verificar si fue marcado como pagado con checkbox
-      if (expense.payment_status === 'PAID') {
+      // CALCULAMOS EL ESTADO DINÁMICAMENTE SEGÚN ABONOS
+      if (paymentsTotal >= expenseCost) {
+        // Está completamente pagado (con abonos o checkbox)
         totalPaid += expenseCost;
+      } else if (paymentsTotal > 0) {
+        // Tiene abonos parciales
+        totalPaid += paymentsTotal;
+        totalPending += (expenseCost - paymentsTotal);
       } else {
-        totalPending += expenseCost;
+        // No tiene abonos, verificar si fue marcado como pagado con checkbox
+        if (expense.payment_status === 'PAID') {
+          totalPaid += expenseCost;
+        } else {
+          totalPending += expenseCost;
+        }
       }
-    }
-  });
+    });
 
-  this.totalPaid = totalPaid;
-  this.totalPending = totalPending;
-  this.totalExpenses = totalPaid + totalPending;
-}
+    this.totalPaid = totalPaid;
+    this.totalPending = totalPending;
+    this.totalExpenses = totalPaid + totalPending;
+  }
 
   // Verify if at least one category checkbox is checked
   isAnyCategoryChecked(): boolean {
@@ -1318,15 +1341,16 @@ export class ExpensesComponent implements OnInit {
     this.showModal = true;
   }
 
-
   viewExpenseDetails(expense: ExpensesItem) {
     this.selectedExpense = { ...expense };
     this.showDetailsModal = true;
   }
+
   closeDetailsModal() {
     this.showDetailsModal = false;
     this.selectedExpense = this.resetExpense();
   }
+
   closeModal(): void {
     this.showModal = false;
     this.isEditing = false;
@@ -1359,6 +1383,7 @@ export class ExpensesComponent implements OnInit {
       invoice_number: '',
     };
   }
+
   deletingExpenseId: string | null = null;
 
   async deleteExpense(expense: ExpensesItem): Promise<void> {
@@ -1452,6 +1477,32 @@ export class ExpensesComponent implements OnInit {
     this.showFilterMainCategorySuggestions = false;
 
     this.applyFilters();
+  }
+
+  getPaymentTypeLabel(expense: ExpensesItem): string {
+
+    const hasPayments = expense.payments && expense.payments.length > 0;
+
+    if (!hasPayments && expense.payment_status === 'PENDING') {
+      return 'NINGUNO';
+    }
+
+    if (hasPayments && expense.payment_status === 'PARTIAL') {
+      return 'ABONO';
+    }
+
+    if (expense.payment_status === 'PAID') {
+      switch (expense.type) {
+        case 'cash': return 'EFECTIVO';
+        case 'nequi': return 'NEQUI';
+        case 'bancolombia': return 'BANCOLOMBIA';
+        case 'davivienda': return 'DAVIVIENDA';
+        case 'transfer': return 'TRANSFERENCIA';
+        default: return 'Pagado';
+      }
+    }
+
+    return 'Pendiente';
   }
 
   async toggleExpenseStatus(expense: ExpensesItem) {

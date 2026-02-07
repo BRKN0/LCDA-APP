@@ -376,66 +376,59 @@
           {{ expense.cost | currency }}
         </td>
         <td class="px-4 py-2 border-b">
-          {{
-            expense.type === 'cash' ? 'Efectivo' :
-            expense.type === 'nequi' ? 'Nequi' :
-            expense.type === 'bancolombia' ? 'Bancolombia' :
-            expense.type === 'davivienda' ? 'Davivienda' :
-            expense.type === 'transfer' ? 'Transferencia'
-            : 'Abono'
-          }}
+          {{ getPaymentTypeLabel(expense) }}
         </td>
         <td class="px-4 py-2 border-b text-center">
-        <!-- Si tiene pagos Y está PAGADO completamente -->
-        <div *ngIf="expense.payments && expense.payments.length > 0 && expense.payment_status === 'PAID'" class="text-left">
-          <div class="flex items-center justify-start gap-2">
-            <span class="text-xs font-bold text-green-600">
-              Pagado
-            </span>
+          <!-- Si tiene pagos Y está PAGADO completamente -->
+          <div *ngIf="expense.payments && expense.payments.length > 0 && expense.payment_status === 'PAID'" class="text-left">
+            <div class="flex items-center justify-start gap-2">
+              <span class="text-xs font-bold text-green-600">
+                Pagado
+              </span>
+            </div>
           </div>
-        </div>
 
-        <!-- Si tiene pagos PERO aún está PENDIENTE o PARTIAL -->
-        <div *ngIf="expense.payments && expense.payments.length > 0 && expense.payment_status !== 'PAID'" class="text-left">
-          <div class="flex items-center justify-start gap-2 mb-1">
+          <!-- Si tiene pagos PERO aún está PENDIENTE o PARTIAL -->
+          <div *ngIf="expense.payments && expense.payments.length > 0 && expense.payment_status !== 'PAID'" class="text-left">
+            <div class="flex items-center justify-start gap-2 mb-1">
+              <span
+                class="text-xs font-bold"
+                [ngClass]="{
+                  'text-orange-500': expense.payment_status === 'PARTIAL',
+                  'text-red-500': expense.payment_status === 'PENDING'
+                }"
+              >
+                {{ expense.payment_status === 'PARTIAL' ? 'ABONO' : 'PENDIENTE' }}
+              </span>
+            </div>
+            <div class="text-xs text-gray-600">
+              Pagado: {{ getTotalPayments(expense) | currency }}
+            </div>
+            <div class="text-xs text-red-500 font-semibold">
+              Falta: {{ getRemainingBalance(expense) | currency }}
+            </div>
+          </div>
+
+          <!-- Si NO tiene pagos, usar checkbox tradicional -->
+          <div *ngIf="!expense.payments || expense.payments.length === 0" class="flex items-center justify-start gap-2">
             <span
               class="text-xs font-bold"
               [ngClass]="{
-                'text-orange-500': expense.payment_status === 'PARTIAL',
+                'text-green-600': expense.payment_status === 'PAID',
                 'text-red-500': expense.payment_status === 'PENDING'
               }"
             >
-              {{ expense.payment_status === 'PARTIAL' ? 'Abono' : 'Pendiente' }}
+              {{ expense.payment_status === 'PAID' ? 'PAGADO' : 'PENDIENTE' }}
             </span>
           </div>
-          <div class="text-xs text-gray-600">
-            Pagado: {{ getTotalPayments(expense) | currency }}
-          </div>
-          <div class="text-xs text-red-500 font-semibold">
-            Falta: {{ getRemainingBalance(expense) | currency }}
-          </div>
-        </div>
 
-        <!-- Si NO tiene pagos, usar checkbox tradicional -->
-        <div *ngIf="!expense.payments || expense.payments.length === 0" class="flex items-center justify-start gap-2">
-          <span
-            class="text-xs font-bold"
-            [ngClass]="{
-              'text-green-600': expense.payment_status === 'PAID',
-              'text-red-500': expense.payment_status === 'PENDING'
-            }"
+          <div
+            *ngIf="expense.payment_status === 'PENDING' && expense.payment_due_date"
+            class="text-xs text-red-400 mt-1 text-left"
           >
-            {{ expense.payment_status === 'PAID' ? 'Pagado' : 'Pendiente' }}
-          </span>
-        </div>
-
-        <div
-          *ngIf="expense.payment_status === 'PENDING' && expense.payment_due_date"
-          class="text-xs text-red-400 mt-1 text-left"
-        >
-          Vence: {{ expense.payment_due_date | date : 'dd-MM-yyyy' }}
-        </div>
-      </td>
+            Vence: {{ expense.payment_due_date | date : 'dd-MM-yyyy' }}
+          </div>
+        </td>
         <td class="px-4 py-2 border-b">
           <div class="flex gap-2 flex-wrap">
             <button
