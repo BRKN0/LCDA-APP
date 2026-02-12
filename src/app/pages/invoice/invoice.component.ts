@@ -881,6 +881,16 @@ onDocumentClick(event: MouseEvent): void {
 
   editPayment(payment: Payment): void {
     this.selectedPayment = { ...payment };
+
+    if (this.selectedPayment.payment_date) {
+      const date = new Date(this.selectedPayment.payment_date);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+
+      this.selectedPayment.payment_date = `${year}-${month}-${day}`;
+    }
+
     this.showEditPayment = true;
   }
 
@@ -917,6 +927,7 @@ onDocumentClick(event: MouseEvent): void {
         .update({
           amount: newAmount,
           payment_method: this.selectedPayment.payment_method,
+          payment_date: this.selectedPayment.payment_date
         })
         .eq('id_payment', this.selectedPayment.id_payment);
 
@@ -980,6 +991,7 @@ onDocumentClick(event: MouseEvent): void {
 
       this.showEditPayment = false;
       this.selectedPayment = null;
+      this.selectedInvoiceDetails = null;
       this.showNotification('Abono actualizado correctamente.');
     } catch (error) {
       console.error('Error inesperado:', error);

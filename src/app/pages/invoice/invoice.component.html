@@ -1108,6 +1108,15 @@
           <option value="other">Otro</option>
         </select>
       </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">Fecha del abono</label>
+        <input
+          type="date"
+          [(ngModel)]="selectedPayment.payment_date"
+          name="editPaymentDate"
+          class="form-input w-full mt-1"
+        />
+      </div>
       <div class="flex justify-end">
         <button class="btn-danger" (click)="showEditPayment = false">
           Cancelar
