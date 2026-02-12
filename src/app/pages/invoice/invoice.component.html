@@ -877,6 +877,37 @@
           No hay productos registrados para esta venta.
         </p>
       </div>
+      <!-- CARGOS EXTRAS -->
+      <div
+        *ngIf="
+          selectedInvoiceDetails[0]?.order?.extra_charges?.length
+        "
+        class="my-6"
+      >
+        <h4 class="font-semibold text-blue-600 mb-2">
+          Cargos Extras
+        </h4>
+
+        <table class="w-full text-sm border rounded">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="p-2 text-left">Descripción</th>
+              <th class="p-2 text-right">Valor</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr *ngFor="let charge of selectedInvoiceDetails[0].order.extra_charges">
+              <td class="p-2">
+                {{ charge.description }}
+              </td>
+              <td class="p-2 text-right">
+                {{ charge.amount | number:'1.2-2' }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
       <div
         class="border-t pt-4 mt-4 space-y-4"
         *ngIf="selectedInvoiceDetails.length && calculatedValues as valores"

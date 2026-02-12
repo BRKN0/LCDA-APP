@@ -72,6 +72,10 @@ interface Orders {
   delivery_date: string;
   baseTotal?: number;
   requires_e_invoice: boolean;
+  extra_charges?: {
+    description: string;
+    amount: number;
+  }[];
   is_vitrine: boolean;
   include_iva?: boolean;
   scheduler?: string;
