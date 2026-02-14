@@ -33,6 +33,7 @@ interface ExpensesItem {
   proof_of_payment_path?: string | null;
   payments?: ExpensePayment[];
   invoice_number?: string | null;
+  is_electronic_invoice?: boolean;
 }
 
 interface ExpensePayment {
@@ -112,6 +113,7 @@ export class ExpensesComponent implements OnInit {
     invoice_file_path: null,
     proof_of_payment_path: null,
     invoice_number: '',
+    is_electronic_invoice: false,
   };
   // helpers for modal
   loading: boolean = false;
@@ -149,6 +151,7 @@ export class ExpensesComponent implements OnInit {
   filterMainCategory: string | null = null;
   filterInvoiceNumber: string = '';
   filterCodeSearch: string = '';
+  filterElectronicInvoice: boolean = false;
 
   // Categories
   categoryCheckboxes: { [key: string]: boolean } = {};
@@ -330,6 +333,7 @@ export class ExpensesComponent implements OnInit {
       invoice_file_path: null,
       proof_of_payment_path: null,
       invoice_number: '',
+      is_electronic_invoice: false,
     };
   }
   getCategoryLabel(value: string): string {
@@ -658,8 +662,6 @@ export class ExpensesComponent implements OnInit {
     if (this.isSaving) return;
     this.isSaving = true;
 
-
-
     let rollbackProviderId: string | null = null;
 
     try {
@@ -848,6 +850,7 @@ export class ExpensesComponent implements OnInit {
             ? this.selectedExpense.paid_at
             : null,
         invoice_number: this.selectedExpense.invoice_number,
+        is_electronic_invoice: this.selectedExpense.is_electronic_invoice ?? false,
       };
 
       let savedExpenseId: string | null = null;
@@ -949,6 +952,7 @@ export class ExpensesComponent implements OnInit {
       provider_name: this.toUpper(item.provider_name),
       payments: item.expense_payments || [],
       invoice_number: this.toUpper(item.invoice_number),
+      is_electronic_invoice: item.is_electronic_invoice ?? false,
     })) as ExpensesItem[];
 
     this.uniqueCategories = [
@@ -1196,6 +1200,11 @@ export class ExpensesComponent implements OnInit {
         return false;
       }
 
+      // Electronic Invoice
+      if (this.filterElectronicInvoice && !e.is_electronic_invoice) {
+        return false;
+      }
+
       return true;
     });
 
@@ -1270,6 +1279,7 @@ export class ExpensesComponent implements OnInit {
       invoice_file_path: null,
       proof_of_payment_path: null,
       invoice_number: '',
+      is_electronic_invoice: false,
     };
     this.categoryMode = 'OTHER';
     // Resetear estados de categoría
@@ -1381,6 +1391,7 @@ export class ExpensesComponent implements OnInit {
       invoice_file_path: null,
       proof_of_payment_path: null,
       invoice_number: '',
+      is_electronic_invoice: false,
     };
   }
 
@@ -1457,6 +1468,7 @@ export class ExpensesComponent implements OnInit {
     this.filterMainCategory = null;
     this.filterInvoiceNumber = '';
     this.filterCodeSearch = '';
+    this.filterElectronicInvoice = false;
 
     // Limpiar campos de búsqueda
     this.filterCategorySearch = '';
@@ -2309,6 +2321,7 @@ export class ExpensesComponent implements OnInit {
       mainCategory: item.mainCategory,
       paid_at: item.paid_at ?? null,
       payments: item.expense_payments || [],
+      is_electronic_invoice: item.is_electronic_invoice ?? false,
     })) as ExpensesItem[];
 
     // Actualizar categorías
