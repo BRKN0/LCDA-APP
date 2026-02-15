@@ -1824,46 +1824,55 @@ private normalizeText(text: string): string {
 
       newOrderForm.name = this.selectedClient.name;
 
-    const { data: clientData, error: clientError } = await this.supabase
-      .from('clients')
-      .select('debt, credit_limit')
-      .eq('id_client', newOrderForm.id_client)
-      .single();
+      const { data: clientData, error: clientError } = await this.supabase
+        .from('clients')
+        .select('debt, credit_limit')
+        .eq('id_client', newOrderForm.id_client)
+        .single();
 
-    if (clientError || !clientData) {
-      console.error('Error al obtener detalles del cliente:', clientError);
-      alert('Error al verificar el cliente.');
-      return;
-    }
-
-    const currentDebt = clientData.debt || 0;
-    const creditLimit = clientData.credit_limit || 0;
-    const orderAmount = parseFloat(newOrderForm.total as string) || 0;
-    const newDebt = currentDebt + orderAmount;
-
-    if (creditLimit > 0 && newDebt > creditLimit) {
-      const confirmMessage = `El cliente ha excedido su límite de crédito por lo que su deuda actual aumentará en el caso de que el pedido sea autorizado.
-
-      ¿Desea autorizar este pedido de todas formas?`;
-
-      if (!confirm(confirmMessage)) {
+      if (clientError || !clientData) {
+        console.error('Error al obtener detalles del cliente:', clientError);
+        alert('Error al verificar el cliente.');
         return;
       }
-    }
 
-    // Vitrine validation before creating order
-    if (!this.validateVitrineBeforeSave()) {
-      return;
-    }
+      const currentDebt = clientData.debt || 0;
+      const creditLimit = clientData.credit_limit || 0;
+      const orderAmount = parseFloat(newOrderForm.total as string) || 0;
+      const newDebt = currentDebt + orderAmount;
 
-    if (this.isVitrineSale()) {
-      this.recalcVitrineTotals();
-    }
+      if (creditLimit > 0 && newDebt > creditLimit) {
+        const confirmMessage = `El cliente ha excedido su límite de crédito por lo que su deuda actual aumentará en el caso de que el pedido sea autorizado.
 
-    if (this.newOrder.order_type === '') {
-      alert('Por favor, seleccione un tipo de pedido.');
-      return;
-    }
+        ¿Desea autorizar este pedido de todas formas?`;
+
+        if (!confirm(confirmMessage)) {
+          return;
+        }
+      }
+
+      // Vitrine validation before creating order
+      if (!this.validateVitrineBeforeSave()) {
+        return;
+      }
+
+      if (this.isVitrineSale()) {
+        this.recalcVitrineTotals();
+      }
+
+      if (this.newOrder.order_type === '') {
+        alert('Por favor, seleccione un tipo de pedido.');
+        return;
+      }
+
+      if (
+        !this.isVitrineSale() &&
+        (!newOrderForm.unitary_value ||
+          Number(newOrderForm.unitary_value) <= 0)
+      ) {
+        alert('El valor total del pedido debe ser mayor a 0.');
+        return;
+      }
 
       // calculations
       let baseTotal = 0;
