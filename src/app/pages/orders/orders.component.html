@@ -317,7 +317,7 @@
           <td [ngClass]="getDaysRemainingClass(order)">
             {{ getDaysRemainingLabel(order) }}
           </td>
-          <td>{{ order.total  | number:'1.2-2'}}</td>
+          <td>{{ getEffectiveTotal(order) | number:'1.0-0' }}</td>
           <td
             [ngClass]="{
               'text-green-600': order.order_confirmed_status === 'confirmed',
@@ -735,6 +735,7 @@
             </p>
             <p>-{{ getSelectedOrderDiscountAmount() | number:'1.2-2' }}</p>
           </div>
+          <!-- EXTRA -->
           <div
             *ngIf="selectedOrderDetails[0]?.extra_charges?.length"
             class="flex flex-col gap-1 my-2"
@@ -748,6 +749,7 @@
               <span>${{ charge.amount  | number:'1.2-2'}}</span>
             </div>
           </div>
+          <!-- IVA -->
           <div class="flex justify-between" *ngIf="selectedOrderDetails[0].iva && selectedOrderDetails[0].include_iva">
             <p><strong>IVA</strong></p>
             <p>{{ selectedOrderDetails[0].iva | number: "1.2-2"}}</p>
@@ -756,6 +758,25 @@
             <p><strong>Total</strong></p>
             <p class="font-bold">{{ selectedOrderDetails[0].total  | number:'1.2-2'}}</p>
           </div>
+          <!-- SOLO FE: retenciones + neto -->
+          <ng-container *ngIf="selectedOrderDetails[0].requires_e_invoice">
+            <div class="flex justify-between text-red-600" *ngIf="(selectedOrderDetails[0].retefuente_total || 0) > 0">
+              <p><strong>Retefuente</strong></p>
+              <p>-{{ selectedOrderDetails[0].retefuente_total | number:'1.2-2' }}</p>
+            </div>
+
+            <div class="flex justify-between text-red-600" *ngIf="(selectedOrderDetails[0].reteica_total || 0) > 0">
+              <p><strong>ReteICA</strong></p>
+              <p>-{{ selectedOrderDetails[0].reteica_total | number:'1.2-2' }}</p>
+            </div>
+
+            <div class="flex justify-between">
+              <p><strong>Total neto</strong></p>
+              <p class="font-bold text-green-700">
+                {{ getEffectiveTotal(selectedOrderDetails[0]) | number:'1.2-2' }}
+              </p>
+            </div>
+          </ng-container>
         </div>
       </ng-container>
       <div
@@ -940,6 +961,7 @@
             [(ngModel)]="newOrder.order_type"
             name="order_type"
             class="form-select mt-1 block w-full"
+            (ngModelChange)="onOrderTypeChange()"
             required
           >
             <option value="print">Impresiones</option>
@@ -1052,13 +1074,99 @@
             <option value="final">Final</option>
           </select>
         </div>
-        <div class="mb-4">
+        <div class="p-3 rounded border bg-gray-50 mb-4">
+          <div class="flex items-center justify-between">
+            <label class="font-semibold">Factura electrónica</label>
+
+            <label class="flex items-center gap-2">
+              <input type="checkbox"
+                    [(ngModel)]="newOrder.requires_e_invoice"
+                    name="requires_e_invoice"
+              >
+              Requiere FE
+            </label>
+
+            <label class="flex items-center gap-2">
+              <input type="checkbox"
+                    [(ngModel)]="newOrder.include_iva"
+                    name="include_iva"
+                    (change)="updateOrderTotalWithExtras()">
+              Incluir IVA
+            </label>
+          </div>
+
+          <p *ngIf="newOrder.requires_e_invoice" class="text-sm text-red-600 mt-2">
+            Para FE debes ingresar líneas (bien/servicio).
+          </p>
+        </div>
+        <div *ngIf="!isVitrineSale() && newOrder.requires_e_invoice" class="order-lines-section">
+
+          <h4>Líneas del Pedido</h4>
+
+          <div *ngFor="let line of newOrderLines; let i = index" class="order-line-row">
+
+            <!-- Tipo -->
+            <select [(ngModel)]="line.type"
+              class="form-select w-1/6"
+              (ngModelChange)="updateOrderTotalWithExtras()"
+              name="lineType{{i}}"  
+            >
+              <option value="servicio">Servicio</option>
+              <option value="bien">Bien</option>
+            </select>
+
+            <!-- Descripción -->
+            <input 
+              type="text"
+              class="form-input w-2/5"
+              [(ngModel)]="line.description"
+              placeholder="Descripción"
+              name="lineDescription{{i}}"
+            />
+
+            <!-- Valor -->
+            <input 
+              type="number"
+              [(ngModel)]="line.amount"
+              (ngModelChange)="updateOrderTotalWithExtras()"
+              min="0"
+              placeholder="Valor"
+              class="form-input w-1/4"
+              name="lineAmount{{i}}"
+            />
+
+            <!-- Eliminar -->
+            <button 
+              type="button"
+              (click)="removeOrderLine(i)"
+            >
+              ✕
+            </button>
+
+          </div>
+
+          <!-- Botón Agregar -->
+          <button 
+            type="button"
+            class="btn-primary"
+            (click)="addOrderLine()"
+          >
+            + Agregar línea
+          </button>
+          
+
+        </div>
+        <div *ngIf="!newOrder.requires_e_invoice && !hasStructuredLines()" class="mb-4">
           <label class="block modal-input-item">Descripción</label>
           <textarea
             [(ngModel)]="newOrder.description"
             name="description"
+            rows="3"
             class="form-textarea mt-1 block w-full"
           ></textarea>
+        </div>
+        <div *ngIf="hasStructuredLines()" class="summary-box">
+          <strong>Descripción generada automáticamente al guardar.</strong>
         </div>
         <div class="mb-4">
           <label class="block modal-input-item">Notas</label>
@@ -1223,26 +1331,10 @@
             placeholder="Ej: 50000"
             min="1"
             step="100"
+            [readonly]="hasStructuredLines()"
             required
             (change)="updateOrderTotalWithExtras()"
           />
-          <label class="flex items-center gap-2 mt-2">
-            <input
-              type="checkbox"
-              name="include_iva"
-              [(ngModel)]="newOrder.include_iva"
-              (change)="updateOrderTotalWithExtras()"
-            />
-            Incluir IVA ({{ variables.iva }}%)
-          </label>
-          <label class="flex items-center gap-2">
-            <input
-              type="checkbox"
-              name="requires_e_invoice"
-              [(ngModel)]="newOrder.requires_e_invoice"
-            />
-            Requiere factura electrónica
-          </label>
         </div>
         <div class="mb-4 border-t pt-4">
           <h4 class="font-semibold text-red-600">Descuento</h4>

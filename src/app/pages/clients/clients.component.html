@@ -405,7 +405,7 @@
               </td>
               <td class="modal-table-column">{{ order.description }}</td>
               <td class="modal-table-column">
-                ${{ calculateOrderTotal(order).toFixed(2) | number:'1.2-2'}}
+                ${{ calculateOrderTotal(order) | number:'1.2-2'}}
                 {{ order.include_iva ? "" : "" }}
               </td>
               <td

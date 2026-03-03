@@ -49,7 +49,19 @@ interface Orders {
   discount?: number;
   discount_type?: 'percentage' | 'fixed';
   include_iva?: boolean;
+  order_lines?: OrderLine[] | null;
+  net_total?: number | null;
+  gross_total?: number | null;
+  retefuente_total?: number | null;
+  reteica_total?: number | null;
 }
+
+interface OrderLine {
+  type: 'bien' | 'servicio';
+  description: string;
+  amount: number;
+}
+
 
 interface Client {
   id_client: string;
@@ -264,6 +276,9 @@ export class OrdersComponent implements OnInit, OnDestroy {
   requires_e_invoice: boolean = false;
   tempCutTime: number = 0;
 
+  // details
+  newOrderLines: OrderLine[] = [];
+
   // Vitrine sales items
   salesItems: {
     product_id: string;
@@ -410,7 +425,14 @@ export class OrdersComponent implements OnInit, OnDestroy {
         order_payment_status, order_completion_status, order_confirmed_status, order_delivery_status,
         created_at, created_time, delivery_date, is_immediate,
         total, client_type, secondary_process, secondary_completed, is_vitrine,
-        payments(amount), id_client
+        requires_e_invoice,
+        payments(amount), id_client,
+        invoices(
+          net_total,
+          gross_total,
+          retefuente_total,
+          reteica_total
+        )
       `);
 
     if (this.userRole !== 'admin' && this.userRole !== 'scheduler') {
@@ -438,26 +460,35 @@ export class OrdersComponent implements OnInit, OnDestroy {
       this.loading = false;
       return;
     }
-    this.orders = (data || []).map(o => ({
-      ...o,
-      _client_name: this.clientNameMap.get(o.id_client) || '—'
-    })) as any;
+    this.orders = (data || []).map((o: any) => {
+      const inv = Array.isArray(o.invoices) ? o.invoices[0] : o.invoices;
+
+      return {
+        ...o,
+        net_total: inv?.net_total ?? null,
+        gross_total: inv?.gross_total ?? null,
+        retefuente_total: inv?.retefuente_total ?? null,
+        reteica_total: inv?.reteica_total ?? null,
+        _client_name: this.clientNameMap.get(o.id_client) || '—',
+      };
+    }) as any;
     this.orders.sort((a, b) => b.code - a.code);
     this.updateFilteredOrders();
     this.loading = false;
     this.isOrdersLoaded = true;
   }
 
- /**
- * Normaliza el texto para la búsqueda de nombres con acentos y mayúsculas
- */
-private normalizeText(text: string): string {
-  if (!text) return '';
-  return text
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
-}
+  /**
+   * Normaliza el texto para la búsqueda de nombres con acentos y mayúsculas
+   */
+  private normalizeText(text: string): string {
+    if (!text) return '';
+    return text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  }
+
   private clientNameMap = new Map<string, string>();
   async getClients(): Promise<void> {
     const { data, error } = await this.supabase.from('clients').select('*');
@@ -570,7 +601,7 @@ private normalizeText(text: string): string {
       return;
     }
 
-    const total = parseFloat(String(order.total)) || 0;
+    const total = this.getEffectiveTotal(order);
     const totalPaid = this.getTotalPayments(order);
     const remainingBalance = total - totalPaid;
 
@@ -635,7 +666,7 @@ private normalizeText(text: string): string {
       order.payments.push(newPayment);
 
       const updatedTotalPaid = this.getTotalPayments(order);
-      const orderTotal = parseFloat(String(order.total)) || 0;
+      const orderTotal = this.getEffectiveTotal(order);
       const newStatus =
         updatedTotalPaid >= orderTotal && newDebt <= 0 ? 'upToDate' : 'overdue';
 
@@ -744,7 +775,7 @@ private normalizeText(text: string): string {
         }
 
         const totalPaid = this.getTotalPayments(this.selectedOrder);
-        const orderTotal = parseFloat(String(this.selectedOrder.total)) || 0;
+        const orderTotal = this.getEffectiveTotal(this.selectedOrder);
         const newStatus =
           totalPaid >= orderTotal && newDebt <= 0 ? 'upToDate' : 'overdue';
 
@@ -831,7 +862,7 @@ private normalizeText(text: string): string {
 
     const { data, error } = await this.supabase
       .from('orders')
-      .select('*, payments(*)')
+      .select('*, payments(*), invoices(net_total, gross_total, retefuente_total, reteica_total)')
       .eq('code', this.searchQuery.trim());
 
     if (error) {
@@ -1374,7 +1405,7 @@ private normalizeText(text: string): string {
       // fetch the full details order data from the database
       const { data: fullOrderData, error: orderError } = await this.supabase
         .from('orders')
-        .select('*')
+        .select('*, invoices(net_total, gross_total, retefuente_total, reteica_total)')
         .eq('id_order', order.id_order)
         .single();
 
@@ -1425,6 +1456,10 @@ private normalizeText(text: string): string {
         }
       }
 
+      const inv = Array.isArray((fullOrderData as any).invoices)
+        ? (fullOrderData as any).invoices[0]
+        : (fullOrderData as any).invoices;
+
       // update the component state with the full data
       this.selectedOrder = fullOrderData as Orders;
 
@@ -1433,6 +1468,10 @@ private normalizeText(text: string): string {
           ...fullOrderData,
           // ensure extra_charges is an array to prevent UI errors
           extra_charges: fullOrderData.extra_charges || [],
+          net_total: inv?.net_total ?? null,
+          gross_total: inv?.gross_total ?? null,
+          retefuente_total: inv?.retefuente_total ?? null,
+          reteica_total: inv?.reteica_total ?? null,
         },
       ];
 
@@ -1654,6 +1693,7 @@ private normalizeText(text: string): string {
       this.selectedColor = '';
       this.tempCutTime = 0;
       this.salesItems = [];
+      this.newOrderLines = [];
     }
     this.showModal = !this.showModal;
     if (!this.showModal) {
@@ -1781,6 +1821,10 @@ private normalizeText(text: string): string {
       }
     }
 
+    this.newOrderLines = fullOrder.order_lines
+      ? [...fullOrder.order_lines]
+      : [];
+
     if (this.isVitrineSale()) {
       this.recalcVitrineTotals();
     }
@@ -1874,6 +1918,11 @@ private normalizeText(text: string): string {
         return;
       }
 
+      if (this.newOrderLines.length > 0) {
+        this.newOrder.unitary_value = this.newOrderLines
+          .reduce((sum, line) => sum + Number(line.amount || 0), 0);
+      }
+
       // calculations
       let baseTotal = 0;
 
@@ -1894,6 +1943,17 @@ private normalizeText(text: string): string {
 
       const total = Number(this.newOrder.total) || 0;
 
+      if (this.newOrderLines.length > 0) {
+        if (!this.validateOrderLines()) {
+          alert('Revise las líneas del pedido.');
+          return;
+        }
+
+        this.newOrder.order_lines = this.newOrderLines;
+        this.newOrder.description = this.generateDescriptionFromLines();
+      } else {
+        this.newOrder.order_lines = null;
+      }
 
       // object construction
       // set code to 0 initially, db ignores it on creation, please do NOT remove or you will break everything AGAIN
@@ -1935,9 +1995,9 @@ private normalizeText(text: string): string {
         discount_type: newOrderForm.discount_type || 'percentage'
       };
 
-    if (this.newOrder.order_type === 'laser') {
-      this.newOrder.cutting_time = this.tempCutTime || 0;
-    }
+      if (this.newOrder.order_type === 'laser') {
+        this.newOrder.cutting_time = this.tempCutTime || 0;
+      }
 
 
       const paymentTerm = 5;
@@ -2046,6 +2106,16 @@ private normalizeText(text: string): string {
       }
       // logic for creating (insert transaction)
       else {
+        if (this.newOrderLines.length > 0) {
+          if (!this.validateOrderLines()) {
+            alert('Revise las líneas del pedido.');
+            return;
+          }
+
+          this.newOrder.order_lines = this.newOrderLines;
+        } else {
+          this.newOrder.order_lines = null;
+        }
         // prepare json payload for order
         // we use explicit conversion to ensure type safety for jsonb mapping
         const orderPayload = {
@@ -2295,13 +2365,13 @@ private normalizeText(text: string): string {
   }
 
   updateOrderTotalWithExtras(): void {
-    const baseTotal = Number(this.newOrder.unitary_value) || 0;
+    const baseTotal = this.getBaseTotal();
     const extras =
       this.newOrder.extra_charges?.reduce((sum, c) => sum + c.amount, 0) || 0;
     
     const discountAmount = this.getDiscountAmount();
 
-      const subtotal = Math.max(baseTotal + extras - discountAmount, 0);
+    const subtotal = Math.max(baseTotal + extras - discountAmount, 0);
     // Calcular total con o sin IVA
     if (this.newOrder.include_iva) {
       const ivaAmount = Math.round(subtotal * (this.variables.iva / 100));
@@ -2314,6 +2384,10 @@ private normalizeText(text: string): string {
 
     this.newOrder.subtotal = baseTotal;
     this.newOrder.base_total = baseTotal;
+
+    if (this.newOrderLines.length > 0) {
+      this.newOrder.unitary_value = baseTotal;
+    }
   }
 
   private getDiscountAmount(): number {
@@ -2661,6 +2735,7 @@ private normalizeText(text: string): string {
       .replace(/\s+/g, '_')
       .replace(/[^a-zA-Z0-9._-]/g, '');
   }
+
   private async handleFileUploadForOrder(orderId: string): Promise<void> {
     if (this.selectedFile) {
       const file = this.selectedFile;
@@ -2717,8 +2792,99 @@ private normalizeText(text: string): string {
 
     this.uploadedFileName = null;
   }
+
   get submitButtonText(): string {
     if (this.isSavingOrder || this.isSavingClient) return 'Guardando...';
     return this.isEditing ? 'Actualizar' : 'Guardar';
+  }
+
+  addOrderLine(): void {
+    this.newOrderLines.push({
+      type: 'servicio',
+      description: '',
+      amount: 0
+    });
+
+    this.updateOrderTotalWithExtras();
+  }
+
+  removeOrderLine(index: number): void {
+    this.newOrderLines.splice(index, 1);
+    this.updateOrderTotalWithExtras();
+  }
+
+  private validateOrderLines(): boolean {
+    if (!this.newOrderLines || this.newOrderLines.length === 0) return false;
+
+    return this.newOrderLines.every(line =>
+      line.type &&
+      line.description.trim() !== '' &&
+      Number(line.amount) > 0
+    );
+  }
+
+  hasStructuredLines(): boolean {
+    return this.newOrderLines && this.newOrderLines.length > 0;
+  }
+
+  private getBaseTotal(): number {
+    // Caso 1: Vitrina
+    if (this.isVitrineSale()) {
+      return this.salesItems.reduce(
+        (sum, item) => sum + Number(item.subtotal || 0),
+        0
+      );
+    }
+
+    // Caso 2: Pedido estructurado
+    if (this.newOrderLines && this.newOrderLines.length > 0) {
+      return this.newOrderLines.reduce(
+        (sum, line) => sum + Number(line.amount || 0),
+        0
+      );
+    }
+
+    // Caso 3: Pedido clásico
+    return Number(this.newOrder.unitary_value) || 0;
+  }
+
+  private generateDescriptionFromLines(): string {
+    if (!this.newOrderLines || this.newOrderLines.length === 0) {
+      return this.newOrder.description || '';
+    }
+
+    return this.newOrderLines
+      .map((line, index) => {
+        const typeLabel =
+          line.type === 'bien' ? 'BIEN' : 'SERVICIO';
+
+        const formattedAmount = Number(line.amount || 0)
+          .toLocaleString('es-CO');
+
+        return `${index + 1}. [${typeLabel}] ${line.description} - $${formattedAmount}`;
+      })
+      .join('\n');
+  }
+
+  onOrderTypeChange(): void {
+    if (this.isVitrineSale()) {
+      this.newOrderLines = [];
+    }
+
+    this.updateOrderTotalWithExtras();
+  }
+
+  public getEffectiveTotal(order: Orders): number {
+    if (!order) return 0;
+
+    if (order.requires_e_invoice) {
+      if (order.net_total != null) return Number(order.net_total);
+      const gross = Number(order.gross_total ?? order.total ?? 0);
+      const retef = Number(order.retefuente_total ?? 0);
+      const reteica = Number(order.reteica_total ?? 0);
+      return gross - retef - reteica;
+    }
+
+    return Number(order.total ?? 0);
   }
 }

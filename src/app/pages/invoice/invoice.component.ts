@@ -18,6 +18,12 @@ interface Invoice {
   due_date: string | null;
   classification: string;
   e_invoice_done: boolean;
+  gross_total?: number;
+  retefuente_total?: number;
+  reteica_total?: number;
+  net_total?: number;
+  invoice_lines?: InvoiceLine[];
+  declarante_snapshot?: boolean;
 }
 
 interface Employee {
@@ -51,6 +57,12 @@ interface VariableMap {
   reteica_bienes: number;
   reteica_servicios: number;
 }
+export interface OrderLine {
+  type: 'bien' | 'servicio';
+  description: string;
+  amount: number;
+}
+
 interface Orders {
   id_order: string;
   order_type: string;
@@ -79,6 +91,7 @@ interface Orders {
   is_vitrine: boolean;
   include_iva?: boolean;
   scheduler?: string;
+  order_lines?: OrderLine[];
 }
 
 interface Client {
@@ -107,6 +120,23 @@ interface Payment {
   amount: number;
   payment_date?: string;
   payment_method: string;
+}
+
+interface InvoiceLine {
+  type: 'bien' | 'servicio';
+  description: string;
+  amount: number;
+
+  apply_retefuente: boolean;
+  apply_reteica: boolean;
+
+  declarante_snapshot: boolean;
+
+  retefuente_rate_snapshot: number;
+  reteica_rate_snapshot: number;
+
+  retefuente_value: number;
+  reteica_value: number;
 }
 
 @Component({
@@ -170,9 +200,9 @@ export class InvoiceComponent implements OnInit {
     /*reteica: number;
     retefuente: number;*/
   } | null = null;
+  originalEffectiveTotal: number = 0;
 
   vitrineSalesDetails: VitrineSaleItem[] = [];
-
 
   variables: VariableMap = {
     iva: 0,
@@ -500,6 +530,7 @@ onDocumentClick(event: MouseEvent): void {
         include_iva: invoice.include_iva ?? false,
         due_date: invoice.due_date,
         payment_term: paymentTerm, // Usar el valor guardado o calculado solo si es null
+        invoice_lines: invoice.invoice_lines ?? [],
         order: {
           ...invoice.orders,
           scheduler: invoice.orders?.scheduler ?? null,
@@ -678,71 +709,216 @@ onDocumentClick(event: MouseEvent): void {
     subtotal: number;
     iva: number;
     total: number;
-    /*reteica: number;
-    retefuente: number;*/
   }> {
     const order = invoice.order;
-    const cliente = order.client;
-    const classKey = this.normalizeClassification(invoice.classification);
-    let subtotal = 0;
-    let iva = 0;
-    let total = subtotal;
 
-    if (invoice.include_iva && order.total) {
-      const gross = order.total;
-      const denom = 1 + (this.IVA_RATE || 0);
-      subtotal = +(gross / denom).toFixed(2);
-      iva = +(gross - subtotal).toFixed(2);
-      iva = Number(iva.toFixed(2));
-      total = gross;
-    } else {
-      subtotal = +(order.total || 0).toFixed(2);
-      iva = 0;
-      total = subtotal;
+    if (!order) {
+      return { subtotal: 0, iva: 0, total: 0 };
     }
 
-    /*let retefuente = 0;
-    if (cliente?.retefuente && invoice.include_iva) {
-      const declara = cliente.is_declarante ? 'declara' : 'no_declara';
-      const key = (
-        classKey === 'bienes'
-          ? `retefuente_bienes_${declara}`
-          : `retefuente_servicios_${declara}`
-      ) as keyof VariableMap;
+    // CASO 1: NO requiere factura electrónica
+    if (!order.requires_e_invoice) {
+      let subtotal = 0;
+      let iva = 0;
+      let total = 0;
 
-      const rate = this.variables[key] ?? 0;
+      if (invoice.include_iva && order.total) {
+        const gross = Number(order.total || 0);
+        const denom = 1 + (this.IVA_RATE || 0);
+        subtotal = +(gross / denom).toFixed(2);
+        iva = +(gross - subtotal).toFixed(2);
+        total = gross;
+      } else {
+        subtotal = +(Number(order.total || 0)).toFixed(2);
+        iva = 0;
+        total = subtotal;
+      }
 
-      // thresholds (subtotals before IVA)
-      const superaTope =
-        (classKey === 'bienes' && subtotal >= 498000) ||
-        (classKey === 'servicios' && subtotal >= 100000);
+      return { subtotal, iva, total };
+    }
 
-      if (rate > 0 && superaTope) {
-        retefuente = +(subtotal * rate).toFixed(2);
+    // CASO 2: REQUIERE factura electrónica
+
+    // 1. Tomar invoice_lines si existen
+    let lines = invoice.invoice_lines ?? [];
+
+    // 2. Si no existen, intentar usar order.order_lines como respaldo
+    if ((!lines || lines.length === 0) && order.order_lines?.length) {
+      lines = order.order_lines.map(line => ({
+        type: line.type,
+        description: line.description,
+        amount: line.amount,
+        apply_retefuente: false,
+        apply_reteica: false,
+        declarante_snapshot: false,
+        retefuente_rate_snapshot: 0,
+        reteica_rate_snapshot: 0,
+        retefuente_value: 0,
+        reteica_value: 0
+      }));
+
+      invoice.invoice_lines = lines;
+    }
+
+    // 3. Si sigue sin haber líneas, NO recalcular a cero.
+    //    Usar valores persistidos que ya vienen guardados.
+    if (!lines || lines.length === 0) {
+      const gross = Number(invoice.gross_total ?? order.total ?? 0);
+      const net = Number(invoice.net_total ?? gross);
+      const retefuente = Number(invoice.retefuente_total ?? 0);
+      const reteica = Number(invoice.reteica_total ?? 0);
+
+      let subtotal = gross;
+      let iva = 0;
+
+      if (invoice.include_iva) {
+        const denom = 1 + (this.IVA_RATE || 0);
+        subtotal = +(gross / denom).toFixed(2);
+        iva = +(gross - subtotal).toFixed(2);
+      }
+
+      invoice.gross_total = this.round2(gross);
+      invoice.retefuente_total = this.round2(retefuente);
+      invoice.reteica_total = this.round2(reteica);
+      invoice.net_total = this.round2(net);
+
+      return {
+        subtotal: this.round2(subtotal),
+        iva: this.round2(iva),
+        total: this.round2(gross),
+      };
+    }
+
+    // 4. Si sí hay líneas, recalcular normal
+    const subtotal = lines.reduce((sum, line) => {
+      return sum + (Number(line.amount) || 0);
+    }, 0);
+
+    const iva = invoice.include_iva
+      ? +(subtotal * (this.IVA_RATE || 0)).toFixed(2)
+      : 0;
+
+    const gross_total = subtotal + iva;
+
+    let retefuente_total = 0;
+    let reteica_total = 0;
+
+    for (const line of lines) {
+      const base = Number(line.amount) || 0;
+
+      if (line.apply_retefuente) {
+        const isDeclarante = invoice.declarante_snapshot === true;
+
+        let rate = 0;
+
+        if (line.type === 'bien') {
+          rate = isDeclarante
+            ? this.variables.retefuente_bienes_declara
+            : this.variables.retefuente_bienes_no_declara;
+        } else {
+          rate = isDeclarante
+            ? this.variables.retefuente_servicios_declara
+            : this.variables.retefuente_servicios_no_declara;
+        }
+
+        line.retefuente_rate_snapshot = rate;
+        line.retefuente_value = +(base * rate).toFixed(2);
+        retefuente_total += line.retefuente_value;
+      } else {
+        line.retefuente_value = 0;
+        line.retefuente_rate_snapshot = 0;
+      }
+
+      if (line.apply_reteica) {
+        const rateICA =
+          line.type === 'bien'
+            ? this.variables.reteica_bienes
+            : this.variables.reteica_servicios;
+
+        line.reteica_rate_snapshot = rateICA;
+        line.reteica_value = +(base * rateICA).toFixed(2);
+        reteica_total += line.reteica_value;
+      } else {
+        line.reteica_value = 0;
+        line.reteica_rate_snapshot = 0;
       }
     }
 
-    // RETEICA (if client applies ICA retention and includes IVA)
-    let reteica = 0;
-    if (cliente?.applies_ica_retention && invoice.include_iva) {
-      const key = (
-        classKey === 'bienes' ? 'reteica_bienes' : 'reteica_servicios'
-      ) as keyof VariableMap;
-      const rate = this.variables[key] ?? 0;
-      if (rate > 0) {
-        reteica = +(subtotal * rate).toFixed(2);
-      }
-    }*/
+    const net_total = +(gross_total - retefuente_total - reteica_total).toFixed(2);
 
-    return { subtotal, iva, total /*, reteica, retefuente*/ };
+    invoice.gross_total = this.round2(gross_total);
+    invoice.retefuente_total = this.round2(retefuente_total);
+    invoice.reteica_total = this.round2(reteica_total);
+    invoice.net_total = this.round2(net_total);
+
+    return {
+      subtotal: this.round2(subtotal),
+      iva: this.round2(iva),
+      total: this.round2(gross_total),
+    };
   }
 
   async selectInvoice(invoice: Invoice) {
-    this.selectedInvoiceDetails = [invoice];
-    this.calculatedValues = await this.calculateInvoiceValues(invoice);
-    this.checkPaymentPermissions(invoice.id_invoice);
+    const { data, error } = await this.supabase
+      .from('invoices')
+      .select(`
+        *,
+        order:orders(
+          *,
+          client:clients(*),
+          payments(*)
+        )
+      `)
+      .eq('id_invoice', invoice.id_invoice)
+      .single();
 
-    const order = invoice.order;
+    if (error || !data) {
+      console.error('Error cargando factura:', error);
+      return;
+    }
+
+    const fallbackLines: InvoiceLine[] =
+      data.invoice_lines?.length
+        ? data.invoice_lines
+        : (data.order?.order_lines ?? []).map((line: any) => ({
+            type: line.type,
+            description: line.description,
+            amount: line.amount,
+            apply_retefuente: false,
+            apply_reteica: false,
+            declarante_snapshot: false,
+            retefuente_rate_snapshot: 0,
+            reteica_rate_snapshot: 0,
+            retefuente_value: 0,
+            reteica_value: 0,
+          }));
+
+    const normalized: Invoice = {
+      ...data,
+      include_iva: data.include_iva ?? false,
+      payment_term: data.payment_term ?? 5,
+      invoice_lines: fallbackLines,
+      declarante_snapshot: data.declarante_snapshot ?? false,
+      // asegura que order tenga lo que tu UI espera
+      order: {
+        ...data.order,
+        total: data.order?.total || data.order?.amount || 0,
+        payments: data.order?.payments || [],
+        is_vitrine: !!data.order?.is_vitrine,
+        scheduler: data.order?.scheduler ?? null,
+        client: data.order?.client ?? null,
+        order_lines: data.order?.order_lines ?? [],
+      },
+    };
+
+    console.log('detail net_total', data.net_total, 'lines', data.invoice_lines?.length);
+
+
+    this.selectedInvoiceDetails = [normalized];
+    this.calculatedValues = await this.calculateInvoiceValues(normalized);
+    this.checkPaymentPermissions(normalized.id_invoice);
+
+    const order = normalized.order;
     if (
       order?.order_type === 'sales' &&
       order?.is_vitrine
@@ -783,7 +959,11 @@ onDocumentClick(event: MouseEvent): void {
     }
 
     const invoice = this.selectedInvoiceDetails![0];
-    const { total } = await this.calculateInvoiceValues(invoice);
+    if (invoice.order.requires_e_invoice) {
+      await this.calculateInvoiceValues(invoice);
+    }
+
+    const total = this.getEffectiveInvoiceTotal(invoice);
     const totalPaid = this.getTotalPayments(order);
     const remainingBalance = total - totalPaid;
 
@@ -976,7 +1156,10 @@ onDocumentClick(event: MouseEvent): void {
 
         const totalPaid = this.getTotalPayments(order);
         const invoice = this.selectedInvoiceDetails![0];
-        const { total } = await this.calculateInvoiceValues(invoice);
+        if (invoice.order.requires_e_invoice) {
+          await this.calculateInvoiceValues(invoice);
+        }
+        const total = this.getEffectiveInvoiceTotal(invoice);
         const newRemainingBalance = total - totalPaid;
         const newStatus = newRemainingBalance <= 0 ? 'upToDate' : 'overdue';
 
@@ -1070,7 +1253,10 @@ onDocumentClick(event: MouseEvent): void {
 
         const totalPaid = this.getTotalPayments(order);
         const invoice = this.selectedInvoiceDetails![0];
-        const { total } = await this.calculateInvoiceValues(invoice);
+        if (invoice.order.requires_e_invoice) {
+          await this.calculateInvoiceValues(invoice);
+        }
+        const total = this.getEffectiveInvoiceTotal(invoice);
         const newRemainingBalance = total - totalPaid;
         const newStatus = newRemainingBalance <= 0 ? 'upToDate' : 'overdue';
 
@@ -1102,9 +1288,9 @@ onDocumentClick(event: MouseEvent): void {
   }
 
   getRemainingBalance(invoice: Invoice): number {
-    const total = invoice.order.total || 0; // Use the saved total, not the temporary display value
-    const totalPaid = this.getTotalPayments(invoice.order);
-    return Math.max(0, total - totalPaid);
+    const total = this.getEffectiveInvoiceTotal(invoice);
+    const paid = this.getTotalPayments(invoice.order);
+    return this.round2(total - paid);
   }
 
   private isZeroish(n: number): boolean {
@@ -1115,7 +1301,10 @@ onDocumentClick(event: MouseEvent): void {
     if (!invoice.due_date) return;
 
     const totalPaid = this.getTotalPayments(invoice.order);
-    const { total } = await this.calculateInvoiceValues(invoice);
+    if (invoice.order.requires_e_invoice) {
+      await this.calculateInvoiceValues(invoice);
+    }
+    const total = this.getEffectiveInvoiceTotal(invoice);
     const remainingBalance = total - totalPaid;
 
     // Solo crear notificación si aún hay saldo pendiente
@@ -1286,8 +1475,15 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
 
     const { subtotal, iva, total /*, reteica, retefuente*/ } =
       await this.calculateInvoiceValues(invoice);
+    const effectiveTotal = this.getEffectiveInvoiceTotal(invoice);
     const totalPaid = this.getTotalPayments(invoice.order);
-    const remainingBalance = total - totalPaid;
+    const remainingBalance = effectiveTotal - totalPaid;
+    const isFE = this.isElectronicInvoice(invoice);
+
+    const gross = isFE ? this.getInvoiceGrossTotal(invoice) : this.round2(total);
+    const retefuente = isFE ? this.round2(invoice.retefuente_total ?? 0) : 0;
+    const reteica = isFE ? this.round2(invoice.reteica_total ?? 0) : 0;
+    const net = isFE ? this.round2(invoice.net_total ?? (gross - retefuente - reteica)) : this.round2(effectiveTotal);
 
     const doc = new jsPDF();
     const invoice_date = new Date(invoice.created_at);
@@ -1343,13 +1539,22 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
     doc.text('DESCRIPCIÓN:', 10, y);
     y += 6;
     doc.setFont('helvetica', 'normal');
-    const descriptionLines = this.wrapText(doc, invoice.order.description, y);
-    descriptionLines.forEach((line) => {
-      doc.text(line, 10, y);
-      y += 8;
-    });
+    const maxWidth = 180;
+    const lineHeight = 6;
+    const lines = doc.splitTextToSize(invoice.order.description || '', maxWidth);
 
-    y += 10;
+    for (const line of lines) {
+      // salto de página si se va a salir del folio
+      if (y > 280) {
+        doc.addPage();
+        y = 20;
+      }
+
+      doc.text(String(line), 10, y);
+      y += lineHeight;
+    }
+
+    y += 8;
 
     // **TABLA DE DETALLES SEGÚN TIPO DE PEDIDO**
     const orderType = invoice.order.order_type;
@@ -1577,7 +1782,7 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
                 ? 'Nequi'
                 : payment.payment_method === 'bancolombia'
                   ? 'Bancolombia'
-                  : payment.payment_method === 'Davivienda'
+                  : payment.payment_method === 'davivienda'
                     ? 'Davivienda'
                     : payment.payment_method === 'other'
                       ? 'Otro'
@@ -1609,24 +1814,28 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
       currentY += 7;
     }
 
-    /*if (retefuente > 0) {
-      doc.text(this.retefuenteLabel(invoice) + ':', summaryX, currentY);
-      doc.text(`-$${retefuente.toFixed(2)}`, valueX, currentY, {
-        align: 'left',
-      });
-      currentY += 7;
+    if (isFE) {
+      if (retefuente > 0) {
+        doc.text('Retefuente:', summaryX, currentY);
+        doc.text(`-$${this.formatCOP(retefuente)}`, valueX, currentY);
+        currentY += 7;
+      }
+
+      if (reteica > 0) {
+        doc.text('ReteICA:', summaryX, currentY);
+        doc.text(`-$${this.formatCOP(reteica)}`, valueX, currentY);
+        currentY += 7;
+      }
+      doc.setFontSize(14);
+      doc.text('Neto a Cobrar:', summaryX, currentY);
+      doc.text(`$${this.formatCOP(net)}`, valueX, currentY);
+      currentY += 10;
+    } else {
+      doc.setFontSize(14);
+      doc.text('Total:', summaryX, currentY);
+      doc.text(`$${this.formatCOP(gross)}`, valueX, currentY, { align: 'left' });
+      currentY += 10;
     }
-
-    if (reteica > 0) {
-      doc.text(this.reteicaLabel(invoice) + ':', summaryX, currentY);
-      doc.text(`-$${reteica.toFixed(2)}`, valueX, currentY, { align: 'left' });
-      currentY += 7;
-    }*/
-
-    doc.setFontSize(14);
-    doc.text('Total:', summaryX, currentY);
-    doc.text(`$${this.formatCOP(total)}`, valueX, currentY, { align: 'left' });
-    currentY += 10;
 
     doc.setFont('helvetica', 'bold');
     doc.text('Falta por Pagar:', summaryX, currentY);
@@ -1716,8 +1925,9 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
 
     const { subtotal, iva, total /*, reteica, retefuente*/ } =
       await this.calculateInvoiceValues(invoice);
+    const effectiveTotal = this.getEffectiveInvoiceTotal(invoice);
     const totalPaid = this.getTotalPayments(invoice.order);
-    const remainingBalance = total - totalPaid;
+    const remainingBalance = effectiveTotal - totalPaid;
 
     const doc = new jsPDF();
     const invoice_date = new Date(invoice.created_at);
@@ -1773,13 +1983,22 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
     doc.text('DESCRIPCIÓN:', 10, y);
     y += 6;
     doc.setFont('helvetica', 'normal');
-    const descriptionLines = this.wrapText(doc, invoice.order.description, y);
-    descriptionLines.forEach((line) => {
-      doc.text(line, 10, y);
-      y += 8;
-    });
+    const maxWidth = 180;
+    const lineHeight = 6;
+    const lines = doc.splitTextToSize(invoice.order.description || '', maxWidth);
 
-    y += 10;
+    for (const line of lines) {
+      // salto de página si se va a salir del folio
+      if (y > 280) {
+        doc.addPage();
+        y = 20;
+      }
+
+      doc.text(String(line), 10, y);
+      y += lineHeight;
+    }
+
+    y += 8;
 
     // **TABLA DE DETALLES SEGÚN TIPO DE PEDIDO**
     const orderType = invoice.order.order_type;
@@ -2030,7 +2249,7 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
       align: 'left',
     });
 
-    const footerStartY = currentY + 20;
+    const footerStartY = currentY + 10;
     doc.setFontSize(10);
     doc.setFont('helvetica', 'italic');
 
@@ -2224,6 +2443,7 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
       due_date: null,
       classification: 'Bien',
       e_invoice_done: false,
+      declarante_snapshot: false,
       order: {
         id_order: '',
         order_type: 'print',
@@ -2276,7 +2496,7 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
     if (orderError) {
       console.error('Error al obtener datos del pedido:', orderError);
     }
-    // Usar el valor de Orders si existe, si no usar el de la factura
+
     const currentIncludeIva =
       orderData?.include_iva ?? invoice.include_iva ?? false;
 
@@ -2294,6 +2514,36 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
         baseTotal: invoice.order.total || invoice.order.amount || 0,
       },
     };
+
+    // Guardar el valor original real de la factura antes de editar
+    this.originalEffectiveTotal = this.selectedInvoice.order.requires_e_invoice
+      ? Number(this.selectedInvoice.net_total ?? 0)
+      : Number(this.selectedInvoice.order.total || 0);
+
+    if (
+      this.selectedInvoice.order.requires_e_invoice &&
+      (!this.selectedInvoice.invoice_lines ||
+        this.selectedInvoice.invoice_lines.length === 0)
+    ) {
+      this.selectedInvoice.invoice_lines =
+        this.selectedInvoice.order.order_lines?.map(line => ({
+          type: line.type,
+          description: line.description,
+          amount: line.amount,
+
+          apply_retefuente: false,
+          apply_reteica: false,
+
+          declarante_snapshot: false,
+
+          retefuente_rate_snapshot: 0,
+          reteica_rate_snapshot: 0,
+
+          retefuente_value: 0,
+          reteica_value: 0
+        })) ?? [];
+    }
+
     this.isEditing = true;
     this.showModal = true;
     this.clientSearchQuery = invoice.order.client.name;
@@ -2332,17 +2582,14 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
   onIncludeIvaChange(): void {
     if (this.selectedInvoice && this.selectedInvoice.order) {
       const order = this.selectedInvoice.order;
-      const baseTotal = order.total || 0;
+      const baseTotal = Number(order.baseTotal ?? order.total ?? 0);
 
       if (this.selectedInvoice.include_iva) {
         order.total = Math.round(baseTotal * (1 + (this.IVA_RATE || 0)));
         order.baseTotal = baseTotal;
       } else {
-        const calculatedBase = Math.round(
-          (order.total || 0) / (1 + (this.IVA_RATE || 0)),
-        );
-        order.total = calculatedBase;
-        order.baseTotal = calculatedBase;
+        order.total = Math.round(baseTotal);
+        order.baseTotal = baseTotal;
       }
     }
   }
@@ -2351,17 +2598,20 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
     if (!this.selectedInvoice?.order?.id_order) return;
 
     const baseTotal =
-      this.selectedInvoice.order.baseTotal ??
-      this.selectedInvoice.order.total ??
+      Number(this.selectedInvoice.order.baseTotal) ||
+      Number(this.selectedInvoice.order.total) ||
       0;
 
-    this.selectedInvoice.order.total = this.selectedInvoice.include_iva
+    // Esto actualiza SOLO el total del pedido, no el neto de la factura electrónica
+    const orderTotal = this.selectedInvoice.include_iva
       ? Math.round(baseTotal * (1 + (this.IVA_RATE || 0)))
-      : baseTotal;
+      : Math.round(baseTotal);
+
+    this.selectedInvoice.order.total = orderTotal;
 
     const { error } = await this.supabase
       .from('orders')
-      .update({ total: this.selectedInvoice.order.total })
+      .update({ total: orderTotal })
       .eq('id_order', this.selectedInvoice.order.id_order);
 
     if (error) {
@@ -2370,23 +2620,24 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
       return;
     }
 
-    // Update the local order total
+    // Actualizar la copia local
     const invoiceIndex = this.invoices.findIndex(
       (i) => i.id_invoice === this.selectedInvoice!.id_invoice,
     );
+
     if (invoiceIndex !== -1) {
-      this.invoices[invoiceIndex].order.total =
-        this.selectedInvoice.order.total;
+      this.invoices[invoiceIndex].order.total = orderTotal;
     }
 
-    // Recalculate due_date if payment_term exists
+    // Recalcular vencimiento si aplica
     if (this.selectedInvoice.payment_term) {
       const deliveryDate = this.selectedInvoice.order.delivery_date
         ? new Date(this.selectedInvoice.order.delivery_date)
         : new Date();
+
       this.selectedInvoice.due_date = new Date(
         deliveryDate.getTime() +
-          this.selectedInvoice.payment_term * 24 * 60 * 60 * 1000,
+        this.selectedInvoice.payment_term * 24 * 60 * 60 * 1000,
       ).toISOString();
 
       const { error: dueDateError } = await this.supabase
@@ -2403,19 +2654,7 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
     this.showNotification('Total del pedido actualizado correctamente.');
   }
 
-  // Update baseTotal when the total input changes
-  onTotalChange(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    if (this.selectedInvoice && this.selectedInvoice.order) {
-      const newValue = parseFloat(input.value) || 0;
-      this.selectedInvoice.order.baseTotal = newValue; // Update baseTotal immediately
-      console.log('onTotalChange - new baseTotal:', newValue);
-      this.onIncludeIvaChange(); // Recalculate based on the new baseTotal
-    }
-  }
-
   async saveInvoice(): Promise<void> {
-
     this.isSaving = true;
 
     if (!this.selectedInvoice) {
@@ -2459,17 +2698,13 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
       return;
     }
 
-    let deliveryDate = orderData.delivery_date || new Date().toISOString();
     let paymentTerm: number | null;
     let dueDate: string | null;
 
-    // Solo calcular dueDate si NO existe o si es una factura nueva
     if (this.isEditing && this.selectedInvoice.due_date) {
-      // Si estamos editando Y ya tiene duedate, se mantiene
       dueDate = this.selectedInvoice.due_date;
       paymentTerm = this.selectedInvoice.payment_term ?? 5;
     } else {
-      // Si es nueva factura O no tiene duedate, calcularlo
       const currentDate = new Date();
       currentDate.setHours(0, 0, 0, 0);
 
@@ -2480,12 +2715,38 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
       dueDate = dueDateCalculated.toISOString().split('T')[0];
     }
 
-    const originalTotal =
-      this.selectedInvoice.order.total || orderData.total || 0;
+    // Calcular el valor efectivo real de la factura
+    let effectiveTotal = 0;
+    let grossTotal = 0;
+    let retefuenteTotal = 0;
+    let reteicaTotal = 0;
+    let netTotal = 0;
+
+    if (this.selectedInvoice.order.requires_e_invoice) {
+      await this.calculateInvoiceValues(this.selectedInvoice);
+
+      grossTotal = this.round2(this.selectedInvoice.gross_total ?? 0);
+      retefuenteTotal = this.round2(this.selectedInvoice.retefuente_total ?? 0);
+      reteicaTotal = this.round2(this.selectedInvoice.reteica_total ?? 0);
+      netTotal = this.round2(this.selectedInvoice.net_total ?? 0);
+
+      effectiveTotal = netTotal;
+    } else {
+      effectiveTotal = this.round2(
+        Number(this.selectedInvoice.order.total || orderData.total || 0)
+      );
+
+      grossTotal = 0;
+      retefuenteTotal = 0;
+      reteicaTotal = 0;
+      netTotal = 0;
+    }
+
     const totalPaid = orderData.payments
       ? orderData.payments.reduce((sum, p) => sum + p.amount, 0)
       : 0;
-    const remainingBalance = originalTotal - totalPaid;
+
+    const remainingBalance = this.round2(effectiveTotal - totalPaid);
     const newPaymentStatus = remainingBalance <= 0 ? 'upToDate' : 'overdue';
 
     const invoiceData: Partial<Invoice> = {
@@ -2499,6 +2760,7 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
       e_invoice_done: this.selectedInvoice.order.requires_e_invoice
         ? this.selectedInvoice.e_invoice_done
         : false,
+      declarante_snapshot: this.selectedInvoice.declarante_snapshot ?? false,
     };
 
     try {
@@ -2512,9 +2774,29 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
               .single()
           ).data?.include_iva ?? false;
 
+        const previousEffectiveTotal = this.round2(this.originalEffectiveTotal);
+        const diff = this.round2(effectiveTotal - previousEffectiveTotal);
+
         const { error } = await this.supabase
           .from('invoices')
-          .update(invoiceData)
+          .update({
+            ...invoiceData,
+            invoice_lines: this.selectedInvoice.order.requires_e_invoice
+              ? this.selectedInvoice.invoice_lines
+              : [],
+            retefuente_total: this.selectedInvoice.order.requires_e_invoice
+              ? retefuenteTotal
+              : 0,
+            reteica_total: this.selectedInvoice.order.requires_e_invoice
+              ? reteicaTotal
+              : 0,
+            net_total: this.selectedInvoice.order.requires_e_invoice
+              ? netTotal
+              : 0,
+            gross_total: this.selectedInvoice.order.requires_e_invoice
+              ? grossTotal
+              : 0
+          })
           .eq('id_invoice', this.selectedInvoice.id_invoice);
 
         if (error) {
@@ -2525,7 +2807,6 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
           return;
         }
 
-        // Sincronizar include_iva con Orders
         const { error: orderUpdateError } = await this.supabase
           .from('orders')
           .update({
@@ -2544,17 +2825,61 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
         } else {
           await this.supabase
             .from('orders')
-            .update({ total: originalTotal })
+            .update({ total: this.selectedInvoice.order.total || 0 })
             .eq('id_order', this.selectedInvoice.order.id_order);
         }
 
-        this.showNotification('Factura actualizada correctamente.');
+        // Ajustar deuda del cliente con la diferencia real
+        if (diff !== 0) {
+          const { data: clientData, error: clientError } = await this.supabase
+            .from('clients')
+            .select('debt')
+            .eq('id_client', this.selectedInvoice.order.id_client)
+            .single();
 
+          if (clientError || !clientData) {
+            console.error('Error al obtener la deuda del cliente:', clientError);
+            this.showNotification('Error al actualizar la deuda del cliente.');
+            return;
+          }
+
+          const currentDebt = Number(clientData.debt || 0);
+          const newDebt = this.round2(currentDebt + diff);
+          const newClientStatus = newDebt > 0 ? 'overdue' : 'upToDate';
+
+          const { error: updateClientError } = await this.supabase
+            .from('clients')
+            .update({ debt: newDebt, status: newClientStatus })
+            .eq('id_client', this.selectedInvoice.order.id_client);
+
+          if (updateClientError) {
+            console.error(
+              'Error al actualizar la deuda del cliente:',
+              updateClientError,
+            );
+            this.showNotification('Error al actualizar la deuda del cliente.');
+            return;
+          }
+        }
+
+        this.showNotification('Factura actualizada correctamente.');
         await this.getInvoices();
       } else {
+        const insertPayload: any = {
+          ...invoiceData,
+        };
+
+        if (this.selectedInvoice.order.requires_e_invoice) {
+          insertPayload.invoice_lines = this.selectedInvoice.invoice_lines ?? [];
+          insertPayload.retefuente_total = retefuenteTotal;
+          insertPayload.reteica_total = reteicaTotal;
+          insertPayload.net_total = netTotal;
+          insertPayload.gross_total = grossTotal;
+        }
+
         const { data, error } = await this.supabase
           .from('invoices')
-          .insert([invoiceData])
+          .insert([insertPayload])
           .select();
 
         if (error) {
@@ -2567,10 +2892,12 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
         this.selectedInvoice.id_invoice = insertedInvoice.id_invoice;
         this.selectedInvoice.code = insertedInvoice.code;
 
-        // Sincronizar include_iva con Orders al crear factura
         const { error: orderUpdateError } = await this.supabase
           .from('orders')
-          .update({ include_iva: this.selectedInvoice.include_iva })
+          .update({
+            include_iva: this.selectedInvoice.include_iva,
+            order_payment_status: newPaymentStatus,
+          })
           .eq('id_order', this.selectedInvoice.order.id_order);
 
         if (orderUpdateError) {
@@ -2590,8 +2917,8 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
           return;
         }
 
-        const currentDebt = clientData.debt || 0;
-        const newDebt = currentDebt + originalTotal;
+        const currentDebt = Number(clientData.debt || 0);
+        const newDebt = this.round2(currentDebt + effectiveTotal);
         const newClientStatus = newDebt > 0 ? 'overdue' : 'upToDate';
 
         const { error: updateClientError } = await this.supabase
@@ -2609,7 +2936,6 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
         }
 
         this.showNotification('Factura añadida correctamente.');
-
         await this.getInvoices();
       }
 
@@ -2620,14 +2946,11 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
       this.showNotification(
         'Ocurrió un error inesperado al guardar la factura.',
       );
-    }finally {
+    } finally {
       this.isSaving = false;
     }
   }
 
-/**
- * Actualiza las sugerencias del dropdown de nombres de clientes
- */
   updateClientNameSuggestions(): void {
     const value = this.nameSearchQuery.trim();
 
@@ -2663,35 +2986,35 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
     this.showClientNameSuggestions = this.clientNameSuggestions.length > 0;
   }
 
-/**
-* Maneja el click/focus en el campo de búsqueda de nombre
-*/
-onNameSearchFocus(): void {
-  if (!this.clientNameSelected) {
+  /**
+  * Maneja el click/focus en el campo de búsqueda de nombre
+  */
+  onNameSearchFocus(): void {
+    if (!this.clientNameSelected) {
+      this.updateClientNameSuggestions();
+    }
+  }
+
+  /**
+  * Maneja cuando el usuario escribe en el campo de búsqueda de nombre
+  */
+  onNameSearchInput(): void {
+    if (this.clientNameSelected) {
+      this.clientNameSelected = false;
+    }
     this.updateClientNameSuggestions();
+    this.updateFilteredInvoices();
   }
-}
 
-/**
-* Maneja cuando el usuario escribe en el campo de búsqueda de nombre
-*/
-onNameSearchInput(): void {
-  if (this.clientNameSelected) {
-    this.clientNameSelected = false;
+  /**
+  * Selecciona un cliente desde el dropdown de búsqueda
+  */
+  selectClientNameFromSuggestion(client: Client): void {
+    this.nameSearchQuery = client.name;
+    this.showClientNameSuggestions = false;
+    this.clientNameSelected = true;
+    this.updateFilteredInvoices();
   }
-  this.updateClientNameSuggestions();
-  this.updateFilteredInvoices();
-}
-
-/**
-* Selecciona un cliente desde el dropdown de búsqueda
-*/
-selectClientNameFromSuggestion(client: Client): void {
-  this.nameSearchQuery = client.name;
-  this.showClientNameSuggestions = false;
-  this.clientNameSelected = true;
-  this.updateFilteredInvoices();
-}
 
   calculateSummary(): void {
     const invoices = this.filteredInvoicesList;
@@ -2701,27 +3024,38 @@ selectClientNameFromSuggestion(client: Client): void {
     let totalIVA = 0;
 
     invoices.forEach((invoice) => {
-      const total = invoice.order.total || 0;
+      const effectiveTotal = this.getEffectiveInvoiceTotal(invoice);
       const paid = this.getTotalPayments(invoice.order);
-      const pending = total - paid;
+      const pending = effectiveTotal - paid;
 
-      totalScheduled += total;
+      totalScheduled += effectiveTotal;
 
       if (pending > 0) {
         rangeDebt += pending;
       }
 
-      if (invoice.order.requires_e_invoice) {
-        totalIVA += invoice.order.iva || 0;
+      if (invoice.include_iva) {
+        if (this.isElectronicInvoice(invoice)) {
+          const gross = this.getInvoiceGrossTotal(invoice);
+          const subtotal = Number(invoice.invoice_lines?.reduce((sum, line) => {
+            return sum + (Number(line.amount) || 0);
+          }, 0) || 0);
+
+          totalIVA += Math.max(0, gross - subtotal);
+        } else {
+          const total = Number(invoice.order.total || 0);
+          const subtotal = total / (1 + (this.IVA_RATE || 0));
+          totalIVA += total - subtotal;
+        }
       }
     });
 
     this.dailySummary = {
-      totalScheduled,
-      totalPaid: this.calculateMoneyReceived(invoices),
-      rangeDebt,
-      pendingDebt: this.calculateGlobalPendingDebt(),
-      totalIVA,
+      totalScheduled: this.round2(totalScheduled),
+      totalPaid: this.round2(this.calculateMoneyReceived(invoices)),
+      rangeDebt: this.round2(rangeDebt),
+      pendingDebt: this.round2(this.calculateGlobalPendingDebt()),
+      totalIVA: this.round2(totalIVA),
       invoiceCount: invoices.length,
     };
   }
@@ -2769,13 +3103,15 @@ selectClientNameFromSuggestion(client: Client): void {
   }
 
   calculateGlobalPendingDebt(): number {
-    return this.invoices.reduce((sum, invoice) => {
-      const total = invoice.order.total || 0;
-      const paid = this.getTotalPayments(invoice.order);
-      const pending = total - paid;
+    return this.round2(
+      this.invoices.reduce((sum, invoice) => {
+        const total = this.getEffectiveInvoiceTotal(invoice);
+        const paid = this.getTotalPayments(invoice.order);
+        const pending = total - paid;
 
-      return pending > 0 ? sum + pending : sum;
-    }, 0);
+        return pending > 0 ? sum + pending : sum;
+      }, 0)
+    );
   }
 
   toggleDailySummary(): void {
@@ -2840,7 +3176,11 @@ selectClientNameFromSuggestion(client: Client): void {
       }
 
       const currentDebt = clientData.debt || 0;
-      const { total } = await this.calculateInvoiceValues(invoice);
+      if (invoice.order.requires_e_invoice) {
+        await this.calculateInvoiceValues(invoice);
+      }
+
+      const total = this.getEffectiveInvoiceTotal(invoice);
       const newDebt = currentDebt - total;
       const newClientStatus = newDebt > 0 ? 'overdue' : 'upToDate';
 
@@ -3146,5 +3486,47 @@ selectClientNameFromSuggestion(client: Client): void {
         return;
       }
     }
+  }
+
+  private round2(value: number): number {
+    return Number((value || 0).toFixed(2));
+  }
+
+  private isElectronicInvoice(invoice: Invoice): boolean {
+    return !!invoice?.order?.requires_e_invoice;
+  }
+
+  private getInvoiceGrossTotal(invoice: Invoice): number {
+    if (!invoice) return 0;
+
+    if (this.isElectronicInvoice(invoice)) {
+      return this.round2(
+        Number(invoice.gross_total ?? invoice.order?.total ?? 0)
+      );
+    }
+
+    return this.round2(Number(invoice.order?.total ?? 0));
+  }
+
+  private getInvoiceNetTotal(invoice: Invoice): number {
+    if (!invoice) return 0;
+
+    if (this.isElectronicInvoice(invoice)) {
+      if (invoice.net_total != null) {
+        return this.round2(Number(invoice.net_total));
+      }
+
+      const gross = Number(invoice.gross_total ?? invoice.order?.total ?? 0);
+      const retefuente = Number(invoice.retefuente_total ?? 0);
+      const reteica = Number(invoice.reteica_total ?? 0);
+
+      return this.round2(gross - retefuente - reteica);
+    }
+
+    return this.round2(Number(invoice.order?.total ?? 0));
+  }
+
+  private getEffectiveInvoiceTotal(invoice: Invoice): number {
+    return this.getInvoiceNetTotal(invoice);
   }
 }

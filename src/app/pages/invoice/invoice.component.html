@@ -334,7 +334,7 @@
           ${{ getTotalPayments(invoice.order) | number: "1.2-2" }}
         </td>
         <td class="table-column-std">
-          ${{ formatNumber(getRemainingBalance(invoice)) | number: "1.2-2" }}
+          ${{ getRemainingBalance(invoice) | number: "1.2-2" }}
         </td>
         <td
           class="table-column-std"
@@ -469,6 +469,100 @@
           />
         </div>
 
+        <div
+          class="mt-6 border-t pt-4"
+          *ngIf="selectedInvoice?.order?.requires_e_invoice"
+        >
+          <h4 class="font-semibold text-blue-700 mb-3">
+            Retenciones por Línea
+          </h4>
+
+          <div class="mb-3" *ngIf="selectedInvoice?.order?.requires_e_invoice">
+            <div *ngIf="selectedInvoice as inv">
+              <label class="flex items-center gap-2 text-sm font-semibold">
+                <input
+                  type="checkbox"
+                  [(ngModel)]="inv.declarante_snapshot"
+                  name="declaranteSnapshot"
+                  (change)="calculateInvoiceValues(inv)"
+                />
+                Cliente Declarante (Retefuente)
+              </label>
+            </div>
+          </div>
+
+          <div *ngFor="let line of selectedInvoice?.invoice_lines || []; let i = index"
+              class="border p-3 mb-3 rounded bg-gray-50">
+
+            <div class="flex justify-between mb-2">
+              <div>
+                <strong>{{ line.type | uppercase }} - {{ line.description | uppercase }}</strong>
+              </div>
+              <div>
+                $ {{ line.amount | number:'1.2-2' }}
+              </div>
+            </div>
+
+            <!-- Retención renta -->
+            <label class="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                [(ngModel)]="line.apply_retefuente"
+                name="applyReteFuente{{i}}"
+                (change)="calculateInvoiceValues(selectedInvoice!)"
+              />
+              Aplicar Retención Fuente
+            </label>
+
+            <!-- Retención ICA -->
+            <label class="flex items-center gap-2 text-sm mt-1">
+              <input
+                type="checkbox"
+                [(ngModel)]="line.apply_reteica"
+                name="applyReteIca{{i}}"
+                (change)="calculateInvoiceValues(selectedInvoice!)"
+              />
+              Aplicar Retención ICA
+            </label>
+
+            <!-- Valores calculados -->
+            <div class="text-xs text-gray-600 mt-2">
+              <div *ngIf="line.retefuente_value > 0">
+                ReteFuente: - $ {{ line.retefuente_value | number:'1.2-2' }}
+              </div>
+              <div *ngIf="line.reteica_value > 0">
+                ReteICA: - $ {{ line.reteica_value | number:'1.2-2' }}
+              </div>
+            </div>
+
+          </div>
+
+          <!-- RESUMEN -->
+          <div class="border-t pt-3 mt-4 text-sm">
+            <div class="flex justify-between">
+              <span>Total Bruto Factura</span>
+              <span>$ {{ selectedInvoice?.gross_total | number:'1.2-2' }}</span>
+            </div>
+
+            <div class="flex justify-between text-red-600"
+                *ngIf="(selectedInvoice?.retefuente_total ?? 0) > 0">
+              <span>Total ReteFuente</span>
+              <span>- $ {{ selectedInvoice?.retefuente_total | number:'1.2-2' }}</span>
+            </div>
+
+            <div class="flex justify-between text-red-600"
+                *ngIf="(selectedInvoice?.reteica_total ?? 0) > 0">
+              <span>Total ReteICA</span>
+              <span>- $ {{ selectedInvoice?.reteica_total | number:'1.2-2' }}</span>
+            </div>
+
+            <div class="flex justify-between font-bold mt-2">
+              <span>Total Neto a Pagar</span>
+              <span>$ {{ selectedInvoice?.net_total | number:'1.2-2' }}</span>
+            </div>
+          </div>
+        </div>
+
         <div class="mb-4" *ngIf="selectedInvoice">
           <label class="block text-gray-700">Plazo de Pago (días)</label>
           <input
@@ -580,8 +674,8 @@
           <label class="block text-gray-700">Valor Total</label>
           <input
             type="number"
-            [(ngModel)]="selectedInvoice.order.total"
-            name="total"
+            [(ngModel)]="selectedInvoice.order.baseTotal"
+            name="baseTotal"
             class="form-input mt-1 block w-full border border-gray-300 rounded-md"
             placeholder="Ej. 14000"
             required
@@ -929,38 +1023,56 @@
             </p>
             <p>{{ valores.iva | currency: "COP" }}</p>
           </div>
+
+          <!-- TOTAL BRUTO -->
+          <div class="flex justify-between text-green-600">
+            <p><strong>Total Bruto:</strong></p>
+            <p>{{ (valores.subtotal + valores.iva) | currency: "COP" }}</p>
+          </div>
         </div>
 
         <div
           class="flex justify-between"
-          *ngIf="selectedInvoiceDetails[0].include_iva"
-        ></div>
+          *ngIf="selectedInvoiceDetails[0].include_iva">
+        </div>
         <div class="border-t pt-4 space-y-2">
-          <div class="flex justify-between">
-            <p><strong>Total a Facturar:</strong></p>
-            <p class="font-bold text-green-600">
-              {{ valores.total | number: "1.2-2" }}
-            </p>
-          </div>
+          <!-- RETENCIONES SOLO SI REQUIERE E-INVOICE -->
+          <ng-container *ngIf="selectedInvoiceDetails[0]?.order?.requires_e_invoice">
+
+            <div class="flex justify-between text-red-600"
+                *ngIf="(selectedInvoiceDetails[0]?.retefuente_total ?? 0) > 0">
+              <p><strong>ReteFuente:</strong></p>
+              <p>- {{ selectedInvoiceDetails[0].retefuente_total | currency: "COP" }}</p>
+            </div>
+
+            <div class="flex justify-between text-red-600"
+                *ngIf="(selectedInvoiceDetails[0]?.reteica_total ?? 0) > 0">
+              <p><strong>ReteICA:</strong></p>
+              <p>- {{ selectedInvoiceDetails[0].reteica_total | currency: "COP" }}</p>
+            </div>
+
+            <div class="flex justify-between text-green-600"
+                *ngIf="(selectedInvoiceDetails[0]?.retefuente_total ?? 0) > 0
+                    || (selectedInvoiceDetails[0]?.reteica_total ?? 0) > 0">
+              <p><strong>Total neto:</strong></p>
+              <p>{{ selectedInvoiceDetails[0].net_total | currency: "COP" }}</p>
+            </div>
+
+          </ng-container>
 
           <div class="flex justify-between">
             <p><strong>Abonos Realizados:</strong></p>
+            <p>{{ getTotalPayments(selectedInvoiceDetails[0].order) | currency: "COP" }}</p>
+          </div>
+
+          <!-- TOTAL Por Pagar -->
+          <div class="flex justify-between text-red-600">
+            <p><strong>Falta Por Pagar:</strong></p>
             <p>
-              {{
-                getTotalPayments(selectedInvoiceDetails[0].order)
-                  | currency: "COP"
-              }}
+              {{ getRemainingBalance(selectedInvoiceDetails[0]) | currency: "COP" }}
             </p>
           </div>
 
-          <div class="flex justify-between">
-            <p><strong>Falta por Pagar:</strong></p>
-            <p class="text-red-600 font-semibold">
-              {{
-                getRemainingBalance(selectedInvoiceDetails[0]) | currency: "COP"
-              }}
-            </p>
-          </div>
         </div>
       </div>
 
@@ -1014,7 +1126,7 @@
                   ? "Nequi"
                   : payment.payment_method === "bancolombia"
                     ? "Bancolombia"
-                    : payment.payment_method === "Davivienda"
+                    : payment.payment_method === "davivienda"
                       ? "Davivienda"
                       : payment.payment_method === "other"
                         ? "Otro"
@@ -1062,7 +1174,7 @@
             <option value="cash">Efectivo</option>
             <option value="nequi">Nequi</option>
             <option value="bancolombia">Bancolombia</option>
-            <option value="Davivienda">Davivienda</option>
+            <option value="davivienda">Davivienda</option>
             <option value="other">Otro</option>
           </select>
         </div>
@@ -1135,7 +1247,7 @@
           <option value="cash">Efectivo</option>
           <option value="nequi">Nequi</option>
           <option value="bancolombia">Bancolombia</option>
-          <option value="Davivienda">Davivienda</option>
+          <option value="davivienda">Davivienda</option>
           <option value="other">Otro</option>
         </select>
       </div>

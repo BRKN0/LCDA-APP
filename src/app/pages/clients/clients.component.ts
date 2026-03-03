@@ -8,6 +8,14 @@ import { SupabaseService } from '../../services/supabase.service';
 import { RoleService } from '../../services/role.service';
 import { RouterOutlet } from '@angular/router';
 
+interface OrderInvoiceLite {
+  id_invoice?: string;
+  net_total?: number;
+  gross_total?: number;
+  retefuente_total?: number;
+  reteica_total?: number;
+  include_iva?: boolean;
+}
 
 interface Orders {
   id_order: string;
@@ -30,6 +38,8 @@ interface Orders {
   id_client: string;
   payments?: Payment[];
   include_iva?: boolean;
+  requires_e_invoice?: boolean;
+  invoice?: OrderInvoiceLite | null;
 }
 
 interface Client {
@@ -192,7 +202,8 @@ export class ClientsComponent implements OnInit {
   async getClients() {
     this.loading = true;
     const { error, data } = await this.supabase.from('clients').select(
-      `*, orders(
+      `*, 
+      orders(
         id_order,
         order_type,
         name,
@@ -207,7 +218,18 @@ export class ClientsComponent implements OnInit {
         amount,
         id_client,
         code,
-        payments(id_payment, id_order, amount, payment_date, payment_method)
+        include_iva,
+        requires_e_invoice,
+        payments(id_payment, id_order, amount, payment_date, payment_method),
+        invoices(
+          id_invoice,
+          created_at,
+          net_total,
+          gross_total,
+          retefuente_total,
+          reteica_total,
+          include_iva
+        )
       )`
     );
 
@@ -217,16 +239,15 @@ export class ClientsComponent implements OnInit {
       return;
     }
 
-    this.clients = data.map((client) => ({
+    this.clients = (data ?? []).map((client: any) => ({
       ...client,
       orders: Array.isArray(client.orders)
-        ? client.orders.map(
-          (order: { payments: any; include_iva?: boolean; iva: number }) => ({
+        ? client.orders.map((order: any) => ({
             ...order,
             payments: Array.isArray(order.payments) ? order.payments : [],
-            include_iva: order.iva === 1,
-          })
-        )
+            include_iva: typeof order.include_iva === 'boolean' ? order.include_iva : order.iva === 1,
+            invoice: Array.isArray(order.invoices) ? order.invoices[0] : order.invoices,
+          }))
         : [],
     })) as Client[];
 
@@ -290,11 +311,19 @@ export class ClientsComponent implements OnInit {
   }
 
   calculateOrderTotal(order: Orders): number {
-    const baseTotal = parseFloat(order.total) || 0;
-    if (order.include_iva) {
-      return baseTotal + baseTotal * this.IVA_RATE;
+    if (!order) return 0;
+
+    if (order.requires_e_invoice) {
+      const net = order.invoice?.net_total;
+      if (net != null) return this.round2(Number(net));
+
+      const gross = Number(order.invoice?.gross_total ?? order.total ?? order.amount ?? 0);
+      const retef = Number(order.invoice?.retefuente_total ?? 0);
+      const reteica = Number(order.invoice?.reteica_total ?? 0);
+      return this.round2(gross - retef - reteica);
     }
-    return baseTotal;
+
+    return this.round2(Number(order.total ?? order.amount ?? 0));
   }
 
   formatPaymentMethod(method: string): string {
@@ -1338,5 +1367,8 @@ onSearchFocus(): void {
     return this.isEditing ? 'Actualizar' : 'Guardar';
   }
 
+  private round2(n: number): number {
+    return Number((Number(n || 0)).toFixed(2));
+  }
 
 }

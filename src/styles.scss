@@ -171,6 +171,19 @@ button {
   }
 }
 
+.order-line-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+
+.order-line-row input,
+.order-line-row select {
+  flex: 1;
+}
+
+
 /* Estilos para formularios */
 .form-input,
 .form-select,
