@@ -2491,4 +2491,26 @@ export class ExpensesComponent implements OnInit {
 
     this.showNotification('Archivo Excel generado correctamente.', 'success');
   }
+
+  private isCash(method?: string | null): boolean {
+    return (method ?? '').trim().toLowerCase() === 'cash';
+  }
+
+  getCashOut(expense: ExpensesItem): number {
+    const payments = expense.payments ?? [];
+
+    // Caso con abonos: suma SOLO abonos cash
+    if (payments.length > 0) {
+      return payments.reduce((sum, p) => {
+        return sum + (this.isCash(p.payment_method) ? (Number(p.amount) || 0) : 0);
+      }, 0);
+    }
+
+    // Caso sin abonos: solo si fue PAID y el método del egreso fue cash
+    if (expense.payment_status === 'PAID' && this.isCash(expense.type)) {
+      return Number(expense.cost) || 0;
+    }
+
+    return 0;
+  }
 }

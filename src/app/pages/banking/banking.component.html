@@ -1,28 +1,33 @@
 <router-outlet></router-outlet>
 
 <div class="transactions-container">
-  <button
-  class="btn-add"
-  (click)="goToBanksList()"
->
-  Ver Bancos
-</button>
-  <!-- Filters Section -->
+
+  <!-- NOTIFICACIÓN -->
+  <div *ngIf="notificationMessage"
+       class="mb-3 p-2 rounded"
+       [ngClass]="{
+         'bg-green-100 text-green-800': notificationType === 'success',
+         'bg-red-100 text-red-800': notificationType === 'error',
+         'bg-blue-100 text-blue-800': notificationType === 'info'
+       }">
+    {{ notificationMessage }}
+  </div>
+
+  <!-- HEADER / CAJA -->
   <div class="filters">
+    <!-- Fecha de caja -->
     <div class="filter-item">
-      <label for="bank">Banco:</label>
-      <select
-        id="bank"
-        [(ngModel)]="selectedBank"
-        (change)="updateFilteredTransactions()"
+      <label for="movementDate">Fecha Caja:</label>
+      <input
+        type="date"
+        id="movementDate"
+        [(ngModel)]="movementDate"
+        (ngModelChange)="onMovementDateChange()"
         class="filter-input"
-      >
-        <option value="">Todos</option>
-        <option *ngFor="let bank of banks" [value]="bank.id">
-          {{ bank.bank }}
-        </option>
-      </select>
+      />
     </div>
+
+    <!-- Rango -->
     <div class="flex items-center space-x-4">
       <div>
         <label for="startDate" class="mr-2 font-semibold">Desde:</label>
@@ -30,75 +35,159 @@
           type="date"
           id="startDate"
           [(ngModel)]="startDate"
-          (ngModelChange)="updateFilteredTransactions()"
+          (ngModelChange)="applyCashFilters()"
           class="border border-gray-300 rounded-md p-1"
         />
       </div>
+
       <div>
         <label for="endDate" class="mr-2 font-semibold">Hasta:</label>
         <input
           type="date"
           id="endDate"
           [(ngModel)]="endDate"
-          (ngModelChange)="updateFilteredTransactions()"
+          (ngModelChange)="applyCashFilters()"
           class="border border-gray-300 rounded-md p-1"
         />
       </div>
-      <button
-        class="btn-clear"
-        (click)="clearFilters()"
-      >
+
+      <button class="btn-clear" (click)="clearFilters()">
         Limpiar filtros
       </button>
     </div>
-
-
-
-
-
-
-</div>
-  <!-- Balance Section -->
-  <div class="balance-section justify-center">
-    <h2 class="balance-title">Saldo</h2>
-    <p class="balance-amount">
-      {{ calculateBalance() | currency : "COP" }}
-    </p>
   </div>
-  <!-- Transactions Table -->
+
+  <!-- CUADRE DE CAJA (GUARDADO EN TRANSACTIONS) -->
+  <div class="mt-4 p-3 border rounded-md bg-white">
+    <h2 class="balance-title mb-3">Cuadre de Caja (Efectivo)</h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <!-- Saldo inicial -->
+      <div>
+        <label class="block font-semibold mb-1">Saldo inicial</label>
+        <input
+          type="number"
+          [(ngModel)]="openingCash"
+          class="border border-gray-300 rounded-md p-1 w-full"
+          min="0"
+          step="0.01"
+        />
+        <button class="btn-add mt-2" (click)="saveOpeningCash()">
+          Guardar saldo inicial
+        </button>
+      </div>
+
+      <!-- Efectivo contado -->
+      <div>
+        <label class="block font-semibold mb-1">Efectivo contado</label>
+        <input
+          type="number"
+          [(ngModel)]="countedCash"
+          class="border border-gray-300 rounded-md p-1 w-full"
+          min="0"
+          step="0.01"
+        />
+        <button class="btn-add mt-2" (click)="saveCountedCash()">
+          Guardar arqueo
+        </button>
+      </div>
+
+      <!-- Resumen teórico/diferencia -->
+      <div class="p-2 border rounded-md bg-gray-50">
+        <div class="flex justify-between">
+          <span class="font-semibold">Teórico:</span>
+          <span>{{ theoreticalCash | currency:'COP' }}</span>
+        </div>
+        <div class="flex justify-between mt-2">
+          <span class="font-semibold">Diferencia:</span>
+          <span
+            [ngClass]="{
+              'text-green-700': cashDifference > 0,
+              'text-red-700': cashDifference < 0,
+              'text-gray-700': cashDifference === 0
+            }"
+          >
+            {{ cashDifference | currency:'COP' }}
+          </span>
+        </div>
+        <p class="text-xs text-gray-600 mt-2">
+          Diferencia = Contado - Teórico
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESUMEN CAJA DEL RANGO -->
+  <div class="balance-section justify-center mt-4">
+    <h2 class="balance-title">Resumen Caja (Rango)</h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 w-full mt-2">
+      <div class="p-2 border rounded-md bg-white">
+        <div class="font-semibold">Entradas (Efectivo)</div>
+        <div>{{ totalCashIn | currency:'COP' }}</div>
+      </div>
+
+      <div class="p-2 border rounded-md bg-white">
+        <div class="font-semibold">Salidas (Efectivo)</div>
+        <div>{{ totalCashOut | currency:'COP' }}</div>
+      </div>
+
+      <div class="p-2 border rounded-md bg-white">
+        <div class="font-semibold">Neto</div>
+        <div>{{ cashBalance | currency:'COP' }}</div>
+      </div>
+
+      <div class="p-2 border rounded-md bg-white">
+        <div class="font-semibold">Saldo teórico (Inicial + Neto)</div>
+        <div>{{ theoreticalCash | currency:'COP' }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLA MOVIMIENTOS -->
   <div class="mt-4">
     <table class="table-std">
       <thead>
         <tr>
-          <th class="table-column-std">Codigo</th>
           <th class="table-column-std">Fecha</th>
-          <th class="table-column-std">Banco</th>
+          <th class="table-column-std">Tipo</th>
           <th class="table-column-std">Descripción</th>
+          <th class="table-column-std">Referencia</th>
           <th class="table-column-std">Entrada</th>
           <th class="table-column-std">Salida</th>
-          <th class="table-column-std">Categoría</th>
-          <th class="table-column-std">Saldo</th>
         </tr>
       </thead>
+
       <tbody>
-        <tr *ngFor="let transaction of paginatedBanking">
-          <td>{{ transaction.code }}</td>
+        <tr *ngFor="let m of paginatedBanking">
+          <td>{{ m.date | date:'dd-MM-yyyy' }}</td>
           <td>
-            {{ transaction.created_at | date : "dd-MM-yyyy" }}
+            {{ m.direction === 'IN' ? 'Entrada' : 'Salida' }}
           </td>
-          <td>{{ getBankName(transaction.id_bank) }}</td>
-          <td>{{ transaction.description }}</td>
-          <td>{{ transaction.in | currency : "COP" }}</td>
-          <td>{{ transaction.out | currency : "COP" }}</td>
-          <td>{{ transaction.category === 'sales' ? 'Venta' : 'Desconocido' }}</td>
+          <td>{{ m.description }}</td>
+          <td>{{ m.reference }}</td>
           <td>
-            {{ transaction.balance | currency : "COP" }}
+            <span *ngIf="m.direction === 'IN'">
+              {{ m.amount | currency:'COP' }}
+            </span>
+          </td>
+          <td>
+            <span *ngIf="m.direction === 'OUT'">
+              {{ m.amount | currency:'COP' }}
+            </span>
+          </td>
+        </tr>
+
+        <tr *ngIf="!paginatedBanking || paginatedBanking.length === 0">
+          <td colspan="6" class="text-center p-3 text-gray-500">
+            No hay movimientos en el rango seleccionado.
           </td>
         </tr>
       </tbody>
     </table>
-    <div class="flex justify-between items-center mb-4">
-      <!-- Controles de paginación -->
+
+    <!-- PAGINACIÓN -->
+    <div class="flex justify-between items-center mb-4 mt-3">
       <div class="pagination flex items-center">
         <button
           (click)="currentPage = 1; updatePaginatedBanking()"
@@ -107,6 +196,7 @@
         >
           &#8656;
         </button>
+
         <button
           (click)="currentPage = currentPage - 1; updatePaginatedBanking()"
           [disabled]="currentPage === 1"
@@ -114,7 +204,9 @@
         >
           &#8592;
         </button>
+
         <span class="mx-4 text-gray-700">Página {{ currentPage }} de {{ totalPages }}</span>
+
         <button
           (click)="currentPage = currentPage + 1; updatePaginatedBanking()"
           [disabled]="currentPage === totalPages"
@@ -122,6 +214,7 @@
         >
           &#8594;
         </button>
+
         <button
           (click)="currentPage = totalPages; updatePaginatedBanking()"
           [disabled]="currentPage === totalPages"
@@ -131,7 +224,6 @@
         </button>
       </div>
 
-      <!-- Selector de elementos por página -->
       <div class="items-per-page flex items-center">
         <label for="itemsPerPage" class="mr-2">Elementos por página:</label>
         <select
@@ -140,8 +232,9 @@
           (change)="currentPage = 1; updatePaginatedBanking()"
           class="border border-gray-300 rounded-md p-1"
         >
-          <option *ngFor="let size of [2, 10, 15, 20]" [value]="size">{{ size }}</option>
+          <option *ngFor="let size of [10, 15, 20, 50]" [value]="size">{{ size }}</option>
         </select>
       </div>
     </div>
   </div>
+</div>

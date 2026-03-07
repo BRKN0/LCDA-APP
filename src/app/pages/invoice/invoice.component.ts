@@ -3034,19 +3034,10 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
         rangeDebt += pending;
       }
 
-      if (invoice.include_iva) {
-        if (this.isElectronicInvoice(invoice)) {
-          const gross = this.getInvoiceGrossTotal(invoice);
-          const subtotal = Number(invoice.invoice_lines?.reduce((sum, line) => {
-            return sum + (Number(line.amount) || 0);
-          }, 0) || 0);
+      const orderIVA = Number(invoice.order?.iva || 0);
 
-          totalIVA += Math.max(0, gross - subtotal);
-        } else {
-          const total = Number(invoice.order.total || 0);
-          const subtotal = total / (1 + (this.IVA_RATE || 0));
-          totalIVA += total - subtotal;
-        }
+      if (invoice.include_iva && orderIVA > 0) {
+        totalIVA += orderIVA;
       }
     });
 

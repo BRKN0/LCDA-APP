@@ -2036,10 +2036,15 @@ export class OrdersComponent implements OnInit, OnDestroy {
           .update([this.newOrder])
           .eq('id_order', this.newOrder.id_order);
 
+        const updatedOrderTotal = Number(this.newOrder.total || 0);
+        const requiresFE = this.newOrder.requires_e_invoice ?? false;
+
         await this.supabase
           .from('invoices')
           .update({
-            include_iva: this.newOrder.include_iva ?? false
+            include_iva: this.newOrder.include_iva ?? false,
+            gross_total: requiresFE ? updatedOrderTotal : 0,
+            net_total: requiresFE ? updatedOrderTotal : 0
           })
           .eq('id_order', this.newOrder.id_order);
 

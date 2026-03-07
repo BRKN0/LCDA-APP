@@ -1,30 +1,32 @@
 import { Component, NgZone, OnInit } from '@angular/core';
-import { MainBannerComponent } from '../main-banner/main-banner.component';
 import { Router, RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../services/supabase.service';
-interface Transaction {
-  id: string;
-  code: string;
-  created_at: Date;
-  bank: string;
+
+interface CashMovement {
+  date: string; // YYYY-MM-DD
+  direction: 'IN' | 'OUT';
+  amount: number;
+  source: 'INVOICE_PAYMENT' | 'EXPENSE_PAYMENT' | 'EXPENSE_PAID';
+  reference: string;
   description: string;
-  in: number;
-  out: number;
-  category: string;
-  balance: number;
-  id_bank: string;
+  method: 'cash';
 }
 
-interface Bank {
+interface CashboxTxn {
   id: string;
-  code: string;
-  account_number: string;
-  account_type: string;
-  bank: string;
-  ledger_account: string;
-  balance: number;
+  created_at: string;
+  movement_date: string;      // date
+  description: string | null;
+  in: number | null;
+  out: number | null;
+  category: string | null;    // CASHBOX
+  code: number | null;
+
+  payment_method: string | null; // cash
+  source_type: string | null;    // OPENING / COUNTED / ADJUSTMENT_*
+  source_ref: string | null;
 }
 
 @Component({
@@ -35,18 +37,36 @@ interface Bank {
   styleUrls: ['./banking.component.scss'],
 })
 export class BankingComponent implements OnInit {
-  transactions: Transaction[] = [];
-  filteredTransactions: Transaction[] = [];
-  banks: Bank[] = [];
-  selectedBank: string = '';
-  loading = true;
+  // Movimientos calculados (automáticos)
+  cashMovements: CashMovement[] = [];
+  filteredMovements: CashMovement[] = [];
+
+  // Paginación
+  currentPage: number = 1;
+  itemsPerPage: number = 10;
+  totalPages: number = 1;
+  paginatedBanking: CashMovement[] = [];
+
+  // Filtros
   startDate: string = '';
   endDate: string = '';
-  // Paginacion
-  currentPage: number =1;
-  itemsPerPage: number = 10; // Elementos por página
-  totalPages: number = 1; // Total de páginas
-  paginatedBanking: Transaction[] = []; // Lista paginada
+
+  // Totales (del rango filtrado)
+  totalCashIn = 0;
+  totalCashOut = 0;
+  cashBalance = 0;
+
+  // Cuadre (guardable en transactions)
+  movementDate: string = new Date().toISOString().split('T')[0]; // día de caja
+  openingCash: number = 0;   // OPENING
+  countedCash: number = 0;   // COUNTED
+  theoreticalCash: number = 0;
+  cashDifference: number = 0;
+
+  // Estado
+  loading = true;
+  notificationMessage: string | null = null;
+  notificationType: 'success' | 'error' | 'info' = 'info';
 
   constructor(
     private readonly router: Router,
@@ -58,96 +78,309 @@ export class BankingComponent implements OnInit {
     this.supabase.authChanges((_, session) => {
       if (session) {
         this.zone.run(() => {
-          this.loadTransactions();
-          this.loadBanks();
+          this.initCashbox();
         });
       }
     });
   }
 
-  async loadTransactions(): Promise<void> {
-    this.loading = true;
-    const { error, data } = await this.supabase
-      .from('transactions')
-      .select('*');
+  private showNotification(message: string, type: 'success' | 'error' | 'info' = 'info') {
+    this.notificationMessage = message;
+    this.notificationType = type;
+    setTimeout(() => (this.notificationMessage = null), 2500);
+  }
 
-    if (error) {
+  private ymd(d: any): string {
+    if (!d) return '';
+    const dt = new Date(d);
+    if (isNaN(dt.getTime())) return '';
+    return dt.toISOString().split('T')[0];
+  }
+
+  private isCash(v?: string | null): boolean {
+    return (v ?? '').trim().toLowerCase() === 'cash';
+  }
+
+  async initCashbox(): Promise<void> {
+    // Por defecto, el rango es el mismo día de caja
+    this.startDate = this.movementDate;
+    this.endDate = this.movementDate;
+
+    await this.loadCashboxManualForDate(this.movementDate);
+    await this.loadCashMovements();
+  }
+
+  // ===== 1) Movimientos automáticos (invoices/expenses) =====
+
+  async loadCashMovements(): Promise<void> {
+    this.loading = true;
+
+    // ENTRADAS: payments cash
+    const { data: cashPayments, error: payErr } = await this.supabase
+      .from('payments')
+      .select(`
+        id_payment,
+        id_order,
+        amount,
+        payment_date,
+        payment_method,
+        orders:orders (
+          code,
+          clients:clients ( name )
+        )
+      `)
+      .eq('payment_method', 'cash');
+
+    if (payErr) {
+      console.error('Error cargando payments cash:', payErr);
+      this.showNotification('Error cargando entradas de caja.', 'error');
+      this.loading = false;
       return;
     }
-    this.transactions = data as Transaction[];
-    this.filteredTransactions = [...this.transactions];
+
+    const inMoves: CashMovement[] = (cashPayments ?? []).map((p: any) => ({
+      date: this.ymd(p.payment_date ?? new Date()),
+      direction: 'IN',
+      amount: Number(p.amount) || 0,
+      source: 'INVOICE_PAYMENT',
+      reference: p.orders?.code ? `Factura ${p.orders.code}` : String(p.id_order ?? ''),
+      description: p.orders?.clients?.name
+        ? `Pago efectivo - ${p.orders.clients.name}`
+        : 'Pago efectivo',
+      method: 'cash',
+    }));
+
+    // SALIDAS: abonos cash de egresos
+    const { data: expensePays, error: expPayErr } = await this.supabase
+      .from('expense_payments')
+      .select(`
+        id_expense_payment,
+        id_expenses,
+        amount,
+        payment_date,
+        payment_method,
+        expenses:expenses ( code, description )
+      `)
+      .eq('payment_method', 'cash');
+
+    if (expPayErr) {
+      console.error('Error cargando expense_payments cash:', expPayErr);
+      this.showNotification('Error cargando salidas de caja (abonos).', 'error');
+      this.loading = false;
+      return;
+    }
+
+    const outMovesFromPayments: CashMovement[] = (expensePays ?? []).map((p: any) => ({
+      date: this.ymd(p.payment_date ?? new Date()),
+      direction: 'OUT',
+      amount: Number(p.amount) || 0,
+      source: 'EXPENSE_PAYMENT',
+      reference: `Egreso ${String(p.code ?? '')}`,
+      description: p.expenses?.description
+        ? `Abono efectivo - ${p.expenses.description}`
+        : 'Abono efectivo egreso',
+      method: 'cash',
+    }));
+
+    // SALIDAS: egresos PAID cash SIN abonos
+    const { data: paidExpenses, error: expErr } = await this.supabase
+      .from('expenses')
+      .select(`
+        id_expenses,
+        code,
+        cost,
+        paid_at,
+        payment_status,
+        type,
+        description,
+        expense_payments:expense_payments(id_expense_payment)
+      `)
+      .eq('payment_status', 'PAID')
+      .eq('type', 'cash');
+
+    if (expErr) {
+      console.error('Error cargando egresos PAID cash:', expErr);
+      this.showNotification('Error cargando salidas de caja (pagos).', 'error');
+      this.loading = false;
+      return;
+    }
+
+    const outMovesPaidNoPayments: CashMovement[] = (paidExpenses ?? [])
+      .filter((e: any) => (e.expense_payments?.length ?? 0) === 0)
+      .map((e: any) => ({
+        date: this.ymd(e.paid_at ?? new Date()),
+        direction: 'OUT',
+        amount: Number(e.cost) || 0,
+        source: 'EXPENSE_PAID',
+        reference: `Egreso ${String(e.code ?? '')}`,
+        description: e.description ? `Efectivo - ${e.description}` : 'Egreso efectivo',
+        method: 'cash',
+      }));
+
+    // Merge y ordenar
+    this.cashMovements = [...inMoves, ...outMovesFromPayments, ...outMovesPaidNoPayments]
+      .filter(m => m.amount > 0 && !!m.date);
+
+    this.cashMovements.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    this.applyCashFilters();
+    this.loading = false;
+  }
+
+  applyCashFilters(): void {
+    this.filteredMovements = this.cashMovements.filter(m => {
+      const d = new Date(m.date);
+      const okStart = this.startDate ? d >= new Date(this.startDate) : true;
+      const okEnd = this.endDate ? d <= new Date(this.endDate + 'T23:59:59') : true;
+      return okStart && okEnd;
+    });
+
+    this.currentPage = 1;
+    this.sumTotals();
     this.updatePaginatedBanking();
   }
 
-  async loadBanks(): Promise<void> {
-    const { error, data } = await this.supabase.from('banks').select('*');
+  private sumTotals(): void {
+    const list = this.filteredMovements;
+
+    this.totalCashIn = list
+      .filter(m => m.direction === 'IN')
+      .reduce((s, m) => s + (Number(m.amount) || 0), 0);
+
+    this.totalCashOut = list
+      .filter(m => m.direction === 'OUT')
+      .reduce((s, m) => s + (Number(m.amount) || 0), 0);
+
+    this.cashBalance = this.totalCashIn - this.totalCashOut;
+
+    // Cuadre
+    this.theoreticalCash = Number(this.openingCash || 0) + this.cashBalance;
+    this.cashDifference = Number(this.countedCash || 0) - this.theoreticalCash;
+  }
+
+  // ===== 2) Ledger manual guardado en transactions =====
+
+  async loadCashboxManualForDate(date: string): Promise<void> {
+    const { data, error } = await this.supabase
+      .from('transactions')
+      .select('*')
+      .eq('category', 'CASHBOX')
+      .eq('payment_method', 'cash')
+      .eq('movement_date', date)
+      .in('source_type', ['OPENING', 'COUNTED'])
+      .order('created_at', { ascending: false });
 
     if (error) {
+      console.error('Error cargando cashbox manual:', error);
+      this.openingCash = 0;
+      this.countedCash = 0;
       return;
     }
-    this.banks = data as Bank[];
-    this.calculateBalance();
-  }
-  updateFilteredTransactions(): void {
-    this.filteredTransactions = this.transactions.filter((transaction) => {
-      const transactionDate = new Date(transaction.created_at); // Convertir la fecha de la transacción a objeto Date
 
-        const isWithinDateRange =
-            (!this.startDate || transactionDate >= new Date(this.startDate)) &&
-            (!this.endDate || transactionDate <= new Date(this.endDate + 'T23:59:59'));
+    const rows = (data ?? []) as CashboxTxn[];
 
-        const isBankMatch = !this.selectedBank || transaction.id_bank === this.selectedBank;
+    const opening = rows.find(r => (r.source_type ?? '').toUpperCase() === 'OPENING');
+    const counted = rows.find(r => (r.source_type ?? '').toUpperCase() === 'COUNTED');
 
-        return isWithinDateRange && isBankMatch;
-    });
-    this.currentPage = 1; // Reiniciar a la primera página
-    this.updatePaginatedBanking(); // Actualizar la lista paginada
+    this.openingCash = Number(opening?.in ?? 0) || 0;
+    this.countedCash = Number(counted?.in ?? 0) || 0;
   }
 
-  calculateBalance() {
-    if (!this.selectedBank) {
-      return this.banks.reduce((sum, bank) => sum + bank.balance, 0);
+  async saveOpeningCash(): Promise<void> {
+    await this.upsertCashboxTxn('OPENING', this.openingCash, `Saldo inicial caja ${this.movementDate}`);
+    this.sumTotals();
+  }
+
+  async saveCountedCash(): Promise<void> {
+    await this.upsertCashboxTxn('COUNTED', this.countedCash, `Arqueo contado ${this.movementDate}`);
+    this.sumTotals();
+  }
+
+  private async upsertCashboxTxn(sourceType: 'OPENING' | 'COUNTED', amount: number, desc: string): Promise<void> {
+    const movementDate = this.movementDate;
+    const cleanAmount = Number(amount || 0);
+
+    // Buscar si ya existe uno para ese día y tipo
+    const { data: existing, error: findErr } = await this.supabase
+      .from('transactions')
+      .select('id')
+      .eq('category', 'CASHBOX')
+      .eq('payment_method', 'cash')
+      .eq('movement_date', movementDate)
+      .eq('source_type', sourceType)
+      .maybeSingle();
+
+    if (findErr) {
+      console.error('Error buscando txn existente:', findErr);
+      this.showNotification('Error consultando transacción de caja.', 'error');
+      return;
     }
 
-    const bank = this.banks.find((b) => b.id === this.selectedBank);
-    return bank ? bank.balance : 0;
+    const payload: any = {
+      description: desc,
+      in: cleanAmount,
+      out: 0,
+      category: 'CASHBOX',
+      payment_method: 'cash',
+      movement_date: movementDate,
+      source_type: sourceType,
+      source_ref: `Caja ${movementDate}`,
+    };
+
+    if (existing?.id) {
+      const { error: updErr } = await this.supabase
+        .from('transactions')
+        .update(payload)
+        .eq('id', existing.id);
+
+      if (updErr) {
+        console.error('Error actualizando txn caja:', updErr);
+        this.showNotification('Error guardando caja.', 'error');
+        return;
+      }
+    } else {
+      const { error: insErr } = await this.supabase
+        .from('transactions')
+        .insert([payload]);
+
+      if (insErr) {
+        console.error('Error insertando txn caja:', insErr);
+        this.showNotification('Error guardando caja.', 'error');
+        return;
+      }
+    }
+
+    this.showNotification('Caja guardada correctamente.', 'success');
   }
 
-  getBankName(bankCode: string): string {
-    const bank = this.banks.find((b) => b.id === bankCode);
-    return bank ? bank.bank : 'Desconocido';
-  }
+  async onMovementDateChange(): Promise<void> {
+    // sincroniza filtros al día elegido
+    this.startDate = this.movementDate;
+    this.endDate = this.movementDate;
 
-  goToBanksList(): void {
-    this.router.navigate(['/banks']);
+    await this.loadCashboxManualForDate(this.movementDate);
+    this.applyCashFilters();
   }
 
   clearFilters(): void {
-    this.selectedBank = '';
-    this.startDate = '';
-    this.endDate = '';
-    this.updateFilteredTransactions();
+    this.startDate = this.movementDate;
+    this.endDate = this.movementDate;
+    this.applyCashFilters();
   }
 
-  //Paginacion
+  // Paginación
+  updatePaginatedBanking(): void {
+    this.totalPages = Math.max(1, Math.ceil(this.filteredMovements.length / this.itemsPerPage));
+    this.currentPage = Math.min(Math.max(this.currentPage, 1), this.totalPages);
+
+    const startIndex = Number((this.currentPage - 1) * this.itemsPerPage);
+    const endIndex = startIndex + Number(this.itemsPerPage);
+    this.paginatedBanking = this.filteredMovements.slice(startIndex, endIndex);
+  }
+
   paginateItems<T>(items: T[], page: number, itemsPerPage: number): T[] {
     const startIndex = (page - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     return items.slice(startIndex, endIndex);
-  }
-
-  updatePaginatedBanking(): void {
-    // Calcular el número total de páginas
-    this.totalPages = Math.max(1, Math.ceil(this.filteredTransactions.length / this.itemsPerPage));
-
-    // Asegurar que currentPage no sea menor que 1 ni mayor que totalPages
-    this.currentPage = Math.min(Math.max(this.currentPage, 1), this.totalPages);
-
-    // Calcular los índices de inicio y fin
-    const startIndex = Number((this.currentPage - 1) * this.itemsPerPage);
-    const endIndex = startIndex + Number(this.itemsPerPage);
-
-    // Obtener los elementos para la página actual
-    this.paginatedBanking = this.filteredTransactions.slice(startIndex, endIndex);
   }
 }
