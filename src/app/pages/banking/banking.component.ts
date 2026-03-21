@@ -17,15 +17,14 @@ interface CashMovement {
 interface CashboxTxn {
   id: string;
   created_at: string;
-  movement_date: string;      // date
+  movement_date: string;
   description: string | null;
   in: number | null;
   out: number | null;
-  category: string | null;    // CASHBOX
+  category: string | null;
   code: number | null;
-
-  payment_method: string | null; // cash
-  source_type: string | null;    // OPENING / COUNTED / ADJUSTMENT_*
+  payment_method: string | null;
+  source_type: string | null;
   source_ref: string | null;
 }
 
@@ -37,36 +36,47 @@ interface CashboxTxn {
   styleUrls: ['./banking.component.scss'],
 })
 export class BankingComponent implements OnInit {
-  // Movimientos calculados (automáticos)
+  // Movimientos automáticos
   cashMovements: CashMovement[] = [];
   filteredMovements: CashMovement[] = [];
 
   // Paginación
-  currentPage: number = 1;
-  itemsPerPage: number = 10;
-  totalPages: number = 1;
+  currentPage = 1;
+  itemsPerPage = 10;
+  totalPages = 1;
   paginatedBanking: CashMovement[] = [];
 
   // Filtros
-  startDate: string = '';
-  endDate: string = '';
+  startDate = '';
+  endDate = '';
+  movementTypeFilter: 'ALL' | 'IN' | 'OUT' = 'ALL';
 
-  // Totales (del rango filtrado)
+  // Totales
   totalCashIn = 0;
   totalCashOut = 0;
   cashBalance = 0;
 
-  // Cuadre (guardable en transactions)
-  movementDate: string = new Date().toISOString().split('T')[0]; // día de caja
-  openingCash: number = 0;   // OPENING
-  countedCash: number = 0;   // COUNTED
-  theoreticalCash: number = 0;
-  cashDifference: number = 0;
+  // Caja
+  movementDate: string = new Date().toISOString().split('T')[0];
+  openingCash = 0;   // automático desde base + histórico
+  countedCash = 0;   // manual
+  theoreticalCash = 0;
+  cashDifference = 0;
 
-  // Estado
+  // Configuración base caja
+  baseCashDate = '';
+  baseCashAmount = 0;
+
+  // Estado UI
   loading = true;
+  savingBaseConfig = false;
+  showCashboxConfig = false;
+
   notificationMessage: string | null = null;
   notificationType: 'success' | 'error' | 'info' = 'info';
+
+  private baseDateRowId: string | null = null;
+  private baseAmountRowId: string | null = null;
 
   constructor(
     private readonly router: Router,
@@ -84,35 +94,204 @@ export class BankingComponent implements OnInit {
     });
   }
 
-  private showNotification(message: string, type: 'success' | 'error' | 'info' = 'info') {
+  private showNotification(
+    message: string,
+    type: 'success' | 'error' | 'info' = 'info'
+  ): void {
     this.notificationMessage = message;
     this.notificationType = type;
     setTimeout(() => (this.notificationMessage = null), 2500);
   }
 
-  private ymd(d: any): string {
-    if (!d) return '';
-    const dt = new Date(d);
-    if (isNaN(dt.getTime())) return '';
-    return dt.toISOString().split('T')[0];
+  private round2(value: number): number {
+    return Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
   }
 
-  private isCash(v?: string | null): boolean {
-    return (v ?? '').trim().toLowerCase() === 'cash';
+  private ymd(value: any): string {
+    if (!value) return '';
+
+    if (typeof value === 'string') {
+      return value.slice(0, 10);
+    }
+
+    const dt = new Date(value);
+    if (isNaN(dt.getTime())) return '';
+
+    const year = dt.getFullYear();
+    const month = String(dt.getMonth() + 1).padStart(2, '0');
+    const day = String(dt.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+  }
+
+  private toDateOnly(dateStr: string): Date {
+    return new Date(dateStr + 'T00:00:00');
+  }
+
+  private isBeforeDate(dateA: string, dateB: string): boolean {
+    return this.toDateOnly(dateA).getTime() < this.toDateOnly(dateB).getTime();
+  }
+
+  private isOnOrAfterBase(dateStr: string): boolean {
+    if (!this.baseCashDate) return false;
+    return this.toDateOnly(dateStr).getTime() >= this.toDateOnly(this.baseCashDate).getTime();
+  }
+
+  formatYmdToDisplay(dateStr: string): string {
+    if (!dateStr || dateStr.length < 10) return '';
+    const [year, month, day] = dateStr.slice(0, 10).split('-');
+    return `${day}-${month}-${year}`;
   }
 
   async initCashbox(): Promise<void> {
-    // Por defecto, el rango es el mismo día de caja
+    this.loading = true;
+
     this.startDate = this.movementDate;
     this.endDate = this.movementDate;
+    this.movementTypeFilter = 'ALL';
 
-    await this.loadCashboxManualForDate(this.movementDate);
-    await this.loadCashMovements();
+    await this.loadCashboxBaseConfig();
+    await this.loadCashMovements(false);
+    await this.loadAutomaticOpeningCashFromHistory(this.movementDate);
+    await this.loadCountedCashForDate(this.movementDate);
+    this.applyCashFilters();
+
+    this.loading = false;
   }
 
-  // ===== 1) Movimientos automáticos (invoices/expenses) =====
+  // ===== 1) CONFIG BASE DE CAJA =====
 
-  async loadCashMovements(): Promise<void> {
+  async loadCashboxBaseConfig(): Promise<void> {
+    const { data, error } = await this.supabase
+      .from('variables')
+      .select('id, name, value, value_text, label')
+      .eq('category', 'CASHBOX')
+      .in('name', ['CASHBOX_BASE_DATE', 'CASHBOX_BASE_AMOUNT']);
+
+    if (error) {
+      console.error('Error cargando configuración base de caja:', error);
+      this.baseCashDate = '';
+      this.baseCashAmount = 0;
+      this.baseDateRowId = null;
+      this.baseAmountRowId = null;
+      this.showNotification('Error cargando configuración base de caja.', 'error');
+      return;
+    }
+
+    const rows = data ?? [];
+
+    const baseDateRow = rows.find((r: any) => r.name === 'CASHBOX_BASE_DATE');
+    const baseAmountRow = rows.find((r: any) => r.name === 'CASHBOX_BASE_AMOUNT');
+
+    this.baseDateRowId = baseDateRow?.id ?? null;
+    this.baseAmountRowId = baseAmountRow?.id ?? null;
+
+    this.baseCashDate = String(baseDateRow?.value_text ?? '').trim();
+    this.baseCashAmount = Number(baseAmountRow?.value ?? 0) || 0;
+  }
+
+  async saveCashboxBaseConfig(): Promise<void> {
+    if (!this.baseCashDate) {
+      this.showNotification('La fecha base de caja es obligatoria.', 'error');
+      return;
+    }
+
+    if (this.baseCashAmount < 0) {
+      this.showNotification('El saldo base de caja no puede ser negativo.', 'error');
+      return;
+    }
+
+    this.savingBaseConfig = true;
+
+    const baseDatePayload = {
+      name: 'CASHBOX_BASE_DATE',
+      category: 'CASHBOX',
+      value: null,
+      value_text: this.baseCashDate,
+      label: 'Fecha base de caja',
+    };
+
+    const baseAmountPayload = {
+      name: 'CASHBOX_BASE_AMOUNT',
+      category: 'CASHBOX',
+      value: this.round2(Number(this.baseCashAmount || 0)),
+      value_text: null,
+      label: 'Saldo base de caja',
+    };
+
+    if (this.baseDateRowId) {
+      const { error } = await this.supabase
+        .from('variables')
+        .update(baseDatePayload)
+        .eq('id', this.baseDateRowId);
+
+      if (error) {
+        console.error('Error actualizando fecha base de caja:', error);
+        this.showNotification('Error guardando fecha base de caja.', 'error');
+        this.savingBaseConfig = false;
+        return;
+      }
+    } else {
+      const { data, error } = await this.supabase
+        .from('variables')
+        .insert([baseDatePayload])
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error('Error insertando fecha base de caja:', error);
+        this.showNotification('Error guardando fecha base de caja.', 'error');
+        this.savingBaseConfig = false;
+        return;
+      }
+
+      this.baseDateRowId = data?.id ?? null;
+    }
+
+    if (this.baseAmountRowId) {
+      const { error } = await this.supabase
+        .from('variables')
+        .update(baseAmountPayload)
+        .eq('id', this.baseAmountRowId);
+
+      if (error) {
+        console.error('Error actualizando saldo base de caja:', error);
+        this.showNotification('Error guardando saldo base de caja.', 'error');
+        this.savingBaseConfig = false;
+        return;
+      }
+    } else {
+      const { data, error } = await this.supabase
+        .from('variables')
+        .insert([baseAmountPayload])
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error('Error insertando saldo base de caja:', error);
+        this.showNotification('Error guardando saldo base de caja.', 'error');
+        this.savingBaseConfig = false;
+        return;
+      }
+
+      this.baseAmountRowId = data?.id ?? null;
+    }
+
+    await this.loadCashboxBaseConfig();
+    await this.loadAutomaticOpeningCashFromHistory(this.movementDate);
+    this.applyCashFilters();
+
+    this.showNotification('Configuración base de caja guardada correctamente.', 'success');
+    this.savingBaseConfig = false;
+  }
+
+  toggleCashboxConfig(): void {
+    this.showCashboxConfig = !this.showCashboxConfig;
+  }
+
+  // ===== 2) MOVIMIENTOS AUTOMÁTICOS =====
+
+  async loadCashMovements(applyFilters: boolean = true): Promise<void> {
     this.loading = true;
 
     // ENTRADAS: payments cash
@@ -139,9 +318,9 @@ export class BankingComponent implements OnInit {
     }
 
     const inMoves: CashMovement[] = (cashPayments ?? []).map((p: any) => ({
-      date: this.ymd(p.payment_date ?? new Date()),
+      date: this.ymd(p.payment_date),
       direction: 'IN',
-      amount: Number(p.amount) || 0,
+      amount: this.round2(Number(p.amount) || 0),
       source: 'INVOICE_PAYMENT',
       reference: p.orders?.code ? `Factura ${p.orders.code}` : String(p.id_order ?? ''),
       description: p.orders?.clients?.name
@@ -171,11 +350,11 @@ export class BankingComponent implements OnInit {
     }
 
     const outMovesFromPayments: CashMovement[] = (expensePays ?? []).map((p: any) => ({
-      date: this.ymd(p.payment_date ?? new Date()),
+      date: this.ymd(p.payment_date),
       direction: 'OUT',
-      amount: Number(p.amount) || 0,
+      amount: this.round2(Number(p.amount) || 0),
       source: 'EXPENSE_PAYMENT',
-      reference: `Egreso ${String(p.code ?? '')}`,
+      reference: p.expenses?.code ? `Egreso ${p.expenses.code}` : String(p.id_expenses ?? ''),
       description: p.expenses?.description
         ? `Abono efectivo - ${p.expenses.description}`
         : 'Abono efectivo egreso',
@@ -208,87 +387,76 @@ export class BankingComponent implements OnInit {
     const outMovesPaidNoPayments: CashMovement[] = (paidExpenses ?? [])
       .filter((e: any) => (e.expense_payments?.length ?? 0) === 0)
       .map((e: any) => ({
-        date: this.ymd(e.paid_at ?? new Date()),
+        date: this.ymd(e.paid_at),
         direction: 'OUT',
-        amount: Number(e.cost) || 0,
+        amount: this.round2(Number(e.cost) || 0),
         source: 'EXPENSE_PAID',
-        reference: `Egreso ${String(e.code ?? '')}`,
+        reference: e.code ? `Egreso ${e.code}` : String(e.id_expenses ?? ''),
         description: e.description ? `Efectivo - ${e.description}` : 'Egreso efectivo',
         method: 'cash',
       }));
 
-    // Merge y ordenar
     this.cashMovements = [...inMoves, ...outMovesFromPayments, ...outMovesPaidNoPayments]
-      .filter(m => m.amount > 0 && !!m.date);
+      .filter((m) => m.amount > 0 && !!m.date);
 
-    this.cashMovements.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    this.cashMovements.sort((a, b) => b.date.localeCompare(a.date));
 
-    this.applyCashFilters();
+    if (applyFilters) {
+      this.applyCashFilters();
+    }
+
     this.loading = false;
   }
 
-  applyCashFilters(): void {
-    this.filteredMovements = this.cashMovements.filter(m => {
-      const d = new Date(m.date);
-      const okStart = this.startDate ? d >= new Date(this.startDate) : true;
-      const okEnd = this.endDate ? d <= new Date(this.endDate + 'T23:59:59') : true;
-      return okStart && okEnd;
-    });
+  // ===== 3) SALDO INICIAL AUTOMÁTICO =====
 
-    this.currentPage = 1;
-    this.sumTotals();
-    this.updatePaginatedBanking();
+  async loadAutomaticOpeningCashFromHistory(date: string): Promise<void> {
+    if (!this.baseCashDate) {
+      this.openingCash = 0;
+      return;
+    }
+
+    if (!this.isOnOrAfterBase(date)) {
+      this.openingCash = this.round2(Number(this.baseCashAmount || 0));
+      return;
+    }
+
+    const previousMovements = this.cashMovements.filter(
+      (m) => !!m.date && this.isOnOrAfterBase(m.date) && this.isBeforeDate(m.date, date)
+    );
+
+    const totalInBefore = previousMovements
+      .filter((m) => m.direction === 'IN')
+      .reduce((sum, m) => sum + (Number(m.amount) || 0), 0);
+
+    const totalOutBefore = previousMovements
+      .filter((m) => m.direction === 'OUT')
+      .reduce((sum, m) => sum + (Number(m.amount) || 0), 0);
+
+    this.openingCash = this.round2(Number(this.baseCashAmount || 0) + totalInBefore - totalOutBefore);
   }
 
-  private sumTotals(): void {
-    const list = this.filteredMovements;
+  // ===== 4) ARQUEO MANUAL =====
 
-    this.totalCashIn = list
-      .filter(m => m.direction === 'IN')
-      .reduce((s, m) => s + (Number(m.amount) || 0), 0);
-
-    this.totalCashOut = list
-      .filter(m => m.direction === 'OUT')
-      .reduce((s, m) => s + (Number(m.amount) || 0), 0);
-
-    this.cashBalance = this.totalCashIn - this.totalCashOut;
-
-    // Cuadre
-    this.theoreticalCash = Number(this.openingCash || 0) + this.cashBalance;
-    this.cashDifference = Number(this.countedCash || 0) - this.theoreticalCash;
-  }
-
-  // ===== 2) Ledger manual guardado en transactions =====
-
-  async loadCashboxManualForDate(date: string): Promise<void> {
+  async loadCountedCashForDate(date: string): Promise<void> {
     const { data, error } = await this.supabase
       .from('transactions')
       .select('*')
       .eq('category', 'CASHBOX')
       .eq('payment_method', 'cash')
       .eq('movement_date', date)
-      .in('source_type', ['OPENING', 'COUNTED'])
-      .order('created_at', { ascending: false });
+      .eq('source_type', 'COUNTED')
+      .order('created_at', { ascending: false })
+      .maybeSingle();
 
     if (error) {
-      console.error('Error cargando cashbox manual:', error);
-      this.openingCash = 0;
+      console.error('Error cargando arqueo manual:', error);
       this.countedCash = 0;
       return;
     }
 
-    const rows = (data ?? []) as CashboxTxn[];
-
-    const opening = rows.find(r => (r.source_type ?? '').toUpperCase() === 'OPENING');
-    const counted = rows.find(r => (r.source_type ?? '').toUpperCase() === 'COUNTED');
-
-    this.openingCash = Number(opening?.in ?? 0) || 0;
-    this.countedCash = Number(counted?.in ?? 0) || 0;
-  }
-
-  async saveOpeningCash(): Promise<void> {
-    await this.upsertCashboxTxn('OPENING', this.openingCash, `Saldo inicial caja ${this.movementDate}`);
-    this.sumTotals();
+    const row = data as CashboxTxn | null;
+    this.countedCash = this.round2(Number(row?.in ?? 0) || 0);
   }
 
   async saveCountedCash(): Promise<void> {
@@ -296,11 +464,14 @@ export class BankingComponent implements OnInit {
     this.sumTotals();
   }
 
-  private async upsertCashboxTxn(sourceType: 'OPENING' | 'COUNTED', amount: number, desc: string): Promise<void> {
+  private async upsertCashboxTxn(
+    sourceType: 'COUNTED',
+    amount: number,
+    desc: string
+  ): Promise<void> {
     const movementDate = this.movementDate;
-    const cleanAmount = Number(amount || 0);
+    const cleanAmount = this.round2(Number(amount || 0));
 
-    // Buscar si ya existe uno para ese día y tipo
     const { data: existing, error: findErr } = await this.supabase
       .from('transactions')
       .select('id')
@@ -335,7 +506,7 @@ export class BankingComponent implements OnInit {
 
       if (updErr) {
         console.error('Error actualizando txn caja:', updErr);
-        this.showNotification('Error guardando caja.', 'error');
+        this.showNotification('Error guardando arqueo.', 'error');
         return;
       }
     } else {
@@ -345,36 +516,80 @@ export class BankingComponent implements OnInit {
 
       if (insErr) {
         console.error('Error insertando txn caja:', insErr);
-        this.showNotification('Error guardando caja.', 'error');
+        this.showNotification('Error guardando arqueo.', 'error');
         return;
       }
     }
 
-    this.showNotification('Caja guardada correctamente.', 'success');
+    this.showNotification('Arqueo guardado correctamente.', 'success');
+  }
+
+  // ===== 5) FILTROS / TOTALES =====
+
+  applyCashFilters(): void {
+    this.filteredMovements = this.cashMovements.filter((m) => {
+      const movementDate = m.date;
+
+      const okStart = this.startDate ? movementDate >= this.startDate : true;
+      const okEnd = this.endDate ? movementDate <= this.endDate : true;
+
+      const okType =
+        this.movementTypeFilter === 'ALL'
+          ? true
+          : m.direction === this.movementTypeFilter;
+
+      return okStart && okEnd && okType;
+    });
+
+    this.currentPage = 1;
+    this.sumTotals();
+    this.updatePaginatedBanking();
+  }
+
+  private sumTotals(): void {
+    const list = this.filteredMovements;
+
+    this.totalCashIn = this.round2(
+      list
+        .filter((m) => m.direction === 'IN')
+        .reduce((s, m) => s + (Number(m.amount) || 0), 0)
+    );
+
+    this.totalCashOut = this.round2(
+      list
+        .filter((m) => m.direction === 'OUT')
+        .reduce((s, m) => s + (Number(m.amount) || 0), 0)
+    );
+
+    this.cashBalance = this.round2(this.totalCashIn - this.totalCashOut);
+    this.theoreticalCash = this.round2(Number(this.openingCash || 0) + this.cashBalance);
+    this.cashDifference = this.round2(Number(this.countedCash || 0) - this.theoreticalCash);
   }
 
   async onMovementDateChange(): Promise<void> {
-    // sincroniza filtros al día elegido
     this.startDate = this.movementDate;
     this.endDate = this.movementDate;
 
-    await this.loadCashboxManualForDate(this.movementDate);
+    await this.loadAutomaticOpeningCashFromHistory(this.movementDate);
+    await this.loadCountedCashForDate(this.movementDate);
     this.applyCashFilters();
   }
 
   clearFilters(): void {
     this.startDate = this.movementDate;
     this.endDate = this.movementDate;
+    this.movementTypeFilter = 'ALL';
     this.applyCashFilters();
   }
 
-  // Paginación
+  // ===== 6) PAGINACIÓN =====
+
   updatePaginatedBanking(): void {
     this.totalPages = Math.max(1, Math.ceil(this.filteredMovements.length / this.itemsPerPage));
     this.currentPage = Math.min(Math.max(this.currentPage, 1), this.totalPages);
 
-    const startIndex = Number((this.currentPage - 1) * this.itemsPerPage);
-    const endIndex = startIndex + Number(this.itemsPerPage);
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    const endIndex = startIndex + this.itemsPerPage;
     this.paginatedBanking = this.filteredMovements.slice(startIndex, endIndex);
   }
 

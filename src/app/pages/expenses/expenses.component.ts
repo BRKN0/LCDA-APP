@@ -2436,7 +2436,8 @@ export class ExpensesComponent implements OnInit {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
+      timeZone: 'UTC'
     }).format(parsedDate);
   }
 

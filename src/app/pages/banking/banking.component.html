@@ -3,19 +3,20 @@
 <div class="transactions-container">
 
   <!-- NOTIFICACIÓN -->
-  <div *ngIf="notificationMessage"
-       class="mb-3 p-2 rounded"
-       [ngClass]="{
-         'bg-green-100 text-green-800': notificationType === 'success',
-         'bg-red-100 text-red-800': notificationType === 'error',
-         'bg-blue-100 text-blue-800': notificationType === 'info'
-       }">
+  <div
+    *ngIf="notificationMessage"
+    class="mb-3 p-2 rounded"
+    [ngClass]="{
+      'bg-green-100 text-green-800': notificationType === 'success',
+      'bg-red-100 text-red-800': notificationType === 'error',
+      'bg-blue-100 text-blue-800': notificationType === 'info'
+    }"
+  >
     {{ notificationMessage }}
   </div>
 
-  <!-- HEADER / CAJA -->
+  <!-- FILTROS -->
   <div class="filters">
-    <!-- Fecha de caja -->
     <div class="filter-item">
       <label for="movementDate">Fecha Caja:</label>
       <input
@@ -27,7 +28,6 @@
       />
     </div>
 
-    <!-- Rango -->
     <div class="flex items-center space-x-4">
       <div>
         <label for="startDate" class="mr-2 font-semibold">Desde:</label>
@@ -51,33 +51,96 @@
         />
       </div>
 
+      <div>
+        <label for="movementTypeFilter" class="mr-2 font-semibold">Tipo:</label>
+        <select
+          id="movementTypeFilter"
+          [(ngModel)]="movementTypeFilter"
+          (ngModelChange)="applyCashFilters()"
+          class="border border-gray-300 rounded-md p-1"
+        >
+          <option value="ALL">Todos</option>
+          <option value="IN">Solo entradas</option>
+          <option value="OUT">Solo salidas</option>
+        </select>
+      </div>
+
       <button class="btn-clear" (click)="clearFilters()">
         Limpiar filtros
       </button>
     </div>
   </div>
 
-  <!-- CUADRE DE CAJA (GUARDADO EN TRANSACTIONS) -->
+  <!-- CONFIGURACIÓN BASE DE CAJA -->
+  <div class="mt-4 p-3 border rounded-md bg-white">
+    <div class="flex justify-between items-center">
+      <h2 class="balance-title">Configuración Base de Caja</h2>
+
+      <button class="btn-clear" (click)="toggleCashboxConfig()">
+        {{ showCashboxConfig ? 'Ocultar configuración' : 'Mostrar configuración' }}
+      </button>
+    </div>
+
+    <div *ngIf="showCashboxConfig" class="mt-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block font-semibold mb-1">Fecha base de caja</label>
+          <input
+            type="date"
+            [(ngModel)]="baseCashDate"
+            class="border border-gray-300 rounded-md p-1 w-full"
+          />
+          <p class="text-xs text-gray-600 mt-2">
+            Desde esta fecha se toma el punto de partida del acumulado histórico.
+          </p>
+        </div>
+
+        <div>
+          <label class="block font-semibold mb-1">Saldo base de caja</label>
+          <input
+            type="number"
+            [(ngModel)]="baseCashAmount"
+            class="border border-gray-300 rounded-md p-1 w-full"
+            min="0"
+            step="0.01"
+          />
+          <p class="text-xs text-gray-600 mt-2">
+            Este valor será el saldo inicial del sistema en la fecha base.
+          </p>
+        </div>
+      </div>
+
+      <div class="mt-4 flex gap-3">
+        <button
+          class="btn-add"
+          (click)="saveCashboxBaseConfig()"
+          [disabled]="savingBaseConfig"
+        >
+          {{ savingBaseConfig ? 'Guardando...' : 'Guardar configuración base' }}
+        </button>
+      </div>
+
+      <p class="text-xs text-red-600 mt-3">
+        Cambiar esta configuración modifica el cálculo automático del saldo inicial para fechas posteriores.
+      </p>
+    </div>
+  </div>
+
+  <!-- CUADRE DE CAJA -->
   <div class="mt-4 p-3 border rounded-md bg-white">
     <h2 class="balance-title mb-3">Cuadre de Caja (Efectivo)</h2>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <!-- Saldo inicial -->
       <div>
-        <label class="block font-semibold mb-1">Saldo inicial</label>
-        <input
-          type="number"
-          [(ngModel)]="openingCash"
-          class="border border-gray-300 rounded-md p-1 w-full"
-          min="0"
-          step="0.01"
-        />
-        <button class="btn-add mt-2" (click)="saveOpeningCash()">
-          Guardar saldo inicial
-        </button>
+        <label class="block font-semibold mb-1">Saldo inicial automático</label>
+        <div class="border border-gray-300 rounded-md p-2 w-full bg-gray-100">
+          {{ openingCash | currency:'COP' }}
+        </div>
+        <p class="text-xs text-gray-600 mt-2">
+          Calculado desde la fecha base de caja con acumulado histórico anterior al día seleccionado.
+        </p>
       </div>
 
-      <!-- Efectivo contado -->
       <div>
         <label class="block font-semibold mb-1">Efectivo contado</label>
         <input
@@ -92,12 +155,12 @@
         </button>
       </div>
 
-      <!-- Resumen teórico/diferencia -->
       <div class="p-2 border rounded-md bg-gray-50">
         <div class="flex justify-between">
           <span class="font-semibold">Teórico:</span>
           <span>{{ theoreticalCash | currency:'COP' }}</span>
         </div>
+
         <div class="flex justify-between mt-2">
           <span class="font-semibold">Diferencia:</span>
           <span
@@ -110,6 +173,7 @@
             {{ cashDifference | currency:'COP' }}
           </span>
         </div>
+
         <p class="text-xs text-gray-600 mt-2">
           Diferencia = Contado - Teórico
         </p>
@@ -117,7 +181,7 @@
     </div>
   </div>
 
-  <!-- RESUMEN CAJA DEL RANGO -->
+  <!-- RESUMEN -->
   <div class="balance-section justify-center mt-4">
     <h2 class="balance-title">Resumen Caja (Rango)</h2>
 
@@ -144,7 +208,7 @@
     </div>
   </div>
 
-  <!-- TABLA MOVIMIENTOS -->
+  <!-- TABLA -->
   <div class="mt-4">
     <table class="table-std">
       <thead>
@@ -160,17 +224,17 @@
 
       <tbody>
         <tr *ngFor="let m of paginatedBanking">
-          <td>{{ m.date | date:'dd-MM-yyyy' }}</td>
-          <td>
-            {{ m.direction === 'IN' ? 'Entrada' : 'Salida' }}
-          </td>
+          <td>{{ formatYmdToDisplay(m.date) }}</td>
+          <td>{{ m.direction === 'IN' ? 'Entrada' : 'Salida' }}</td>
           <td>{{ m.description }}</td>
           <td>{{ m.reference }}</td>
+
           <td>
             <span *ngIf="m.direction === 'IN'">
               {{ m.amount | currency:'COP' }}
             </span>
           </td>
+
           <td>
             <span *ngIf="m.direction === 'OUT'">
               {{ m.amount | currency:'COP' }}
