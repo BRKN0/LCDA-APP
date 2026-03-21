@@ -777,15 +777,15 @@ onDocumentClick(event: MouseEvent): void {
         iva = +(gross - subtotal).toFixed(2);
       }
 
-      invoice.gross_total = this.round2(gross);
-      invoice.retefuente_total = this.round2(retefuente);
-      invoice.reteica_total = this.round2(reteica);
-      invoice.net_total = this.round2(net);
+      invoice.gross_total = Math.round(gross);
+      invoice.retefuente_total = Math.round(retefuente);
+      invoice.reteica_total = Math.round(reteica);
+      invoice.net_total = Math.round(net);
 
       return {
-        subtotal: this.round2(subtotal),
-        iva: this.round2(iva),
-        total: this.round2(gross),
+        subtotal: Math.round(subtotal),
+        iva: Math.round(iva),
+        total: Math.round(gross),
       };
     }
 
@@ -846,15 +846,15 @@ onDocumentClick(event: MouseEvent): void {
 
     const net_total = +(gross_total - retefuente_total - reteica_total).toFixed(2);
 
-    invoice.gross_total = this.round2(gross_total);
-    invoice.retefuente_total = this.round2(retefuente_total);
-    invoice.reteica_total = this.round2(reteica_total);
-    invoice.net_total = this.round2(net_total);
+    invoice.gross_total = Math.round(gross_total);
+    invoice.retefuente_total = Math.round(retefuente_total);
+    invoice.reteica_total = Math.round(reteica_total);
+    invoice.net_total = Math.round(net_total);
 
     return {
-      subtotal: this.round2(subtotal),
-      iva: this.round2(iva),
-      total: this.round2(gross_total),
+      subtotal: Math.round(subtotal),
+      iva: Math.round(iva),
+      total: Math.round(gross_total),
     };
   }
 
@@ -1290,7 +1290,7 @@ onDocumentClick(event: MouseEvent): void {
   getRemainingBalance(invoice: Invoice): number {
     const total = this.getEffectiveInvoiceTotal(invoice);
     const paid = this.getTotalPayments(invoice.order);
-    return this.round2(total - paid);
+    return Math.round(total - paid);
   }
 
   private isZeroish(n: number): boolean {
@@ -1480,10 +1480,10 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
     const remainingBalance = effectiveTotal - totalPaid;
     const isFE = this.isElectronicInvoice(invoice);
 
-    const gross = isFE ? this.getInvoiceGrossTotal(invoice) : this.round2(total);
-    const retefuente = isFE ? this.round2(invoice.retefuente_total ?? 0) : 0;
-    const reteica = isFE ? this.round2(invoice.reteica_total ?? 0) : 0;
-    const net = isFE ? this.round2(invoice.net_total ?? (gross - retefuente - reteica)) : this.round2(effectiveTotal);
+    const gross = isFE ? this.getInvoiceGrossTotal(invoice) : Math.round(total);
+    const retefuente = isFE ? Math.round(invoice.retefuente_total ?? 0) : 0;
+    const reteica = isFE ? Math.round(invoice.reteica_total ?? 0) : 0;
+    const net = isFE ? Math.round(invoice.net_total ?? (gross - retefuente - reteica)) : Math.round(effectiveTotal);
 
     const doc = new jsPDF();
     const invoice_date = new Date(invoice.created_at);
@@ -2725,14 +2725,14 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
     if (this.selectedInvoice.order.requires_e_invoice) {
       await this.calculateInvoiceValues(this.selectedInvoice);
 
-      grossTotal = this.round2(this.selectedInvoice.gross_total ?? 0);
-      retefuenteTotal = this.round2(this.selectedInvoice.retefuente_total ?? 0);
-      reteicaTotal = this.round2(this.selectedInvoice.reteica_total ?? 0);
-      netTotal = this.round2(this.selectedInvoice.net_total ?? 0);
+      grossTotal = Math.round(this.selectedInvoice.gross_total ?? 0);
+      retefuenteTotal = Math.round(this.selectedInvoice.retefuente_total ?? 0);
+      reteicaTotal = Math.round(this.selectedInvoice.reteica_total ?? 0);
+      netTotal = Math.round(this.selectedInvoice.net_total ?? 0);
 
       effectiveTotal = netTotal;
     } else {
-      effectiveTotal = this.round2(
+      effectiveTotal = Math.round(
         Number(this.selectedInvoice.order.total || orderData.total || 0)
       );
 
@@ -2746,7 +2746,7 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
       ? orderData.payments.reduce((sum, p) => sum + p.amount, 0)
       : 0;
 
-    const remainingBalance = this.round2(effectiveTotal - totalPaid);
+    const remainingBalance = Math.round(effectiveTotal - totalPaid);
     const newPaymentStatus = remainingBalance <= 0 ? 'upToDate' : 'overdue';
 
     const invoiceData: Partial<Invoice> = {
@@ -2774,8 +2774,8 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
               .single()
           ).data?.include_iva ?? false;
 
-        const previousEffectiveTotal = this.round2(this.originalEffectiveTotal);
-        const diff = this.round2(effectiveTotal - previousEffectiveTotal);
+        const previousEffectiveTotal = Math.round(this.originalEffectiveTotal);
+        const diff = Math.round(effectiveTotal - previousEffectiveTotal);
 
         const { error } = await this.supabase
           .from('invoices')
@@ -2785,16 +2785,16 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
               ? this.selectedInvoice.invoice_lines
               : [],
             retefuente_total: this.selectedInvoice.order.requires_e_invoice
-              ? retefuenteTotal
+              ? Math.round(retefuenteTotal)
               : 0,
             reteica_total: this.selectedInvoice.order.requires_e_invoice
-              ? reteicaTotal
+              ? Math.round(reteicaTotal)
               : 0,
             net_total: this.selectedInvoice.order.requires_e_invoice
-              ? netTotal
+              ? Math.round(netTotal)
               : 0,
             gross_total: this.selectedInvoice.order.requires_e_invoice
-              ? grossTotal
+              ? Math.round(grossTotal)
               : 0
           })
           .eq('id_invoice', this.selectedInvoice.id_invoice);
@@ -2844,7 +2844,7 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
           }
 
           const currentDebt = Number(clientData.debt || 0);
-          const newDebt = this.round2(currentDebt + diff);
+          const newDebt = Math.round(currentDebt + diff);
           const newClientStatus = newDebt > 0 ? 'overdue' : 'upToDate';
 
           const { error: updateClientError } = await this.supabase
@@ -2918,7 +2918,7 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
         }
 
         const currentDebt = Number(clientData.debt || 0);
-        const newDebt = this.round2(currentDebt + effectiveTotal);
+        const newDebt = Math.round(currentDebt + effectiveTotal);
         const newClientStatus = newDebt > 0 ? 'overdue' : 'upToDate';
 
         const { error: updateClientError } = await this.supabase
@@ -3042,11 +3042,11 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
     });
 
     this.dailySummary = {
-      totalScheduled: this.round2(totalScheduled),
-      totalPaid: this.round2(this.calculateMoneyReceived(invoices)),
-      rangeDebt: this.round2(rangeDebt),
-      pendingDebt: this.round2(this.calculateGlobalPendingDebt()),
-      totalIVA: this.round2(totalIVA),
+      totalScheduled: Math.round(totalScheduled),
+      totalPaid: Math.round(this.calculateMoneyReceived(invoices)),
+      rangeDebt: Math.round(rangeDebt),
+      pendingDebt: Math.round(this.calculateGlobalPendingDebt()),
+      totalIVA: Math.round(totalIVA),
       invoiceCount: invoices.length,
     };
   }
@@ -3094,7 +3094,7 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
   }
 
   calculateGlobalPendingDebt(): number {
-    return this.round2(
+    return Math.round(
       this.invoices.reduce((sum, invoice) => {
         const total = this.getEffectiveInvoiceTotal(invoice);
         const paid = this.getTotalPayments(invoice.order);
@@ -3479,10 +3479,6 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
     }
   }
 
-  private round2(value: number): number {
-    return Number((value || 0).toFixed(2));
-  }
-
   private isElectronicInvoice(invoice: Invoice): boolean {
     return !!invoice?.order?.requires_e_invoice;
   }
@@ -3491,12 +3487,12 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
     if (!invoice) return 0;
 
     if (this.isElectronicInvoice(invoice)) {
-      return this.round2(
+      return Math.round(
         Number(invoice.gross_total ?? invoice.order?.total ?? 0)
       );
     }
 
-    return this.round2(Number(invoice.order?.total ?? 0));
+    return Math.round(Number(invoice.order?.total ?? 0));
   }
 
   private getInvoiceNetTotal(invoice: Invoice): number {
@@ -3504,17 +3500,17 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
 
     if (this.isElectronicInvoice(invoice)) {
       if (invoice.net_total != null) {
-        return this.round2(Number(invoice.net_total));
+        return Math.round(Number(invoice.net_total));
       }
 
       const gross = Number(invoice.gross_total ?? invoice.order?.total ?? 0);
       const retefuente = Number(invoice.retefuente_total ?? 0);
       const reteica = Number(invoice.reteica_total ?? 0);
 
-      return this.round2(gross - retefuente - reteica);
+      return Math.round(gross - retefuente - reteica);
     }
 
-    return this.round2(Number(invoice.order?.total ?? 0));
+    return Math.round(Number(invoice.order?.total ?? 0));
   }
 
   private getEffectiveInvoiceTotal(invoice: Invoice): number {

@@ -1963,7 +1963,9 @@ export class OrdersComponent implements OnInit, OnDestroy {
         is_vitrine: newOrderForm.is_vitrine ?? false,
         name: newOrderForm.name!,
         client_type: newOrderForm.client_type!,
-        description: newOrderForm.description?.toUpperCase() || '',
+        description: this.newOrderLines.length > 0
+          ? this.generateDescriptionFromLines()
+          : (newOrderForm.description?.toUpperCase() || ''),
         order_payment_status: newOrderForm.order_payment_status || 'overdue',
         created_at: this.getLocalDateISO(),
         created_time: this.getCurrentTimeHHMM(),
@@ -1992,7 +1994,8 @@ export class OrdersComponent implements OnInit, OnDestroy {
         scheduler: (await this.getUserName()) || 'Desconocido',
         code: 0,
         discount: newOrderForm.discount || 0,
-        discount_type: newOrderForm.discount_type || 'percentage'
+        discount_type: newOrderForm.discount_type || 'percentage',
+        order_lines: this.newOrderLines.length > 0 ? this.newOrderLines : null
       };
 
       if (this.newOrder.order_type === 'laser') {
@@ -2044,7 +2047,8 @@ export class OrdersComponent implements OnInit, OnDestroy {
           .update({
             include_iva: this.newOrder.include_iva ?? false,
             gross_total: requiresFE ? updatedOrderTotal : 0,
-            net_total: requiresFE ? updatedOrderTotal : 0
+            net_total: requiresFE ? updatedOrderTotal : 0,
+            invoice_lines: requiresFE ? (this.newOrder.order_lines ?? []) : []
           })
           .eq('id_order', this.newOrder.id_order);
 
