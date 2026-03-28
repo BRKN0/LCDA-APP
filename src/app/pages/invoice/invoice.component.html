@@ -1335,6 +1335,19 @@
           ${{ dailySummary.totalIVA | number: "1.2-2" }}
         </p>
       </div>
+      <div class="p-4 border rounded-lg bg-orange-50">
+        <p class="text-sm text-gray-600">Retención en la fuente</p>
+        <p class="text-xl font-bold text-orange-700">
+          ${{ dailySummary.totalReteFuente | number: "1.2-2" }}
+        </p>
+      </div>
+
+      <div class="p-4 border rounded-lg bg-cyan-50">
+        <p class="text-sm text-gray-600">Retención ICA</p>
+        <p class="text-xl font-bold text-cyan-700">
+          ${{ dailySummary.totalReteICA | number: "1.2-2" }}
+        </p>
+      </div>
     </div>
 
     <div class="mt-6 p-4 border rounded-lg bg-gray-100">

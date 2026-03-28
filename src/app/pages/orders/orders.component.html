@@ -714,7 +714,7 @@
       </div>
 
       <!-- Totals Section -->
-      <ng-container *ngIf="userRole === 'admin'">
+      <ng-container>
         <div class="border-t pt-4 mt-4">
           <div class="flex justify-between">
             <p><strong>Subtotal</strong></p>
@@ -740,14 +740,30 @@
             *ngIf="selectedOrderDetails[0]?.extra_charges?.length"
             class="flex flex-col gap-1 my-2"
           >
-            <p class="font-semibold text-blue-600 mb-1">Cargos Extras</p>
-            <div
-              *ngFor="let charge of selectedOrderDetails[0].extra_charges"
-              class="flex justify-between"
-            >
-              <span>{{ charge.description }}</span>
-              <span>${{ charge.amount  | number:'1.2-2'}}</span>
-            </div>
+            <h4 class="font-semibold text-blue-600 mb-2">
+              Cargos Extras
+            </h4>
+            <table class="w-full text-sm border rounded mb-2">
+              <thead class="bg-gray-100">
+                <tr>
+                  <th class="p-2 text-left">Descripción</th>
+                  <th class="p-2 text-right">Monto</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <tr
+                  *ngFor="let charge of selectedOrderDetails[0].extra_charges"
+                >
+                  <td class="p-2">
+                    {{ charge.description }}
+                  </td>
+                  <td class="p-2 text-right">
+                    {{ charge.amount  | number:'1.2-2'}}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
           <!-- IVA -->
           <div class="flex justify-between" *ngIf="selectedOrderDetails[0].iva && selectedOrderDetails[0].include_iva">

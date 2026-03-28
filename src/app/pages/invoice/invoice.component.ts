@@ -231,7 +231,9 @@ export class InvoiceComponent implements OnInit {
     rangeDebt: 0,
     pendingDebt: 0,
     invoiceCount: 0,
-    totalIVA: 0
+    totalIVA: 0,
+    totalReteFuente: 0,
+    totalReteICA: 0
   };
 
   // permission variables
@@ -3022,6 +3024,8 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
     let totalScheduled = 0;
     let rangeDebt = 0;
     let totalIVA = 0;
+    let totalReteFuente = 0;
+    let totalReteICA = 0;
 
     invoices.forEach((invoice) => {
       const effectiveTotal = this.getEffectiveInvoiceTotal(invoice);
@@ -3039,6 +3043,9 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
       if (invoice.include_iva && orderIVA > 0) {
         totalIVA += orderIVA;
       }
+
+      totalReteFuente += Number(invoice.retefuente_total || 0);
+      totalReteICA += Number(invoice.reteica_total || 0);
     });
 
     this.dailySummary = {
@@ -3047,6 +3054,8 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
       rangeDebt: Math.round(rangeDebt),
       pendingDebt: Math.round(this.calculateGlobalPendingDebt()),
       totalIVA: Math.round(totalIVA),
+      totalReteFuente: Math.round(totalReteFuente),
+      totalReteICA: Math.round(totalReteICA),
       invoiceCount: invoices.length,
     };
   }
