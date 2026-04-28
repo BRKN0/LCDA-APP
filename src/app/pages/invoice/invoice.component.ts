@@ -192,6 +192,7 @@ export class InvoiceComponent implements OnInit {
   newPaymentMethod: string = '';
   showEditPayment: boolean = false;
   selectedPayment: Payment | null = null;
+  isUpdatingPayment = false;
   notificationMessage: string | null = null;
   calculatedValues: {
     subtotal: number;
@@ -1081,6 +1082,8 @@ onDocumentClick(event: MouseEvent): void {
   }
 
   async updatePayment(order: Orders): Promise<void> {
+    if (this.isUpdatingPayment) return;
+
     if (!this.selectedPayment || !this.selectedPayment.id_payment) {
       this.showNotification('No se ha seleccionado un abono válido.');
       return;
@@ -1090,6 +1093,8 @@ onDocumentClick(event: MouseEvent): void {
       this.showNotification('Por favor, seleccione un método de pago.');
       return;
     }
+
+    this.isUpdatingPayment = true;
 
     try {
       const { data: originalPayment, error: fetchError } = await this.supabase
@@ -1137,6 +1142,7 @@ onDocumentClick(event: MouseEvent): void {
 
       const currentDebt = clientData.debt || 0;
       const newDebt = currentDebt + difference;
+
       const { error: debtError } = await this.supabase
         .from('clients')
         .update({ debt: newDebt, status: newDebt > 0 ? 'overdue' : 'upToDate' })
@@ -1158,9 +1164,11 @@ onDocumentClick(event: MouseEvent): void {
 
         const totalPaid = this.getTotalPayments(order);
         const invoice = this.selectedInvoiceDetails![0];
+
         if (invoice.order.requires_e_invoice) {
           await this.calculateInvoiceValues(invoice);
         }
+
         const total = this.getEffectiveInvoiceTotal(invoice);
         const newRemainingBalance = total - totalPaid;
         const newStatus = newRemainingBalance <= 0 ? 'upToDate' : 'overdue';
@@ -1185,6 +1193,8 @@ onDocumentClick(event: MouseEvent): void {
     } catch (error) {
       console.error('Error inesperado:', error);
       this.showNotification('Ocurrió un error inesperado.');
+    } finally {
+      this.isUpdatingPayment = false;
     }
   }
 
@@ -3329,6 +3339,11 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
     if (this.isSaving) return 'Guardando...';
     return this.isEditing ? 'Actualizar' : 'Guardar';
   }
+
+  get updatePaymentButtonText(): string {
+    return this.isUpdatingPayment ? 'Guardando...' : 'Guardar';
+  }
+
   async getSchedulers() {
     const { data, error } = await this.supabase
       .from('employees')

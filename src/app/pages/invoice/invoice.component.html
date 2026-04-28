@@ -1265,10 +1265,12 @@
           Cancelar
         </button>
         <button
-          class="btn-success px-4 py-2 rounded-md ml-2"
+          type="button"
+          class="btn-success px-4 py-2 rounded-md ml-2 disabled:opacity-60"
           (click)="updatePayment(selectedInvoiceDetails[0].order)"
+          [disabled]="isUpdatingPayment"
         >
-          Guardar
+          {{ updatePaymentButtonText }}
         </button>
       </div>
     </div>
