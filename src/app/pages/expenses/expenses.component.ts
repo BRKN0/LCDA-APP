@@ -128,6 +128,7 @@ export class ExpensesComponent implements OnInit {
 
   isSaving: boolean = false;
   showDetailsModal: boolean = false;
+  showCalculationModal: boolean = false;
 
   // File Paths
   invoice_file_path?: string | null;
@@ -152,6 +153,7 @@ export class ExpensesComponent implements OnInit {
   filterInvoiceNumber: string = '';
   filterCodeSearch: string = '';
   filterElectronicInvoice: boolean = false;
+  filterPaymentMethod: string | null = null;
 
   // Categories
   categoryCheckboxes: { [key: string]: boolean } = {};
@@ -204,7 +206,6 @@ export class ExpensesComponent implements OnInit {
   payeeTypedButNotSelected: boolean = false;
   payeeJustSelected: boolean = false;
 
-  //
   totalPaid: number = 0;
   totalPending: number = 0;
   totalExpenses: number = 0;
@@ -1205,6 +1206,11 @@ export class ExpensesComponent implements OnInit {
         return false;
       }
 
+      // Payment Method
+      if (!this.expenseMatchesPaymentMethod(e)) {
+        return false;
+      }
+
       return true;
     });
 
@@ -1213,26 +1219,104 @@ export class ExpensesComponent implements OnInit {
     this.updatePaginatedExpenses();
   }
 
+  private normalizeDateOnly(dateValue?: string | null): Date | null {
+    if (!dateValue) return null;
+
+    const date = new Date(dateValue);
+    if (isNaN(date.getTime())) return null;
+
+    date.setHours(0, 0, 0, 0);
+    return date;
+  }
+
+  private isDateInPaidRange(dateValue?: string | null): boolean {
+    const date = this.normalizeDateOnly(dateValue);
+    if (!date) return false;
+
+    const start = this.PaidStartDate
+      ? this.normalizeDateOnly(this.PaidStartDate)
+      : null;
+
+    const end = this.PaidEndDate
+      ? this.normalizeDateOnly(this.PaidEndDate)
+      : null;
+
+    if (start && date < start) return false;
+    if (end && date > end) return false;
+
+    return true;
+  }
+
+  private getFilteredPaymentsTotal(expense: ExpensesItem): number {
+    const hasPaidDateFilter = !!this.PaidStartDate || !!this.PaidEndDate;
+    const hasMethodFilter = !!this.filterPaymentMethod;
+
+    let payments = expense.payments || [];
+
+    if (hasPaidDateFilter) {
+      payments = payments.filter(payment => this.isDateInPaidRange(payment.payment_date));
+    }
+
+    if (hasMethodFilter) {
+      payments = payments.filter(payment => payment.payment_method === this.filterPaymentMethod);
+    }
+
+    if (payments.length > 0) {
+      return payments.reduce((sum, payment) => sum + (Number(payment.amount) || 0), 0);
+    }
+
+    if (
+      expense.payment_status === 'PAID' &&
+      (!expense.payments || expense.payments.length === 0)
+    ) {
+      const matchesDate = !hasPaidDateFilter || this.isDateInPaidRange(expense.paid_at);
+      const matchesMethod = !hasMethodFilter || this.expenseMatchesPaymentMethod(expense);
+
+      if (matchesDate && matchesMethod) {
+        return Number(expense.cost) || 0;
+      }
+    }
+
+    return 0;
+  }
 
   private calculateTotals(): void {
-
     let totalPaid = 0;
     let totalPending = 0;
+    let totalExpenses = 0;
 
-    this.filteredExpenses.forEach((expense, index) => {
+    const hasPaidFilter = !!this.PaidStartDate || !!this.PaidEndDate;
+    const hasMethodFilter = !!this.filterPaymentMethod;
+
+    this.filteredExpenses.forEach((expense) => {
       const expenseCost = Number(expense.cost) || 0;
-      const paymentsTotal = this.getTotalPayments(expense);
 
-      // CALCULAMOS EL ESTADO DINÁMICAMENTE SEGÚN ABONOS
-      if (paymentsTotal >= expenseCost) {
-        // Está completamente pagado (con abonos o checkbox)
+      // Total pagado según filtros activos (fecha/método)
+      const filteredPaid = this.getFilteredPaymentsTotal(expense);
+
+      // Total pagado real histórico del egreso
+      const realPaid = this.getTotalPayments(expense);
+
+      // Saldo real pendiente del egreso
+      const realPending = Math.max(expenseCost - realPaid, 0);
+
+      // Total visible de egresos
+      totalExpenses += expenseCost;
+
+      // Total salida = dinero realmente pagado dentro del filtro
+      if (hasPaidFilter || hasMethodFilter) {
+        totalPaid += filteredPaid;
+        totalPending += realPending;
+        return;
+      }
+
+      // Sin filtros especiales de pago, comportamiento normal
+      if (realPaid >= expenseCost) {
         totalPaid += expenseCost;
-      } else if (paymentsTotal > 0) {
-        // Tiene abonos parciales
-        totalPaid += paymentsTotal;
-        totalPending += (expenseCost - paymentsTotal);
+      } else if (realPaid > 0) {
+        totalPaid += realPaid;
+        totalPending += (expenseCost - realPaid);
       } else {
-        // No tiene abonos, verificar si fue marcado como pagado con checkbox
         if (expense.payment_status === 'PAID') {
           totalPaid += expenseCost;
         } else {
@@ -1243,7 +1327,7 @@ export class ExpensesComponent implements OnInit {
 
     this.totalPaid = totalPaid;
     this.totalPending = totalPending;
-    this.totalExpenses = totalPaid + totalPending;
+    this.totalExpenses = totalExpenses;
   }
 
   // Verify if at least one category checkbox is checked
@@ -1257,6 +1341,81 @@ export class ExpensesComponent implements OnInit {
 
     // Apply filters after checkbox state change
     this.applyFilters();
+  }
+
+  getPaymentMethodOptions(): string[] {
+    return [
+      'cash',
+      'nequi',
+      'bancolombia',
+      'davivienda',
+      'transfer'
+    ];
+  }
+
+  private expenseMatchesPaymentMethod(expense: ExpensesItem): boolean {
+    if (!this.filterPaymentMethod) return true;
+
+    if (expense.payments && expense.payments.length > 0) {
+      return expense.payments.some(
+        payment => payment.payment_method === this.filterPaymentMethod
+      );
+    }
+
+    // Caso sin abonos: usa el tipo general del egreso
+    return this.getPaymentTypeLabel(expense)?.toLowerCase() === this.mapPaymentMethodLabel(this.filterPaymentMethod).toLowerCase();
+  }
+
+  private mapPaymentMethodLabel(method: string): string {
+    switch (method) {
+      case 'cash': return 'Efectivo';
+      case 'nequi': return 'Nequi';
+      case 'bancolombia': return 'Bancolombia';
+      case 'davivienda': return 'Davivienda';
+      case 'transfer': return 'Transferencia';
+      default: return method;
+    }
+  }
+
+  private getFilteredPaymentsByMethod(expense: ExpensesItem): ExpensePayment[] {
+    if (!this.filterPaymentMethod) {
+      return expense.payments || [];
+    }
+
+    return (expense.payments || []).filter(
+      payment => payment.payment_method === this.filterPaymentMethod
+    );
+  }
+
+  private getPaymentsTotalByMethod(expense: ExpensesItem): number {
+    const payments = this.getFilteredPaymentsByMethod(expense);
+
+    if (payments.length > 0) {
+      return payments.reduce((sum, payment) => sum + (Number(payment.amount) || 0), 0);
+    }
+
+    // Caso sin abonos: si está pagado completo y coincide con el método filtrado
+    if (
+      this.filterPaymentMethod &&
+      (!expense.payments || expense.payments.length === 0) &&
+      expense.payment_status === 'PAID' &&
+      this.expenseMatchesPaymentMethod(expense)
+    ) {
+      return Number(expense.cost) || 0;
+    }
+
+    // Sin filtro, conserva lógica original
+    if (!this.filterPaymentMethod) {
+      return this.getTotalPayments(expense);
+    }
+
+    return 0;
+  }
+
+  getRemainingBalanceByMethod(expense: ExpensesItem): number {
+    const total = Number(expense.cost) || 0;
+    const paid = this.getPaymentsTotalByMethod(expense);
+    return total - paid;
   }
 
   addNewExpense(): void {
@@ -1469,6 +1628,7 @@ export class ExpensesComponent implements OnInit {
     this.filterInvoiceNumber = '';
     this.filterCodeSearch = '';
     this.filterElectronicInvoice = false;
+    this.filterPaymentMethod = null;
 
     // Limpiar campos de búsqueda
     this.filterCategorySearch = '';
@@ -1492,29 +1652,38 @@ export class ExpensesComponent implements OnInit {
   }
 
   getPaymentTypeLabel(expense: ExpensesItem): string {
+    const payments = expense.payments || [];
 
-    const hasPayments = expense.payments && expense.payments.length > 0;
-
-    if (!hasPayments && expense.payment_status === 'PENDING') {
-      return 'NINGUNO';
-    }
-
-    if (hasPayments && expense.payment_status === 'PARTIAL') {
+    if (payments.length > 1) {
       return 'ABONO';
     }
 
-    if (expense.payment_status === 'PAID') {
-      switch (expense.type) {
-        case 'cash': return 'EFECTIVO';
-        case 'nequi': return 'NEQUI';
-        case 'bancolombia': return 'BANCOLOMBIA';
-        case 'davivienda': return 'DAVIVIENDA';
-        case 'transfer': return 'TRANSFERENCIA';
-        default: return 'Pagado';
-      }
+    if (payments.length === 1) {
+      return this.getReadablePaymentMethod(payments[0].payment_method);
     }
 
-    return 'Pendiente';
+    // Caso sin pagos registrados en expense_payments:
+    // conserva la lógica original del egreso
+    return this.getReadablePaymentMethod(expense.type);
+  }
+
+  getReadablePaymentMethod(method?: string | null): string {
+    if (!method) return 'NO DEFINIDO';
+
+    switch (method.toLowerCase()) {
+      case 'cash':
+        return 'EFECTIVO';
+      case 'nequi':
+        return 'NEQUI';
+      case 'bancolombia':
+        return 'BANCOLOMBIA';
+      case 'davivienda':
+        return 'DAVIVIENDA';
+      case 'transfer':
+        return 'TRANSFERENCIA';
+      default:
+        return method.toUpperCase();
+    }
   }
 
   async toggleExpenseStatus(expense: ExpensesItem) {
@@ -2423,6 +2592,14 @@ export class ExpensesComponent implements OnInit {
   closeBudgetSummary(): void {
     this.showBudgetModal = false;
     this.totalRecibido = 0;
+  }
+
+  openCalculationModal(): void {
+    this.showCalculationModal = true;
+  }
+
+  closeCalculationModal(): void {
+    this.showCalculationModal = false;
   }
 
   formatDateEs(date: string | Date): string {

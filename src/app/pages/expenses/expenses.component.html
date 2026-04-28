@@ -194,157 +194,185 @@
   </div>
 
   <!-- Botones (sin cambios) -->
-  <div class="flex space-x-2">
-    <button class="btn-add inline-flex items-center space-x-2" (click)="addNewExpense()">
-      <svg class="w-5 h-5 inline-block"
-        viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-        <path d="M12 5v14M5 12h14" />
-      </svg>
-      <span>Añadir</span>
-    </button>
-    <button
-      class="btn-primary"
-      (click)="openBudgetSummary()">
-      Resumen
-    </button>
-    <button
-      class="btn-details"
-      (click)="generateExpensesKardex()"
-    >
-      Generar Kardex
-    </button>
-    <button
-      class="btn-clear"
-      (click)="clearFilters()"
-    >
-      Limpiar
-    </button>
+  <div class="flex flex-col gap-1 items-end">
+    <!-- Fila 1 -->
+    <div class="flex flex-wrap justify-end">
+      <button 
+        class="btn-add inline-flex items-center space-x-2" 
+        (click)="addNewExpense()">
+        <svg class="w-5 h-5 inline-block"
+          viewBox="0 0 24 24" 
+          fill="none" 
+          stroke="white" 
+          stroke-width="2">
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+        <span>Añadir</span>
+      </button>
+
+      <button
+        class="btn-details"
+        (click)="openCalculationModal()">
+        Cálculo
+      </button>
+
+      <button
+        class="btn-clear"
+        (click)="clearFilters()"
+      >
+        Limpiar
+      </button>
+    </div>
+
+    <!-- Fila 2 -->
+    <div class="flex flex-wrap gap-2 justify-end">
+      <button
+        class="btn-primary"
+        (click)="openBudgetSummary()">
+        Resumen
+      </button>
+
+      <button
+        class="btn-details"
+        (click)="generateExpensesKardex()"
+      >
+        Generar Kardex
+      </button>
+    </div>
   </div>
 </div>
 
 
-<!-- Filtros de Fecha -->
-<div class="flex items-center justify-between space-x-4">
-  <div class="flex items-center space-x-4">
-    <div>
-      <label for="startDate" class="mr-2 font-semibold">Desde:</label>
-      <input
-        type="date"
-        id="startDate"
-        [(ngModel)]="startDate"
-        (ngModelChange)="applyFilters()"
-        class="border border-gray-300 rounded-md p-1"
-      />
-    </div>
-    <div>
-      <label for="endDate" class="mr-2 font-semibold">Hasta:</label>
-      <input
-        type="date"
-        id="endDate"
-        [(ngModel)]="endDate"
-        (ngModelChange)="applyFilters()"
-        class="border border-gray-300 rounded-md p-1"
-      />
-    </div>
-  </div>
-  <div class="flex items-center space-x-4">
-    <div>
-      <label for="PaidStartDate" class="mr-2 font-semibold">
-        Pago desde:
-      </label>
-      <input
-        type="date"
-        id="PaidStartDate"
-        [(ngModel)]="PaidStartDate"
-        (ngModelChange)="applyFilters()"
-        class="border border-gray-300 rounded-md p-1"
-      />
-    </div>
-    <div>
-      <label for="PaidEndDate" class="mr-2 font-semibold">
-        Pago hasta:
-      </label>
-      <input
-        type="date"
-        id="PaidEndDate"
-        [(ngModel)]="PaidEndDate"
-        (ngModelChange)="applyFilters()"
-        class="border border-gray-300 rounded-md p-1"
-      />
-    </div>
-  </div>
-  <div class="flex items-center space-x-4 mt-2">
-    <div>
-      <label for="DueStartDate" class="mr-2 font-semibold text-red-700">
-        Vence desde:
-      </label>
-      <input
-        type="date"
-        id="DueStartDate"
-        [(ngModel)]="dueStartDate"
-        (ngModelChange)="applyFilters()"
-        class="border border-red-300 rounded-md p-1"
-      />
+<!-- FILTROS DE FECHA AGRUPADOS -->
+<div class="flex justify-between items-start mt-3 mb-3 gap-4">
+  <div class="bg-white border border-gray-200 rounded-lg flex flex-wrap divide-x divide-gray-300 overflow-hidden">
+
+    <!-- FECHA DE EGRESO -->
+    <div class="p-4">
+      <p class="text-xs font-bold text-gray-600 uppercase tracking-wide mb-3">
+        Fecha de egreso
+      </p>
+
+      <div class="flex flex-wrap gap-3">
+        <div>
+          <label for="startDate" class="block text-sm font-semibold mb-1">
+            Desde
+          </label>
+          <input
+            type="date"
+            id="startDate"
+            [(ngModel)]="startDate"
+            (ngModelChange)="applyFilters()"
+            class="border border-gray-300 rounded-md p-2 w-40"
+          />
+        </div>
+
+        <div>
+          <label for="endDate" class="block text-sm font-semibold mb-1">
+            Hasta
+          </label>
+          <input
+            type="date"
+            id="endDate"
+            [(ngModel)]="endDate"
+            (ngModelChange)="applyFilters()"
+            class="border border-gray-300 rounded-md p-2 w-40"
+          />
+        </div>
+      </div>
     </div>
 
-    <div>
-      <label for="DueEndDate" class="mr-2 font-semibold text-red-700">
-        Vence hasta:
-      </label>
-      <input
-        type="date"
-        id="DueEndDate"
-        [(ngModel)]="dueEndDate"
-        (ngModelChange)="applyFilters()"
-        class="border border-red-300 rounded-md p-1"
-      />
+    <!-- FECHA DE PAGO -->
+    <div class="p-4">
+      <p class="text-xs font-bold text-gray-600 uppercase tracking-wide mb-3">
+        Fecha de pago
+      </p>
+
+      <div class="flex flex-wrap gap-3">
+        <div>
+          <label for="PaidStartDate" class="block text-sm font-semibold mb-1">
+            Pago desde
+          </label>
+          <input
+            type="date"
+            id="PaidStartDate"
+            [(ngModel)]="PaidStartDate"
+            (ngModelChange)="applyFilters()"
+            class="border border-gray-300 rounded-md p-2 w-40"
+          />
+        </div>
+
+        <div>
+          <label for="PaidEndDate" class="block text-sm font-semibold mb-1">
+            Pago hasta
+          </label>
+          <input
+            type="date"
+            id="PaidEndDate"
+            [(ngModel)]="PaidEndDate"
+            (ngModelChange)="applyFilters()"
+            class="border border-gray-300 rounded-md p-2 w-40"
+          />
+        </div>
+      </div>
     </div>
+
+    <!-- FECHA DE VENCIMIENTO -->
+    <div class="p-4">
+      <p class="text-xs font-bold text-red-600 uppercase tracking-wide mb-3">
+        Fecha de vencimiento
+      </p>
+
+      <div class="flex flex-wrap gap-3">
+        <div>
+          <label for="DueStartDate" class="block text-sm font-semibold text-red-700 mb-1">
+            Vence desde
+          </label>
+          <input
+            type="date"
+            id="DueStartDate"
+            [(ngModel)]="dueStartDate"
+            (ngModelChange)="applyFilters()"
+            class="border border-red-300 rounded-md p-2 w-40"
+          />
+        </div>
+
+        <div>
+          <label for="DueEndDate" class="block text-sm font-semibold text-red-700 mb-1">
+            Vence hasta
+          </label>
+          <input
+            type="date"
+            id="DueEndDate"
+            [(ngModel)]="dueEndDate"
+            (ngModelChange)="applyFilters()"
+            class="border border-red-300 rounded-md p-2 w-40"
+          />
+        </div>
+      </div>
+    </div>
+
   </div>
+  <!-- MÉTODO DE PAGO -->
+  <div class="bg-white border border-gray-200 rounded-lg p-4 min-w-[190px]">
+      <label class="block text-sm font-semibold">Método de pago</label>
+      <select
+        [(ngModel)]="filterPaymentMethod"
+        (change)="applyFilters()"
+        class="w-full border border-gray-300 rounded-md p-2"
+      >
+        <option [ngValue]="null">Todos</option>
+        <option value="cash">Efectivo</option>
+        <option value="nequi">Nequi</option>
+        <option value="bancolombia">Bancolombia</option>
+        <option value="davivienda">Davivienda</option>
+        <option value="transfer">Transferencia</option>
+      </select>
+    </div>
 </div>
 
 <!-- Resumen de Egresos -->
-<div class="grid grid-cols-1 md:grid-cols-3 gap-2 mt-3 mb-3">
 
-  <!-- Total Pagado -->
-  <div class="bg-green-50 border border-green-200 rounded-lg p-1">
-    <p class="text-xs font-semibold text-green-700">
-      Total Salida
-    </p>
-    <p class="text-lg font-mono font-bold text-green-900 mt-1">
-      {{ totalPaid | currency }}
-    </p>
-    <p class="text-[11px] text-green-700 mt-1">
-      Dinero que ya salió de la empresa
-    </p>
-  </div>
-
-  <!-- Total Pendiente -->
-  <div class="bg-red-50 border border-red-200 rounded-lg p-1">
-    <p class="text-xs font-semibold text-red-700">
-      Total Pendiente
-    </p>
-    <p class="text-lg font-mono font-bold text-red-900 mt-1">
-      {{ totalPending | currency }}
-    </p>
-    <p class="text-[11px] text-red-700 mt-1">
-      Compromisos de pago por cubrir
-    </p>
-  </div>
-
-  <!-- Total General -->
-  <div class="bg-gray-100 border border-gray-300 rounded-lg p-1">
-    <p class="text-xs font-semibold text-gray-700">
-      Total Egresos
-    </p>
-    <p class="text-lg font-mono font-bold text-gray-900 mt-1">
-      {{ totalExpenses | currency }}
-    </p>
-    <p class="text-[11px] text-gray-600 mt-1">
-      Pagado + Pendiente según filtros
-    </p>
-  </div>
-
-</div>
 
 <!-- Tabla -->
 <div class="mt-4 overflow-x-auto">
@@ -1655,6 +1683,79 @@
       </button>
     </div>
 
+  </div>
+</div>
+
+<!-- Modal de Cálculo -->
+<div *ngIf="showCalculationModal" class="modal-overlay">
+  <div class="modal-content max-w-4xl w-full">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h2 class="text-xl font-bold">Cálculo de Egresos</h2>
+        <p class="text-sm text-gray-600">
+          Este resumen se calcula con base en los filtros actualmente aplicados.
+        </p>
+      </div>
+    </div>
+
+    <!-- Resúmenes principales -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+
+      <!-- Total Salida -->
+      <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+        <p class="text-sm font-semibold text-green-700">
+          Total Salida
+        </p>
+        <p class="text-2xl font-mono font-bold text-green-900 mt-2">
+          {{ totalPaid | currency }}
+        </p>
+        <p class="text-xs text-green-700 mt-2">
+          Dinero que ya salió de la empresa
+        </p>
+      </div>
+
+      <!-- Total Pendiente -->
+      <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+        <p class="text-sm font-semibold text-red-700">
+          Total Pendiente
+        </p>
+        <p class="text-2xl font-mono font-bold text-red-900 mt-2">
+          {{ totalPending | currency }}
+        </p>
+        <p class="text-xs text-red-700 mt-2">
+          Compromisos de pago por cubrir
+        </p>
+      </div>
+
+      <!-- Total Egresos -->
+      <div class="bg-gray-100 border border-gray-300 rounded-lg p-4">
+        <p class="text-sm font-semibold text-gray-700">
+          Total Egresos
+        </p>
+        <p class="text-2xl font-mono font-bold text-gray-900 mt-2">
+          {{ totalExpenses | currency }}
+        </p>
+        <p class="text-xs text-gray-600 mt-2">
+          Valor total de egresos visibles
+        </p>
+      </div>
+    </div>
+
+    <!-- Espacio para futuros resúmenes -->
+    <div class="border-t pt-4">
+      <h3 class="text-md font-semibold mb-3">
+        Próximos indicadores
+      </h3>
+    </div>
+
+    <div class="modal-footer mt-4 flex justify-end gap-2">
+      <button
+        class="btn-danger"
+        (click)="closeCalculationModal()"
+      >
+        Cerrar
+      </button>
+    </div>
   </div>
 </div>
 
