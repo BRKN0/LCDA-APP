@@ -12,7 +12,7 @@ LCDA-APP es una plataforma web modular diseñada para digitalizar y optimizar lo
 * **Backend (BaaS):** Supabase (PostgreSQL 15, Auth, Storage).
 * **Despliegue:** Vercel (Frontend), GitHub (CI/CD).
 
-## Documentación Básica
+## Documentación
 
 El sistema opera bajo una arquitectura de confianza cero (Zero-Trust) apoyada en Row Level Security (RLS) en la base de datos. Se compone de los siguientes módulos funcionales principales:
 
@@ -63,25 +63,5 @@ ng build
 ```
 
 Este comando compilará el proyecto y almacenará los artefactos en el directorio `dist/`. Por defecto, la compilación de producción optimiza la aplicación para garantizar el máximo rendimiento y velocidad de carga.
-
-### Ejecución de Pruebas (Testing)
-
-Para ejecutar las pruebas unitarias utilizando el entorno de [Karma](https://karma-runner.github.io), utiliza el siguiente comando:
-
-```bash
-ng test
-
-```
-
-Para la ejecución de pruebas end-to-end (e2e):
-
-```bash
-ng e2e
-
-```
-
-*Nota: Angular CLI no incluye un framework e2e por defecto en sus versiones recientes, asegúrate de configurar Cypress, Playwright o tu herramienta de preferencia antes de ejecutar este comando.*
-
-[Deepwiki - Repositorio Documental LCDA-APP](https://deepwiki.com/BRKN0/LCDA-APP)
 
 Para obtener más información sobre el uso general de Angular CLI, visita la página oficial de [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli).
