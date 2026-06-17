@@ -795,160 +795,234 @@
           </ng-container>
         </div>
       </ng-container>
-      <div
-        *ngIf="selectedOrderDetails[0]?.file_path &&
-          (
-            userRole === 'admin' ||
-            userRole === 'scheduler' ||
-            (
-              !selectedOrderDetails[0]?.secondary_process &&
-              (
-                (userRole === 'prints_employee' && selectedOrderDetails[0].order_type === 'print') ||
-                (userRole === 'cuts_employee' && selectedOrderDetails[0].order_type === 'laser')
-              )
-            ) ||
-            (
-              selectedOrderDetails[0]?.secondary_process &&
-              (
-                (userRole === 'prints_employee' && selectedOrderDetails[0].order_type === 'print') ||
-                (userRole === 'cuts_employee' && selectedOrderDetails[0].order_type === 'laser')
-              )
-            )
-          )"
-        class="border-t pt-4 mt-4"
-      >
+      <div class="border-t pt-4 mt-4">
         <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="1.5"
-            stroke="currentColor"
-            class="w-5 h-5"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13"
-            />
-          </svg>
           Adjuntos
         </h3>
-        <div
-          class="border rounded p-3 flex items-center justify-between bg-gray-50"
-        >
-          <div class="flex items-center gap-2">
-            <span class="text-sm font-semibold text-gray-600"
-              >Referencia / Diseño</span
+
+        <div class="bg-gray-50 p-4 rounded-md border border-gray-200 mt-4 space-y-4">
+          <h3 class="font-semibold text-gray-800 text-sm">Adjuntos</h3>
+
+          <!-- Referencia / Diseño -->
+          <div *ngIf="canViewMainFiles(selectedOrderDetails[0])">
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Referencia / Diseño
+            </label>
+
+            <div class="flex items-center gap-2 mb-2">
+              <button
+                type="button"
+                class="block text-sm text-blue-700 font-semibold bg-blue-50 hover:bg-blue-100 py-2 px-4 rounded-full border-0"
+                [disabled]="isUploadingOrderFile"
+                (click)="addDriveFileToOrder(selectedOrderDetails[0].id_order, 'main')"
+              >
+                {{ isUploadingOrderFile ? 'Subiendo...' : '+ Agregar desde Drive' }}
+              </button>
+            </div>
+
+            <p
+              *ngIf="getFilesByType('main').length === 0"
+              class="text-xs text-gray-500 mt-1"
             >
+              No hay archivos de referencia.
+            </p>
+
+            <div
+              *ngFor="let file of getFilesByType('main')"
+              class="flex items-center justify-between gap-2 py-1"
+            >
+              <span class="text-sm text-gray-600 truncate">
+                {{ file.file_name || 'Archivo' }}
+              </span>
+
+              <div class="flex items-center gap-3">
+                <button
+                  type="button"
+                  (click)="downloadDriveFile(file)"
+                  class="text-blue-600 hover:text-blue-800 text-sm font-bold flex items-center gap-1"
+                  title="Descargar archivo"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke-width="1.5"
+                    stroke="currentColor"
+                    class="w-5 h-5"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M12 9.75v10.5m0 0 4.5-4.5M12 20.25l-4.5-4.5M12 3v9"
+                    />
+                  </svg>
+                  Ver
+                </button>
+
+                <button
+                  *ngIf="userRole === 'admin' || userRole === 'scheduler'"
+                  type="button"
+                  (click)="deleteOrderFile(file)"
+                  [disabled]="deletingOrderFileId === file.id"
+                  class="text-red-600 hover:text-red-800 text-sm font-bold"
+                  title="Eliminar archivo"
+                >
+                  {{ deletingOrderFileId === file.id ? 'Eliminando...' : 'Eliminar' }}
+                </button>
+              </div>
+            </div>
           </div>
 
-          <button
-            class="btn-primary text-xs px-3 py-1 flex items-center gap-1"
-            (click)="downloadFile(selectedOrderDetails[0].file_path)"
+          <!-- Archivo de proceso secundario -->
+          <div
+            *ngIf="
+              selectedOrderDetails[0]?.secondary_process &&
+              canViewSecondaryFiles(selectedOrderDetails[0])
+            "
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4"
-              />
-            </svg>
-            <span class="text-white hover:text-blue-800"> Descargar</span>
-          </button>
-        </div>
-      </div>
-      <div
-        *ngIf="
-          selectedOrderDetails[0]?.second_file &&
-          selectedOrderDetails[0]?.secondary_process &&
-          (
-            userRole === 'admin' ||
-            userRole === 'scheduler' ||
-            (userRole === 'cuts_employee' &&
-              selectedOrderDetails[0].secondary_process === 'laser') ||
-            (userRole === 'prints_employee' &&
-              selectedOrderDetails[0].secondary_process === 'print')
-          )
-        "
-        class="border-t pt-4 mt-4"
-      >
-        <div
-          class="border rounded p-3 flex items-center justify-between bg-gray-50"
-        >
-          <div class="flex items-center gap-2">
-            <span class="text-sm font-semibold text-gray-600">
-              {{ selectedOrderDetails[0].secondary_process === 'laser'
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              {{
+                selectedOrderDetails[0].secondary_process === 'laser'
                   ? 'Archivo de Corte'
                   : 'Archivo de Impresión'
               }}
-            </span>
-          </div>
+            </label>
 
-          <button
-            class="btn-primary text-xs px-3 py-1 flex items-center gap-1"
-            (click)="downloadFile(selectedOrderDetails[0].second_file)"
-          >
-            <!-- icon -->
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4"
-              />
-            </svg>
-            <span class="text-white hover:text-blue-800"> Descargar</span>
-          </button>
-        </div>
-      </div>
-      <ng-container *ngIf="userRole === 'admin' || userRole === 'scheduler'">
-        <div *ngIf="selectedOrderDetails[0]?.invoice_file" class="mt-4">
-          <div
-            class="border rounded p-3 flex items-center justify-between bg-gray-50"
-          >
-            <div class="flex items-center gap-2">
-              <span class="text-sm font-semibold text-gray-600"
-                >Factura / Recibo</span
+            <div class="flex items-center gap-2 mb-2">
+              <button
+                type="button"
+                class="block text-sm text-green-700 font-semibold bg-green-50 hover:bg-green-100 py-2 px-4 rounded-full border-0"
+                [disabled]="isUploadingOrderFile"
+                (click)="addDriveFileToOrder(selectedOrderDetails[0].id_order, 'secondary')"
               >
+                {{ isUploadingOrderFile ? 'Subiendo...' : '+ Agregar desde Drive' }}
+              </button>
             </div>
 
-            <button
-              class="btn-primary text-xs px-3 py-1 flex items-center gap-1"
-              (click)="downloadFile(selectedOrderDetails[0].invoice_file)"
+            <p
+              *ngIf="getFilesByType('secondary').length === 0"
+              class="text-xs text-gray-500 mt-1"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="2"
+              No hay archivos de proceso secundario.
+            </p>
+
+            <div
+              *ngFor="let file of getFilesByType('secondary')"
+              class="flex items-center justify-between gap-2 py-1"
+            >
+              <span class="text-sm text-gray-600 truncate">
+                {{ file.file_name || 'Archivo' }}
+              </span>
+
+              <div class="flex items-center gap-3">
+                <button
+                  type="button"
+                  (click)="downloadDriveFile(file)"
+                  class="text-green-600 hover:text-green-800 text-sm font-bold flex items-center gap-1"
+                  title="Descargar archivo"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke-width="1.5"
+                    stroke="currentColor"
+                    class="w-5 h-5"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M12 9.75v10.5m0 0 4.5-4.5M12 20.25l-4.5-4.5M12 3v9"
+                    />
+                  </svg>
+                  Ver
+                </button>
+
+                <button
+                  *ngIf="userRole === 'admin' || userRole === 'scheduler'"
+                  type="button"
+                  (click)="deleteOrderFile(file)"
+                  [disabled]="deletingOrderFileId === file.id"
+                  class="text-red-600 hover:text-red-800 text-sm font-bold"
+                  title="Eliminar archivo"
+                >
+                  {{ deletingOrderFileId === file.id ? 'Eliminando...' : 'Eliminar' }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Factura / Recibo -->
+          <div *ngIf="canViewInvoiceFiles()">
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Factura / Recibo
+            </label>
+
+            <div class="flex items-center gap-2 mb-2">
+              <button
+                type="button"
+                class="block text-sm text-purple-700 font-semibold bg-purple-50 hover:bg-purple-100 py-2 px-4 rounded-full border-0"
+                [disabled]="isUploadingOrderFile"
+                (click)="addDriveFileToOrder(selectedOrderDetails[0].id_order, 'invoice')"
               >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4"
-                />
-              </svg>
-              <span class="text-white hover:text-blue-800"> Descargar</span>
-            </button>
+                {{ isUploadingOrderFile ? 'Subiendo...' : '+ Agregar desde Drive' }}
+              </button>
+            </div>
+
+            <p
+              *ngIf="getFilesByType('invoice').length === 0"
+              class="text-xs text-gray-500 mt-1"
+            >
+              No hay facturas o recibos asociados.
+            </p>
+
+            <div
+              *ngFor="let file of getFilesByType('invoice')"
+              class="flex items-center justify-between gap-2 py-1"
+            >
+              <span class="text-sm text-gray-600 truncate">
+                {{ file.file_name || 'Archivo' }}
+              </span>
+
+              <div class="flex items-center gap-3">
+                <button
+                  type="button"
+                  (click)="downloadDriveFile(file)"
+                  class="text-purple-600 hover:text-purple-800 text-sm font-bold flex items-center gap-1"
+                  title="Descargar factura"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke-width="1.5"
+                    stroke="currentColor"
+                    class="w-5 h-5"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M12 9.75v10.5m0 0 4.5-4.5M12 20.25l-4.5-4.5M12 3v9"
+                    />
+                  </svg>
+                  Ver
+                </button>
+
+                <button
+                  *ngIf="userRole === 'admin' || userRole === 'scheduler'"
+                  type="button"
+                  (click)="deleteOrderFile(file)"
+                  [disabled]="deletingOrderFileId === file.id"
+                  class="text-red-600 hover:text-red-800 text-sm font-bold"
+                  title="Eliminar archivo"
+                >
+                  {{ deletingOrderFileId === file.id ? 'Eliminando...' : 'Eliminar' }}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-      </ng-container>
+      </div>
 
       <div class="flex justify-end mt-4">
         <button
@@ -1508,141 +1582,12 @@
           />
         </div>
       </ng-container>
-      <div
-        class="bg-gray-50 p-4 rounded-md border border-gray-200 mt-4 space-y-4"
-      >
+      <div class="bg-gray-50 p-4 rounded-md border border-gray-200 mt-4">
         <h3 class="font-semibold text-gray-800 text-sm">Adjuntos</h3>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1"
-            >Archivo de Referencia / Diseño</label
-          >
-          <div class="flex items-center gap-2">
-            <input
-              type="file"
-              (change)="onFileSelected($event, 'main')"
-              class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-            />
-
-            <button
-              *ngIf="newOrder.file_path"
-              type="button"
-              (click)="downloadFile(newOrder.file_path)"
-              class="text-blue-600 hover:text-blue-800 text-sm font-bold flex items-center gap-1"
-              title="Ver archivo actual"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="1.5"
-                stroke="currentColor"
-                class="w-5 h-5"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M12 9.75v10.5m0 0 4.5-4.5M12 20.25l-4.5-4.5M12 3v9"
-                />
-              </svg>
-              Ver
-            </button>
-          </div>
-          <p *ngIf="uploadedFileName" class="text-green-600 text-xs mt-1">
-            Nuevo: {{ uploadedFileName }}
-          </p>
-        </div>
-
-        <!-- Archivo proceso secundario -->
-        <div *ngIf="newOrder.secondary_process !== null" class="mt-4">
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            Archivo de Proceso Secundario
-            ({{ newOrder.secondary_process === 'laser' ? 'Corte' : 'Impresión' }})
-          </label>
-
-          <div class="flex items-center gap-2">
-            <input
-              type="file"
-              (change)="onFileSelected($event, 'secondary')"
-              class="block w-full text-sm text-gray-500
-                    file:mr-4 file:py-2 file:px-4
-                    file:rounded-full file:border-0
-                    file:text-sm file:font-semibold
-                    file:bg-blue-50 file:text-blue-700
-                    hover:file:bg-blue-100"
-            />
-
-            <button
-              *ngIf="newOrder.second_file"
-              type="button"
-              (click)="downloadFile(newOrder.second_file)"
-              class="text-blue-600 hover:text-blue-800 text-sm font-bold flex items-center gap-1"
-              title="Ver archivo actual"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="1.5"
-                stroke="currentColor"
-                class="w-5 h-5"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M12 9.75v10.5m0 0 4.5-4.5M12 20.25l-4.5-4.5M12 3v9"
-                />
-              </svg>
-              Ver
-            </button>
-          </div>
-
-          <p *ngIf="selectedSecondaryFile" class="text-green-600 text-xs mt-1">
-            Nuevo: {{ selectedSecondaryFile.name }}
-          </p>
-        </div>
-
-        <ng-container *ngIf="userRole === 'admin' || userRole === 'scheduler'">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1"
-              >Factura de Pedido (PDF)</label
-            >
-            <div class="flex items-center gap-2">
-              <input
-                type="file"
-                (change)="onInvoiceFileSelected($event)"
-                class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
-              />
-
-              <button
-                *ngIf="newOrder.invoice_file"
-                type="button"
-                (click)="downloadFile(newOrder.invoice_file)"
-                class="text-green-600 hover:text-green-800 text-sm font-bold flex items-center gap-1"
-                title="Ver factura actual"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke-width="1.5"
-                  stroke="currentColor"
-                  class="w-5 h-5"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M12 9.75v10.5m0 0 4.5-4.5M12 20.25l-4.5-4.5M12 3v9"
-                  />
-                </svg>
-                Ver
-              </button>
-            </div>
-            <p *ngIf="selectedInvoiceFile" class="text-green-600 text-xs mt-1">
-              Nuevo: {{ selectedInvoiceFile.name }}
-            </p>
-          </div>
-        </ng-container>
+        <p class="text-sm text-gray-500 mt-1">
+          Guarda el pedido primero. Luego podrás agregar varios archivos desde
+          el botón Detalles.
+        </p>
       </div>
 
       <div class="flex justify-end mt-4">

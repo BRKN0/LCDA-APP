@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { Subject, Subscription, takeUntil } from 'rxjs';
 import { RoleService } from '../../services/role.service';
 import { RouterOutlet } from '@angular/router';
+import { GoogleDriveService } from '../../services/google-drive.service';
 
 interface Orders {
   id_order: string;
@@ -134,6 +135,18 @@ interface Payment {
   id_order: string;
   amount: number;
   payment_date?: string;
+}
+
+type OrderFileType = 'main' | 'secondary' | 'invoice';
+interface OrderFile {
+  id: string;
+  order_id: string;
+  drive_file_id: string;
+  file_url: string;
+  download_url: string;
+  file_type: OrderFileType;
+  file_name: string;
+  source_path?: string | null;
 }
 
 interface VariableMap {
@@ -319,6 +332,9 @@ export class OrdersComponent implements OnInit, OnDestroy {
   uploadedFilePath: string | null = null;
   selectedInvoiceFile: File | null = null;
   selectedSecondaryFile: File | null = null;
+  selectedOrderFiles: OrderFile[] = [];
+  isUploadingOrderFile = false;
+  deletingOrderFileId: string | null = null;
 
   // dropdown selections for materials inside forms
   selectedCategory: string = '';
@@ -345,7 +361,8 @@ export class OrdersComponent implements OnInit, OnDestroy {
   constructor(
     private readonly supabase: SupabaseService,
     private readonly zone: NgZone,
-    private readonly roleService: RoleService
+    private readonly roleService: RoleService,
+    private googleDriveService: GoogleDriveService
   ) { }
 
   /**
@@ -821,6 +838,15 @@ export class OrdersComponent implements OnInit, OnDestroy {
         alert('Error restoring stock for vitrine sale.');
         return;
       }
+    }
+
+    const driveFilesDeleted = await this.deleteDriveFilesForOrder(order.id_order);
+
+    if (!driveFilesDeleted) {
+      alert(
+        'No se eliminó el pedido porque no se pudieron eliminar todos los archivos de Google Drive.'
+      );
+      return;
     }
 
     try {
@@ -1498,8 +1524,10 @@ export class OrdersComponent implements OnInit, OnDestroy {
           this.vitrineSalesDetails = data || [];
         }
       }
+      await this.loadOrderFiles(order.id_order);
     } catch (err) {
       console.error('Unexpected error in selectOrder:', err);
+      this.selectedOrderFiles = [];
     } finally {
       this.loadingDetails = false;
     }
@@ -2024,7 +2052,6 @@ export class OrdersComponent implements OnInit, OnDestroy {
           this.newOrder.cutting_time = this.tempCutTime || 0;
         }
 
-        await this.handleFileUploadForOrder(this.newOrder.id_order!);
         this.selectedFile = null;
         this.uploadedFileName = null;
 
@@ -2211,9 +2238,6 @@ export class OrdersComponent implements OnInit, OnDestroy {
           const { error: cutError } = await this.supabase.from('cuts').insert([cutRecord]);
           if (cutError) console.error('Error al insertar en tabla cuts:', cutError);
         }
-
-        // file uploads
-        await this.handleFileUploadForOrder(newOrderId);
 
         alert(`Pedido #${generatedCode} creado correctamente.`);
         this.showModal = false;
@@ -2535,42 +2559,180 @@ export class OrdersComponent implements OnInit, OnDestroy {
     }
   }
 
-  async uploadOrderFile(orderId: string, filePath: string, file: File) {
-    if (!file || !orderId) return;
-
-    await this.supabase.uploadFile(filePath, file, 'order-files');
-
-    this.uploadedFileName = file.name;
+  // Functions for drive files
+  getFilesByType(type: OrderFileType): OrderFile[] {
+    return this.selectedOrderFiles.filter((file) => file.file_type === type);
   }
 
-  async downloadFile(filePath: string) {
-    if (!filePath) return;
+  private isAdminOrScheduler(): boolean {
+    return this.userRole === 'admin' || this.userRole === 'scheduler';
+  }
 
-    const { data, error } = await this.supabase.downloadFile(
-      filePath,
-      'order-files'
+  canViewMainFiles(order: Orders): boolean {
+    if (!order) return false;
+
+    if (this.isAdminOrScheduler()) return true;
+
+    const isMainPrint =
+      this.userRole === 'prints_employee' && order.order_type === 'print';
+
+    const isMainLaser =
+      this.userRole === 'cuts_employee' && order.order_type === 'laser';
+
+    return isMainPrint || isMainLaser;
+  }
+
+  canViewSecondaryFiles(order: Orders): boolean {
+    if (!order || !order.secondary_process) return false;
+
+    if (this.isAdminOrScheduler()) return true;
+
+    return (
+      (this.userRole === 'cuts_employee' &&
+        order.secondary_process === 'laser') ||
+      (this.userRole === 'prints_employee' &&
+        order.secondary_process === 'print')
     );
+  }
 
-    if (error || !data?.signedUrl) {
-      console.error('error downloading image: ', error);
+  canViewInvoiceFiles(): boolean {
+    return this.isAdminOrScheduler();
+  }
+
+  async loadOrderFiles(orderId: string): Promise<void> {
+    const { data, error } = await this.supabase
+      .from('order_files')
+      .select('*')
+      .eq('order_id', orderId);
+
+    if (error) {
+      console.error('Error cargando archivos del pedido:', error);
+      this.selectedOrderFiles = [];
       return;
     }
 
-    // get the file name from the path
-    const fileName = filePath.split('/').pop() || 'archivo';
-    const downloadUrl = `${data.signedUrl}&download=${encodeURIComponent(
-      fileName
-    )}`;
+    this.selectedOrderFiles = (data || []) as OrderFile[];
+  }
 
-    // trigger the download
-    const anchor = document.createElement('a');
-    anchor.href = downloadUrl;
-    anchor.setAttribute('download', fileName);
+  async addDriveFileToOrder(
+    orderId: string,
+    fileType: OrderFileType
+  ): Promise<void> {
+    if (!orderId) {
+      this.showNotification('No se encontró el pedido.');
+      return;
+    }
 
-    anchor.style.display = 'none';
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
+    if (this.isUploadingOrderFile) return;
+
+    this.isUploadingOrderFile = true;
+
+    try {
+      const file = await this.googleDriveService.openPicker();
+      const viewUrl = `https://drive.google.com/file/d/${file.drive_file_id}/view`;
+      const downloadUrl = `https://drive.google.com/uc?export=download&id=${file.drive_file_id}`;
+
+      const payload = {
+        order_id: orderId,
+        drive_file_id: file.drive_file_id,
+        file_url: viewUrl,
+        download_url: downloadUrl,
+        file_type: fileType,
+        file_name: file.name || 'Archivo sin nombre',
+      };
+
+      const { error } = await this.supabase
+        .from('order_files')
+        .insert([payload]);
+
+      if (error) {
+        console.error('Error guardando archivo en order_files:', error);
+        this.showNotification('Error al guardar el archivo.');
+        return;
+      }
+
+      await this.loadOrderFiles(orderId);
+      this.showNotification('Archivo agregado correctamente.');
+    } catch (error) {
+      console.error('Error agregando archivo desde Drive:', error);
+    } finally {
+      this.isUploadingOrderFile = false;
+    }
+  }
+
+  downloadDriveFile(file: OrderFile): void {
+    const url = file.download_url || file.file_url;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+
+  async deleteDriveFilesForOrder(orderId: string): Promise<boolean> {
+    const { data, error } = await this.supabase
+      .from('order_files')
+      .select('drive_file_id')
+      .eq('order_id', orderId);
+
+    if (error) {
+      console.error('Error consultando archivos del pedido:', error);
+      this.showNotification('Error consultando archivos del pedido.');
+      return false;
+    }
+
+    const files = data || [];
+
+    for (const file of files) {
+      try {
+        await this.googleDriveService.deleteDriveFile(file.drive_file_id);
+      } catch (error) {
+        console.error('Error eliminando archivo de Drive:', error);
+        this.showNotification('No se pudo eliminar un archivo de Drive.');
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  async deleteOrderFile(file: OrderFile): Promise<void> {
+    if (!file || !file.id || !file.drive_file_id) {
+      this.showNotification('Archivo inválido.');
+      return;
+    }
+
+    const confirmed = confirm(`¿Eliminar el archivo "${file.file_name}"?`);
+    if (!confirmed) return;
+
+    if (this.deletingOrderFileId === file.id) return;
+
+    this.deletingOrderFileId = file.id;
+
+    try {
+      // 1. Eliminar en Google Drive
+      await this.googleDriveService.deleteDriveFile(file.drive_file_id);
+
+      // 2. Eliminar en Supabase
+      const { error } = await this.supabase
+        .from('order_files')
+        .delete()
+        .eq('id', file.id);
+
+      if (error) {
+        console.error('Error eliminando registro en order_files:', error);
+        this.showNotification('El archivo se eliminó de Drive, pero no de Supabase.');
+        return;
+      }
+
+      // 3. Actualizar vista local
+      this.selectedOrderFiles = this.selectedOrderFiles.filter(
+        (f) => f.id !== file.id
+      );
+
+      this.showNotification('Archivo eliminado correctamente.');
+    } catch (error) {
+      console.error('Error eliminando archivo:', error);
+      this.showNotification('No se pudo eliminar el archivo.');
+    } finally {
+      this.deletingOrderFileId = null;
+    }
   }
 
   getCategories(): string[] {
@@ -2735,71 +2897,6 @@ export class OrdersComponent implements OnInit, OnDestroy {
     this.showNameSearchSuggestions = false;
     this.nameSearchSuggestions = [];
     this.updateFilteredOrders();
-  }
-  // decomposes combined characters, removes accent, replaces spaces with underscores, and removes special characters
-  private normalizeFileName(fileName: string): string {
-    return fileName
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/\s+/g, '_')
-      .replace(/[^a-zA-Z0-9._-]/g, '');
-  }
-
-  private async handleFileUploadForOrder(orderId: string): Promise<void> {
-    if (this.selectedFile) {
-      const file = this.selectedFile;
-      const safeName = this.normalizeFileName(file.name);
-      const filePath = `${orderId}/work/${Date.now()}_${safeName}`;
-
-      await this.uploadOrderFile(orderId, filePath, file);
-
-      await this.supabase
-        .from('orders')
-        .update({ file_path: filePath })
-        .eq('id_order', orderId);
-
-      this.newOrder.file_path = filePath;
-      this.selectedFile = null;
-    }
-
-    if (this.selectedInvoiceFile) {
-      const file = this.selectedInvoiceFile;
-      const safeName = this.normalizeFileName(file.name);
-      const filePath = `${orderId}/invoice/${Date.now()}_${safeName}`;
-
-      await this.uploadOrderFile(orderId, filePath, file);
-
-      await this.supabase
-        .from('orders')
-        .update({ invoice_file: filePath })
-        .eq('id_order', orderId);
-
-      this.newOrder.invoice_file = filePath;
-      this.selectedInvoiceFile = null;
-    }
-
-    // secondary file upload if applicable
-    if (this.selectedSecondaryFile && this.newOrder.secondary_process) {
-      const file = this.selectedSecondaryFile;
-      const safeName = this.normalizeFileName(file.name);
-      const secondaryPath = `${orderId}/secondary/${safeName}`;
-
-      await this.uploadOrderFile(
-        orderId,
-        secondaryPath,
-        this.selectedSecondaryFile
-      );
-
-      await this.supabase
-        .from('orders')
-        .update({ second_file: secondaryPath })
-        .eq('id_order', orderId);
-
-      this.newOrder.second_file = secondaryPath;
-      this.selectedSecondaryFile = null;
-    }
-
-    this.uploadedFileName = null;
   }
 
   get submitButtonText(): string {

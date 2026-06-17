@@ -2666,6 +2666,82 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
     this.showNotification('Total del pedido actualizado correctamente.');
   }
 
+  private async adjustPaymentsToEffectiveTotal(
+    orderId: string,
+    effectiveTotal: number
+  ): Promise<number> {
+    const cleanEffectiveTotal = Math.max(Math.round(Number(effectiveTotal || 0)), 0);
+
+    const { data: payments, error } = await this.supabase
+      .from('payments')
+      .select('id_payment, amount, payment_date')
+      .eq('id_order', orderId)
+      .order('payment_date', { ascending: true });
+
+    if (error) {
+      console.error('Error obteniendo pagos para ajustar:', error);
+      this.showNotification('Error al ajustar los abonos del pedido.');
+      return 0;
+    }
+
+    if (!payments || payments.length === 0) {
+      return 0;
+    }
+
+    const totalPaid = payments.reduce(
+      (sum, payment) => sum + Number(payment.amount || 0),
+      0
+    );
+
+    if (totalPaid <= cleanEffectiveTotal) {
+      return Math.round(totalPaid);
+    }
+
+    let remainingAllowed = cleanEffectiveTotal;
+    let adjustedTotalPaid = 0;
+
+    for (const payment of payments) {
+      const paymentAmount = Math.round(Number(payment.amount || 0));
+
+      if (remainingAllowed <= 0) {
+        const { error: deleteError } = await this.supabase
+          .from('payments')
+          .delete()
+          .eq('id_payment', payment.id_payment);
+
+        if (deleteError) {
+          console.error('Error eliminando pago excedente:', deleteError);
+        }
+
+        continue;
+      }
+
+      if (paymentAmount <= remainingAllowed) {
+        adjustedTotalPaid += paymentAmount;
+        remainingAllowed -= paymentAmount;
+        continue;
+      }
+
+      const adjustedAmount = remainingAllowed;
+
+      const { error: updateError } = await this.supabase
+        .from('payments')
+        .update({ amount: adjustedAmount })
+        .eq('id_payment', payment.id_payment);
+
+      if (updateError) {
+        console.error('Error ajustando pago excedente:', updateError);
+        this.showNotification('Error al ajustar un abono excedente.');
+        return adjustedTotalPaid;
+      }
+
+      adjustedTotalPaid += adjustedAmount;
+      remainingAllowed = 0;
+    }
+
+    return Math.round(adjustedTotalPaid);
+  }
+
   async saveInvoice(): Promise<void> {
     this.isSaving = true;
 
@@ -2754,11 +2830,21 @@ public getRemainingPaymentTerm(invoice: Invoice): string {
       netTotal = 0;
     }
 
-    const totalPaid = orderData.payments
-      ? orderData.payments.reduce((sum, p) => sum + p.amount, 0)
+    let totalPaid = orderData.payments
+      ? orderData.payments.reduce((sum, p) => sum + Number(p.amount || 0), 0)
       : 0;
 
-    const remainingBalance = Math.round(effectiveTotal - totalPaid);
+    if (
+      this.selectedInvoice.order.requires_e_invoice &&
+      totalPaid > effectiveTotal
+    ) {
+      totalPaid = await this.adjustPaymentsToEffectiveTotal(
+        this.selectedInvoice.order.id_order,
+        effectiveTotal
+      );
+    }
+
+    const remainingBalance = Math.max(Math.round(effectiveTotal - totalPaid), 0);
     const newPaymentStatus = remainingBalance <= 0 ? 'upToDate' : 'overdue';
 
     const invoiceData: Partial<Invoice> = {

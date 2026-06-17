@@ -238,6 +238,9 @@ export class SupabaseService {
   downloadFile(filePath: string, bucketName: string) {
     return this.supabase.storage.from(bucketName).createSignedUrl(filePath, 60);
   }
+  downloadStorageBlob(filePath: string, bucketName: string) {
+    return this.supabase.storage.from(bucketName).download(filePath);
+  }
   /**
    * signUp signs up a user.
    * @param email The email of the user.
