@@ -471,96 +471,97 @@
 
         <div
           class="mt-6 border-t pt-4"
-          *ngIf="selectedInvoice?.order?.requires_e_invoice"
+          *ngIf="selectedInvoice as invoice"
         >
-          <h4 class="font-semibold text-blue-700 mb-3">
-            Retenciones por Línea
-          </h4>
+          <ng-container *ngIf="invoice.order.requires_e_invoice">
+            <h4 class="font-semibold text-blue-700 mb-3">
+              Retenciones por Línea
+            </h4>
 
-          <div class="mb-3" *ngIf="selectedInvoice?.order?.requires_e_invoice">
-            <div *ngIf="selectedInvoice as inv">
+            <div class="mb-3">
               <label class="flex items-center gap-2 text-sm font-semibold">
                 <input
                   type="checkbox"
-                  [(ngModel)]="inv.declarante_snapshot"
+                  [(ngModel)]="invoice.declarante_snapshot"
                   name="declaranteSnapshot"
-                  (change)="calculateInvoiceValues(inv)"
+                  (change)="calculateInvoiceValues(invoice)"
                 />
                 Cliente Declarante (Retefuente)
               </label>
             </div>
-          </div>
 
-          <div *ngFor="let line of selectedInvoice?.invoice_lines || []; let i = index"
-              class="border p-3 mb-3 rounded bg-gray-50">
+            <div *ngFor="let line of invoice.invoice_lines || []; let i = index"
+                class="border p-3 mb-3 rounded bg-gray-50">
 
-            <div class="flex justify-between mb-2">
-              <div>
-                <strong>{{ line.type | uppercase }} - {{ line.description | uppercase }}</strong>
+              <div class="flex justify-between mb-2">
+                <div>
+                  <strong>{{ line.type | uppercase }} - {{ line.description | uppercase }}</strong>
+                </div>
+                <div>
+                  $ {{ line.amount | number:'1.2-2' }}
+                </div>
               </div>
-              <div>
-                $ {{ line.amount | number:'1.2-2' }}
+
+              <!-- Retención renta -->
+              <label class="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  [(ngModel)]="line.apply_retefuente"
+                  name="applyReteFuente{{i}}"
+                  (change)="calculateInvoiceValues(invoice)"
+                />
+                Aplicar Retención Fuente
+              </label>
+
+              <!-- Retención ICA -->
+              <label class="flex items-center gap-2 text-sm mt-1">
+                <input
+                  type="checkbox"
+                  [(ngModel)]="line.apply_reteica"
+                  name="applyReteIca{{i}}"
+                  (change)="calculateInvoiceValues(invoice)"
+                />
+                Aplicar Retención ICA
+              </label>
+
+              <!-- Valores calculados -->
+              <div class="text-xs text-gray-600 mt-2">
+                <div *ngIf="line.retefuente_value > 0">
+                  ReteFuente: - $ {{ line.retefuente_value | number:'1.2-2' }}
+                </div>
+                <div *ngIf="line.reteica_value > 0">
+                  ReteICA: - $ {{ line.reteica_value | number:'1.2-2' }}
+                </div>
+              </div>
+
+            </div>
+
+            <!-- RESUMEN -->
+            <div class="border-t pt-3 mt-4 text-sm">
+              <div class="flex justify-between">
+                <span>Total Bruto Factura</span>
+                <span>$ {{ invoice.gross_total | number:'1.2-2' }}</span>
+              </div>
+
+              <div class="flex justify-between text-red-600"
+                  *ngIf="(invoice.retefuente_total ?? 0) > 0">
+                <span>Total ReteFuente</span>
+                <span>- $ {{ invoice.retefuente_total | number:'1.2-2' }}</span>
+              </div>
+
+              <div class="flex justify-between text-red-600"
+                  *ngIf="(invoice.reteica_total ?? 0) > 0">
+                <span>Total ReteICA</span>
+                <span>- $ {{ invoice.reteica_total | number:'1.2-2' }}</span>
+              </div>
+
+              <div class="flex justify-between font-bold mt-2">
+                <span>Total Neto a Pagar</span>
+                <span>$ {{ invoice.net_total | number:'1.2-2' }}</span>
               </div>
             </div>
-
-            <!-- Retención renta -->
-            <label class="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                [(ngModel)]="line.apply_retefuente"
-                name="applyReteFuente{{i}}"
-                (change)="calculateInvoiceValues(selectedInvoice!)"
-              />
-              Aplicar Retención Fuente
-            </label>
-
-            <!-- Retención ICA -->
-            <label class="flex items-center gap-2 text-sm mt-1">
-              <input
-                type="checkbox"
-                [(ngModel)]="line.apply_reteica"
-                name="applyReteIca{{i}}"
-                (change)="calculateInvoiceValues(selectedInvoice!)"
-              />
-              Aplicar Retención ICA
-            </label>
-
-            <!-- Valores calculados -->
-            <div class="text-xs text-gray-600 mt-2">
-              <div *ngIf="line.retefuente_value > 0">
-                ReteFuente: - $ {{ line.retefuente_value | number:'1.2-2' }}
-              </div>
-              <div *ngIf="line.reteica_value > 0">
-                ReteICA: - $ {{ line.reteica_value | number:'1.2-2' }}
-              </div>
-            </div>
-
-          </div>
-
-          <!-- RESUMEN -->
-          <div class="border-t pt-3 mt-4 text-sm">
-            <div class="flex justify-between">
-              <span>Total Bruto Factura</span>
-              <span>$ {{ selectedInvoice?.gross_total | number:'1.2-2' }}</span>
-            </div>
-
-            <div class="flex justify-between text-red-600"
-                *ngIf="(selectedInvoice?.retefuente_total ?? 0) > 0">
-              <span>Total ReteFuente</span>
-              <span>- $ {{ selectedInvoice?.retefuente_total | number:'1.2-2' }}</span>
-            </div>
-
-            <div class="flex justify-between text-red-600"
-                *ngIf="(selectedInvoice?.reteica_total ?? 0) > 0">
-              <span>Total ReteICA</span>
-              <span>- $ {{ selectedInvoice?.reteica_total | number:'1.2-2' }}</span>
-            </div>
-
-            <div class="flex justify-between font-bold mt-2">
-              <span>Total Neto a Pagar</span>
-              <span>$ {{ selectedInvoice?.net_total | number:'1.2-2' }}</span>
-            </div>
-          </div>
+          </ng-container>
+          
         </div>
 
         <div class="mb-4" *ngIf="selectedInvoice">
@@ -579,7 +580,7 @@
         </div>
 
         <div *ngIf="selectedInvoice as invoice">
-          <label *ngIf="invoice?.order?.requires_e_invoice">
+          <label *ngIf="invoice.order.requires_e_invoice">
             <input
               type="checkbox"
               [(ngModel)]="invoice.e_invoice_done"
@@ -727,7 +728,7 @@
         </div>
 
         <div *ngIf="selectedInvoice as invoice">
-          <label *ngIf="invoice?.order?.requires_e_invoice">
+          <label *ngIf="invoice.order.requires_e_invoice">
             <input
               type="checkbox"
               [(ngModel)]="invoice.e_invoice_done"
@@ -924,8 +925,8 @@
       <!-- Detalle de productos de vitrina (solo sales + vitrine) -->
       <div
         *ngIf="
-          selectedInvoiceDetails[0]?.order?.order_type === 'sales' &&
-          selectedInvoiceDetails[0]?.order?.is_vitrine
+          selectedInvoiceDetails[0].order.order_type === 'sales' &&
+          selectedInvoiceDetails[0].order.is_vitrine
         "
         class="my-6"
       >
@@ -1037,7 +1038,7 @@
         </div>
         <div class="border-t pt-4 space-y-2">
           <!-- RETENCIONES SOLO SI REQUIERE E-INVOICE -->
-          <ng-container *ngIf="selectedInvoiceDetails[0]?.order?.requires_e_invoice">
+          <ng-container *ngIf="selectedInvoiceDetails[0].order.requires_e_invoice">
 
             <div class="flex justify-between text-red-600"
                 *ngIf="(selectedInvoiceDetails[0]?.retefuente_total ?? 0) > 0">

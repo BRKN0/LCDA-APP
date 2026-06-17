@@ -23,6 +23,8 @@ export class LoginComponent implements OnInit, OnDestroy {
   isRegisterMode: boolean = false;
   isRecoveryMode: boolean = false;
   isResetPasswordMode: boolean = false;
+  showPassword = false;
+  
   private authSubscription: Subscription | null = null;
 
   constructor(
