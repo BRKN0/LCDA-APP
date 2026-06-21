@@ -6,9 +6,13 @@
   <p>Cargando clientes...</p>
 </div>
 <div class="flex justify-between items-center mb-4 mt-4 ml-2">
-  <label>
-    <input type="checkbox" [(ngModel)]="filterDebt" (change)="searchClient()" />
-    Mostrar solo clientes con deuda
+  <label (click)="$event.stopPropagation()">
+    <input
+      type="checkbox"
+      [(ngModel)]="filterDebt"
+      (change)="onDebtFilterChange($event)"
+    />
+    Mostrar clientes con deuda
   </label>
 
   <div class="flex space-x-2 mr-4">

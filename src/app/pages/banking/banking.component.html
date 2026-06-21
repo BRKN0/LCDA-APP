@@ -126,58 +126,158 @@
     </div>
   </div>
 
-  <!-- CUADRE DE CAJA -->
+  <!-- CONTROL DE CAJA -->
   <div class="mt-4 p-3 border rounded-md bg-white">
-    <h2 class="balance-title mb-3">Cuadre de Caja (Efectivo)</h2>
+    <h2 class="balance-title mb-3">Control de Caja (Efectivo)</h2>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div>
+
+      <!-- APERTURA -->
+      <div class="p-3 border rounded-md bg-gray-50">
+        <h3 class="font-semibold mb-3">1. Apertura de caja</h3>
+
         <label class="block font-semibold mb-1">Saldo inicial automático</label>
         <div class="border border-gray-300 rounded-md p-2 w-full bg-gray-100">
           {{ openingCash | currency:'COP' }}
         </div>
-        <p class="text-xs text-gray-600 mt-2">
-          Calculado desde la fecha base de caja con acumulado histórico anterior al día seleccionado.
-        </p>
-      </div>
 
-      <div>
-        <label class="block font-semibold mb-1">Efectivo contado</label>
+        <label class="block font-semibold mb-1 mt-3">Efectivo contado al iniciar</label>
         <input
           type="number"
-          [(ngModel)]="countedCash"
+          [(ngModel)]="openingCountedCash"
           class="border border-gray-300 rounded-md p-1 w-full"
           min="0"
           step="0.01"
         />
-        <button class="btn-add mt-2" (click)="saveCountedCash()">
-          Guardar arqueo
+
+        <button class="btn-add mt-2" (click)="saveOpeningCount()">
+          Guardar apertura
         </button>
-      </div>
 
-      <div class="p-2 border rounded-md bg-gray-50">
-        <div class="flex justify-between">
-          <span class="font-semibold">Teórico:</span>
-          <span>{{ theoreticalCash | currency:'COP' }}</span>
-        </div>
-
-        <div class="flex justify-between mt-2">
+        <div class="flex justify-between mt-3">
           <span class="font-semibold">Diferencia:</span>
           <span
             [ngClass]="{
-              'text-green-700': cashDifference > 0,
-              'text-red-700': cashDifference < 0,
-              'text-gray-700': cashDifference === 0
+              'text-green-700': openingDifference > 0,
+              'text-red-700': openingDifference < 0,
+              'text-gray-700': openingDifference === 0
             }"
           >
-            {{ cashDifference | currency:'COP' }}
+            {{ openingDifference | currency:'COP' }}
           </span>
         </div>
 
         <p class="text-xs text-gray-600 mt-2">
-          Diferencia = Contado - Teórico
+          Compara lo contado al iniciar contra el saldo que debía quedar del día anterior.
         </p>
       </div>
+
+      <!-- CONTEO INTERMEDIO -->
+      <div class="p-3 border rounded-md bg-gray-50">
+        <h3 class="font-semibold mb-3">2. Conteo intermedio</h3>
+
+        <label class="block font-semibold mb-1">Efectivo contado en el momento</label>
+        <input
+          type="number"
+          [(ngModel)]="checkpointCountedCash"
+          class="border border-gray-300 rounded-md p-1 w-full"
+          min="0"
+          step="0.01"
+        />
+
+        <button class="btn-add mt-2" (click)="saveCheckpointCount()">
+          Guardar conteo intermedio
+        </button>
+
+        <div *ngIf="checkpointCountSaved" class="mt-3">
+          <div class="flex justify-between">
+            <span class="font-semibold">Hora del conteo:</span>
+            <span>{{ formatTime(checkpointCreatedAt) }}</span>
+          </div>
+
+          <div class="flex justify-between mt-3">
+            <span class="font-semibold">Diferencia posterior:</span>
+            <span
+              [ngClass]="{
+                'text-green-700': checkpointNetAfter > 0,
+                'text-red-700': checkpointNetAfter < 0,
+                'text-gray-700': checkpointNetAfter === 0
+              }"
+            >
+              {{ checkpointNetAfter > 0 ? '+' : '' }}{{ checkpointNetAfter | currency:'COP' }}
+            </span>
+          </div>
+
+          <div class="flex justify-between mt-2">
+            <span class="font-semibold">Balance esperado:</span>
+            <span>{{ checkpointProjectedCash | currency:'COP' }}</span>
+          </div>
+
+          <p class="text-xs text-gray-600 mt-2">
+            La diferencia posterior corresponde al neto de entradas y salidas registradas después del conteo.
+          </p>
+        </div>
+
+        <p *ngIf="!checkpointCountSaved" class="text-xs text-gray-600 mt-3">
+          No hay conteo intermedio guardado para esta fecha.
+        </p>
+      </div>
+
+      <!-- CIERRE -->
+      <div class="p-3 border rounded-md bg-gray-50">
+        <h3 class="font-semibold mb-3">3. Cierre de caja</h3>
+
+        <div class="flex justify-between">
+          <span class="font-semibold">Saldo inicial:</span>
+          <span>{{ openingCash | currency:'COP' }}</span>
+        </div>
+
+        <div class="flex justify-between mt-2">
+          <span class="font-semibold">Entradas del día:</span>
+          <span>{{ dayTotalCashIn | currency:'COP' }}</span>
+        </div>
+
+        <div class="flex justify-between mt-2">
+          <span class="font-semibold">Salidas del día:</span>
+          <span>{{ dayTotalCashOut | currency:'COP' }}</span>
+        </div>
+
+        <div class="flex justify-between mt-2">
+          <span class="font-semibold">Teórico de cierre:</span>
+          <span>{{ closingTheoreticalCash | currency:'COP' }}</span>
+        </div>
+
+        <label class="block font-semibold mb-1 mt-3">Efectivo contado al cierre</label>
+        <input
+          type="number"
+          [(ngModel)]="closingCountedCash"
+          class="border border-gray-300 rounded-md p-1 w-full"
+          min="0"
+          step="0.01"
+        />
+
+        <button class="btn-add mt-2" (click)="saveClosingCount()">
+          Guardar cierre
+        </button>
+
+        <div class="flex justify-between mt-3">
+          <span class="font-semibold">Diferencia cierre:</span>
+          <span
+            [ngClass]="{
+              'text-green-700': closingDifference > 0,
+              'text-red-700': closingDifference < 0,
+              'text-gray-700': closingDifference === 0
+            }"
+          >
+            {{ closingDifference | currency:'COP' }}
+          </span>
+        </div>
+
+        <p class="text-xs text-gray-600 mt-2">
+          Diferencia = efectivo contado al cierre - saldo teórico de cierre.
+        </p>
+      </div>
+
     </div>
   </div>
 

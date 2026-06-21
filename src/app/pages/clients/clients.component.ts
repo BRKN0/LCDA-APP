@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { MainBannerComponent } from '../main-banner/main-banner.component';
 import { jsPDF } from 'jspdf';
+import * as XLSX from 'xlsx';
 import 'jspdf-autotable';
 import { SupabaseService } from '../../services/supabase.service';
 import { RoleService } from '../../services/role.service';
@@ -511,86 +512,84 @@ export class ClientsComponent implements OnInit {
 
 
 
-searchClient() {
-  // Si el usuario borra el texto, resetear la selección
-  if (!this.searchQuery || this.searchQuery.trim() === '') {
-    this.clientSelected = false;
-  }
+  searchClient(showSuggestions: boolean = true): void {
+    // Si el usuario borra el texto, resetear la selección
+    if (!this.searchQuery || this.searchQuery.trim() === '') {
+      this.clientSelected = false;
+    }
 
-  const normalizedSearch = this.normalizeText(this.searchQuery);
+    const normalizedSearch = this.normalizeText(this.searchQuery);
 
-  this.filteredClients = this.clients.filter((client) => {
-    // Normalizar nombre del cliente
-    const normalizedClientName = this.normalizeText(client.name);
+    this.filteredClients = this.clients.filter((client) => {
+      const normalizedClientName = this.normalizeText(client.name);
 
-    // Normalizar nombre de la empresa si existe
-    const normalizedCompanyName = client.company_name
-      ? this.normalizeText(client.company_name)
-      : '';
-
-    // Verificar si coincide con nombre o empresa
-    const matchesSearchQuery =
-      normalizedClientName.includes(normalizedSearch) ||
-      normalizedCompanyName.includes(normalizedSearch);
-
-    // Filtro de deuda (sin cambios)
-    const matchesDebtFilter = !this.filterDebt || client.status === 'overdue';
-
-    return matchesSearchQuery && matchesDebtFilter;
-  });
-
-  // Solo actualizar sugerencias si NO hay cliente seleccionado
-  if (!this.clientSelected) {
-    this.updateClientSuggestions();
-  }
-
-  this.noResultsFound = this.filteredClients.length === 0;
-  this.currentPage = 1;
-  this.updatePaginatedClients();
-}
-
-/**
- * Actualiza las sugerencias del dropdown de clientes
- */
-updateClientSuggestions(): void {
-  const value = this.searchQuery.trim();
-
-  // Si está vacío, mostrar los primeros 50 clientes
-  if (!value) {
-    this.clientSuggestions = this.clients.slice(0, 50);
-    this.showClientSuggestions = true;
-    return;
-  }
-
-  const normalizedSearch = this.normalizeText(value);
-
-  // Si está buscando, mostrar TODOS los resultados sin límite
-  this.clientSuggestions = this.clients
-    .filter(client => {
-      const normalizedName = this.normalizeText(client.name);
-      const normalizedCompany = client.company_name
+      const normalizedCompanyName = client.company_name
         ? this.normalizeText(client.company_name)
         : '';
 
-      return normalizedName.includes(normalizedSearch) ||
-             normalizedCompany.includes(normalizedSearch);
+      const matchesSearchQuery =
+        normalizedClientName.includes(normalizedSearch) ||
+        normalizedCompanyName.includes(normalizedSearch);
+
+      const matchesDebtFilter = !this.filterDebt || client.status === 'overdue';
+
+      return matchesSearchQuery && matchesDebtFilter;
     });
 
-  this.showClientSuggestions = this.clientSuggestions.length > 0;
-}
+    // Solo abrir sugerencias cuando realmente viene del buscador
+    if (showSuggestions && !this.clientSelected) {
+      this.updateClientSuggestions();
+    } else {
+      this.showClientSuggestions = false;
+    }
+
+    this.noResultsFound = this.filteredClients.length === 0;
+    this.currentPage = 1;
+    this.updatePaginatedClients();
+  }
 
   /**
- * Maneja el click/focus en el campo de búsqueda
- */
-onSearchFocus(): void {
-  // Solo mostrar sugerencias si NO hay un cliente seleccionado
-  if (!this.clientSelected) {
-    this.updateClientSuggestions();
-  }
-}
+   * Actualiza las sugerencias del dropdown de clientes
+   */
+  updateClientSuggestions(): void {
+    const value = this.searchQuery.trim();
 
- /**
- * Selecciona un cliente desde el dropdown
+    // Si está vacío, mostrar los primeros 50 clientes
+    if (!value) {
+      this.clientSuggestions = this.clients.slice(0, 50);
+      this.showClientSuggestions = true;
+      return;
+    }
+
+    const normalizedSearch = this.normalizeText(value);
+
+    // Si está buscando, mostrar TODOS los resultados sin límite
+    this.clientSuggestions = this.clients
+      .filter(client => {
+        const normalizedName = this.normalizeText(client.name);
+        const normalizedCompany = client.company_name
+          ? this.normalizeText(client.company_name)
+          : '';
+
+        return normalizedName.includes(normalizedSearch) ||
+              normalizedCompany.includes(normalizedSearch);
+      });
+
+    this.showClientSuggestions = this.clientSuggestions.length > 0;
+  }
+
+    /**
+   * Maneja el click/focus en el campo de búsqueda
+   */
+  onSearchFocus(): void {
+    // Solo mostrar sugerencias si NO hay un cliente seleccionado
+    if (!this.clientSelected) {
+      this.updateClientSuggestions();
+    }
+  }
+
+  /**
+   * Selecciona un cliente desde el dropdown
  */
   selectClientFromSuggestion(client: Client): void {
     // Usar el nombre de la empresa si existe, si no el nombre del cliente
@@ -612,6 +611,11 @@ onSearchFocus(): void {
       this.clientSelected = false;
     }
     this.searchClient();
+  }
+
+  onDebtFilterChange(event?: Event): void {
+    event?.stopPropagation();
+    this.searchClient(false);
   }
 
   openClientModal(client: Client) {
@@ -1180,83 +1184,98 @@ onSearchFocus(): void {
 
   generateClientsKardex(): void {
     console.log('Botón Generar Kardex clicado');
+
     try {
       const currentDate = new Date().toISOString().split('T')[0];
-      console.log('Fecha actual:', currentDate);
+      const clientsToExport = this.filteredClients ?? [];
 
-      const csvHeader = [
-        'ID Cliente',
-        'Nombre',
-        'Correo',
-        'Tipo de Documento',
-        'Número de Documento',
-        'NIT',
-        'Empresa',
-        'Teléfono',
-        'Dirección',
-        'Ciudad',
-        'Provincia',
-        'Código Postal',
-        'Estado',
-        'Deuda',
-        'Fecha de Registro',
-      ];
-
-      console.log('filteredClients:', this.filteredClients);
-      if (!this.filteredClients || this.filteredClients.length === 0) {
+      if (clientsToExport.length === 0) {
         console.warn('No hay clientes para exportar');
         alert('No hay clientes para generar el kardex');
         return;
       }
 
-      const csvRows = this.filteredClients.map((client) => {
-        console.log('Procesando cliente:', client);
-        const debtValue =
-          typeof client.debt === 'number'
-            ? client.debt
-            : parseFloat(client.debt || '0');
-        const formattedDebt = isNaN(debtValue) ? '0.00' : debtValue.toFixed(2);
+      const rows = clientsToExport.map((client) => {
+        const debtValue = Number(client.debt ?? 0);
+        const cleanDebt = Number.isFinite(debtValue) ? debtValue : 0;
 
-        return [
-          client.id_client,
-          client.name || 'Sin Nombre',
-          client.email || 'Sin Correo',
-          client.document_type || 'N/A',
-          client.document_number || 'N/A',
-          client.nit || 'N/A',
-          client.company_name || 'N/A',
-          client.cellphone || 'Sin Teléfono',
-          client.address || 'Sin Dirección',
-          client.city || 'N/A',
-          client.province || '',
-          client.postal_code || 'N/A',
-          client.status === 'upToDate'
+        return {
+          'ID Cliente': client.id_client ?? '',
+          'Nombre': client.name || 'Sin Nombre',
+          'Correo': client.email || 'Sin Correo',
+          'Tipo de Documento': client.document_type || 'N/A',
+          'Número de Documento': client.document_number || 'N/A',
+          'NIT': client.nit || 'N/A',
+          'Empresa': client.company_name || 'N/A',
+          'Teléfono': client.cellphone || 'Sin Teléfono',
+          'Dirección': client.address || 'Sin Dirección',
+          'Ciudad': client.city || 'N/A',
+          'Provincia': client.province || '',
+          'Código Postal': client.postal_code || 'N/A',
+          'Estado': client.status === 'upToDate'
             ? 'Al Día'
             : client.status === 'overdue'
               ? 'En Mora'
               : 'Desconocido',
-          formattedDebt,
-          client.created_at.split('T')[0] || currentDate,
-        ].map((value) => `"${value}"`);
+          'Deuda': cleanDebt,
+          'Fecha de Registro': client.created_at
+            ? client.created_at.split('T')[0]
+            : currentDate,
+        };
       });
 
-      const csvContent = [csvHeader, ...csvRows]
-        .map((row) => row.join(';'))
-        .join('\r\n');
-      const bom = '\uFEFF';
-      const blob = new Blob([bom + csvContent], {
-        type: 'text/csv',
-      });
-      const url = window.URL.createObjectURL(blob);
+      const worksheet = XLSX.utils.json_to_sheet(rows);
 
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `clients_${currentDate}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      console.log('Archivo generado y clicado');
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      worksheet['!cols'] = [
+        { wch: 38 },
+        { wch: 28 },
+        { wch: 30 },
+        { wch: 18 },
+        { wch: 20 },
+        { wch: 18 },
+        { wch: 30 },
+        { wch: 16 },
+        { wch: 35 },
+        { wch: 18 },
+        { wch: 18 },
+        { wch: 16 },
+        { wch: 14 },
+        { wch: 16 },
+        { wch: 18 },
+      ];
+
+      const ref = worksheet['!ref'];
+
+      if (ref) {
+        worksheet['!autofilter'] = { ref };
+
+        const range = XLSX.utils.decode_range(ref);
+        const debtColumnIndex = 13; // Columna N: Deuda
+
+        for (let rowIndex = range.s.r + 1; rowIndex <= range.e.r; rowIndex++) {
+          const cellAddress = XLSX.utils.encode_cell({
+            r: rowIndex,
+            c: debtColumnIndex,
+          });
+
+          const cell = worksheet[cellAddress];
+
+          if (cell) {
+            cell.t = 'n';
+            cell.z = '"$" #,##0';
+          }
+        }
+      }
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Kardex Clientes');
+
+      XLSX.writeFile(workbook, `Kardex_Clientes_${currentDate}.xlsx`, {
+        bookType: 'xlsx',
+        compression: true,
+      });
+
+      console.log('Archivo Excel generado correctamente');
     } catch (error) {
       console.error('Error en generateClientsKardex:', error);
       alert('Error al generar el kardex.');

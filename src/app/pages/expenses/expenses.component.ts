@@ -109,7 +109,7 @@ export class ExpensesComponent implements OnInit {
     id_provider: '',
     provider_name: '',
     payment_due_date: null,
-    payment_status: 'PAID',
+    payment_status: 'PENDING',
     invoice_file_path: null,
     proof_of_payment_path: null,
     invoice_number: '',
@@ -330,7 +330,7 @@ export class ExpensesComponent implements OnInit {
       id_provider: '',
       provider_name: '',
       payment_due_date: null,
-      payment_status: 'PAID',
+      payment_status: 'PENDING',
       invoice_file_path: null,
       proof_of_payment_path: null,
       invoice_number: '',
@@ -766,7 +766,7 @@ export class ExpensesComponent implements OnInit {
       ) {
         this.formErrors.type = true;
         this.showNotification(
-          'Debe seleccionar un método de pago cuando el egreso no está pendiente.', 'info'
+          'Debe seleccionar la fecha de vencimiento.', 'info'
         );
         return;
       }
@@ -820,10 +820,13 @@ export class ExpensesComponent implements OnInit {
         return;
       }
 
-      let paidAt: string | null = this.selectedExpense.paid_at ?? null;
+      let paidAt: string | null = null;
 
-      if (this.selectedExpense.payment_status !== 'PAID') {
-        paidAt = null;
+      if (
+        this.selectedExpense.payment_status === 'PAID' ||
+        this.selectedExpense.payment_status === 'PARTIAL'
+      ) {
+        paidAt = new Date().toISOString();
       }
 
       const expenseToSave: any = {
@@ -845,11 +848,7 @@ export class ExpensesComponent implements OnInit {
           this.selectedExpense.payment_status === 'PENDING'
             ? this.selectedExpense.payment_due_date
             : null,
-        paid_at:
-          this.selectedExpense.payment_status === 'PAID' ||
-          this.selectedExpense.payment_status === 'PARTIAL'
-            ? this.selectedExpense.paid_at
-            : null,
+        paid_at: paidAt,
         invoice_number: this.selectedExpense.invoice_number,
         is_electronic_invoice: this.selectedExpense.is_electronic_invoice ?? false,
       };
@@ -1158,19 +1157,20 @@ export class ExpensesComponent implements OnInit {
       // payment_due_date range
       if (this.dueStartDate || this.dueEndDate) {
 
+        if (e.payment_status === 'PAID' || this.getRemainingBalance(e) <= 0) {
+          return false;
+        }
+
         if (!e.payment_due_date) return false;
 
-        const dueDate = new Date(e.payment_due_date);
+        const dueDate = this.normalizeDateOnly(e.payment_due_date);
+        const start = this.dueStartDate ? this.normalizeDateOnly(this.dueStartDate) : null;
+        const end = this.dueEndDate ? this.normalizeDateOnly(this.dueEndDate) : null;
 
-        if (this.dueStartDate &&
-            dueDate < new Date(this.dueStartDate)) {
-          return false;
-        }
+        if (!dueDate) return false;
 
-        if (this.dueEndDate &&
-            dueDate > new Date(this.dueEndDate)) {
-          return false;
-        }
+        if (start && dueDate < start) return false;
+        if (end && dueDate > end) return false;
       }
 
       // Category
@@ -1434,7 +1434,7 @@ export class ExpensesComponent implements OnInit {
       id_provider: '',
       provider_name: '',
       payment_due_date: null,
-      payment_status: 'PAID',
+      payment_status: 'PENDING',
       invoice_file_path: null,
       proof_of_payment_path: null,
       invoice_number: '',
@@ -1546,7 +1546,7 @@ export class ExpensesComponent implements OnInit {
       id_provider: '',
       provider_name: '',
       payment_due_date: null,
-      payment_status: 'PAID',
+      payment_status: 'PENDING',
       invoice_file_path: null,
       proof_of_payment_path: null,
       invoice_number: '',
@@ -1924,13 +1924,13 @@ export class ExpensesComponent implements OnInit {
 
       const updatePayload: any = {
         payment_status: newStatus,
+        paid_at: newStatus === 'PAID'
+          ? new Date().toISOString()
+          : null,
+        payment_due_date: newStatus === 'PAID'
+          ? null
+          : expense.payment_due_date
       };
-
-      updatePayload.paid_at =
-        newStatus === 'PAID'
-          ? new Date().toISOString().split('T')[0]
-          : null;
-
 
       // 3. Actualizar el estado en la base de datos
       const { error: updateError } = await this.supabase
@@ -2043,13 +2043,13 @@ export class ExpensesComponent implements OnInit {
 
       const updatePayload: any = {
         payment_status: newStatus,
+        paid_at: newStatus === 'PAID'
+          ? new Date().toISOString()
+          : null,
+        payment_due_date: newStatus === 'PAID'
+          ? null
+          : expense.payment_due_date
       };
-
-      updatePayload.paid_at =
-        newStatus === 'PAID'
-          ? new Date().toISOString().split('T')[0]
-          : null;
-
 
       // 5. Actualizar estado
       const { error: statusError } = await this.supabase
@@ -2109,7 +2109,7 @@ export class ExpensesComponent implements OnInit {
       // 4. Obtener el costo del egreso
       const { data: expenseData, error: expenseError } = await this.supabase
         .from('expenses')
-        .select('cost, payment_status')
+        .select('cost, payment_status, payment_due_date')
         .eq('id_expenses', expenseId)
         .single();
 
@@ -2129,12 +2129,13 @@ export class ExpensesComponent implements OnInit {
 
         const updatePayload: any = {
           payment_status: newStatus,
+          paid_at: newStatus === 'PAID'
+            ? new Date().toISOString()
+            : null,
+          payment_due_date: newStatus === 'PAID'
+            ? null
+            : expenseData.payment_due_date
         };
-
-        updatePayload.paid_at =
-          newStatus === 'PAID'
-            ? new Date().toISOString().split('T')[0]
-            : null;
 
         // 6. INTENTO DE ACTUALIZAR EL ESTADO
         const { error: updateError } = await this.supabase

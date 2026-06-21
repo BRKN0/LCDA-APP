@@ -6,6 +6,7 @@ import { SupabaseService } from '../../services/supabase.service';
 
 interface CashMovement {
   date: string; // YYYY-MM-DD
+  occurred_at: string;
   direction: 'IN' | 'OUT';
   amount: number;
   source: 'INVOICE_PAYMENT' | 'EXPENSE_PAYMENT' | 'EXPENSE_PAID';
@@ -27,6 +28,15 @@ interface CashboxTxn {
   source_type: string | null;
   source_ref: string | null;
 }
+
+type CashboxCountType =
+  | 'OPENING_COUNT'
+  | 'CHECKPOINT_COUNT'
+  | 'CLOSING_COUNT';
+
+type CashboxCountTypeWithLegacy =
+  | CashboxCountType
+  | 'COUNTED';
 
 @Component({
   selector: 'app-banking',
@@ -62,6 +72,32 @@ export class BankingComponent implements OnInit {
   countedCash = 0;   // manual
   theoreticalCash = 0;
   cashDifference = 0;
+
+  // Apertura
+  openingCountedCash = 0;
+  openingDifference = 0;
+  openingCountSaved = false;
+
+  // Conteo intermedio
+  checkpointCountedCash = 0;
+  checkpointCreatedAt = '';
+  checkpointCountSaved = false;
+
+  checkpointInAfter = 0;
+  checkpointOutAfter = 0;
+  checkpointNetAfter = 0;
+  checkpointProjectedCash = 0;
+  checkpointVsClosingDifference = 0;
+
+  // Cierre
+  closingCountedCash = 0;
+  closingCountSaved = false;
+
+  dayTotalCashIn = 0;
+  dayTotalCashOut = 0;
+  dayCashBalance = 0;
+  closingTheoreticalCash = 0;
+  closingDifference = 0;
 
   // Configuración base caja
   baseCashDate = '';
@@ -110,18 +146,119 @@ export class BankingComponent implements OnInit {
   private ymd(value: any): string {
     if (!value) return '';
 
-    if (typeof value === 'string') {
-      return value.slice(0, 10);
+    const raw = String(value).trim();
+    if (!raw) return '';
+
+    const prefixMatch = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+    const datePrefix = prefixMatch ? prefixMatch[1] : '';
+
+    // Si viene solo fecha: YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+      return raw;
     }
+
+    // Caso legacy: fechas que antes eran DATE y quedaron como medianoche UTC
+    // Ejemplo: 2026-06-18T00:00:00+00:00
+    // Si se convierte con new Date(), Colombia lo pasa al día anterior.
+    if (
+      /^\d{4}-\d{2}-\d{2}[T\s]00:00:00(?:\.0+)?(?:Z|\+00:00)?$/.test(raw)
+    ) {
+      return datePrefix;
+    }
+
+    // Timestamp sin zona horaria: se respeta la fecha escrita
+    // Ejemplo: 2026-06-18 14:41:53
+    if (
+      /^\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(raw)
+    ) {
+      return datePrefix;
+    }
+
+    // Timestamp real con zona horaria: calcular fecha de negocio en Colombia
+    const dt = new Date(raw);
+    if (isNaN(dt.getTime())) {
+      return datePrefix;
+    }
+
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Bogota',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(dt);
+
+    const year = parts.find(p => p.type === 'year')?.value ?? '';
+    const month = parts.find(p => p.type === 'month')?.value ?? '';
+    const day = parts.find(p => p.type === 'day')?.value ?? '';
+
+    return `${year}-${month}-${day}`;
+  }
+
+  private toDateTimeValue(value: any): string {
+    if (!value) return '';
+
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+
+    return String(value).trim();
+  }
+
+  private combineDateWithCreatedTime(paymentDate: any, createdAt: any): string {
+    const businessDate = this.ymd(paymentDate);
+
+    if (!businessDate) {
+      return this.toDateTimeValue(createdAt || paymentDate);
+    }
+
+    if (!createdAt) {
+      return `${businessDate}T00:00:00-05:00`;
+    }
+
+    const created = new Date(createdAt);
+
+    if (isNaN(created.getTime())) {
+      return `${businessDate}T00:00:00-05:00`;
+    }
+
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Bogota',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+      hourCycle: 'h23',
+    }).formatToParts(created);
+
+    let hour = parts.find(p => p.type === 'hour')?.value ?? '00';
+    const minute = parts.find(p => p.type === 'minute')?.value ?? '00';
+    const second = parts.find(p => p.type === 'second')?.value ?? '00';
+
+    if (hour === '24') {
+      hour = '00';
+    }
+
+    return `${businessDate}T${hour}:${minute}:${second}-05:00`;
+  }
+
+  private timeMs(value: string): number {
+    if (!value) return 0;
+
+    const ms = new Date(value).getTime();
+    return isNaN(ms) ? 0 : ms;
+  }
+
+  formatTime(value: string): string {
+    if (!value) return '';
 
     const dt = new Date(value);
     if (isNaN(dt.getTime())) return '';
 
-    const year = dt.getFullYear();
-    const month = String(dt.getMonth() + 1).padStart(2, '0');
-    const day = String(dt.getDate()).padStart(2, '0');
-
-    return `${year}-${month}-${day}`;
+    return dt.toLocaleTimeString('es-CO', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
   }
 
   private toDateOnly(dateStr: string): Date {
@@ -153,7 +290,7 @@ export class BankingComponent implements OnInit {
     await this.loadCashboxBaseConfig();
     await this.loadCashMovements(false);
     await this.loadAutomaticOpeningCashFromHistory(this.movementDate);
-    await this.loadCountedCashForDate(this.movementDate);
+    await this.loadCashboxCountsForDate(this.movementDate);
     this.applyCashFilters();
 
     this.loading = false;
@@ -319,6 +456,7 @@ export class BankingComponent implements OnInit {
 
     const inMoves: CashMovement[] = (cashPayments ?? []).map((p: any) => ({
       date: this.ymd(p.payment_date),
+      occurred_at: this.toDateTimeValue(p.payment_date),
       direction: 'IN',
       amount: this.round2(Number(p.amount) || 0),
       source: 'INVOICE_PAYMENT',
@@ -338,6 +476,7 @@ export class BankingComponent implements OnInit {
         amount,
         payment_date,
         payment_method,
+        created_at,
         expenses:expenses ( code, description )
       `)
       .eq('payment_method', 'cash');
@@ -351,6 +490,7 @@ export class BankingComponent implements OnInit {
 
     const outMovesFromPayments: CashMovement[] = (expensePays ?? []).map((p: any) => ({
       date: this.ymd(p.payment_date),
+      occurred_at: this.combineDateWithCreatedTime(p.payment_date, p.created_at),
       direction: 'OUT',
       amount: this.round2(Number(p.amount) || 0),
       source: 'EXPENSE_PAYMENT',
@@ -388,6 +528,7 @@ export class BankingComponent implements OnInit {
       .filter((e: any) => (e.expense_payments?.length ?? 0) === 0)
       .map((e: any) => ({
         date: this.ymd(e.paid_at),
+        occurred_at: this.toDateTimeValue(e.paid_at),
         direction: 'OUT',
         amount: this.round2(Number(e.cost) || 0),
         source: 'EXPENSE_PAID',
@@ -399,7 +540,9 @@ export class BankingComponent implements OnInit {
     this.cashMovements = [...inMoves, ...outMovesFromPayments, ...outMovesPaidNoPayments]
       .filter((m) => m.amount > 0 && !!m.date);
 
-    this.cashMovements.sort((a, b) => b.date.localeCompare(a.date));
+    this.cashMovements.sort(
+      (a, b) => this.timeMs(b.occurred_at) - this.timeMs(a.occurred_at)
+    );
 
     if (applyFilters) {
       this.applyCashFilters();
@@ -436,36 +579,100 @@ export class BankingComponent implements OnInit {
     this.openingCash = this.round2(Number(this.baseCashAmount || 0) + totalInBefore - totalOutBefore);
   }
 
-  // ===== 4) ARQUEO MANUAL =====
+  // ===== 4) ARQUEOS DE CAJA =====
 
-  async loadCountedCashForDate(date: string): Promise<void> {
+  async loadCashboxCountsForDate(date: string): Promise<void> {
     const { data, error } = await this.supabase
       .from('transactions')
       .select('*')
       .eq('category', 'CASHBOX')
       .eq('payment_method', 'cash')
       .eq('movement_date', date)
-      .eq('source_type', 'COUNTED')
-      .order('created_at', { ascending: false })
-      .maybeSingle();
+      .in('source_type', [
+        'OPENING_COUNT',
+        'CHECKPOINT_COUNT',
+        'CLOSING_COUNT',
+        'COUNTED',
+      ])
+      .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error cargando arqueo manual:', error);
-      this.countedCash = 0;
+      console.error('Error cargando arqueos de caja:', error);
+
+      this.openingCountedCash = 0;
+      this.checkpointCountedCash = 0;
+      this.closingCountedCash = 0;
+
+      this.openingCountSaved = false;
+      this.checkpointCountSaved = false;
+      this.closingCountSaved = false;
+
+      this.checkpointCreatedAt = '';
       return;
     }
 
-    const row = data as CashboxTxn | null;
-    this.countedCash = this.round2(Number(row?.in ?? 0) || 0);
+    const rows = (data ?? []) as CashboxTxn[];
+
+    const getLatest = (type: CashboxCountTypeWithLegacy): CashboxTxn | null => {
+      return rows.find((r) => r.source_type === type) ?? null;
+    };
+
+    const openingRow = getLatest('OPENING_COUNT');
+    const checkpointRow = getLatest('CHECKPOINT_COUNT');
+
+    // COUNTED queda como compatibilidad vieja y se toma como cierre
+    const closingRow = getLatest('CLOSING_COUNT') ?? getLatest('COUNTED');
+
+    this.openingCountSaved = !!openingRow;
+    this.checkpointCountSaved = !!checkpointRow;
+    this.closingCountSaved = !!closingRow;
+
+    this.openingCountedCash = this.round2(Number(openingRow?.in ?? 0) || 0);
+
+    this.checkpointCountedCash = this.round2(Number(checkpointRow?.in ?? 0) || 0);
+    this.checkpointCreatedAt = checkpointRow?.created_at ?? '';
+
+    this.closingCountedCash = this.round2(Number(closingRow?.in ?? 0) || 0);
+
+    // Compatibilidad con campos antiguos
+    this.countedCash = this.closingCountedCash;
   }
 
-  async saveCountedCash(): Promise<void> {
-    await this.upsertCashboxTxn('COUNTED', this.countedCash, `Arqueo contado ${this.movementDate}`);
+  async saveOpeningCount(): Promise<void> {
+    await this.upsertCashboxTxn(
+      'OPENING_COUNT',
+      this.openingCountedCash,
+      `Conteo apertura ${this.movementDate}`
+    );
+
+    await this.loadCashboxCountsForDate(this.movementDate);
+    this.sumTotals();
+  }
+
+  async saveCheckpointCount(): Promise<void> {
+    await this.upsertCashboxTxn(
+      'CHECKPOINT_COUNT',
+      this.checkpointCountedCash,
+      `Conteo intermedio ${this.movementDate}`
+    );
+
+    await this.loadCashboxCountsForDate(this.movementDate);
+    this.sumTotals();
+  }
+
+  async saveClosingCount(): Promise<void> {
+    await this.upsertCashboxTxn(
+      'CLOSING_COUNT',
+      this.closingCountedCash,
+      `Conteo cierre ${this.movementDate}`
+    );
+
+    await this.loadCashboxCountsForDate(this.movementDate);
     this.sumTotals();
   }
 
   private async upsertCashboxTxn(
-    sourceType: 'COUNTED',
+    sourceType: CashboxCountType,
     amount: number,
     desc: string
   ): Promise<void> {
@@ -482,12 +689,13 @@ export class BankingComponent implements OnInit {
       .maybeSingle();
 
     if (findErr) {
-      console.error('Error buscando txn existente:', findErr);
+      console.error('Error buscando transacción existente:', findErr);
       this.showNotification('Error consultando transacción de caja.', 'error');
       return;
     }
 
     const payload: any = {
+      created_at: new Date().toISOString(),
       description: desc,
       in: cleanAmount,
       out: 0,
@@ -505,7 +713,7 @@ export class BankingComponent implements OnInit {
         .eq('id', existing.id);
 
       if (updErr) {
-        console.error('Error actualizando txn caja:', updErr);
+        console.error('Error actualizando arqueo de caja:', updErr);
         this.showNotification('Error guardando arqueo.', 'error');
         return;
       }
@@ -515,7 +723,7 @@ export class BankingComponent implements OnInit {
         .insert([payload]);
 
       if (insErr) {
-        console.error('Error insertando txn caja:', insErr);
+        console.error('Error insertando arqueo de caja:', insErr);
         this.showNotification('Error guardando arqueo.', 'error');
         return;
       }
@@ -549,6 +757,7 @@ export class BankingComponent implements OnInit {
   private sumTotals(): void {
     const list = this.filteredMovements;
 
+    // Totales del rango filtrado
     this.totalCashIn = this.round2(
       list
         .filter((m) => m.direction === 'IN')
@@ -563,7 +772,92 @@ export class BankingComponent implements OnInit {
 
     this.cashBalance = this.round2(this.totalCashIn - this.totalCashOut);
     this.theoreticalCash = this.round2(Number(this.openingCash || 0) + this.cashBalance);
-    this.cashDifference = this.round2(Number(this.countedCash || 0) - this.theoreticalCash);
+
+    // Totales reales del día seleccionado, independientes de los filtros
+    this.calculateDailyCashboxTotals();
+  }
+
+  private calculateDailyCashboxTotals(): void {
+    const dayList = this.cashMovements.filter(
+      (m) => m.date === this.movementDate
+    );
+
+    this.dayTotalCashIn = this.round2(
+      dayList
+        .filter((m) => m.direction === 'IN')
+        .reduce((s, m) => s + (Number(m.amount) || 0), 0)
+    );
+
+    this.dayTotalCashOut = this.round2(
+      dayList
+        .filter((m) => m.direction === 'OUT')
+        .reduce((s, m) => s + (Number(m.amount) || 0), 0)
+    );
+
+    this.dayCashBalance = this.round2(this.dayTotalCashIn - this.dayTotalCashOut);
+
+    this.closingTheoreticalCash = this.round2(
+      Number(this.openingCash || 0) + this.dayCashBalance
+    );
+
+    this.openingDifference = this.openingCountSaved
+      ? this.round2(Number(this.openingCountedCash || 0) - Number(this.openingCash || 0))
+      : 0;
+
+    this.closingDifference = this.closingCountSaved
+      ? this.round2(Number(this.closingCountedCash || 0) - this.closingTheoreticalCash)
+      : 0;
+
+    // Compatibilidad con campos antiguos
+    this.countedCash = this.closingCountedCash;
+    this.cashDifference = this.closingDifference;
+
+    this.calculateCheckpointTotals();
+  }
+
+  private calculateCheckpointTotals(): void {
+    this.checkpointInAfter = 0;
+    this.checkpointOutAfter = 0;
+    this.checkpointNetAfter = 0;
+    this.checkpointProjectedCash = 0;
+    this.checkpointVsClosingDifference = 0;
+
+    if (!this.checkpointCountSaved || !this.checkpointCreatedAt) {
+      return;
+    }
+
+    const checkpointTime = this.timeMs(this.checkpointCreatedAt);
+
+    const afterCheckpoint = this.cashMovements.filter((m) => {
+      return (
+        m.date === this.movementDate &&
+        this.timeMs(m.occurred_at) > checkpointTime
+      );
+    });
+
+    this.checkpointInAfter = this.round2(
+      afterCheckpoint
+        .filter((m) => m.direction === 'IN')
+        .reduce((s, m) => s + (Number(m.amount) || 0), 0)
+    );
+
+    this.checkpointOutAfter = this.round2(
+      afterCheckpoint
+        .filter((m) => m.direction === 'OUT')
+        .reduce((s, m) => s + (Number(m.amount) || 0), 0)
+    );
+
+    this.checkpointNetAfter = this.round2(
+      this.checkpointInAfter - this.checkpointOutAfter
+    );
+
+    this.checkpointProjectedCash = this.round2(
+      Number(this.checkpointCountedCash || 0) + this.checkpointNetAfter
+    );
+
+    this.checkpointVsClosingDifference = this.closingCountSaved
+      ? this.round2(Number(this.closingCountedCash || 0) - this.checkpointProjectedCash)
+      : 0;
   }
 
   async onMovementDateChange(): Promise<void> {
@@ -571,7 +865,7 @@ export class BankingComponent implements OnInit {
     this.endDate = this.movementDate;
 
     await this.loadAutomaticOpeningCashFromHistory(this.movementDate);
-    await this.loadCountedCashForDate(this.movementDate);
+    await this.loadCashboxCountsForDate(this.movementDate);
     this.applyCashFilters();
   }
 
