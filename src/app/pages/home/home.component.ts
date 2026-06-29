@@ -68,8 +68,8 @@ export class HomeComponent implements OnInit {
       }
     });
   }
-  goToProducts() {
-    this.router.navigate(['/inventory/product']);
+  goToPublicProducts() {
+    this.router.navigate(['/product']);
   }
   scrollToAbout(): void {
     const element = document.getElementById('about');

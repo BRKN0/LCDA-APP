@@ -2,14 +2,14 @@
 
 <!-- Loading -->
 <div *ngIf="loading" class="p-4 text-center text-gray-600">
-  <p>Cargando datos de terceros...</p>
+  <p>Cargando préstamos...</p>
 </div>
 
 <!-- Action buttons -->
 <div *ngIf="!loading" class="flex justify-end space-x-2 mr-4 mb-4 mt-4">
   <button
     class="btn-add inline-flex items-center space-x-2"
-    (click)="addParty()"
+    (click)="addLoan()"
   >
     <svg
       class="w-5 h-5 inline-block align-middle mt-[3px]"
@@ -28,14 +28,13 @@
         fill="#ffffff"
       />
     </svg>
-    <span>Añadir</span>
+    <span>Nuevo préstamo</span>
   </button>
-  <button class="btn-details" (click)="importFromExcel()">
-    Importar desde Excel
-  </button>
+
   <button class="btn-details" (click)="exportToExcel()">
     Exportar a Excel
   </button>
+
   <button
     class="btn-clear inline-flex items-center space-x-2"
     (click)="clearFilters()"
@@ -44,222 +43,270 @@
   </button>
 </div>
 
-<div class="flex items-center justify-center mt-2">
-  <div class="w-full max-w-md relative">
-    <input
-      type="text"
-      placeholder="Ingrese nombre o empresa"
-      [(ngModel)]="nameSearchQuery"
-      (input)="updateFilteredParties()"
-      class="w-full py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
-    />
+<!-- Summary cards -->
+<div *ngIf="!loading" class="grid grid-cols-1 md:grid-cols-4 gap-4 mx-4 mb-4">
+  <div class="p-4 bg-white border rounded shadow-sm">
+    <p class="text-sm text-gray-500">Total prestado</p>
+    <p class="text-xl font-bold">$ {{ formatCurrency(totalLoaned) }}</p>
+  </div>
+
+  <div class="p-4 bg-white border rounded shadow-sm">
+    <p class="text-sm text-gray-500">Total recuperado</p>
+    <p class="text-xl font-bold">$ {{ formatCurrency(totalRecovered) }}</p>
+  </div>
+
+  <div class="p-4 bg-white border rounded shadow-sm">
+    <p class="text-sm text-gray-500">Saldo por recuperar</p>
+    <p class="text-xl font-bold">$ {{ formatCurrency(totalPending) }}</p>
+  </div>
+
+  <div class="p-4 bg-white border rounded shadow-sm">
+    <p class="text-sm text-gray-500">Préstamos activos</p>
+    <p class="text-xl font-bold">{{ activeLoans }}</p>
   </div>
 </div>
 
-<!-- Add/Edit Modal -->
-<div *ngIf="showModal" class="modal-overlay">
-  <div
-    #modalContent
-    class="modal-content modal-h900 modal-w600 overflow-y-auto"
-  >
+<!-- Filters -->
+<div *ngIf="!loading" class="grid grid-cols-1 md:grid-cols-5 gap-4 mx-4 mb-4">
+  <div class="relative">
+    <label class="block text-sm font-semibold mb-1">Persona</label>
+
+    <div class="flex gap-2">
+      <input
+        type="text"
+        placeholder="Buscar persona"
+        [(ngModel)]="borrowerFilterSearch"
+        (input)="onBorrowerFilterInput()"
+        (focus)="onBorrowerFilterInput()"
+        (blur)="hideBorrowerFilterSuggestions()"
+        class="w-full py-2 px-4 rounded border border-gray-300 text-gray-700 focus:outline-none focus:border-red-700"
+      />
+
+      <button
+        type="button"
+        class="btn-clear"
+        *ngIf="selectedBorrowerFilter"
+        (click)="clearBorrowerFilter()"
+      >
+        X
+      </button>
+    </div>
+
+    <div
+      *ngIf="showBorrowerFilterSuggestions && borrowerFilterSuggestions.length > 0"
+      class="absolute z-50 bg-white border border-gray-300 rounded shadow-md w-full mt-1 max-h-60 overflow-y-auto"
+    >
+      <div
+        *ngFor="let name of borrowerFilterSuggestions"
+        (mousedown)="selectBorrowerFilter(name)"
+        class="px-4 py-2 cursor-pointer hover:bg-gray-100"
+      >
+        {{ name }}
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <label class="block text-sm font-semibold mb-1">Estado</label>
+    <select
+      [(ngModel)]="filterStatus"
+      (change)="applyFilters()"
+      class="w-full py-2 px-4 rounded border border-gray-300 text-gray-700 focus:outline-none focus:border-red-700"
+    >
+      <option value="">Todos</option>
+      <option *ngFor="let status of statusOptions" [value]="status.value">
+        {{ status.label }}
+      </option>
+    </select>
+  </div>
+
+  <div>
+    <label class="block text-sm font-semibold mb-1">Prestamo desde</label>
+    <input
+      type="date"
+      [(ngModel)]="startDate"
+      (change)="applyFilters()"
+      class="w-full py-2 px-4 rounded border border-gray-300 text-gray-700 focus:outline-none focus:border-red-700"
+    />
+  </div>
+
+  <div>
+    <label class="block text-sm font-semibold mb-1">Prestamo hasta</label>
+    <input
+      type="date"
+      [(ngModel)]="endDate"
+      (change)="applyFilters()"
+      class="w-full py-2 px-4 rounded border border-gray-300 text-gray-700 focus:outline-none focus:border-red-700"
+    />
+  </div>
+
+  <div>
+    <label class="block text-sm font-semibold mb-1">Método de salida</label>
+    <select
+      [(ngModel)]="filterDisbursementMethod"
+      (change)="applyFilters()"
+      class="w-full py-2 px-4 rounded border border-gray-300 text-gray-700 focus:outline-none focus:border-red-700"
+    >
+      <option value="">Todos</option>
+      <option *ngFor="let method of paymentMethods" [value]="method.value">
+        {{ method.label }}
+      </option>
+    </select>
+  </div>
+
+  <!-- Payment filters -->
+  <div>
+    <label class="block text-sm font-semibold mb-1">Devolución desde</label>
+    <input
+      type="date"
+      [(ngModel)]="paymentStartDate"
+      (change)="applyFilters()"
+      class="w-full py-2 px-4 rounded border border-gray-300 text-gray-700 focus:outline-none focus:border-red-700"
+    />
+  </div>
+
+  <div>
+    <label class="block text-sm font-semibold mb-1">Devolución hasta</label>
+    <input
+      type="date"
+      [(ngModel)]="paymentEndDate"
+      (change)="applyFilters()"
+      class="w-full py-2 px-4 rounded border border-gray-300 text-gray-700 focus:outline-none focus:border-red-700"
+    />
+  </div>
+
+  <div>
+    <label class="block text-sm font-semibold mb-1">Método de devolución</label>
+    <select
+      [(ngModel)]="filterPaymentMethod"
+      (change)="applyFilters()"
+      class="w-full py-2 px-4 rounded border border-gray-300 text-gray-700 focus:outline-none focus:border-red-700"
+    >
+      <option value="">Todos</option>
+      <option *ngFor="let method of paymentMethods" [value]="method.value">
+        {{ method.label }}
+      </option>
+    </select>
+  </div>
+</div>
+
+<!-- Add/Edit Loan Modal -->
+<div *ngIf="showLoanModal" class="modal-overlay">
+  <div class="modal-content modal-auto modal-w600">
     <h3 class="text-lg font-bold mb-4">
-      {{ isEditing ? "Editar Tercero" : "Nuevo Tercero" }}
+      {{ isEditingLoan ? "Editar préstamo" : "Nuevo préstamo" }}
     </h3>
-    <form [formGroup]="partyForm" (ngSubmit)="saveParty()">
+
+    <form [formGroup]="loanForm" (ngSubmit)="saveLoan()">
       <div class="mb-4">
-        <label class="block modal-input-item"
-          >Nombre de Empresa<span class="text-red-500">*</span></label
-        >
+        <label class="block font-semibold text-sm mb-1">
+          Fecha del préstamo<span class="text-red-500">*</span>
+        </label>
         <input
-          type="text"
-          formControlName="company_name"
-          name="company_name"
-          required
+          type="date"
+          formControlName="loan_at"
+          class="w-full border rounded px-3 py-2"
           [ngClass]="{
             'border-red-500':
-              partyForm.get('company_name')?.invalid &&
-              partyForm.get('company_name')?.touched
+              loanForm.get('loan_at')?.invalid &&
+              loanForm.get('loan_at')?.touched
           }"
-          class="form-input mt-1 block w-full"
         />
+      </div>
+
+      <div class="mb-4 relative">
+        <label class="block font-semibold text-sm mb-1">
+          Persona que recibió el dinero<span class="text-red-500">*</span>
+        </label>
+
+        <input
+          type="text"
+          formControlName="borrower_name"
+          placeholder="Escriba o seleccione una persona"
+          autocomplete="off"
+          class="w-full border rounded px-3 py-2 uppercase"
+          (input)="onBorrowerFormInput()"
+          (focus)="onBorrowerFormInput()"
+          (blur)="hideBorrowerFormSuggestions()"
+          [ngClass]="{
+            'border-red-500':
+              loanForm.get('borrower_name')?.invalid &&
+              loanForm.get('borrower_name')?.touched
+          }"
+        />
+
+        <div
+          *ngIf="showBorrowerFormSuggestions && borrowerFormSuggestions.length > 0"
+          class="absolute z-50 bg-white border border-gray-300 rounded shadow-md w-full mt-1 max-h-60 overflow-y-auto"
+        >
+          <div
+            *ngFor="let name of borrowerFormSuggestions"
+            (mousedown)="selectBorrowerForForm(name)"
+            class="px-4 py-2 cursor-pointer hover:bg-gray-100"
+          >
+            {{ name }}
+          </div>
+        </div>
+
         <div
           *ngIf="
-            partyForm.get('company_name')?.invalid &&
-            partyForm.get('company_name')?.touched
+            loanForm.get('borrower_name')?.invalid &&
+            loanForm.get('borrower_name')?.touched
           "
           class="text-red-500 text-sm mt-1"
         >
-          El nombre de empresa es obligatorio.
+          La persona que recibió el dinero es obligatoria.
         </div>
       </div>
-      <div class="mb-3">
-        <label class="block font-semibold text-sm mb-1">NIT</label>
+
+      <div class="mb-4">
+        <label class="block font-semibold text-sm mb-1">
+          Valor prestado<span class="text-red-500">*</span>
+        </label>
         <input
-          type="text"
-          formControlName="nit"
+          type="number"
+          min="1"
+          formControlName="amount"
           class="w-full border rounded px-3 py-2"
+          [ngClass]="{
+            'border-red-500':
+              loanForm.get('amount')?.invalid &&
+              loanForm.get('amount')?.touched
+          }"
         />
       </div>
 
-      <div class="mb-3">
-        <label class="block font-semibold text-sm mb-1">Email</label>
-        <input
-          type="email"
-          formControlName="email"
+      <div class="mb-4">
+        <label class="block font-semibold text-sm mb-1">
+          Método de salida<span class="text-red-500">*</span>
+        </label>
+        <select
+          formControlName="disbursement_method"
           class="w-full border rounded px-3 py-2"
-        />
+        >
+          <option *ngFor="let method of paymentMethods" [value]="method.value">
+            {{ method.label }}
+          </option>
+        </select>
       </div>
 
-      <div class="mb-3">
-        <label class="block font-semibold text-sm mb-1">Teléfono</label>
-        <input
-          type="text"
-          formControlName="phone_number"
-          class="w-full border rounded px-3 py-2"
-        />
-      </div>
-
-      <div class="mb-3 grid grid-cols-3 gap-4">
-        <div>
-          <label class="block font-semibold text-sm mb-1">País</label>
-          <select
-            formControlName="country"
-            class="w-full border rounded px-3 py-2"
-          >
-            <option value="Colombia">Colombia</option>
-            <option value="Estados Unidos">Estados Unidos</option>
-            <option value="México">México</option>
-            <option value="Perú">Perú</option>
-            <option value="Otro">Otro</option>
-          </select>
-        </div>
-        <div>
-          <label class="block font-semibold text-sm mb-1">Departamento</label>
-          <ng-container
-            *ngIf="
-              partyForm.get('country')?.value === 'Colombia';
-              else deptoInput
-            "
-          >
-            <select
-              formControlName="department"
-              class="w-full border rounded px-3 py-2"
-            >
-              <option *ngFor="let dept of colombianDepartments" [value]="dept">
-                {{ dept }}
-              </option>
-            </select>
-          </ng-container>
-          <ng-template #deptoInput>
-            <input
-              type="text"
-              formControlName="department"
-              class="w-full border rounded px-3 py-2"
-            />
-          </ng-template>
-        </div>
-        <div>
-          <label class="block font-semibold text-sm mb-1">Ciudad</label>
-          <ng-container
-            *ngIf="
-              partyForm.get('country')?.value === 'Colombia';
-              else cityInput
-            "
-          >
-            <select
-              formControlName="city"
-              class="w-full border rounded px-3 py-2"
-            >
-              <option *ngFor="let city of colombianCities" [value]="city">
-                {{ city }}
-              </option>
-            </select>
-          </ng-container>
-          <ng-template #cityInput>
-            <input
-              type="text"
-              formControlName="city"
-              class="w-full border rounded px-3 py-2"
-            />
-          </ng-template>
-        </div>
-      </div>
-
-      <div class="mb-3 grid grid-cols-2 gap-4 justify-between">
-        <div>
-          <label class="block font-semibold text-sm mb-1">Dirección 1</label>
-          <input
-            type="text"
-            formControlName="address1"
-            class="w-full border rounded px-3 py-2"
-          />
-        </div>
-        <div>
-          <label class="block font-semibold text-sm mb-1">Dirección 2</label>
-          <input
-            type="text"
-            formControlName="address2"
-            class="w-full border rounded px-3 py-2"
-          />
-        </div>
-      </div>
-
-      <div class="mb-3">
-        <label class="block font-semibold text-sm mb-1">Barrio</label>
-        <input
-          type="text"
-          formControlName="neighborhood"
-          class="w-full border rounded px-3 py-2"
-        />
-      </div>
-
-      <div class="mb-3">
-        <label class="block font-semibold text-sm mb-1">Código Postal</label>
-        <input
-          type="text"
-          formControlName="postal_code"
-          class="w-full border rounded px-3 py-2"
-        />
-      </div>
-
-      <div class="mb-3">
-        <label class="block font-semibold text-sm mb-1">Comentario</label>
+      <div class="mb-4">
+        <label class="block font-semibold text-sm mb-1">Descripción</label>
         <textarea
-          rows="2"
-          formControlName="comment"
-          class="w-full border rounded px-3 py-2"
+          rows="3"
+          formControlName="description"
+          class="w-full border rounded px-3 py-2 uppercase"
         ></textarea>
       </div>
 
-      <div class="mb-3 grid grid-cols-2 gap-4">
-        <div class="mb-3">
-          <label class="block font-semibold text-sm mb-1"
-            >Cuenta contable de gastos</label
-          >
-          <input
-            type="text"
-            formControlName="cta_contable_expenses"
-            class="w-full border rounded px-3 py-2"
-          />
-        </div>
-
-        <div class="mb-4">
-          <label class="block font-semibold text-sm mb-1"
-            >Cuenta contable por pagar</label
-          >
-          <input
-            type="text"
-            formControlName="cta_contable_to_pay"
-            class="w-full border rounded px-3 py-2"
-          />
-        </div>
-      </div>
-
       <div class="flex justify-end mt-4">
-        <button type="button" class="btn-danger mr-2" (click)="closeModal()">
+        <button type="button" class="btn-danger mr-2" (click)="closeLoanModal()">
           Cancelar
         </button>
-        <button type="submit" class="btn-success">Guardar</button>
+
+        <button type="submit" class="btn-success" [disabled]="isSaving">
+          {{ isSaving ? "Guardando..." : isEditingLoan ? "Actualizar" : "Guardar" }}
+        </button>
       </div>
     </form>
   </div>
@@ -267,46 +314,93 @@
 
 <!-- Table -->
 <div *ngIf="!loading">
-  <div *ngIf="paginatedParties.length > 0">
+  <div *ngIf="paginatedLoans.length > 0">
     <table class="table-std">
       <thead>
         <tr>
-          <th>Nombre de Empresa</th>
-          <th>NIT</th>
-          <th>Correo</th>
-          <th>Teléfono</th>
+          <th>Código</th>
+          <th>Persona</th>
+          <th>Fecha préstamo</th>
+          <th>Valor prestado</th>
+          <th>{{ hasPaymentFilters() ? "Recuperado filtrado" : "Recuperado" }}</th>
+          <th>Saldo</th>
+          <th>Estado</th>
+          <th>Método salida</th>
           <th>Acciones</th>
         </tr>
       </thead>
+
       <tbody>
-        <tr *ngFor="let party of paginatedParties">
-          <td>{{ party.company_name }}</td>
-          <td>{{ party.nit }}</td>
-          <td>{{ party.email }}</td>
-          <td>{{ party.phone_number }}</td>
+        <tr *ngFor="let loan of paginatedLoans">
+          <td>{{ loan.code || "-" }}</td>
+          <td>{{ loan.borrower_name }}</td>
+          <td>{{ formatDateTime(loan.loan_at) }}</td>
+          <td>$ {{ formatCurrency(loan.amount) }}</td>
+          <td>$ {{ formatCurrency(getRecoveredForView(loan)) }}</td>
+          <td>$ {{ formatCurrency(getPendingBalance(loan)) }}</td>
           <td>
-            <button class="btn-details" (click)="viewPartyDetails(party)">
-              Detalles
-            </button>
-            <button class="btn-edit" (click)="editParty(party)">Editar</button>
-            <button class="btn-delete" (click)="deleteParty(party)">
-              Eliminar
-            </button>
+            <span
+              class="px-2 py-1 rounded text-xs font-semibold"
+              [ngClass]="{
+                'bg-yellow-100 text-yellow-700': loan.status === 'PENDING',
+                'bg-blue-100 text-blue-700': loan.status === 'PARTIAL',
+                'bg-green-100 text-green-700': loan.status === 'PAID',
+              }"
+            >
+              {{ getReadableStatus(loan.status) }}
+            </span>
+          </td>
+          <td>{{ getReadablePaymentMethod(loan.disbursement_method) }}</td>
+
+          <td>
+            <div class="flex flex-wrap gap-1 items-center">
+              <button 
+                class="btn-details" 
+                (click)="viewLoanDetails(loan)"
+              >
+                Detalles
+              </button>
+
+              <button
+                class="btn-success"
+                (click)="openPaymentModal(loan)"
+                [disabled]="loan.status === 'PAID'"
+              >
+                Registrar devolución
+              </button>
+
+              <button
+                class="btn-edit"
+                (click)="editLoan(loan)"
+              >
+                Editar
+              </button>
+
+              <button 
+                class="btn-delete" 
+                (click)="deleteLoan(loan)"
+              >
+                Eliminar
+              </button>
+            </div>
           </td>
         </tr>
       </tbody>
     </table>
+
+    <!-- Pagination -->
     <div class="flex justify-between items-center mb-4 mt-4">
       <div class="pagination flex items-center">
         <button
-          (click)="currentPage = 1; updatePaginatedParties()"
+          (click)="currentPage = 1; updatePaginatedLoans()"
           [disabled]="currentPage === 1"
           class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
         >
           &#8656;
         </button>
+
         <button
-          (click)="currentPage = currentPage - 1; updatePaginatedParties()"
+          (click)="currentPage = currentPage - 1; updatePaginatedLoans()"
           [disabled]="currentPage === 1"
           class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-7 h-7"
         >
@@ -318,14 +412,15 @@
         </span>
 
         <button
-          (click)="currentPage = currentPage + 1; updatePaginatedParties()"
+          (click)="currentPage = currentPage + 1; updatePaginatedLoans()"
           [disabled]="currentPage === totalPages"
           class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-7 h-7"
         >
           &#8594;
         </button>
+
         <button
-          (click)="currentPage = totalPages; updatePaginatedParties()"
+          (click)="currentPage = totalPages; updatePaginatedLoans()"
           [disabled]="currentPage === totalPages"
           class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
         >
@@ -338,7 +433,7 @@
         <select
           id="itemsPerPage"
           [(ngModel)]="itemsPerPage"
-          (ngModelChange)="updatePaginatedParties()"
+          (ngModelChange)="updatePaginatedLoans()"
           class="border border-gray-300 rounded-md p-1"
         >
           <option *ngFor="let size of [5, 10, 15, 20]" [value]="size">
@@ -350,68 +445,216 @@
   </div>
 
   <div
-    *ngIf="paginatedParties.length === 0"
+    *ngIf="paginatedLoans.length === 0"
     class="p-4 text-center text-gray-600"
   >
-    <p>No hay resultados para la búsqueda o filtros aplicados.</p>
+    <p>No hay préstamos registrados o no hay resultados para los filtros aplicados.</p>
   </div>
 </div>
 
 <!-- Details Modal -->
-<div *ngIf="selectedPartyDetails" class="modal-overlay">
-  <div class="modal-content modal-h800 overflow-y-auto">
-    <h2 class="text-xl font-bold mb-4">Detalles del Tercero</h2>
+<div *ngIf="showDetailsModal && selectedLoanDetails" class="modal-overlay">
+  <div class="modal-content modal-auto modal-w600">
+    <h2 class="text-xl font-bold mb-4">Detalles del préstamo</h2>
+
     <div class="p-4 border border-gray-300 bg-white invoice-details space-y-4">
       <div>
-        <h3 class="font-semibold text-lg/9 mb-2">Contacto</h3>
-        <p><strong>Empresa:</strong> {{ selectedPartyDetails.company_name }}</p>
-        <p><strong>NIT:</strong> {{ selectedPartyDetails.nit }}</p>
-        <p><strong>Email:</strong> {{ selectedPartyDetails.email }}</p>
-        <p>
-          <strong>Teléfono:</strong> {{ selectedPartyDetails.phone_number }}
-        </p>
+        <h3 class="font-semibold text-lg/9 mb-2">Información general</h3>
+        <p><strong>Código:</strong> {{ selectedLoanDetails.code || "-" }}</p>
+        <p><strong>Persona:</strong> {{ selectedLoanDetails.borrower_name }}</p>
+        <p><strong>Fecha préstamo:</strong> {{ formatDateTime(selectedLoanDetails.loan_at) }}</p>
+        <p><strong>Valor prestado:</strong> $ {{ formatCurrency(selectedLoanDetails.amount) }}</p>
+        <p><strong>Método salida:</strong> {{ getReadablePaymentMethod(selectedLoanDetails.disbursement_method) }}</p>
+        <p><strong>Estado:</strong> {{ getReadableStatus(selectedLoanDetails.status) }}</p>
+        <p><strong>Recuperado:</strong> $ {{ formatCurrency(getTotalRecovered(selectedLoanDetails)) }}</p>
+        <p><strong>Saldo por recuperar:</strong> $ {{ formatCurrency(getPendingBalance(selectedLoanDetails)) }}</p>
+        <p><strong>Creado:</strong> {{ formatDateTime(selectedLoanDetails.created_at) }}</p>
       </div>
 
       <div>
-        <h3 class="font-semibold text-lg/9 mb-2">Ubicación</h3>
-        <p><strong>Dirección 1:</strong> {{ selectedPartyDetails.address1 }}</p>
-        <p><strong>Dirección 2:</strong> {{ selectedPartyDetails.address2 }}</p>
-        <p><strong>Barrio:</strong> {{ selectedPartyDetails.neighborhood }}</p>
-        <p><strong>Ciudad:</strong> {{ selectedPartyDetails.city }}</p>
-        <p>
-          <strong>Departamento:</strong>
-          {{ selectedPartyDetails.department }}
-        </p>
-        <p>
-          <strong>Código Postal:</strong>
-          {{ selectedPartyDetails.postal_code }}
-        </p>
-        <p><strong>País:</strong> {{ selectedPartyDetails.country }}</p>
+        <h3 class="font-semibold text-lg/9 mb-2">Descripción</h3>
+        <p>{{ selectedLoanDetails.description || "Sin descripción" }}</p>
       </div>
+
       <div>
-        <p>
-          <strong>Cta Contable Gastos:</strong>
-          {{ selectedPartyDetails.cta_contable_expenses }}
+        <h3 class="font-semibold text-lg/9 mb-2">Devoluciones</h3>
+
+        <div
+          *ngIf="
+            selectedLoanDetails.loan_payments &&
+            selectedLoanDetails.loan_payments.length > 0
+          "
+        >
+          <table class="table-std">
+            <thead>
+              <tr>
+                <th>Fecha devolución</th>
+                <th>Valor</th>
+                <th>Método</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr *ngFor="let payment of selectedLoanDetails.loan_payments">
+                <td>{{ formatDateTime(payment.payment_at) }}</td>
+                <td>$ {{ formatCurrency(payment.amount) }}</td>
+                <td>{{ getReadablePaymentMethod(payment.payment_method) }}</td>
+                <td>
+                  <button class="btn-edit" (click)="openEditPaymentModal(payment)">
+                    Editar
+                  </button>
+
+                  <button class="btn-delete" (click)="deletePayment(payment)">
+                    Eliminar
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p
+          *ngIf="
+            !selectedLoanDetails.loan_payments ||
+            selectedLoanDetails.loan_payments.length === 0
+          "
+          class="text-gray-600"
+        >
+          Este préstamo no tiene devoluciones registradas.
         </p>
-        <p>
-          <strong>Cta Contable a Pagar:</strong>
-          {{ selectedPartyDetails.cta_contable_to_pay }}
-        </p>
-      </div>
-      <div>
-        <h3 class="font-semibold text-lg/9 mb-2">Comentario</h3>
-        <p>{{ selectedPartyDetails.comment }}</p>
       </div>
 
       <div class="flex justify-end mt-4">
         <button
           type="button"
           class="btn-danger mr-2"
-          (click)="closePartyDetails()"
+          (click)="closeDetailsModal()"
         >
           Cerrar
         </button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- Register Payment Modal -->
+<div *ngIf="showPaymentModal && selectedLoanForPayment" class="modal-overlay">
+  <div class="modal-content modal-auto modal-w600">
+    <h3 class="text-lg font-bold mb-4">Registrar devolución</h3>
+
+    <div class="mb-4 p-3 border rounded bg-gray-50">
+      <p><strong>Persona:</strong> {{ selectedLoanForPayment.borrower_name }}</p>
+      <p><strong>Saldo pendiente:</strong> $ {{ formatCurrency(getPendingBalance(selectedLoanForPayment)) }}</p>
+    </div>
+
+    <form [formGroup]="paymentForm" (ngSubmit)="addPayment()">
+      <div class="mb-4">
+        <label class="block font-semibold text-sm mb-1">
+          Fecha de devolución<span class="text-red-500">*</span>
+        </label>
+        <input
+          type="date"
+          formControlName="payment_at"
+          class="w-full border rounded px-3 py-2"
+        />
+      </div>
+
+      <div class="mb-4">
+        <label class="block font-semibold text-sm mb-1">
+          Valor devuelto<span class="text-red-500">*</span>
+        </label>
+        <input
+          type="number"
+          min="1"
+          formControlName="amount"
+          class="w-full border rounded px-3 py-2"
+        />
+      </div>
+
+      <div class="mb-4">
+        <label class="block font-semibold text-sm mb-1">
+          Método de devolución<span class="text-red-500">*</span>
+        </label>
+        <select
+          formControlName="payment_method"
+          class="w-full border rounded px-3 py-2"
+        >
+          <option *ngFor="let method of paymentMethods" [value]="method.value">
+            {{ method.label }}
+          </option>
+        </select>
+      </div>
+
+      <div class="flex justify-end mt-4">
+        <button type="button" class="btn-danger mr-2" (click)="closePaymentModal()">
+          Cancelar
+        </button>
+
+        <button type="submit" class="btn-success">
+          Guardar devolución
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Payment Modal -->
+<div *ngIf="showEditPaymentModal && selectedPayment" class="modal-overlay">
+  <div class="modal-content modal-auto modal-w600">
+    <h3 class="text-lg font-bold mb-4">Editar devolución</h3>
+
+    <form [formGroup]="paymentForm" (ngSubmit)="updatePayment()">
+      <div class="mb-4">
+        <label class="block font-semibold text-sm mb-1">
+          Fecha de devolución<span class="text-red-500">*</span>
+        </label>
+        <input
+          type="date"
+          formControlName="payment_at"
+          class="w-full border rounded px-3 py-2"
+        />
+      </div>
+
+      <div class="mb-4">
+        <label class="block font-semibold text-sm mb-1">
+          Valor devuelto<span class="text-red-500">*</span>
+        </label>
+        <input
+          type="number"
+          min="1"
+          formControlName="amount"
+          class="w-full border rounded px-3 py-2"
+        />
+      </div>
+
+      <div class="mb-4">
+        <label class="block font-semibold text-sm mb-1">
+          Método de devolución<span class="text-red-500">*</span>
+        </label>
+        <select
+          formControlName="payment_method"
+          class="w-full border rounded px-3 py-2"
+        >
+          <option *ngFor="let method of paymentMethods" [value]="method.value">
+            {{ method.label }}
+          </option>
+        </select>
+      </div>
+
+      <div class="flex justify-end mt-4">
+        <button
+          type="button"
+          class="btn-danger mr-2"
+          (click)="closeEditPaymentModal()"
+        >
+          Cancelar
+        </button>
+
+        <button type="submit" class="btn-success">
+          Actualizar devolución
+        </button>
+      </div>
+    </form>
   </div>
 </div>

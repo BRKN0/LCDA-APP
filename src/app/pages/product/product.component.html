@@ -52,7 +52,7 @@ barra de navegacion debatible a cambio
 </nav>
 -->
 <!-- Contenedor principal -->
-<ng-container *ngIf="userRole !== 'admin' && userRole !== 'scheduler'">
+<ng-container *ngIf="isPublicProductRoute">
   <div class="w-full max-w-5xl mx-auto mb-10 px-4 mt-10">
     <div
       class="relative overflow-hidden rounded-3xl shadow-2xl bg-gradient-to-tr from-white to-gray-100 h-[420px] md:h-[600px]"
@@ -249,324 +249,326 @@ barra de navegacion debatible a cambio
 -->
 
 <!-- Indicador de carga -->
-<div *ngIf="loading" class="p-4 text-center text-gray-600">
-  <p>Cargando productos...</p>
-</div>
+<ng-container *ngIf="!isPublicProductRoute && (userRole === 'admin' || userRole === 'scheduler')">
+  <div *ngIf="loading" class="p-4 text-center text-gray-600">
+    <p>Cargando productos...</p>
+  </div>
 
-<div *ngIf="!loading">
-  <div class="flex justify-end items-center mb-4 mt-4 ml-2">
-    <!-- Botón Añadir producto -->
-    <button class="btn-add inline-flex items-center space-x-2" (click)="addNewProduct()">
-      <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M12 4v16m8-8H4" stroke="#fff" stroke-width="2" stroke-linecap="round" />
-      </svg>
-      <span>Añadir</span>
+  <div *ngIf="!loading">
+    <div class="flex justify-end items-center mb-4 mt-4 ml-2">
+      <!-- Botón Añadir producto -->
+      <button class="btn-add inline-flex items-center space-x-2" (click)="addNewProduct()">
+        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 4v16m8-8H4" stroke="#fff" stroke-width="2" stroke-linecap="round" />
+        </svg>
+        <span>Añadir</span>
+      </button>
+      <button
+        class="btn-clear "
+        (click)="clearFilters()"
+      >
+        Limpiar
     </button>
-    <button
-      class="btn-clear "
-      (click)="clearFilters()"
-    >
-      Limpiar
-  </button>
-  </div>
-
-  <!-- Input de búsqueda -->
-  <div class="flex items-center justify-center py-4 space-x-4">
-    <div class="relative w-full max-w-md">
-      <input
-        type="text"
-        placeholder="Buscar producto..."
-        [(ngModel)]="searchQuery"
-        (ngModelChange)="searchProduct()"
-        class="w-full py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
-      />
     </div>
-  </div>
 
-  <div class="flex flex-wrap items-center justify-between mb-4 gap-4 px-2">
-    <div>
-      <label class="font-semibold mr-2">Categoría:</label>
-      <select
-        [(ngModel)]="filterCategory"
-        (change)="searchProduct()"
-        class="border border-gray-300 rounded-md p-1"
-      >
-        <option value="">-- Todas --</option>
-        <option *ngFor="let c of getUniqueCategories()" [value]="c">
-          {{ c }}
-        </option>
-      </select>
-    </div>
-    
-    <!-- Filtros de precio desde/hasta agrupados -->
-    <div class="flex items-center space-x-2">
-      <div>
-        <label class="font-semibold mr-2">Precio desde:</label>
+    <!-- Input de búsqueda -->
+    <div class="flex items-center justify-center py-4 space-x-4">
+      <div class="relative w-full max-w-md">
         <input
-          type="number"
-          [(ngModel)]="minPrice"
-          (change)="searchProduct()"
-          class="border border-gray-300 rounded-md p-1 w-24"
-        />
-      </div>
-      <div>
-        <label class="font-semibold mr-2">Hasta:</label>
-        <input
-          type="number"
-          [(ngModel)]="maxPrice"
-          (change)="searchProduct()"
-          class="border border-gray-300 rounded-md p-1 w-24"
+          type="text"
+          placeholder="Buscar producto..."
+          [(ngModel)]="searchQuery"
+          (ngModelChange)="searchProduct()"
+          class="w-full py-2 px-4 rounded-full border-2 border-red-500 text-gray-700 focus:outline-none focus:border-red-700"
         />
       </div>
     </div>
 
-    <!-- Solo disponibles -->
-    <div>
-      <label class="font-semibold mr-2">Solo disponibles:</label>
-      <input
-        type="checkbox"
-        [(ngModel)]="filterStockAvailable"
-        (change)="searchProduct()"
-        class="ml-1"
-      />
-    </div>
-  </div>
-
-  <table class="table-std">
-    <thead>
-      <tr>
-        <th class="table-column-std">Código</th>
-        <th class="table-column-std">Nombre</th>
-        <th class="table-column-std">Categoría</th>
-        <th class="table-column-std">Stock</th>
-        <th class="table-column-std">Costo</th>
-        <th class="table-column-std">Precio</th>
-        <th class="table-column-std">% Margen</th>
-        <th class="table-column-std">Acciones</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let product of paginatedProducts">
-        <td>{{ product.code }}</td>
-        <td>{{ product.name }}</td>
-        <td>{{ product.category }}</td>
-        <td>{{ product.stock }}</td>
-        <td>{{ product.cost }}</td>
-        <td>{{ product.price }}</td>
-        <td>{{ product.utility_margin }}%</td>
-        <td>
-          <button class="btn-edit" (click)="editProduct(product)">Editar</button>
-          <button class="btn-delete" (click)="deleteProduct(product)">Eliminar</button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-
-  <!-- Sin resultados -->
-  <div *ngIf="noResultsFound" class="p-4 text-center text-gray-600">
-    <p>No se encontraron productos.</p>
-  </div>
-
-  <!-- Paginación -->
-  <div class="flex justify-between items-center mt-4">
-    <div class="pagination flex items-center">
-      <button
-        (click)="currentPage = 1; updatePaginatedProducts()"
-        [disabled]="currentPage === 1"
-        class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
-      >
-        ⇐
-      </button>
-      <button
-        (click)="currentPage = currentPage - 1; updatePaginatedProducts()"
-        [disabled]="currentPage === 1"
-        class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-7 h-7"
-      >
-        ←
-      </button>
-      <span class="mx-4 text-gray-700">Página {{ currentPage }} de {{ totalPages }}</span>
-      <button
-        (click)="currentPage = currentPage + 1; updatePaginatedProducts()"
-        [disabled]="currentPage === totalPages"
-        class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-7 h-7"
-      >
-        →
-      </button>
-      <button
-        (click)="currentPage = totalPages; updatePaginatedProducts()"
-        [disabled]="currentPage === totalPages"
-        class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
-      >
-        ⇒
-      </button>
-    </div>
-
-    <!-- Selector de elementos por página -->
-    <div class="items-per-page flex items-center">
-      <label for="itemsPerPage" class="mr-2">Elementos por página:</label>
-      <select
-        id="itemsPerPage"
-        [(ngModel)]="itemsPerPage"
-        (change)="currentPage = 1; updatePaginatedProducts()"
-        class="border border-gray-300 rounded-md p-1"
-      >
-        <option *ngFor="let size of [5, 10, 15, 20]" [value]="size">{{ size }}</option>
-      </select>
-    </div>
-  </div>
-
-  <!-- Modal -->
-  <div *ngIf="showModal" class="modal-overlay">
-    <div class="modal-content">
-      <h3 class="text-lg font-bold mb-4">
-        {{ isEditing ? 'Editar Producto' : 'Nuevo Producto' }}
-      </h3>
-      <form (ngSubmit)="saveProduct()">
-        <div class="mb-4">
-          <label class="block modal-input-item"
-          >Nombre<span class="text-red-500">*</span></label>
+    <div class="flex flex-wrap items-center justify-between mb-4 gap-4 px-2">
+      <div>
+        <label class="font-semibold mr-2">Categoría:</label>
+        <select
+          [(ngModel)]="filterCategory"
+          (change)="searchProduct()"
+          class="border border-gray-300 rounded-md p-1"
+        >
+          <option value="">-- Todas --</option>
+          <option *ngFor="let c of getUniqueCategories()" [value]="c">
+            {{ c }}
+          </option>
+        </select>
+      </div>
+      
+      <!-- Filtros de precio desde/hasta agrupados -->
+      <div class="flex items-center space-x-2">
+        <div>
+          <label class="font-semibold mr-2">Precio desde:</label>
           <input
-            [(ngModel)]="selectedProduct.name"
-            name="name"
-            class="form-input block w-full border border-gray-300 rounded-md"
-            required
+            type="number"
+            [(ngModel)]="minPrice"
+            (change)="searchProduct()"
+            class="border border-gray-300 rounded-md p-1 w-24"
           />
         </div>
-        <div class="mb-4">
-          <label class="block modal-input-item">Descripción</label>
-          <textarea
-            [(ngModel)]="selectedProduct.description"
-            name="description"
-            rows="2"
-            class="form-input block w-full border border-gray-300 rounded-md"
-          ></textarea>
-        </div>
-        <div *ngIf="categoryMode === 'select'" class="mb-4">
-          <label class="block modal-input-item"
-          >Categoría<span class="text-red-500">*</span></label>
-
-          <select
-            [(ngModel)]="selectedCategory"
-            [ngModelOptions]="{ standalone: true }"
-            class="form-select"
-          >
-            <option value="" disabled>Seleccione una categoría</option>
-            <option *ngFor="let c of getUniqueCategories()" [value]="c">
-              {{ c }}
-            </option>
-          </select>
-
-          <button
-            type="button"
-            class="btn-primary mt-2"
-            name="new_category"
-            (click)="categoryMode = 'create'"
-          >
-            Añadir nueva categoría
-          </button>
-        </div>
-        <div *ngIf="categoryMode === 'create'" class="mt-2">
-          <label class="block modal-input-item">Nueva categoría</label>
-
+        <div>
+          <label class="font-semibold mr-2">Hasta:</label>
           <input
-            type="text"
-            [(ngModel)]="newCategory"
-            [ngModelOptions]="{ standalone: true }"
-            class="form-input"
-            placeholder="Ej: Acrílico, vinilo, MDF..."
+            type="number"
+            [(ngModel)]="maxPrice"
+            (change)="searchProduct()"
+            class="border border-gray-300 rounded-md p-1 w-24"
           />
+        </div>
+      </div>
 
-          <p *ngIf="categoryFeedback" class="text-green-600 text-sm mt-1">
-            {{ categoryFeedback }}
-          </p>
+      <!-- Solo disponibles -->
+      <div>
+        <label class="font-semibold mr-2">Solo disponibles:</label>
+        <input
+          type="checkbox"
+          [(ngModel)]="filterStockAvailable"
+          (change)="searchProduct()"
+          class="ml-1"
+        />
+      </div>
+    </div>
 
-          <div class="flex gap-2 mt-2">
-            <button
-              type="button"
-              class="btn-success"
-              (click)="confirmNewCategory()"
+    <table class="table-std">
+      <thead>
+        <tr>
+          <th class="table-column-std">Código</th>
+          <th class="table-column-std">Nombre</th>
+          <th class="table-column-std">Categoría</th>
+          <th class="table-column-std">Stock</th>
+          <th class="table-column-std">Costo</th>
+          <th class="table-column-std">Precio</th>
+          <th class="table-column-std">% Margen</th>
+          <th class="table-column-std">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let product of paginatedProducts">
+          <td>{{ product.code }}</td>
+          <td>{{ product.name }}</td>
+          <td>{{ product.category }}</td>
+          <td>{{ product.stock }}</td>
+          <td>{{ product.cost }}</td>
+          <td>{{ product.price }}</td>
+          <td>{{ product.utility_margin }}%</td>
+          <td>
+            <button class="btn-edit" (click)="editProduct(product)">Editar</button>
+            <button class="btn-delete" (click)="deleteProduct(product)">Eliminar</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Sin resultados -->
+    <div *ngIf="noResultsFound" class="p-4 text-center text-gray-600">
+      <p>No se encontraron productos.</p>
+    </div>
+
+    <!-- Paginación -->
+    <div class="flex justify-between items-center mt-4">
+      <div class="pagination flex items-center">
+        <button
+          (click)="currentPage = 1; updatePaginatedProducts()"
+          [disabled]="currentPage === 1"
+          class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+        >
+          ⇐
+        </button>
+        <button
+          (click)="currentPage = currentPage - 1; updatePaginatedProducts()"
+          [disabled]="currentPage === 1"
+          class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-7 h-7"
+        >
+          ←
+        </button>
+        <span class="mx-4 text-gray-700">Página {{ currentPage }} de {{ totalPages }}</span>
+        <button
+          (click)="currentPage = currentPage + 1; updatePaginatedProducts()"
+          [disabled]="currentPage === totalPages"
+          class="px-2 py-1 text-gray-700 border rounded-full disabled:opacity-50 flex items-center justify-center w-7 h-7"
+        >
+          →
+        </button>
+        <button
+          (click)="currentPage = totalPages; updatePaginatedProducts()"
+          [disabled]="currentPage === totalPages"
+          class="px-2 py-1 border rounded-full disabled:opacity-50 flex items-center justify-center w-8 h-8"
+        >
+          ⇒
+        </button>
+      </div>
+
+      <!-- Selector de elementos por página -->
+      <div class="items-per-page flex items-center">
+        <label for="itemsPerPage" class="mr-2">Elementos por página:</label>
+        <select
+          id="itemsPerPage"
+          [(ngModel)]="itemsPerPage"
+          (change)="currentPage = 1; updatePaginatedProducts()"
+          class="border border-gray-300 rounded-md p-1"
+        >
+          <option *ngFor="let size of [5, 10, 15, 20]" [value]="size">{{ size }}</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Modal -->
+    <div *ngIf="showModal" class="modal-overlay">
+      <div class="modal-content">
+        <h3 class="text-lg font-bold mb-4">
+          {{ isEditing ? 'Editar Producto' : 'Nuevo Producto' }}
+        </h3>
+        <form (ngSubmit)="saveProduct()">
+          <div class="mb-4">
+            <label class="block modal-input-item"
+            >Nombre<span class="text-red-500">*</span></label>
+            <input
+              [(ngModel)]="selectedProduct.name"
+              name="name"
+              class="form-input block w-full border border-gray-300 rounded-md"
+              required
+            />
+          </div>
+          <div class="mb-4">
+            <label class="block modal-input-item">Descripción</label>
+            <textarea
+              [(ngModel)]="selectedProduct.description"
+              name="description"
+              rows="2"
+              class="form-input block w-full border border-gray-300 rounded-md"
+            ></textarea>
+          </div>
+          <div *ngIf="categoryMode === 'select'" class="mb-4">
+            <label class="block modal-input-item"
+            >Categoría<span class="text-red-500">*</span></label>
+
+            <select
+              [(ngModel)]="selectedCategory"
+              [ngModelOptions]="{ standalone: true }"
+              class="form-select"
             >
-              Usar esta categoría
-            </button>
+              <option value="" disabled>Seleccione una categoría</option>
+              <option *ngFor="let c of getUniqueCategories()" [value]="c">
+                {{ c }}
+              </option>
+            </select>
 
             <button
               type="button"
               class="btn-primary mt-2"
-              (click)="backToCategorySelect()"
+              name="new_category"
+              (click)="categoryMode = 'create'"
             >
-              Seleccionar categoría
+              Añadir nueva categoría
             </button>
           </div>
-        </div>
-        <div class="mb-4">
-          <label class="block modal-input-item">Stock</label>
-          <input
-            type="number"
-            [(ngModel)]="selectedProduct.stock"
-            name="stock"
-            class="form-input block w-full border border-gray-300 rounded-md"
-          />
-        </div>
-        <div class="mb-2 flex items-center gap-2">
-          <input
-            type="checkbox"
-            [(ngModel)]="autoPrice"
-            name="autoPrice"
-            (change)="onAutoPriceToggle()"
-            class="form-checkbox"
-            id="autoPrice"
-          />
-          <label for="autoPrice" class="modal-input-item">Calcular precio automáticamente (por utilidad)</label>
-        </div>
-        <div class="mb-4">
-          <label class="block modal-input-item">% Margen de utilidad</label>
-          <input
-            type="number"
-            [(ngModel)]="selectedProduct.utility_margin"
-            name="utility_margin"
-            step="0.01"
-            class="form-input block w-full border border-gray-300 rounded-md"
-            [disabled]="!autoPrice"
-            (input)="onMarginChange()"
-            />
-        </div>
-        <div class="mb-4">
-          <label class="block modal-input-item">Costo</label>
-          <input
-            type="number"
-            [(ngModel)]="selectedProduct.cost"
-            name="cost"
-            step="0.01"
-            class="form-input block w-full border border-gray-300 rounded-md"
-            (input)="onCostChange()"
-          />
-        </div>
-        <div class="mb-4">
-          <label class="block modal-input-item">Precio</label>
-          <input
-            type="number"
-            [(ngModel)]="selectedProduct.price"
-            name="price"
-            step="0.01"
-            class="form-input block w-full border border-gray-300 rounded-md"
-            [disabled]="autoPrice"
-            (input)="onPriceChange()"
-          />
-          <small class="text-gray-500" *ngIf="autoPrice">
-            Precio = Costo ÷ (1 − Utilidad/100). Redondeado a {{ roundingStep }}.
-          </small>
-          <small class="text-gray-500" *ngIf="!autoPrice">
-            Utilidad(%) = (Precio − Costo) ÷ Precio × 100.
-          </small>
-        </div>
+          <div *ngIf="categoryMode === 'create'" class="mt-2">
+            <label class="block modal-input-item">Nueva categoría</label>
 
-        <div class="flex justify-end space-x-4">
-          <button type="button" class="btn-danger" (click)="closeModal()">Cancelar</button>
-          <button type="submit" class="btn-success">
-            {{ isEditing ? 'Actualizar' : 'Guardar' }}
-          </button>
-        </div>
-      </form>
+            <input
+              type="text"
+              [(ngModel)]="newCategory"
+              [ngModelOptions]="{ standalone: true }"
+              class="form-input"
+              placeholder="Ej: Acrílico, vinilo, MDF..."
+            />
+
+            <p *ngIf="categoryFeedback" class="text-green-600 text-sm mt-1">
+              {{ categoryFeedback }}
+            </p>
+
+            <div class="flex gap-2 mt-2">
+              <button
+                type="button"
+                class="btn-success"
+                (click)="confirmNewCategory()"
+              >
+                Usar esta categoría
+              </button>
+
+              <button
+                type="button"
+                class="btn-primary mt-2"
+                (click)="backToCategorySelect()"
+              >
+                Seleccionar categoría
+              </button>
+            </div>
+          </div>
+          <div class="mb-4">
+            <label class="block modal-input-item">Stock</label>
+            <input
+              type="number"
+              [(ngModel)]="selectedProduct.stock"
+              name="stock"
+              class="form-input block w-full border border-gray-300 rounded-md"
+            />
+          </div>
+          <div class="mb-2 flex items-center gap-2">
+            <input
+              type="checkbox"
+              [(ngModel)]="autoPrice"
+              name="autoPrice"
+              (change)="onAutoPriceToggle()"
+              class="form-checkbox"
+              id="autoPrice"
+            />
+            <label for="autoPrice" class="modal-input-item">Calcular precio automáticamente (por utilidad)</label>
+          </div>
+          <div class="mb-4">
+            <label class="block modal-input-item">% Margen de utilidad</label>
+            <input
+              type="number"
+              [(ngModel)]="selectedProduct.utility_margin"
+              name="utility_margin"
+              step="0.01"
+              class="form-input block w-full border border-gray-300 rounded-md"
+              [disabled]="!autoPrice"
+              (input)="onMarginChange()"
+              />
+          </div>
+          <div class="mb-4">
+            <label class="block modal-input-item">Costo</label>
+            <input
+              type="number"
+              [(ngModel)]="selectedProduct.cost"
+              name="cost"
+              step="0.01"
+              class="form-input block w-full border border-gray-300 rounded-md"
+              (input)="onCostChange()"
+            />
+          </div>
+          <div class="mb-4">
+            <label class="block modal-input-item">Precio</label>
+            <input
+              type="number"
+              [(ngModel)]="selectedProduct.price"
+              name="price"
+              step="0.01"
+              class="form-input block w-full border border-gray-300 rounded-md"
+              [disabled]="autoPrice"
+              (input)="onPriceChange()"
+            />
+            <small class="text-gray-500" *ngIf="autoPrice">
+              Precio = Costo ÷ (1 − Utilidad/100). Redondeado a {{ roundingStep }}.
+            </small>
+            <small class="text-gray-500" *ngIf="!autoPrice">
+              Utilidad(%) = (Precio − Costo) ÷ Precio × 100.
+            </small>
+          </div>
+
+          <div class="flex justify-end space-x-4">
+            <button type="button" class="btn-danger" (click)="closeModal()">Cancelar</button>
+            <button type="submit" class="btn-success">
+              {{ isEditing ? 'Actualizar' : 'Guardar' }}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
-</div>
+</ng-container>

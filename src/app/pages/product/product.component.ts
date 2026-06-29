@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { MainBannerComponent } from '../main-banner/main-banner.component';
 import { FormsModule } from '@angular/forms';
 import { RouterOutlet } from '@angular/router';
@@ -39,6 +40,7 @@ export class ProductComponent implements OnInit, OnDestroy {
   loading = true;
   showModal = false;
   isEditing = false;
+  isPublicProductRoute = false;
   searchQuery = '';
   noResultsFound = false;
   availableCategories: string[] = [];
@@ -63,10 +65,12 @@ export class ProductComponent implements OnInit, OnDestroy {
   constructor(
     private readonly supabase: SupabaseService,
     private readonly roleService: RoleService,
-    private readonly zone: NgZone
+    private readonly zone: NgZone,
+    public router: Router
   ) {}
 
   async ngOnInit(): Promise<void> {
+    this.isPublicProductRoute = this.router.url.startsWith('/product');
     this.supabase.authChanges((_, session) => {
       if (session) {
         this.zone.run(() => {
@@ -404,7 +408,7 @@ export class ProductComponent implements OnInit, OnDestroy {
 
   slides = [
     { src: '/consultorio.jpg', alt: '1' },
-    { src: '/nooolapolicia.jpg', alt: '2' },
+    { src: '/policia.jpg', alt: '2' },
     { src: '/plazacentral.jpg', alt: '3' },
     { src: '/Habbab.jpg', alt: '4' },
     { src: '/multic.jpg', alt: '5' }
@@ -425,14 +429,14 @@ export class ProductComponent implements OnInit, OnDestroy {
     '/cubiculos.jpg',
     '/Ditica.jpg',
     '/etilico.jpg',
-    '/extrella.jpg',
+    '/estrella.jpg',
     '/hospedaje.jpg',
     '/lancha.jpg',
     '/marco.jpg',
     '/ministerio.jpg',
     '/multic.jpg',
     '/nails.jpg',
-    '/nooolapolicia.jpg',
+    '/policia.jpg',
     '/plaza2.jpg',
     '/puertita.jpg'
   ];

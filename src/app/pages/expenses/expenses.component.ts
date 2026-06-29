@@ -658,6 +658,14 @@ export class ExpensesComponent implements OnInit {
     this.budgetVariables = (data || []) as BudgetVariable[];
   }
 
+  private buildPaidAtFromDate(dateValue?: string | null): string | null {
+    if (!dateValue) return null;
+
+    const dateOnly = dateValue.split('T')[0];
+
+    return `${dateOnly}T12:00:00-05:00`;
+  }
+
   // Save expenses and update checkboxes
   async saveExpense() {
     if (this.isSaving) return;
@@ -822,11 +830,8 @@ export class ExpensesComponent implements OnInit {
 
       let paidAt: string | null = null;
 
-      if (
-        this.selectedExpense.payment_status === 'PAID' ||
-        this.selectedExpense.payment_status === 'PARTIAL'
-      ) {
-        paidAt = new Date().toISOString();
+      if (this.selectedExpense.payment_status === 'PAID') {
+        paidAt = this.buildPaidAtFromDate(this.selectedExpense.paid_at);
       }
 
       const expenseToSave: any = {
@@ -947,7 +952,9 @@ export class ExpensesComponent implements OnInit {
       created_at: item.created_at
         ? new Date(item.created_at)
         : new Date(),
-      paid_at: item.paid_at ?? null,
+      paid_at: item.paid_at
+        ? item.paid_at.split('T')[0]
+        : null,
       service_type: this.toUpper(item.service_type),
       provider_name: this.toUpper(item.provider_name),
       payments: item.expense_payments || [],
@@ -1230,21 +1237,18 @@ export class ExpensesComponent implements OnInit {
   }
 
   private isDateInPaidRange(dateValue?: string | null): boolean {
-    const date = this.normalizeDateOnly(dateValue);
+    const date = this.toDateOnly(dateValue);
     if (!date) return false;
 
-    const start = this.PaidStartDate
-      ? this.normalizeDateOnly(this.PaidStartDate)
-      : null;
-
-    const end = this.PaidEndDate
-      ? this.normalizeDateOnly(this.PaidEndDate)
-      : null;
-
-    if (start && date < start) return false;
-    if (end && date > end) return false;
+    if (this.PaidStartDate && date < this.PaidStartDate) return false;
+    if (this.PaidEndDate && date > this.PaidEndDate) return false;
 
     return true;
+  }
+
+  private toDateOnly(value?: string | null): string {
+    if (!value) return '';
+    return String(value).split('T')[0];
   }
 
   private getFilteredPaymentsTotal(expense: ExpensesItem): number {
@@ -1925,7 +1929,7 @@ export class ExpensesComponent implements OnInit {
       const updatePayload: any = {
         payment_status: newStatus,
         paid_at: newStatus === 'PAID'
-          ? new Date().toISOString()
+          ? this.buildPaidAtFromDate(this.newPaymentDate)
           : null,
         payment_due_date: newStatus === 'PAID'
           ? null
@@ -2044,7 +2048,7 @@ export class ExpensesComponent implements OnInit {
       const updatePayload: any = {
         payment_status: newStatus,
         paid_at: newStatus === 'PAID'
-          ? new Date().toISOString()
+          ? this.buildPaidAtFromDate(this.selectedExpense.paid_at)
           : null,
         payment_due_date: newStatus === 'PAID'
           ? null

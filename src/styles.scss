@@ -246,6 +246,13 @@ button {
     height: 800px;
   }
 }
+.modal-auto {
+  height: auto !important;
+  min-height: unset !important;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative !important;
+}
 .modal-h250 {
   height: 250px;
 }

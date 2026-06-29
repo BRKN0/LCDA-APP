@@ -9,7 +9,12 @@ interface CashMovement {
   occurred_at: string;
   direction: 'IN' | 'OUT';
   amount: number;
-  source: 'INVOICE_PAYMENT' | 'EXPENSE_PAYMENT' | 'EXPENSE_PAID';
+  source: 
+    | 'INVOICE_PAYMENT' 
+    | 'EXPENSE_PAYMENT' 
+    | 'EXPENSE_PAID'
+    | 'LOAN_OUT'
+    | 'LOAN_RETURN';
   reference: string;
   description: string;
   method: 'cash';
@@ -537,7 +542,77 @@ export class BankingComponent implements OnInit {
         method: 'cash',
       }));
 
-    this.cashMovements = [...inMoves, ...outMovesFromPayments, ...outMovesPaidNoPayments]
+    // SALIDAS: préstamos entregados en efectivo
+    const { data: cashLoans, error: loansErr } = await this.supabase
+      .from('loans')
+      .select(`
+        id,
+        code,
+        loan_at,
+        amount,
+        disbursement_method,
+        borrower_name,
+        description
+      `)
+      .eq('disbursement_method', 'cash');
+
+    if (loansErr) {
+      console.error('Error cargando préstamos cash:', loansErr);
+      this.showNotification('Error cargando salidas de caja por préstamos.', 'error');
+      this.loading = false;
+      return;
+    }
+
+    const outMovesFromLoans: CashMovement[] = (cashLoans ?? []).map((loan: any) => ({
+      date: this.ymd(loan.loan_at),
+      occurred_at: this.toDateTimeValue(loan.loan_at),
+      direction: 'OUT',
+      amount: this.round2(Number(loan.amount) || 0),
+      source: 'LOAN_OUT',
+      reference: loan.code ? `Préstamo ${loan.code}` : String(loan.id ?? ''),
+      description: loan.borrower_name
+        ? `Préstamo efectivo - ${loan.borrower_name}`
+        : 'Préstamo efectivo',
+      method: 'cash',
+    }));
+
+    // ENTRADAS: devoluciones de préstamos en efectivo
+    const { data: cashLoanPayments, error: loanPayErr } = await this.supabase
+      .from('loan_payments')
+      .select(`
+        id,
+        loan_id,
+        payment_at,
+        amount,
+        payment_method,
+        loans:loans (
+          code,
+          borrower_name
+        )
+      `)
+      .eq('payment_method', 'cash');
+
+    if (loanPayErr) {
+      console.error('Error cargando devoluciones de préstamos cash:', loanPayErr);
+      this.showNotification('Error cargando entradas de caja por devoluciones.', 'error');
+      this.loading = false;
+      return;
+    }
+
+    const inMovesFromLoanPayments: CashMovement[] = (cashLoanPayments ?? []).map((p: any) => ({
+      date: this.ymd(p.payment_at),
+      occurred_at: this.toDateTimeValue(p.payment_at),
+      direction: 'IN',
+      amount: this.round2(Number(p.amount) || 0),
+      source: 'LOAN_RETURN',
+      reference: p.loans?.code ? `Préstamo ${p.loans.code}` : String(p.loan_id ?? ''),
+      description: p.loans?.borrower_name
+        ? `Devolución préstamo efectivo - ${p.loans.borrower_name}`
+        : 'Devolución préstamo efectivo',
+      method: 'cash',
+    }));
+
+    this.cashMovements = [...inMoves, ...outMovesFromPayments, ...outMovesPaidNoPayments, ...outMovesFromLoans, ...inMovesFromLoanPayments]
       .filter((m) => m.amount > 0 && !!m.date);
 
     this.cashMovements.sort(

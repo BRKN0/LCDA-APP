@@ -39,67 +39,71 @@ export class MainBannerComponent implements OnInit {
   }
 
   goToNotifications() {
-    this.router.navigate(['/notifications']);
+    this.navigateAndClose(['/notifications']);
   }
   goToHome() {
-    this.router.navigate(['/home']);
+    this.navigateAndClose(['/home']);
   }
   goToLogin() {
-    this.router.navigate(['/login']);
+    this.navigateAndClose(['/login']);
   }
   goToInventory() {
-    this.router.navigate(['/inventory/materials']);
+    this.navigateAndClose(['/inventory/materials']);
   }
   goToProducts() {
-    this.router.navigate(['/inventory/product']);
+    this.navigateAndClose(['/inventory/product']);
+  }
+  goToPublicProducts() {
+    this.closeDropdowns();
+    this.router.navigate(['/product']);
   }
   goToAcrylics() {
-    this.router.navigate(['/pricing/acrylics']);
+    this.navigateAndClose(['/pricing/acrylics']);
   }
   goToMdf() {
-    this.router.navigate(['/pricing/mdf']);
+    this.navigateAndClose(['/pricing/mdf']);
   }
   goTopolystyrene() {
-    this.router.navigate(['/pricing/polystyrene']);
+    this.navigateAndClose(['/pricing/polystyrene']);
   }
   goToVinylCuts() {
-    this.router.navigate(['/pricing/vinyl-cuts']);
+    this.navigateAndClose(['/pricing/vinyl-cuts']);
   }
   goToBanks(): void {
-    this.router.navigate(['/bank/banks']);
+    this.navigateAndClose(['/bank/banks']);
   }
   goToBanking(): void {
-    this.router.navigate(['/bank/banking']);
+    this.navigateAndClose(['/bank/banking']);
   }
   goToProviders() {
-    this.router.navigate(['/bank/providers']);
+    this.navigateAndClose(['/bank/providers']);
   }
   goToThirdParties() {
-    this.router.navigate(['/bank/third']);
+    this.navigateAndClose(['/bank/third']);
   }
   goToClients() {
-    this.router.navigate(['/clients']);
+    this.navigateAndClose(['/clients']);
   }
   goToOrders() {
-    this.router.navigate(['/orders']);
+    this.navigateAndClose(['/orders']);
   }
   goToInvoices() {
-    this.router.navigate(['/invoice']);
+    this.navigateAndClose(['/invoice']);
   }
   goToExpenses() {
-    this.router.navigate(['/expenses']);
+    this.navigateAndClose(['/expenses']);
   }
   goToEmployees() {
-    this.router.navigate(['/employees']);
+    this.navigateAndClose(['/employees']);
   }
   goToControlPanel() {
-    this.router.navigate(['/control-panel']);
+    this.navigateAndClose(['/control-panel']);
   }
   goToSchedule() {
-    this.router.navigate(['/schedule']);
+    this.navigateAndClose(['/schedule']);
   }
   goToQuotation() {
-    this.router.navigate(['/quotation']);
+    this.navigateAndClose(['/quotation']);
   }
   signOut() {
     this.supabase.signOut().then(() =>
@@ -232,6 +236,12 @@ export class MainBannerComponent implements OnInit {
     this.inventoryDropdownOpen = false;
     this.quotationDropdownOpen = false;
   }
+
+  private navigateAndClose(route: string[]): void {
+    this.closeDropdowns();
+    this.router.navigate(route);
+  }
+  
   togglePriceDropdown(event: MouseEvent): void {
     event.stopPropagation();
     this.priceDropdownOpen = !this.priceDropdownOpen;

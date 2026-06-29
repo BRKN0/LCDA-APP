@@ -143,6 +143,10 @@ export const routes: Routes = [
     loadComponent: () => HomeComponent,
   },
   {
+    path: 'product',
+    loadComponent: () => ProductComponent,
+  },
+  {
     path: '',
     redirectTo: 'home',
     pathMatch: 'full',
